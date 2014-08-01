@@ -86,7 +86,7 @@ public interface DocFilter {
         public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             final GroupRemapRule[] rules = new GroupRemapRule[numGroups];
             for (int group = 1; group <= numGroups; group++) {
-                rules[group] = new GroupRemapRule(group, new RegroupCondition(field, value.isIntTerm, value.intTerm, value.stringTerm, false), 0, group);
+                rules[group-1] = new GroupRemapRule(group, new RegroupCondition(field, value.isIntTerm, value.intTerm, value.stringTerm, false), 0, group);
             }
             session.regroup(rules);
         }
