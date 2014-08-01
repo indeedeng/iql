@@ -21,6 +21,16 @@ public class Commands {
                 return new FilterDocs(DocFilter.fromJson(command.get("filter")));
             case "explodeGroups": {
                 final String field = command.get("field").asText();
+                Optional<String> defaultName = Optional.empty();
+                if (command.has("opts")) {
+                    for (final JsonNode opt : command.get("opts")) {
+                        switch (opt.get("type").asText()) {
+                            case "addDefault":
+                                defaultName = Optional.of(opt.get("name").asText());
+                                break;
+                        }
+                    }
+                }
                 if (command.has("strings")) {
                     final List<List<String>> allGroupTerms = Lists.newArrayList();
                     for (final JsonNode group : command.get("strings")) {
@@ -30,7 +40,7 @@ public class Commands {
                         }
                         allGroupTerms.add(groupTerms);
                     }
-                    return new ExplodeGroups(field, allGroupTerms, null);
+                    return new ExplodeGroups(field, allGroupTerms, null, defaultName);
                 } else if (command.has("ints")) {
                     final List<LongArrayList> allGroupTerms = Lists.newArrayList();
                     for (final JsonNode group : command.get("strings")) {
@@ -40,7 +50,7 @@ public class Commands {
                         }
                         allGroupTerms.add(groupTerms);
                     }
-                    return new ExplodeGroups(field, null, allGroupTerms);
+                    return new ExplodeGroups(field, null, allGroupTerms, defaultName);
                 } else {
                     throw new IllegalArgumentException("uhh?:" + command);
                 }
@@ -138,11 +148,13 @@ public class Commands {
         public final String field;
         public final List<List<String>> stringTerms;
         public final List<LongArrayList> intTerms;
+        public final Optional<String> defaultGroupTerm;
 
-        public ExplodeGroups(String field, List<List<String>> stringTerms, List<LongArrayList> intTerms) {
+        public ExplodeGroups(String field, List<List<String>> stringTerms, List<LongArrayList> intTerms, Optional<String> defaultName) {
             this.field = field;
             this.stringTerms = stringTerms;
             this.intTerms = intTerms;
+            defaultGroupTerm = defaultName;
         }
     }
 

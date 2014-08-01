@@ -236,7 +236,7 @@ public class Session {
             int nextGroup = 1;
             for (int i = 0; i < numGroups; i++) {
                 final int group = i + 1;
-                List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
+                final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
                 if (intType) {
                     final LongArrayList terms = explodeGroups.intTerms.get(i);
                     for (final long term : terms) {
@@ -253,7 +253,13 @@ public class Session {
                     positiveGroups[j] = nextGroup++;
                 }
                 final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
-                rules[i] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+                final int negativeGroup;
+                if (explodeGroups.defaultGroupTerm.isPresent()) {
+                    negativeGroup = nextGroup++;
+                } else {
+                    negativeGroup = 0;
+                }
+                rules[i] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
             }
             System.out.println("Exploding");
             numGroups = session.regroup(rules);
