@@ -45,7 +45,7 @@ public class Session {
     private static final Logger log = Logger.getLogger(Session.class);
 
     public List<String> fields = Lists.newArrayList();
-    public List<GroupKey> groupKeys = Lists.newArrayList((GroupKey)null);
+    public List<GroupKey> groupKeys = Lists.newArrayList((GroupKey)null, (GroupKey)null);
 
     public final ImhotepSession session;
     private int numGroups = 1;
@@ -63,6 +63,9 @@ public class Session {
                     jgen.writeObjectField("stringTerm", value.stringTerm);
                 }
                 jgen.writeObjectField("selects", value.selects);
+                if (value.groupKey != null) {
+                    jgen.writeObjectField("key", value.groupKey.asList());
+                }
                 jgen.writeEndObject();
             }
         });
@@ -101,6 +104,7 @@ public class Session {
         final ServerSocket serverSocket = new ServerSocket(28347);
         while (true) {
             final Socket clientSocket = serverSocket.accept();
+            new Thread(() -> {
                 try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                      final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-19T00:00:00"), DateTime.parse("2014-07-20T00:00:00")).build()) {
@@ -113,6 +117,7 @@ public class Session {
                 } catch (Throwable e) {
                     log.error("wat", e);
                 }
+            }).start();
         }
     }
 
@@ -175,11 +180,11 @@ public class Session {
                                     value = 0.0;
                                 }
                                 selectBuffer = new double[iterate.selecting.size()];
-                                List<AggregateMetric> selecting = iterate.selecting;
+                                final List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
                                     selectBuffer[i] = selecting.get(i).apply(term, statsBuff);
                                 }
-                                pqs.get(group).offer(new TermSelects(true, null, term, selectBuffer, value));
+                                pqs.get(group).offer(new TermSelects(true, null, term, selectBuffer, value, groupKeys.get(group)));
                             }
                         }
                     } else {
@@ -198,11 +203,11 @@ public class Session {
                                 } else {
                                     value = 0.0;
                                 }
-                                List<AggregateMetric> selecting = iterate.selecting;
+                                final List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
                                     selectBuffer[i] = selecting.get(i).apply(term, statsBuff);
                                 }
-                                pqs.get(group).offer(new TermSelects(false, term, 0, selectBuffer, value));
+                                pqs.get(group).offer(new TermSelects(false, term, 0, selectBuffer, value, groupKeys.get(group)));
                             }
                         }
                     }
@@ -234,6 +239,7 @@ public class Session {
             final boolean intType = explodeGroups.intTerms != null;
             final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
             int nextGroup = 1;
+            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey)null);
             for (int i = 0; i < numGroups; i++) {
                 final int group = i + 1;
                 final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
@@ -241,11 +247,13 @@ public class Session {
                     final LongArrayList terms = explodeGroups.intTerms.get(i);
                     for (final long term : terms) {
                         regroupConditionsList.add(new RegroupCondition(explodeGroups.field, true, term, null, false));
+                        nextGroupKeys.add(new GroupKey(String.valueOf(term), groupKeys.get(group)));
                     }
                 } else {
                     final List<String> terms = explodeGroups.stringTerms.get(i);
                     for (final String term : terms) {
                         regroupConditionsList.add(new RegroupCondition(explodeGroups.field, false, 0, term, false));
+                        nextGroupKeys.add(new GroupKey(term, groupKeys.get(group)));
                     }
                 }
                 final int[] positiveGroups = new int[regroupConditionsList.size()];
@@ -256,6 +264,7 @@ public class Session {
                 final int negativeGroup;
                 if (explodeGroups.defaultGroupTerm.isPresent()) {
                     negativeGroup = nextGroup++;
+                    nextGroupKeys.add(new GroupKey(explodeGroups.defaultGroupTerm.get(), groupKeys.get(group)));
                 } else {
                     negativeGroup = 0;
                 }
@@ -263,6 +272,7 @@ public class Session {
             }
             System.out.println("Exploding");
             numGroups = session.regroup(rules);
+            groupKeys = nextGroupKeys;
             System.out.println("Exploded");
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
@@ -304,14 +314,23 @@ public class Session {
         }
     }
 
-
-    private static class GroupKey {
+    public static class GroupKey {
         public final String term;
         public final GroupKey parent;
 
         private GroupKey(String term, GroupKey parent) {
             this.term = term;
             this.parent = parent;
+        }
+
+        public List<String> asList() {
+            final List<String> keys = Lists.newArrayList();
+            GroupKey node = this;
+            while (node != null) {
+                keys.add(node.term);
+                node = node.parent;
+            }
+            return Lists.reverse(keys);
         }
     }
 }

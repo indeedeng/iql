@@ -19,24 +19,15 @@ public class TermSelects {
 
     public final double[] selects;
     public double topMetric;
+    public final Session.GroupKey groupKey;
 
-    TermSelects(boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric) {
+    TermSelects(boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
         this.isIntTerm = isIntTerm;
         this.selects = selects;
         this.topMetric = topMetric;
-    }
-
-    public JsonNode toJsonNode() {
-        final ObjectNode node = objectMapper.createObjectNode();
-        if (isIntTerm) {
-            node.put("intTerm", intTerm);
-        } else {
-            node.put("stringTerm", stringTerm);
-        }
-        node.put("selects", objectMapper.valueToTree(selects));
-        return node;
+        this.groupKey = groupKey;
     }
 
     @Override
@@ -47,6 +38,7 @@ public class TermSelects {
                 ", intTerm=" + intTerm +
                 ", selects=" + Arrays.toString(selects) +
                 ", topMetric=" + topMetric +
+                ", groupKey=" + groupKey +
                 '}';
     }
 }
