@@ -1,57 +1,31 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
+import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
+import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import org.joda.time.DateTime;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * @author jwolfe
  */
 public interface DocFilter {
-    public static void main(String[] args) throws ImhotepOutOfMemoryException {
-        final ImhotepClient client = new ImhotepClient("/Users/jwolfe/hosts.txt");
-        try (final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-01T00:00:00"), DateTime.parse("2014-07-02T00:00:00")).build()) {
-            session.pushStat("count()");
-            final long[] totalCount = session.getGroupStats(0);
-            System.out.println("totalCount = " + Arrays.toString(totalCount));
-            if (false) {
-                session.pushStat("sjc");
-                session.pushStat("sjc");
-                session.pushStat("1");
-                session.pushStat("+");
-                session.pushStat("-");
-                session.metricFilter(1, -1, -1, false);
-                final long[] count2 = session.getGroupStats(0);
-                System.out.println("count2 = " + Arrays.toString(count2));
-            } else {
-                new LessThan(new DocMetric.BaseMetric("sjc"), new DocMetric.BaseMetric("ojc")).apply(session, 1);
-                final long[] lessThan = session.getGroupStats(0);
-                System.out.println("lessThan = " + Arrays.toString(lessThan));
-                session.resetGroups();
-                new MetricEquals(new DocMetric.BaseMetric("sjc"), new DocMetric.BaseMetric("ojc")).apply(session, 1);
-                final long[] equal = session.getGroupStats(0);
-                System.out.println("equal = " + Arrays.toString(equal));
-                session.resetGroups();
-                new GreaterThan(new DocMetric.BaseMetric("sjc"), new DocMetric.BaseMetric("ojc")).apply(session, 1);
-                final long[] greaterThan = session.getGroupStats(0);
-                System.out.println("greaterThan = " + Arrays.toString(greaterThan));
-                session.resetGroups();
-            }
-        }
-    }
-
     public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException;
 
     public static DocFilter fromJson(JsonNode node) {
-        Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("arg1"));
-        Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("arg2"));
-        Supplier<DocFilter> f1 = () -> DocFilter.fromJson(node.get("arg1"));
-        Supplier<DocFilter> f2 = () -> DocFilter.fromJson(node.get("arg2"));
+        final Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("arg1"));
+        final Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("arg2"));
+        final Supplier<DocFilter> f1 = () -> DocFilter.fromJson(node.get("arg1"));
+        final Supplier<DocFilter> f2 = () -> DocFilter.fromJson(node.get("arg2"));
         switch (node.get("type").asText()) {
             case "fieldEquals":
                 return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
@@ -208,7 +182,36 @@ public interface DocFilter {
 
         @Override
         public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            throw new UnsupportedOperationException();
+            final Pattern pattern = Pattern.compile(regex);
+            final FTGSIterator it = session.getFTGSIterator(new String[0], new String[]{field});
+            final Int2ObjectArrayMap<List<String>> groupTerms = new Int2ObjectArrayMap<>();
+            while (it.nextField()) {
+                while (it.nextTerm()) {
+                    final String term = it.termStringVal();
+                    if (pattern.matcher(term).matches()) {
+                        while (it.nextGroup()) {
+                            final int group = it.group();
+                            groupTerms.computeIfAbsent(group, ignored -> Lists.newArrayList()).add(term);
+                        }
+                    }
+                }
+            }
+            final List<GroupMultiRemapRule> rules = Lists.newArrayList();
+            for (int group = 1; group <= numGroups; group++) {
+                if (groupTerms.containsKey(group)) {
+                    final List<String> terms = groupTerms.get(group);
+                    final int[] positives = new int[terms.size()];
+                    Arrays.fill(positives, group);
+                    final RegroupCondition[] conditions = new RegroupCondition[terms.size()];
+                    for (int i = 0; i < terms.size(); i++) {
+                        final String term = terms.get(i);
+                        conditions[i] = new RegroupCondition(field, false, 0, term, false);
+                    }
+                    rules.add(new GroupMultiRemapRule(group, 0, positives, conditions));
+                }
+            }
+            final GroupMultiRemapRule[] rulesArray = rules.toArray(new GroupMultiRemapRule[rules.size()]);
+            session.regroup(rulesArray);
         }
     }
 }
