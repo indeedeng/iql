@@ -19,6 +19,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,6 +39,9 @@ import java.util.Set;
  * @author jwolfe
  */
 public class Session {
+    static {
+        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+    }
     private static final Logger log = Logger.getLogger(Session.class);
 
     public List<String> fields = Lists.newArrayList();
@@ -99,7 +103,7 @@ public class Session {
             final Socket clientSocket = serverSocket.accept();
                 try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                     final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-01T00:00:00"), DateTime.parse("2014-07-02T00:00:00")).build()) {
+                     final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-19T00:00:00"), DateTime.parse("2014-07-20T00:00:00")).build()) {
                     final Session session1 = new Session(session);
                     String inputLine;
                     while ((inputLine = in.readLine()) != null) {
@@ -167,17 +171,10 @@ public class Session {
                                 final double value;
                                 if (topKMetricOrNull != null) {
                                     value = topKMetricOrNull.apply(term, statsBuff);
-                                    final Queue<TermSelects> pq = pqs.get(group);
-                                    final BoundedPriorityQueue<TermSelects> bpq = (BoundedPriorityQueue<TermSelects>) pq;
-                                    if (bpq.isFull() && pq.peek().topMetric <= value) {
-                                        selectBuffer = pq.poll().selects;
-                                    } else {
-                                        selectBuffer = new double[iterate.selecting.size()];
-                                    }
                                 } else {
                                     value = 0.0;
-                                    selectBuffer = new double[iterate.selecting.size()];
                                 }
+                                selectBuffer = new double[iterate.selecting.size()];
                                 List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
                                     selectBuffer[i] = selecting.get(i).apply(term, statsBuff);
@@ -194,20 +191,12 @@ public class Session {
                                 if (filterOrNull != null && !filterOrNull.allow(term, statsBuff)) {
                                     continue;
                                 }
-                                final double[] selectBuffer;
+                                final double[] selectBuffer = new double[iterate.selecting.size()];
                                 final double value;
                                 if (topKMetricOrNull != null) {
                                     value = topKMetricOrNull.apply(term, statsBuff);
-                                    final Queue<TermSelects> pq = pqs.get(group);
-                                    final BoundedPriorityQueue<TermSelects> bpq = (BoundedPriorityQueue<TermSelects>) pq;
-                                    if (bpq.isFull() && pq.peek().topMetric <= value) {
-                                        selectBuffer = pq.poll().selects;
-                                    } else {
-                                        selectBuffer = new double[iterate.selecting.size()];
-                                    }
                                 } else {
                                     value = 0.0;
-                                    selectBuffer = new double[iterate.selecting.size()];
                                 }
                                 List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
@@ -279,6 +268,8 @@ public class Session {
                 metricIndexes.put(push, session.pushStats(push) - 1);
             }
 
+            getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes));
+
             final long[][] allStats = new long[session.getNumStats()][];
             for (int i = 0; i < allStats.length; i++) {
                 allStats[i] = session.getGroupStats(i);
@@ -287,10 +278,12 @@ public class Session {
             final List<AggregateMetric> selectedMetrics = getGroupStats.metrics;
             final double[][] results = new double[numGroups][selectedMetrics.size()];
             final long[] groupStatsBuf = new long[allStats.length];
-            for (int i = 0; i < numGroups; i++) {
-                System.arraycopy(allStats[i], 0, groupStatsBuf, 0, groupStatsBuf.length);
+            for (int group = 1; group <= numGroups; group++) {
+                for (int j = 0; j < allStats.length; j++) {
+                    groupStatsBuf[j] = allStats[j][group];
+                }
                 for (int j = 0; j < selectedMetrics.size(); j++) {
-                    results[i][j] = selectedMetrics.get(j).apply(0, groupStatsBuf);
+                    results[group - 1][j] = selectedMetrics.get(j).apply(0, groupStatsBuf);
                 }
             }
 
