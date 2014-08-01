@@ -1,11 +1,17 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
  * @author jwolfe
  */
 public interface DocMetric {
+    public List<String> pushes();
+
     public static DocMetric fromJson(JsonNode node) {
         Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("m1"));
         Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("m2"));
@@ -40,6 +46,20 @@ public interface DocMetric {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public List<String> pushes() {
+            return binopPushes("+", m1, m2);
+        }
+
+    }
+
+    static List<String> binopPushes(String op, DocMetric m1, DocMetric m2) {
+        final List<String> result = Lists.newArrayList();
+        result.addAll(m1.pushes());
+        result.addAll(m2.pushes());
+        result.add(op);
+        return result;
     }
 
     public static class Subtract implements DocMetric {
@@ -50,6 +70,11 @@ public interface DocMetric {
             super();
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public List<String> pushes() {
+            return binopPushes("-", m1, m2);
         }
     }
 
@@ -62,6 +87,11 @@ public interface DocMetric {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public List<String> pushes() {
+            return binopPushes("*", m1, m2);
+        }
     }
 
     public static class Divide implements DocMetric {
@@ -73,6 +103,11 @@ public interface DocMetric {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public List<String> pushes() {
+            return binopPushes("/", m1, m2);
+        }
     }
 
     public static class Abs implements DocMetric {
@@ -80,6 +115,14 @@ public interface DocMetric {
 
         public Abs(DocMetric value) {
             this.value = value;
+        }
+
+        @Override
+        public List<String> pushes() {
+            List<String> result = Lists.newArrayList();
+            result.addAll(value.pushes());
+            result.add("abs()");
+            return result;
         }
     }
 
@@ -89,6 +132,11 @@ public interface DocMetric {
         public Signum(DocMetric value) {
             this.value = value;
         }
+
+        @Override
+        public List<String> pushes() {
+            throw new UnsupportedOperationException("unpossible!");
+        }
     }
 
     static class Constant implements DocMetric {
@@ -97,6 +145,11 @@ public interface DocMetric {
         public Constant(long value) {
             this.value = value;
         }
+
+        @Override
+        public List<String> pushes() {
+            return Collections.singletonList(Long.toString(value));
+        }
     }
 
     static class BaseMetric implements DocMetric {
@@ -104,6 +157,11 @@ public interface DocMetric {
 
         public BaseMetric(String push) {
             this.push = push;
+        }
+
+        @Override
+        public List<String> pushes() {
+            return Collections.singletonList(push);
         }
     }
 }
