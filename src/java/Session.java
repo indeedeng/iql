@@ -63,6 +63,7 @@ public class Session {
             }
         });
         mapper.registerModule(module);
+        mapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
 
     public Session(ImhotepSession session) {
@@ -227,7 +228,8 @@ public class Session {
                 }
                 allTermSelects.add(listTermSelects);
             }
-            out.println(mapper.writeValueAsString(allTermSelects));
+            mapper.writeValue(out, allTermSelects);
+            out.println();
             while (session.getNumStats() != 0) {
                 session.popStat();
             }
@@ -296,7 +298,8 @@ public class Session {
                 session.popStat();
             }
 
-            out.println(mapper.writeValueAsString(results));
+            mapper.writeValue(out, results);
+            out.println();
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
         }
