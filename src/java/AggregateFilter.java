@@ -1,11 +1,23 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Longs;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * @author jwolfe
  */
 public interface AggregateFilter {
+    public Set<List<String>> requires();
+    public void register(Map<List<String>, Integer> metricIndexes);
+    public boolean allow(String term, long[] stats);
+    public boolean allow(long term, long[] stats);
+
     public static AggregateFilter fromJson(JsonNode node) {
         Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"));
         Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"));
@@ -40,6 +52,25 @@ public interface AggregateFilter {
             this.field = field;
             this.value = value;
         }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return term.equals(value.stringTerm);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return Long.compare(term, value.intTerm) == 0;
+        }
     }
 
     public static class Not implements AggregateFilter {
@@ -47,6 +78,26 @@ public interface AggregateFilter {
 
         public Not(AggregateFilter f) {
             this.f = f;
+        }
+
+        @Override
+        public Set<List<String>> requires() {
+            return f.requires();
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            f.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return !f.allow(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return !f.allow(term, stats);
         }
     }
 
@@ -58,6 +109,27 @@ public interface AggregateFilter {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            m1.register(metricIndexes);
+            m2.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return m1.apply(term, stats) == m2.apply(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return m1.apply(term, stats) == m2.apply(term, stats);
+        }
     }
 
     public static class GreaterThan implements AggregateFilter {
@@ -67,6 +139,27 @@ public interface AggregateFilter {
         public GreaterThan(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            m1.register(metricIndexes);
+            m2.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return m1.apply(term, stats) > m2.apply(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return m1.apply(term, stats) > m2.apply(term, stats);
         }
     }
 
@@ -78,6 +171,27 @@ public interface AggregateFilter {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            m1.register(metricIndexes);
+            m2.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return m1.apply(term, stats) < m2.apply(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return m1.apply(term, stats) < m2.apply(term, stats);
+        }
     }
 
     public static class And implements AggregateFilter {
@@ -87,6 +201,27 @@ public interface AggregateFilter {
         public And(AggregateFilter f1, AggregateFilter f2) {
             this.f1 = f1;
             this.f2 = f2;
+        }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Sets.union(f1.requires(), f2.requires());
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            f1.register(metricIndexes);
+            f2.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return f1.allow(term, stats) && f2.allow(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return f1.allow(term, stats) && f2.allow(term, stats);
         }
     }
 
@@ -99,15 +234,57 @@ public interface AggregateFilter {
             this.f2 = f2;
         }
 
+        @Override
+        public Set<List<String>> requires() {
+            return Sets.union(f1.requires(), f2.requires());
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+            f1.register(metricIndexes);
+            f2.register(metricIndexes);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return f1.allow(term, stats) || f2.allow(term, stats);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return f1.allow(term, stats) || f2.allow(term, stats);
+        }
     }
 
     public static class RegexFilter implements AggregateFilter {
         private final String field;
         private final String regex;
 
+        private final Pattern pattern;
+
         public RegexFilter(String field, String regex) {
             this.field = field;
             this.regex = regex;
+            this.pattern = Pattern.compile(regex);
+        }
+
+        @Override
+        public Set<List<String>> requires() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void register(Map<List<String>, Integer> metricIndexes) {
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats) {
+            return pattern.matcher(term).matches();
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats) {
+            return false;
         }
     }
 }
