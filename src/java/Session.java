@@ -28,7 +28,6 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -169,20 +168,20 @@ public class Session {
                             while (it.nextGroup()) {
                                 final int group = it.group();
                                 it.groupStats(statsBuff);
-                                if (filterOrNull != null && !filterOrNull.allow(term, statsBuff)) {
+                                if (filterOrNull != null && !filterOrNull.allow(term, statsBuff, group)) {
                                     continue;
                                 }
                                 final double[] selectBuffer;
                                 final double value;
                                 if (topKMetricOrNull != null) {
-                                    value = topKMetricOrNull.apply(term, statsBuff);
+                                    value = topKMetricOrNull.apply(term, statsBuff, group);
                                 } else {
                                     value = 0.0;
                                 }
                                 selectBuffer = new double[iterate.selecting.size()];
                                 final List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
-                                    selectBuffer[i] = selecting.get(i).apply(term, statsBuff);
+                                    selectBuffer[i] = selecting.get(i).apply(term, statsBuff, group);
                                 }
                                 pqs.get(group).offer(new TermSelects(true, null, term, selectBuffer, value, groupKeys.get(group)));
                             }
@@ -193,19 +192,19 @@ public class Session {
                             while (it.nextGroup()) {
                                 final int group = it.group();
                                 it.groupStats(statsBuff);
-                                if (filterOrNull != null && !filterOrNull.allow(term, statsBuff)) {
+                                if (filterOrNull != null && !filterOrNull.allow(term, statsBuff, group)) {
                                     continue;
                                 }
                                 final double[] selectBuffer = new double[iterate.selecting.size()];
                                 final double value;
                                 if (topKMetricOrNull != null) {
-                                    value = topKMetricOrNull.apply(term, statsBuff);
+                                    value = topKMetricOrNull.apply(term, statsBuff, group);
                                 } else {
                                     value = 0.0;
                                 }
                                 final List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
-                                    selectBuffer[i] = selecting.get(i).apply(term, statsBuff);
+                                    selectBuffer[i] = selecting.get(i).apply(term, statsBuff, group);
                                 }
                                 pqs.get(group).offer(new TermSelects(false, term, 0, selectBuffer, value, groupKeys.get(group)));
                             }
@@ -277,41 +276,47 @@ public class Session {
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final Set<List<String>> pushesRequired = Sets.newHashSet();
-            getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
-            final Map<List<String>, Integer> metricIndexes = Maps.newHashMap();
-            for (final List<String> push : pushesRequired) {
-                metricIndexes.put(push, session.pushStats(push) - 1);
-            }
-
-            getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes));
-
-            final long[][] allStats = new long[session.getNumStats()][];
-            for (int i = 0; i < allStats.length; i++) {
-                allStats[i] = session.getGroupStats(i);
-            }
-
-            final List<AggregateMetric> selectedMetrics = getGroupStats.metrics;
-            final double[][] results = new double[numGroups][selectedMetrics.size()];
-            final long[] groupStatsBuf = new long[allStats.length];
-            for (int group = 1; group <= numGroups; group++) {
-                for (int j = 0; j < allStats.length; j++) {
-                    groupStatsBuf[j] = allStats[j][group];
-                }
-                for (int j = 0; j < selectedMetrics.size(); j++) {
-                    results[group - 1][j] = selectedMetrics.get(j).apply(0, groupStatsBuf);
-                }
-            }
-
-            while (session.getNumStats() != 0) {
-                session.popStat();
-            }
+            final double[][] results = getGroupStats(getGroupStats, session, numGroups);
 
             mapper.writeValue(out, results);
             out.println();
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
         }
+    }
+
+    public static double[][] getGroupStats(Commands.GetGroupStats getGroupStats, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        final int initialNumStats = session.getNumStats();
+        final Set<List<String>> pushesRequired = Sets.newHashSet();
+        getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
+        final Map<List<String>, Integer> metricIndexes = Maps.newHashMap();
+        for (final List<String> push : pushesRequired) {
+            metricIndexes.put(push, session.pushStats(push) - 1);
+        }
+
+        getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes));
+
+        final long[][] allStats = new long[session.getNumStats()][];
+        for (int i = 0; i < allStats.length; i++) {
+            allStats[i] = session.getGroupStats(i);
+        }
+
+        final List<AggregateMetric> selectedMetrics = getGroupStats.metrics;
+        final double[][] results = new double[numGroups][selectedMetrics.size()];
+        final long[] groupStatsBuf = new long[allStats.length];
+        for (int group = 1; group <= numGroups; group++) {
+            for (int j = 0; j < allStats.length; j++) {
+                groupStatsBuf[j] = allStats[j][group];
+            }
+            for (int j = 0; j < selectedMetrics.size(); j++) {
+                results[group - 1][j] = selectedMetrics.get(j).apply(0, groupStatsBuf, group);
+            }
+        }
+
+        while (session.getNumStats() != initialNumStats) {
+            session.popStat();
+        }
+        return results;
     }
 
     public static class GroupKey {

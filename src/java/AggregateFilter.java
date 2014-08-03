@@ -1,6 +1,5 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 
 import java.util.Collections;
 import java.util.List;
@@ -15,14 +14,14 @@ import java.util.regex.Pattern;
 public interface AggregateFilter {
     public Set<List<String>> requires();
     public void register(Map<List<String>, Integer> metricIndexes);
-    public boolean allow(String term, long[] stats);
-    public boolean allow(long term, long[] stats);
+    public boolean allow(String term, long[] stats, int group);
+    public boolean allow(long term, long[] stats, int group);
 
     public static AggregateFilter fromJson(JsonNode node) {
-        Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"));
-        Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"));
-        Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"));
-        Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"));
+        final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"));
+        final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"));
+        final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"));
+        final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"));
         switch (node.get("type").asText()) {
             case "fieldEquals":
                 return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
@@ -63,12 +62,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
+        public boolean allow(String term, long[] stats, int group) {
             return term.equals(value.stringTerm);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
+        public boolean allow(long term, long[] stats, int group) {
             return Long.compare(term, value.intTerm) == 0;
         }
     }
@@ -91,13 +90,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return !f.allow(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return !f.allow(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return !f.allow(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return !f.allow(term, stats, group);
         }
     }
 
@@ -122,13 +121,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return m1.apply(term, stats) == m2.apply(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) == m2.apply(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return m1.apply(term, stats) == m2.apply(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) == m2.apply(term, stats, group);
         }
     }
 
@@ -153,13 +152,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return m1.apply(term, stats) > m2.apply(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) > m2.apply(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return m1.apply(term, stats) > m2.apply(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) > m2.apply(term, stats, group);
         }
     }
 
@@ -184,13 +183,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return m1.apply(term, stats) < m2.apply(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) < m2.apply(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return m1.apply(term, stats) < m2.apply(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) < m2.apply(term, stats, group);
         }
     }
 
@@ -215,13 +214,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return f1.allow(term, stats) && f2.allow(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return f1.allow(term, stats, group) && f2.allow(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return f1.allow(term, stats) && f2.allow(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return f1.allow(term, stats, group) && f2.allow(term, stats, group);
         }
     }
 
@@ -246,13 +245,13 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
-            return f1.allow(term, stats) || f2.allow(term, stats);
+        public boolean allow(String term, long[] stats, int group) {
+            return f1.allow(term, stats, group) || f2.allow(term, stats, group);
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
-            return f1.allow(term, stats) || f2.allow(term, stats);
+        public boolean allow(long term, long[] stats, int group) {
+            return f1.allow(term, stats, group) || f2.allow(term, stats, group);
         }
     }
 
@@ -278,12 +277,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public boolean allow(String term, long[] stats) {
+        public boolean allow(String term, long[] stats, int group) {
             return pattern.matcher(term).matches();
         }
 
         @Override
-        public boolean allow(long term, long[] stats) {
+        public boolean allow(long term, long[] stats, int group) {
             return false;
         }
     }
