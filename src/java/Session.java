@@ -132,6 +132,9 @@ public class Session {
                 allPushLists.addAll(metric.requires());
             }
             iterate.filter.ifPresent(filter -> allPushLists.addAll(filter.requires()));
+            for (final AggregateMetric metric : metrics) {
+                metric.preIterate(session, numGroups);
+            }
             final Map<List<String>, Integer> metricIndexes = Maps.newHashMap();
             for (final List<String> pushList : allPushLists) {
                 final int index = session.pushStats(pushList) - 1;
