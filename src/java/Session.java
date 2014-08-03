@@ -1,5 +1,6 @@
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -105,13 +106,18 @@ public class Session {
             final Socket clientSocket = serverSocket.accept();
             new Thread(() -> {
                 try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                     final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                     final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-19T00:00:00"), DateTime.parse("2014-07-20T00:00:00")).build()) {
-                    final Session session1 = new Session(session);
-                    String inputLine;
-                    while ((inputLine = in.readLine()) != null) {
-                        System.out.println("inputLine = " + inputLine);
-                        session1.evaluateCommand(inputLine, out);
+                     final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+                    final JsonNode sessionRequest = mapper.readTree(in.readLine());
+                    final String dataset = sessionRequest.get("dataset").asText();
+                    final String start = sessionRequest.get("start").asText();
+                    final String end = sessionRequest.get("end").asText();
+                    try (final ImhotepSession session = client.sessionBuilder(dataset, DateTime.parse(start), DateTime.parse(end)).build()) {
+                        final Session session1 = new Session(session);
+                        String inputLine;
+                        while ((inputLine = in.readLine()) != null) {
+                            System.out.println("inputLine = " + inputLine);
+                            session1.evaluateCommand(inputLine, out);
+                        }
                     }
                 } catch (Throwable e) {
                     log.error("wat", e);
