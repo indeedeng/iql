@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,7 @@ public class Session {
 //        String[] commands = {"{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"value\":[\"ojc\"],\"type\":\"atom\"},{\"value\":[\"oji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"arg1\":{\"arg1\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":100000,\"type\":\"constant\"}},\"type\":\"and\",\"arg2\":{\"arg1\":{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":4.0e-2,\"type\":\"constant\"}}},\"type\":\"filter\"}]}"};
         String[] commands = {"{\"command\":\"filterDocs\",\"filter\":{\"field\":\"country\",\"value\":{\"value\":\"us\",\"type\":\"string\"},\"type\":\"fieldEquals\"}}",
                 "{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"value\":[\"ojc\"],\"type\":\"atom\"},{\"value\":[\"oji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"arg1\":{\"arg1\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":100000,\"type\":\"constant\"}},\"type\":\"and\",\"arg2\":{\"arg1\":{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":4.0e-2,\"type\":\"constant\"}}},\"type\":\"filter\"}]}"};
-        final ImhotepClient client = new ImhotepClient("/Users/jwolfe/hosts.txt");
+        final ImhotepClient client = new ImhotepClient("/home/jwolfe/hosts.txt");
 //        final List<String> commands2 = Arrays.asList(
 //                "{\"command\":\"iterate\",\"field\":\"country\",\"opts\":[]}",
 //                "{\"command\":\"explodeGroups\",\"field\":\"country\",\"strings\":[[\"it\",\"nl\",\"ru\",\"br\",\"de\",\"ca\",\"fr\",\"jp\",\"gb\",\"us\"]]}"
@@ -113,6 +114,7 @@ public class Session {
                     final String end = sessionRequest.get("end").asText();
                     try (final ImhotepSession session = client.sessionBuilder(dataset, DateTime.parse(start), DateTime.parse(end)).build()) {
                         final Session session1 = new Session(session);
+                        out.println("opened");
                         String inputLine;
                         while ((inputLine = in.readLine()) != null) {
                             System.out.println("inputLine = " + inputLine);
@@ -278,10 +280,11 @@ public class Session {
                 }
                 rules[i] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
             }
-            System.out.println("Exploding");
-            numGroups = session.regroup(rules);
+            System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
+            session.regroup(rules);
+            numGroups = nextGroup - 1;
             groupKeys = nextGroupKeys;
-            System.out.println("Exploded");
+            System.out.println("Exploded. numGroups = " + numGroups);
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
@@ -295,6 +298,7 @@ public class Session {
     }
 
     public static double[][] getGroupStats(Commands.GetGroupStats getGroupStats, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        System.out.println("getGroupStats = [" + getGroupStats + "], session = [" + session + "], numGroups = [" + numGroups + "]");
         final int initialNumStats = session.getNumStats();
         final Set<List<String>> pushesRequired = Sets.newHashSet();
         getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
