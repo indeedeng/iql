@@ -1,5 +1,7 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.regex.Pattern;
  */
 public interface AggregateFilter {
     public Set<List<String>> requires();
+    public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException;
     public void register(Map<List<String>, Integer> metricIndexes);
     public boolean allow(String term, long[] stats, int group);
     public boolean allow(long term, long[] stats, int group);
@@ -58,6 +61,10 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        }
+
+        @Override
         public void register(Map<List<String>, Integer> metricIndexes) {
         }
 
@@ -82,6 +89,11 @@ public interface AggregateFilter {
         @Override
         public Set<List<String>> requires() {
             return f.requires();
+        }
+
+        @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            f.preIterate(session, numGroups);
         }
 
         @Override
@@ -112,6 +124,12 @@ public interface AggregateFilter {
         @Override
         public Set<List<String>> requires() {
             return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            m1.preIterate(session, numGroups);
+            m2.preIterate(session, numGroups);
         }
 
         @Override
@@ -146,6 +164,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            m1.preIterate(session, numGroups);
+            m2.preIterate(session, numGroups);
+        }
+
+        @Override
         public void register(Map<List<String>, Integer> metricIndexes) {
             m1.register(metricIndexes);
             m2.register(metricIndexes);
@@ -174,6 +198,12 @@ public interface AggregateFilter {
         @Override
         public Set<List<String>> requires() {
             return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            m1.preIterate(session, numGroups);
+            m2.preIterate(session, numGroups);
         }
 
         @Override
@@ -208,6 +238,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            f1.preIterate(session, numGroups);
+            f2.preIterate(session, numGroups);
+        }
+
+        @Override
         public void register(Map<List<String>, Integer> metricIndexes) {
             f1.register(metricIndexes);
             f2.register(metricIndexes);
@@ -236,6 +272,12 @@ public interface AggregateFilter {
         @Override
         public Set<List<String>> requires() {
             return Sets.union(f1.requires(), f2.requires());
+        }
+
+        @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            f1.preIterate(session, numGroups);
+            f2.preIterate(session, numGroups);
         }
 
         @Override
@@ -270,6 +312,11 @@ public interface AggregateFilter {
         @Override
         public Set<List<String>> requires() {
             return Collections.emptySet();
+        }
+
+        @Override
+        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+
         }
 
         @Override

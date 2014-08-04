@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -143,6 +144,7 @@ public class Session {
             for (final AggregateMetric metric : metrics) {
                 metric.preIterate(session, numGroups);
             }
+            iterate.filter.ifPresent(f -> unchecked(() -> f.preIterate(session, numGroups)));
             final Map<List<String>, Integer> metricIndexes = Maps.newHashMap();
             for (final List<String> pushList : allPushLists) {
                 final int index = session.pushStats(pushList) - 1;
@@ -297,6 +299,15 @@ public class Session {
         }
     }
 
+    private void unchecked(RunnableWithException runnable) {
+        try {
+            runnable.run();
+        } catch (final Throwable t) {
+            log.error("unchecked error", t);
+            throw Throwables.propagate(t);
+        }
+    }
+
     public static double[][] getGroupStats(Commands.GetGroupStats getGroupStats, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
         System.out.println("getGroupStats = [" + getGroupStats + "], session = [" + session + "], numGroups = [" + numGroups + "]");
         final int initialNumStats = session.getNumStats();
@@ -350,5 +361,9 @@ public class Session {
             }
             return Lists.reverse(keys);
         }
+    }
+
+    private interface RunnableWithException {
+        void run() throws Throwable;
     }
 }
