@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -20,16 +21,16 @@ public interface AggregateFilter {
     public boolean allow(String term, long[] stats, int group);
     public boolean allow(long term, long[] stats, int group);
 
-    public static AggregateFilter fromJson(JsonNode node) {
-        final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"));
-        final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"));
-        final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"));
-        final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"));
+    public static AggregateFilter fromJson(JsonNode node, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
+        final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"), namedMetricLookup);
+        final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"), namedMetricLookup);
+        final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);
+        final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"), namedMetricLookup);
         switch (node.get("type").asText()) {
             case "fieldEquals":
                 return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
             case "not":
-                return new Not(AggregateFilter.fromJson(node.get("value")));
+                return new Not(AggregateFilter.fromJson(node.get("value"), namedMetricLookup));
             case "regex":
                 return new RegexFilter(node.get("field").asText(), node.get("value").asText());
             case "metricEquals":

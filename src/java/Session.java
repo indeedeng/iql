@@ -31,9 +31,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -47,9 +49,12 @@ public class Session {
     private static final Logger log = Logger.getLogger(Session.class);
 
     public List<String> fields = Lists.newArrayList();
-    public List<GroupKey> groupKeys = Lists.newArrayList((GroupKey)null, (GroupKey)null);
+    public List<GroupKey> groupKeys = Lists.newArrayList(null, new GroupKey(null, 1, null));
+    public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
+    public int currentDepth = 0;
 
     public final ImhotepSession session;
+    private final Collection<String> intFields;
     private int numGroups = 1;
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -66,17 +71,24 @@ public class Session {
                 }
                 jgen.writeObjectField("selects", value.selects);
                 if (value.groupKey != null) {
-                    jgen.writeObjectField("key", value.groupKey.asList());
+                    jgen.writeObjectField("key", value.groupKey);
                 }
                 jgen.writeEndObject();
+            }
+        });
+        module.addSerializer(GroupKey.class, new JsonSerializer<GroupKey>() {
+            @Override
+            public void serialize(GroupKey value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+                jgen.writeObject(value.asList());
             }
         });
         mapper.registerModule(module);
         mapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
 
-    public Session(ImhotepSession session) {
+    public Session(ImhotepSession session, Collection<String> intFields) {
         this.session = session;
+        this.intFields = intFields;
     }
 
     public static void main(String[] args) throws IOException, ImhotepOutOfMemoryException {
@@ -113,8 +125,9 @@ public class Session {
                     final String dataset = sessionRequest.get("dataset").asText();
                     final String start = sessionRequest.get("start").asText();
                     final String end = sessionRequest.get("end").asText();
+                    final Collection<String> intFields = client.getDatasetToShardList().get(dataset).getIntFields();
                     try (final ImhotepSession session = client.sessionBuilder(dataset, DateTime.parse(start), DateTime.parse(end)).build()) {
-                        final Session session1 = new Session(session);
+                        final Session session1 = new Session(session, intFields);
                         out.println("opened");
                         String inputLine;
                         while ((inputLine = in.readLine()) != null) {
@@ -130,7 +143,7 @@ public class Session {
     }
 
     public void evaluateCommand(String commandString, PrintWriter out) throws ImhotepOutOfMemoryException, IOException {
-        final Object command = Commands.parseCommand(mapper.readTree(commandString));
+        final Object command = Commands.parseCommand(mapper.readTree(commandString), this::namedMetricLookup);
         if (command instanceof Commands.Iterate) {
             final Commands.Iterate iterate = (Commands.Iterate) command;
             final Set<List<String>> allPushLists = Sets.newHashSet();
@@ -157,7 +170,7 @@ public class Session {
             final long[] statsBuff = new long[session.getNumStats()];
             Int2ObjectArrayMap<Queue<TermSelects>> pqs = new Int2ObjectArrayMap<>();
             if (iterate.topK.isPresent()) {
-                final Comparator<TermSelects> comparator = Comparator.comparing(x -> x.topMetric);
+                final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
                 for (int i = 1; i <= numGroups; i++) {
                     pqs.put(i, BoundedPriorityQueue.newInstance(iterate.topK.get().limit, comparator));
                 }
@@ -173,7 +186,15 @@ public class Session {
                 topKMetricOrNull = null;
             }
             final AggregateFilter filterOrNull = iterate.filter.orElse(null);
-            try (final FTGSIterator it = session.getFTGSIterator(new String[0], new String[]{iterate.field})) {
+            final String[] intIterateFields, stringIterateFields;
+            if (intFields.contains(iterate.field)) {
+                intIterateFields = new String[]{iterate.field};
+                stringIterateFields = new String[0];
+            } else {
+                intIterateFields = new String[0];
+                stringIterateFields = new String[]{iterate.field};
+            }
+            try (final FTGSIterator it = session.getFTGSIterator(intIterateFields, stringIterateFields)) {
                 while (it.nextField()) {
                     if (it.fieldIsIntType()) {
                         while (it.nextTerm()) {
@@ -184,14 +205,13 @@ public class Session {
                                 if (filterOrNull != null && !filterOrNull.allow(term, statsBuff, group)) {
                                     continue;
                                 }
-                                final double[] selectBuffer;
+                                final double[] selectBuffer = new double[iterate.selecting.size()];
                                 final double value;
                                 if (topKMetricOrNull != null) {
                                     value = topKMetricOrNull.apply(term, statsBuff, group);
                                 } else {
                                     value = 0.0;
                                 }
-                                selectBuffer = new double[iterate.selecting.size()];
                                 final List<AggregateMetric> selecting = iterate.selecting;
                                 for (int i = 0; i < selecting.size(); i++) {
                                     selectBuffer[i] = selecting.get(i).apply(term, statsBuff, group);
@@ -259,13 +279,13 @@ public class Session {
                     final LongArrayList terms = explodeGroups.intTerms.get(i);
                     for (final long term : terms) {
                         regroupConditionsList.add(new RegroupCondition(explodeGroups.field, true, term, null, false));
-                        nextGroupKeys.add(new GroupKey(String.valueOf(term), groupKeys.get(group)));
+                        nextGroupKeys.add(new GroupKey(String.valueOf(term), nextGroupKeys.size(), groupKeys.get(group)));
                     }
                 } else {
                     final List<String> terms = explodeGroups.stringTerms.get(i);
                     for (final String term : terms) {
                         regroupConditionsList.add(new RegroupCondition(explodeGroups.field, false, 0, term, false));
-                        nextGroupKeys.add(new GroupKey(term, groupKeys.get(group)));
+                        nextGroupKeys.add(new GroupKey(term, nextGroupKeys.size(), groupKeys.get(group)));
                     }
                 }
                 final int[] positiveGroups = new int[regroupConditionsList.size()];
@@ -276,7 +296,7 @@ public class Session {
                 final int negativeGroup;
                 if (explodeGroups.defaultGroupTerm.isPresent()) {
                     negativeGroup = nextGroup++;
-                    nextGroupKeys.add(new GroupKey(explodeGroups.defaultGroupTerm.get(), groupKeys.get(group)));
+                    nextGroupKeys.add(new GroupKey(explodeGroups.defaultGroupTerm.get(), nextGroupKeys.size(), groupKeys.get(group)));
                 } else {
                     negativeGroup = 0;
                 }
@@ -286,17 +306,111 @@ public class Session {
             session.regroup(rules);
             numGroups = nextGroup - 1;
             groupKeys = nextGroupKeys;
-            System.out.println("Exploded. numGroups = " + numGroups);
+            currentDepth += 1;
+            System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final double[][] results = getGroupStats(getGroupStats, session, numGroups);
+            final List<GroupStats> results = getGroupStats(getGroupStats, Optional.of(groupKeys), session, numGroups);
+
+            mapper.writeValue(out, results);
+            out.println();
+        } else if (command instanceof Commands.CreateGroupStatsLookup) {
+            final Commands.CreateGroupStatsLookup createGroupStatsLookup = (Commands.CreateGroupStatsLookup) command;
+            final int depth = currentDepth;
+            final double[] stats = createGroupStatsLookup.stats;
+            final SavedGroupStats savedStats = new SavedGroupStats(depth, stats);
+            final String lookupName = String.valueOf(savedGroupStats.size());
+            savedGroupStats.put(lookupName, savedStats);
+            mapper.writeValue(out, Arrays.asList(lookupName));
+            out.println();
+        } else if (command instanceof Commands.GetGroupDistincts) {
+            final Commands.GetGroupDistincts getGroupDistincts = (Commands.GetGroupDistincts) command;
+            final String field = getGroupDistincts.field;
+            final boolean isIntField = intFields.contains(field);
+            final String[] intFields, stringFields;
+            if (isIntField) {
+                intFields = new String[]{field};
+                stringFields = new String[0];
+            } else {
+                intFields = new String[0];
+                stringFields = new String[]{field};
+            }
+            final FTGSIterator it = session.getFTGSIterator(intFields, stringFields);
+            final int[] groupCounts = new int[numGroups];
+            while (it.nextField()) {
+                while (it.nextTerm()) {
+                    while (it.nextGroup()) {
+                        final int group = it.group();
+                        groupCounts[group - 1]++;
+                    }
+                }
+            }
+            mapper.writeValue(out, groupCounts);
+            out.println();
+        } else if (command instanceof Commands.GetGroupPercentiles) {
+            final Commands.GetGroupPercentiles getGroupPercentiles = (Commands.GetGroupPercentiles) command;
+            final String field = getGroupPercentiles.field;
+            final double[] percentiles = getGroupPercentiles.percentiles;
+            if (session.getNumStats() != 0) {
+                throw new IllegalStateException("Stats aint numbered right");
+            }
+            session.pushStat("count()");
+            final long[] counts = session.getGroupStats(0);
+            final double[][] requiredCounts = new double[counts.length][];
+            for (int i = 1; i < counts.length; i++) {
+                requiredCounts[i] = new double[percentiles.length];
+                for (int j = 0; j < percentiles.length; j++) {
+                    requiredCounts[i][j] = (percentiles[j] / 100.0) * (double)counts[i];
+                }
+            }
+            final long[][] results = new long[percentiles.length][counts.length - 1];
+            final long[] runningCounts = new long[counts.length];
+            final FTGSIterator it = session.getFTGSIterator(new String[]{field}, new String[0]);
+            final long[] statsBuff = new long[1];
+            while (it.nextField()) {
+                while (it.nextTerm()) {
+                    final long term = it.termIntVal();
+                    while (it.nextGroup()) {
+                        final int group = it.group();
+                        it.groupStats(statsBuff);
+                        final long oldCount = runningCounts[group];
+                        final long termCount = statsBuff[0];
+                        final long newCount = oldCount + termCount;
+
+                        final double[] groupRequiredCountsArray = requiredCounts[group];
+                        for (int i = 0; i < percentiles.length; i++) {
+                            final double minRequired = groupRequiredCountsArray[i];
+                            if (newCount >= minRequired && oldCount < minRequired) {
+                                results[i][group - 1] = term;
+                            }
+                        }
+
+                        runningCounts[group] = newCount;
+                    }
+                }
+            }
+            session.popStat();
 
             mapper.writeValue(out, results);
             out.println();
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
         }
+    }
+
+    private AggregateMetric.PerGroupConstant namedMetricLookup(String name) {
+        final SavedGroupStats savedStat = savedGroupStats.get(name);
+        final int depthChange = currentDepth - savedStat.depth;
+        final double[] stats = new double[numGroups + 1];
+        for (int group = 1; group <= numGroups; group++) {
+            GroupKey key = groupKeys.get(group);
+            for (int i = 0; i < depthChange; i++) {
+                key = key.parent;
+            }
+            stats[group] = savedStat.stats[key.index];
+        }
+        return new AggregateMetric.PerGroupConstant(stats);
     }
 
     private void unchecked(RunnableWithException runnable) {
@@ -308,7 +422,7 @@ public class Session {
         }
     }
 
-    public static double[][] getGroupStats(Commands.GetGroupStats getGroupStats, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+    public static List<GroupStats> getGroupStats(Commands.GetGroupStats getGroupStats, Optional<List<GroupKey>> groupKeys, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
         System.out.println("getGroupStats = [" + getGroupStats + "], session = [" + session + "], numGroups = [" + numGroups + "]");
         final int initialNumStats = session.getNumStats();
         final Set<List<String>> pushesRequired = Sets.newHashSet();
@@ -337,25 +451,49 @@ public class Session {
             }
         }
 
+        final List<GroupStats> groupStats = Lists.newArrayList();
+        for (int i = 0; i < numGroups; i++) {
+            final GroupKey groupKey;
+            if (groupKeys.isPresent()) {
+                groupKey = groupKeys.get().get(i + 1);
+            } else {
+                groupKey = null;
+            }
+            groupStats.add(new GroupStats(groupKey, results[i]));
+        }
+
         while (session.getNumStats() != initialNumStats) {
             session.popStat();
         }
-        return results;
+
+        return groupStats;
+    }
+
+    public static class GroupStats {
+        public final GroupKey key;
+        public final double[] stats;
+
+        public GroupStats(GroupKey key, double[] stats) {
+            this.key = key;
+            this.stats = stats;
+        }
     }
 
     public static class GroupKey {
         public final String term;
+        public final int index;
         public final GroupKey parent;
 
-        private GroupKey(String term, GroupKey parent) {
+        private GroupKey(String term, int index, GroupKey parent) {
             this.term = term;
+            this.index = index;
             this.parent = parent;
         }
 
         public List<String> asList() {
             final List<String> keys = Lists.newArrayList();
             GroupKey node = this;
-            while (node != null) {
+            while (node != null && node.term != null) {
                 keys.add(node.term);
                 node = node.parent;
             }
@@ -365,5 +503,15 @@ public class Session {
 
     private interface RunnableWithException {
         void run() throws Throwable;
+    }
+
+    private static class SavedGroupStats {
+        public final int depth;
+        public final double[] stats;
+
+        private SavedGroupStats(int depth, double[] stats) {
+            this.depth = depth;
+            this.stats = stats;
+        }
     }
 }

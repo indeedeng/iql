@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Function;
 
 /**
  * @author jwolfe
@@ -13,10 +14,10 @@ import java.util.OptionalInt;
 public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
-    public static Object parseCommand(JsonNode command) {
+    public static Object parseCommand(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
         switch (command.get("command").asText()) {
             case "iterate":
-                return new Iterate(command.get("field").asText(), command.get("opts"));
+                return new Iterate(command.get("field").asText(), command.get("opts"), namedMetricLookup);
             case "filterDocs":
                 return new FilterDocs(DocFilter.fromJson(command.get("filter")));
             case "explodeGroups": {
@@ -43,7 +44,7 @@ public class Commands {
                     return new ExplodeGroups(field, allGroupTerms, null, defaultName);
                 } else if (command.has("ints")) {
                     final List<LongArrayList> allGroupTerms = Lists.newArrayList();
-                    for (final JsonNode group : command.get("strings")) {
+                    for (final JsonNode group : command.get("ints")) {
                         final LongArrayList groupTerms = new LongArrayList(group.size());
                         for (final JsonNode term : group) {
                             groupTerms.add(term.asLong());
@@ -56,11 +57,31 @@ public class Commands {
                 }
             }
             case "getGroupStats": {
-                final List<AggregateMetric> metrics = Lists.newArrayListWithCapacity(command.size());
+                final List<AggregateMetric> metrics = Lists.newArrayListWithCapacity(command.get("metrics").size());
                 for (final JsonNode metric : command.get("metrics")) {
-                    metrics.add(AggregateMetric.fromJson(metric));
+                    metrics.add(AggregateMetric.fromJson(metric, namedMetricLookup));
                 }
                 return new GetGroupStats(metrics);
+            }
+            case "createGroupStatsLookup": {
+                final JsonNode valuesNode = command.get("values");
+                final double[] stats = new double[valuesNode.size() + 1];
+                for (int i = 0; i < valuesNode.size(); i++) {
+                    stats[i + 1] = valuesNode.get(i).asDouble();
+                }
+                return new CreateGroupStatsLookup(stats);
+            }
+            case "getGroupDistincts": {
+                return new GetGroupDistincts(command.get("field").asText());
+            }
+            case "getGroupPercentiles": {
+                final String field = command.get("field").asText();
+                final JsonNode percentilesNode = command.get("percentiles");
+                final double[] percentiles = new double[percentilesNode.size()];
+                for (int i = 0; i < percentilesNode.size(); i++) {
+                    percentiles[i] = percentilesNode.get(i).asDouble();
+                }
+                return new GetGroupPercentiles(field, percentiles);
             }
         }
         throw new RuntimeException("oops:" + command);
@@ -81,7 +102,7 @@ public class Commands {
         public final Optional<AggregateFilter> filter;
 
 
-        public Iterate(String field, JsonNode options) {
+        public Iterate(String field, JsonNode options, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
             this.field = field;
             OptionalInt limit = OptionalInt.empty();
             Optional<TopK> topK = Optional.empty();
@@ -89,7 +110,7 @@ public class Commands {
             for (final JsonNode option : options) {
                 switch (option.get("type").asText()) {
                     case "filter": {
-                        filter = Optional.of(AggregateFilter.fromJson(option.get("filter")));
+                        filter = Optional.of(AggregateFilter.fromJson(option.get("filter"), namedMetricLookup));
                     }
                         break;
                     case "limit":
@@ -97,13 +118,13 @@ public class Commands {
                         break;
                     case "top": {
                         final int k = option.get("k").asInt();
-                        final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"));
+                        final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"), namedMetricLookup);
                         topK = Optional.of(new TopK(k, metric));
                     }
                         break;
                     case "selecting":
                         for (final JsonNode metric : option.get("metrics")) {
-                            selecting.add(AggregateMetric.fromJson(metric));
+                            selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
                         }
                         break;
                 }
@@ -169,6 +190,32 @@ public class Commands {
 
         public GetGroupStats(List<AggregateMetric> metrics) {
             this.metrics = metrics;
+        }
+    }
+
+    public static class CreateGroupStatsLookup {
+        public final double[] stats;
+
+        public CreateGroupStatsLookup(double[] stats) {
+            this.stats = stats;
+        }
+    }
+
+    public static class GetGroupDistincts {
+        public final String field;
+
+        public GetGroupDistincts(String field) {
+            this.field = field;
+        }
+    }
+
+    public static class GetGroupPercentiles {
+        public final String field;
+        public final double[] percentiles;
+
+        public GetGroupPercentiles(String field, double[] percentiles) {
+            this.field = field;
+            this.percentiles = percentiles;
         }
     }
 }
