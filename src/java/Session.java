@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author jwolfe
@@ -126,7 +128,7 @@ public class Session {
                     final String start = sessionRequest.get("start").asText();
                     final String end = sessionRequest.get("end").asText();
                     final Collection<String> intFields = client.getDatasetToShardList().get(dataset).getIntFields();
-                    try (final ImhotepSession session = client.sessionBuilder(dataset, DateTime.parse(start), DateTime.parse(end)).build()) {
+                    try (final ImhotepSession session = client.sessionBuilder(dataset, parseDateTime(start), parseDateTime(end)).build()) {
                         final Session session1 = new Session(session, intFields);
                         out.println("opened");
                         String inputLine;
@@ -139,6 +141,56 @@ public class Session {
                     log.error("wat", e);
                 }
             }).start();
+        }
+    }
+
+    private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
+    private static DateTime parseDateTime(String descriptor) {
+        final DateTime startOfToday = DateTime.now().withTimeAtStartOfDay();
+        if (descriptor.equals("today")) {
+            return startOfToday;
+        } else if (descriptor.equals("yesterday")) {
+            return startOfToday.minusDays(1);
+        } else if (descriptor.equals("tomorrow")) {
+            return startOfToday.plusDays(1);
+        } else if (relativePattern.matcher(descriptor).matches()) {
+            final Matcher matcher = relativePattern.matcher(descriptor);
+            matcher.matches();
+            final int offset = Integer.parseInt(matcher.group(1));
+            final String unit = matcher.group(2);
+            DateTime result = startOfToday;
+            switch (unit) {
+                case "s":
+                    result = result.minusSeconds(offset);
+                    break;
+                case "m":
+                    result = result.minusMinutes(offset);
+                    break;
+                case "h":
+                    result = result.minusHours(offset);
+                    break;
+                case "d":
+                    result = result.minusDays(offset);
+                    break;
+                case "w":
+                    result = result.minusWeeks(offset);
+                    break;
+                case "M":
+                    result = result.minusMonths(offset);
+                    break;
+                case "y":
+                    result = result.minusYears(offset);
+                    break;
+                default:
+                    throw new RuntimeException("Unrecognized unit: " + unit);
+            }
+            return result;
+        } else {
+            try {
+                return DateTime.parse(descriptor.replaceAll(" ", "T"));
+            } catch (final IllegalArgumentException e) {
+                throw Throwables.propagate(e);
+            }
         }
     }
 
