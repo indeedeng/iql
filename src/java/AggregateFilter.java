@@ -1,10 +1,7 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -15,9 +12,9 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public interface AggregateFilter {
-    public Set<List<String>> requires();
-    public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException;
-    public void register(Map<List<String>, Integer> metricIndexes);
+    public Set<QualifiedPush> requires();
+
+    public void register(Map<QualifiedPush, Integer> metricIndexes);
     public boolean allow(String term, long[] stats, int group);
     public boolean allow(long term, long[] stats, int group);
 
@@ -57,16 +54,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Collections.emptySet();
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
         }
 
         @Override
@@ -88,17 +81,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return f.requires();
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            f.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             f.register(metricIndexes);
         }
 
@@ -123,18 +111,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Sets.union(m1.requires(), m2.requires());
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            m1.preIterate(session, numGroups);
-            m2.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             m1.register(metricIndexes);
             m2.register(metricIndexes);
         }
@@ -160,18 +142,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Sets.union(m1.requires(), m2.requires());
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            m1.preIterate(session, numGroups);
-            m2.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             m1.register(metricIndexes);
             m2.register(metricIndexes);
         }
@@ -197,18 +173,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Sets.union(m1.requires(), m2.requires());
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            m1.preIterate(session, numGroups);
-            m2.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             m1.register(metricIndexes);
             m2.register(metricIndexes);
         }
@@ -234,18 +204,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Sets.union(f1.requires(), f2.requires());
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            f1.preIterate(session, numGroups);
-            f2.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             f1.register(metricIndexes);
             f2.register(metricIndexes);
         }
@@ -271,18 +235,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Sets.union(f1.requires(), f2.requires());
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            f1.preIterate(session, numGroups);
-            f2.preIterate(session, numGroups);
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
             f1.register(metricIndexes);
             f2.register(metricIndexes);
         }
@@ -311,17 +269,12 @@ public interface AggregateFilter {
         }
 
         @Override
-        public Set<List<String>> requires() {
+        public Set<QualifiedPush> requires() {
             return Collections.emptySet();
         }
 
         @Override
-        public void preIterate(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-
-        }
-
-        @Override
-        public void register(Map<List<String>, Integer> metricIndexes) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
         }
 
         @Override
