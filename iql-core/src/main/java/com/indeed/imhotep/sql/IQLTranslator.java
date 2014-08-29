@@ -284,6 +284,14 @@ public final class IQLTranslator {
 
         private final Map<String, Function<List<Expression>, Stat>> statLookup;
 
+        private Stat[] getStats(final List<Expression> input) {
+            List<Stat> stats = Lists.newArrayList();
+            for(Expression statString : input) {
+                stats.add(statString.match(StatMatcher.this));
+            }
+            return stats.toArray(new Stat[stats.size()]);
+        }
+
         private StatMatcher(final DatasetMetadata datasetMetadata) {
             this.datasetMetadata = datasetMetadata;
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
@@ -298,6 +306,30 @@ public final class IQLTranslator {
                         throw new UnsupportedOperationException();
                     }
                     return cached(input.get(0).match(StatMatcher.this));
+                }
+            });
+            builder.put("abs", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new UnsupportedOperationException();
+                    }
+                    return abs(input.get(0).match(StatMatcher.this));
+                }
+            });
+            builder.put("min", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() < 2) {
+                        throw new UnsupportedOperationException("Requires at least 2 arguments");
+                    }
+                    return min(getStats(input));
+                }
+            });
+            builder.put("max", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() < 2) {
+                        throw new UnsupportedOperationException("Requires at least 2 arguments");
+                    }
+                    return max(getStats(input));
                 }
             });
             builder.put("exp", new Function<List<Expression>, Stat>() {

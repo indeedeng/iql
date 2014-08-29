@@ -238,6 +238,19 @@ public class Stats {
         }
     }
 
+    public static class AbsoluteValueStat extends Stat {
+        private final Stat stat;
+        AbsoluteValueStat(Stat stat) {
+            this.stat = stat;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            List<String> ret = Lists.newArrayList(stat.pushes(session));
+            ret.add("abs()");
+            return ret;
+        }
+    }
+
     public static class FloatScaleStat extends Stat {
         private final String fieldName;
         private final int mult;

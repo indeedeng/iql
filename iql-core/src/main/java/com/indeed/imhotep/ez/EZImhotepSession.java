@@ -891,6 +891,12 @@ public class EZImhotepSession implements Closeable {
     public static Stat mod(Stat... stats) {
         return new BinOpStat("%", stats);
     }
+    public static Stat min(Stat... stats) {
+        return new BinOpStat("min()", stats);
+    }
+    public static Stat max(Stat... stats) {
+        return new BinOpStat("max()", stats);
+    }
     public static Stat exp(Stat ref) {
         return new ExpStat(ref);
     }
@@ -920,6 +926,9 @@ public class EZImhotepSession implements Closeable {
     }
     public static Stat cached(Stat stat) {
         return new CachedStat(stat);
+    }
+    public static Stat abs(Stat stat) {
+        return new Stats.AbsoluteValueStat(stat);
     }
     public static Stat floatScale(String intField, int mult, int add) {
         return new Stats.FloatScaleStat(intField, mult, add);
