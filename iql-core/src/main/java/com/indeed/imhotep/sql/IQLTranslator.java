@@ -1,0 +1,1058 @@
+package com.indeed.imhotep.sql;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.indeed.util.serialization.LongStringifier;
+import com.indeed.util.serialization.Stringifier;
+import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.ez.DynamicMetric;
+import com.indeed.imhotep.ez.EZImhotepSession;
+import com.indeed.imhotep.ez.Field;
+import com.indeed.imhotep.iql.Condition;
+import com.indeed.imhotep.iql.DistinctGrouping;
+import com.indeed.imhotep.iql.FieldGrouping;
+import com.indeed.imhotep.iql.FieldInGrouping;
+import com.indeed.imhotep.iql.Grouping;
+import com.indeed.imhotep.iql.IQLQuery;
+import com.indeed.imhotep.iql.IntInCondition;
+import com.indeed.imhotep.iql.MetricCondition;
+import com.indeed.imhotep.iql.PercentileGrouping;
+import com.indeed.imhotep.iql.QueryCondition;
+import com.indeed.imhotep.iql.SampleCondition;
+import com.indeed.imhotep.iql.StatRangeGrouping;
+import com.indeed.imhotep.iql.StatRangeGrouping2D;
+import com.indeed.imhotep.iql.StringInCondition;
+import com.indeed.imhotep.iql.StringPredicateCondition;
+import com.indeed.imhotep.metadata.DatasetMetadata;
+import com.indeed.imhotep.metadata.FieldMetadata;
+import com.indeed.imhotep.sql.ast.Expression;
+import com.indeed.imhotep.sql.ast.FunctionExpression;
+import com.indeed.imhotep.sql.ast.NameExpression;
+import com.indeed.imhotep.sql.ast.NumberExpression;
+import com.indeed.imhotep.sql.ast.Op;
+import com.indeed.imhotep.sql.ast.StringExpression;
+import com.indeed.imhotep.sql.ast.TupleExpression;
+import com.indeed.imhotep.sql.ast2.FromClause;
+import com.indeed.imhotep.sql.ast2.SelectStatement;
+import com.indeed.imhotep.sql.parser.ExpressionParser;
+import com.indeed.imhotep.sql.parser.PeriodParser;
+import com.indeed.imhotep.web.ImhotepMetadataCache;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordAnalyzer;
+import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.Query;
+import org.joda.time.DateTime;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.indeed.imhotep.ez.Stats.Stat;
+import static com.indeed.imhotep.ez.EZImhotepSession.*;
+
+/**
+ * @author jplaisance
+ */
+public final class IQLTranslator {
+    private static final Logger log = Logger.getLogger(IQLTranslator.class);
+
+    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata) {
+        if(log.isTraceEnabled()) {
+            log.trace(parse.toHashKeyString());
+        }
+
+        final FromClause fromClause = parse.from;
+        final String dataset = fromClause.getDataset();
+        final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
+        final Set<String> keywordAnalyzerWhitelist = metadata.getKeywordAnalyzerWhitelist(dataset);
+        final List<Stat> stats = Lists.newArrayList();
+
+        final List<Expression> projections = Lists.newArrayList(parse.select.getProjections());
+        final DistinctGrouping distinctGrouping = getDistinctGrouping(projections, datasetMetadata);
+        final PercentileGrouping percentileGrouping = getPercentileGrouping(projections, datasetMetadata, EZImhotepSession.counts());
+
+        if (distinctGrouping != null && percentileGrouping != null) {
+            throw new IllegalArgumentException("Cannot use distinct and percentile in the same query");
+        }
+
+        final StatMatcher statMatcher = new StatMatcher(datasetMetadata);
+        for (Expression expression : projections) {
+            stats.add(expression.match(statMatcher));
+        }
+
+        final List<Condition> conditions;
+        if (parse.where != null) {
+            conditions = parse.where.getExpression().match(new ConditionMatcher(datasetMetadata, keywordAnalyzerWhitelist));
+        } else {
+            conditions = Collections.emptyList();
+        }
+
+        final List<Grouping> groupings = Lists.newArrayList();
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd());
+        if (parse.groupBy != null) {
+            for (Expression groupBy : parse.groupBy.groupings) {
+                groupings.add(groupBy.match(groupByMatcher));
+            }
+        }
+
+        ensureBucketsComeFirst(groupings);
+
+        if(distinctGrouping != null) {
+            ensureDistinctSelectDoesntMatchGroupings(groupings, distinctGrouping);
+            groupings.add(distinctGrouping);    // distinct has to come last
+        } else if (percentileGrouping != null) {
+            groupings.add(percentileGrouping);
+        }
+
+        handleMultitermIn(conditions, groupings);
+
+        optimizeGroupings(groupings);
+
+        return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
+                conditions, groupings, parse.limit, username, metadata);
+    }
+
+    private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
+        for(Field distinctField : distinctGrouping.getFields()) {
+            for(Grouping grouping: groupings) {
+                if(grouping instanceof FieldGrouping && ((FieldGrouping) grouping).getField().equals(distinctField) ||
+                grouping instanceof FieldInGrouping && ((FieldInGrouping) grouping).getField().equals(distinctField)) {
+                    throw new IllegalArgumentException("Please remove distinct(" + distinctField.getFieldName() +
+                        ") from the SELECT clause as it is always going to be 1 due to it being one of the GROUP BY groups");
+                }
+            }
+        }
+    }
+
+    private static void optimizeGroupings(List<Grouping> groupings) {
+        // if we have only one grouping we can safely disable exploding which allows us to stream the result
+        if(groupings.size() == 1 && groupings.get(0) instanceof FieldGrouping) {
+            FieldGrouping fieldGrouping = (FieldGrouping) groupings.get(0);
+            if(fieldGrouping.getTopK() == 0 && !fieldGrouping.isNoExplode()) {
+                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true));
+            }
+        }
+    }
+
+    private static void ensureBucketsComeFirst(List<Grouping> groupings) {
+        boolean inBucketing = true;
+        for(Grouping grouping : groupings) {
+            boolean bucketGrouping = grouping instanceof StatRangeGrouping || grouping instanceof  StatRangeGrouping2D;
+            if(bucketGrouping && !inBucketing) {
+                throw new UnsupportedOperationException("Bucketing groupings (e.g. time or bucket()) have to come before all other non-bucketing groupings. " +
+                        "'group by time, country' is supported but 'group by country, time' is not.");
+            } else if(!bucketGrouping) {
+                inBucketing = false;
+            }
+        }
+    }
+
+    /**
+     * Handles converting queries of the form WHERE field IN (term1, term2, ...) GROUP BY field
+     * to queries like: GROUP BY field IN (term1, term2, ...) .
+     * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
+     * Modified the passed in lists.
+     */
+    static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings) {
+        for(int i = 0; i < conditions.size(); i++) {
+            Condition condition = conditions.get(i);
+            if(! (condition instanceof StringInCondition)) {
+                continue;
+            }
+            StringInCondition inCondition = (StringInCondition) condition;
+            if(inCondition.isEquality()) {
+                continue;   // when we have a single value filter (e.g. grp:smartphone), assume that MultitermIn is not intended
+            }
+            if(inCondition.isNegation()) {
+                continue;   // negations shouldn't be rewritten
+            }
+            Field.StringField field = inCondition.getStringField();
+            // see if this field is also used in GROUP BY
+            for(int j = 0; j < groupings.size(); j++) {
+                Grouping grouping = groupings.get(j);
+                if(!(grouping instanceof FieldGrouping)) {
+                    continue;
+                }
+                FieldGrouping fieldGrouping = (FieldGrouping) grouping;
+                if(!field.equals(fieldGrouping.getField())) {
+                    continue;
+                }
+                // got a match. convert this grouping to a FieldInGrouping and remove the condition
+                FieldInGrouping fieldInGrouping = new FieldInGrouping(field, Lists.newArrayList(inCondition.getValues()));
+                conditions.remove(i);
+                i--;    // have to redo the current index as indexes were shifted
+                groupings.set(j, fieldInGrouping);
+            }
+        }
+    }
+
+    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata) {
+        DistinctGrouping distinctGrouping = null;
+        int projectionNumber = 0;
+        for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
+            Expression projection = projectionsIter.next();
+            if(!(projection instanceof FunctionExpression)) {
+                continue;
+            }
+            FunctionExpression functionProjection = (FunctionExpression) projection;
+            if (!functionProjection.function.equals("distinct")) {
+                continue;
+            }
+            if(functionProjection.args.size() != 1) {
+                throw new IllegalArgumentException("distinct() takes a field name as an argument and returns distinct count of terms for the field");
+            }
+
+            String fieldName = getStr(functionProjection.args.get(0));
+            final Field field = getField(fieldName, datasetMetadata);
+            projectionsIter.remove();
+
+            if(distinctGrouping == null) {
+                distinctGrouping = new DistinctGrouping();
+            }
+            distinctGrouping.addField(field, projectionNumber);
+        }
+        return distinctGrouping;
+    }
+
+    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat) {
+        PercentileGrouping percentileGrouping = null;
+        int projectionNumber = 0;
+        for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
+            Expression projection = projectionsIter.next();
+            if(!(projection instanceof FunctionExpression)) {
+                continue;
+            }
+            FunctionExpression functionProjection = (FunctionExpression) projection;
+            if (!functionProjection.function.equals("percentile")) {
+                continue;
+            }
+            if(functionProjection.args.size() != 2) {
+                throw new IllegalArgumentException(
+                        "percentile() takes a field name and a percentile and returns that percentile, e.g. percentile(tottime, 50)"
+                );
+            }
+
+            String fieldName = getStr(functionProjection.args.get(0));
+            final Field field = getField(fieldName, datasetMetadata);
+            projectionsIter.remove();
+
+            final double percentile = parseInt(functionProjection.args.get(1));
+            if (percentile < 0 || percentile > 100) {
+                throw new IllegalArgumentException("percentile must be between 0 and 100");
+            }
+
+            if(percentileGrouping == null) {
+                percentileGrouping = new PercentileGrouping(countStat);
+            }
+            percentileGrouping.addPercentileQuery(field, percentile, projectionNumber);
+        }
+        return percentileGrouping;
+    }
+
+    /**
+     * Constructs the right type of Field depending on the available metadata.
+     * Throws IllegalArgumentException if field is not found.
+     */
+    @Nonnull
+    private static Field getField(String name, DatasetMetadata datasetMetadata) {
+        final FieldMetadata fieldMetadata = datasetMetadata.getField(name);
+        if(fieldMetadata == null) {
+            throw new IllegalArgumentException("Unknown field: " + name);
+        }
+        return fieldMetadata.isIntImhotepField() ? Field.intField(name) : Field.stringField(name);
+    }
+
+    private static class StatMatcher extends Expression.Matcher<Stat> {
+        private final DatasetMetadata datasetMetadata;
+
+        private final Map<String, Function<List<Expression>, Stat>> statLookup;
+
+        private StatMatcher(final DatasetMetadata datasetMetadata) {
+            this.datasetMetadata = datasetMetadata;
+            final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
+            builder.put("count", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    return counts();
+                }
+            });
+            builder.put("cached", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new UnsupportedOperationException();
+                    }
+                    return cached(input.get(0).match(StatMatcher.this));
+                }
+            });
+            builder.put("exp", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new UnsupportedOperationException();
+                    }
+                    return exp(input.get(0).match(StatMatcher.this));
+                }
+            });
+            builder.put("dynamic", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new UnsupportedOperationException();
+                    }
+                    return dynamic(new DynamicMetric(getName(input.get(0))));
+                }
+            });
+            builder.put("hasstr", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    String field = null;
+                    String value = null;
+                    if (input.size() == 1) {
+                        final String param = getStr(input.get(0));
+                        final String[] parts = param.split(":");
+                        if(parts.length == 2) {
+                            field = parts[0];
+                            value = parts[1];
+                        } else if(parts.length == 1 && param.trim().endsWith(":")) {
+                            field = parts[0];
+                            value = "";
+                        }
+                    } else if(input.size() == 2) {
+                        field = getStr(input.get(0));
+                        value = getStr(input.get(1));
+                    }
+
+                    if(Strings.isNullOrEmpty(field) || value == null) {
+                        throw new IllegalArgumentException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
+                    }
+                    return hasString(field, value);
+                }
+            });
+            builder.put("hasint", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    final String usageExamples = "Examples: hasint(clicked,1) or hasint(\"clicked:1\")";
+                    String field = null;
+                    long value = 0;
+                    if (input.size() == 1) {
+                        final String param = getStr(input.get(0));
+                        final String[] parts = param.split(":");
+                        if(parts.length == 2) {
+                            field = parts[0];
+                            try {
+                                value = Long.parseLong(parts[1]);
+                            } catch (NumberFormatException ignored) {
+                                throw new IllegalArgumentException("Value in hasint() has to be an integer. " + usageExamples);
+                            }
+                        }
+                    } else if(input.size() == 2) {
+                        field = getStr(input.get(0));
+                        if(!(input.get(1) instanceof NumberExpression)) {
+                            throw new IllegalArgumentException("Second argument of hasint() has to be an integer. " + usageExamples);
+                        }
+                        value = parseInt(input.get(1));
+                    }
+
+                    if(Strings.isNullOrEmpty(field)) {
+                        throw new IllegalArgumentException("incorrect usage in hasint(). " + usageExamples);
+                    }
+                    return hasInt(field, value);
+                }
+            });
+            builder.put("floatscale", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() == 3) {
+                        return floatScale(getName(input.get(0)), parseInt(input.get(1)), parseInt(input.get(2)));
+                    } else if (input.size() == 2) {
+                        return floatScale(getName(input.get(0)), parseInt(input.get(1)), 0);
+                    } else if(input.size() == 1) {
+                        return floatScale(getName(input.get(0)), 1, 0);
+                    } else {
+                        throw new UnsupportedOperationException();
+                    }
+                }
+            });
+            statLookup = builder.build();
+        }
+
+        protected Stat binaryExpression(final Expression left, final Op op, final Expression right) {
+            switch (op) {
+
+                case PLUS:
+                    return add(left.match(this), right.match(this));
+                case MINUS:
+                    return sub(left.match(this), right.match(this));
+                case MUL:
+                    return mult(left.match(this), right.match(this));
+                case DIV:
+                    return div(left.match(this), right.match(this));
+                case MOD:
+                    return mod(left.match(this), right.match(this));
+                case AGG_DIV:
+                {
+                    if(right instanceof NumberExpression) {
+                        throw new UnsupportedOperationException("Aggregate division (/) by a number is not yet supported. To divide each document's value, use '\\' e.g. 'tottime\\1000'");
+                    }
+                    return aggDiv(left.match(this), right.match(this));
+                }
+                default:
+                    throw new UnsupportedOperationException();
+            }
+        }
+
+        protected Stat functionExpression(final String name, final List<Expression> args) {
+            final Function<List<Expression>, Stat> function = statLookup.get(name);
+            if (function == null) {
+                throw new IllegalArgumentException("Unknown stat function: " + name);
+            }
+            return function.apply(args);
+        }
+
+        protected Stat nameExpression(final String name) {
+            if(!datasetMetadata.hasField(name)) {
+                throw new IllegalArgumentException("Unknown field name in a stat: " + name);
+            }
+            return intField(name);
+        }
+
+        protected Stat numberExpression(final String value) {
+            return constant(Long.parseLong(value));
+        }
+    }
+
+    private static final class ConditionMatcher extends Expression.Matcher<List<Condition>> {
+
+        private final Map<String, Function<List<Expression>, Condition>> functionLookup;
+
+        private final DatasetMetadata datasetMetadata;
+        private final Set<String> keywordAnalyzerWhitelist;
+
+        private final StatMatcher statMatcher;
+
+        private boolean negation; // keeps track of whether we are inside a negated branch of expression
+
+        private ConditionMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist) {
+            this.datasetMetadata = datasetMetadata;
+            this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
+            statMatcher = new StatMatcher(datasetMetadata);
+            final ImmutableMap.Builder<String, Function<List<Expression>, Condition>> builder = ImmutableMap.builder();
+
+            Function<List<Expression>, Condition> luceneQueryHandler = new Function<List<Expression>, Condition>() {
+                public Condition apply(final List<Expression> input) {
+                    if (input.size() != 1) throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
+                    final String queryString = getStr(input.get(0));
+
+                    // Pick a lucene query analyzer based on whether it is for a lucene or flamdex dataset
+                    // and what is in the keywordAnalyzerWhitelist for the dataset
+                    final Analyzer analyzer;
+                    if(datasetMetadata.isImhotepDataset()) {
+                        analyzer = new KeywordAnalyzer();
+                    } else if (!keywordAnalyzerWhitelist.isEmpty()) {
+                        final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
+                        if(keywordAnalyzerWhitelist.contains("*")) {
+                            analyzer = kwAnalyzer;
+                        } else {
+                            final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
+                            final PerFieldAnalyzerWrapper perFieldAnalyzer = new PerFieldAnalyzerWrapper(whitespaceAnalyzer);
+                            for (String field : keywordAnalyzerWhitelist) {
+                                perFieldAnalyzer.addAnalyzer(field, kwAnalyzer);
+                            }
+                            analyzer = perFieldAnalyzer;
+                        }
+                    } else {
+                        analyzer = new WhitespaceAnalyzer();
+                    }
+
+                    final QueryParser queryParser = new QueryParser("foo", analyzer);
+                    queryParser.setDefaultOperator(QueryParser.Operator.AND);
+                    final Query query;
+                    try {
+                        query = queryParser.parse(queryString);
+                    } catch (ParseException e) {
+                        throw Throwables.propagate(e);
+                    }
+                    return new QueryCondition(LuceneQueryTranslator.rewrite(query, datasetMetadata.getIntImhotepFieldSet()), negation);
+                }
+            };
+            builder.put("lucene", luceneQueryHandler);
+
+            // TODO: remove
+            builder.put("query", luceneQueryHandler);
+            // TODO: remove. can relax parsing of function params when it's done
+            builder.put("between", new Function<List<Expression>, Condition>() {
+                public Condition apply(final List<Expression> input) {
+                    if (input.size() != 3) throw new IllegalArgumentException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    final Stat stat = input.get(0).match(statMatcher);
+                    final long min = parseLong(input.get(1));
+                    final long max = parseLong(input.get(2));
+                    return new MetricCondition(stat, min, max, negation);
+                }
+            });
+            builder.put("sample", new Function<List<Expression>, Condition>() {
+                public Condition apply(final List<Expression> input) {
+                    if (input.size() < 2 || input.size() > 4) throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
+                    final Expression arg0 = input.get(0);
+                    if(!(arg0 instanceof NameExpression)) {
+                        throw new UnsupportedOperationException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));
+                    }
+                    final NameExpression nameExpression = (NameExpression) arg0;
+                    final String fieldName = nameExpression.name;
+                    final Field field = getField(fieldName, datasetMetadata);
+                    final int numerator = Math.max(0, parseInt(input.get(1)));
+                    final int denominator = Math.max(1, Math.max(numerator, input.size() >= 3 ? parseInt(input.get(2)) : 100));
+                    final String salt;
+                    if(input.size() >= 4) {
+                        final String userSalt = Strings.nullToEmpty(getStr(input.get(3)));
+                        salt = userSalt.substring(0, Math.min(userSalt.length(), 32));  // limit salt length to 32 char just in case
+                    } else {
+                        // generate a new salt
+                        salt = String.valueOf(System.nanoTime() % Integer.MAX_VALUE);
+                    }
+                    return new SampleCondition(field, (double) numerator / denominator, salt, negation);
+                    // we can also do it through a predicate condition but that requires FTGS instead of a regroup
+                }
+            });
+
+            functionLookup = builder.build();
+        }
+
+        @Override
+        protected List<Condition> binaryExpression(final Expression left, final Op op, final Expression right) {
+            boolean usingNegation = negation;   // local copy so that it can be modified independently
+            switch (op) {
+                case NOT_IN:
+                    usingNegation = !usingNegation;
+                    // fall through to IN
+                case IN:
+                    {
+                        final NameExpression name = (NameExpression) left;
+                        final TupleExpression values = (TupleExpression) right;
+                        if (datasetMetadata.hasStringField(name.name)) {
+                            // TODO how do we handle tokenized fields here?
+                            final String[] strings = new String[values.expressions.size()];
+                            int index = 0;
+                            for (Expression expression : values.expressions) {
+                                strings[index++] = getStr(expression);
+                            }
+                            Arrays.sort(strings);   // looks like terms being sorted is a pre-requisite of stringOrRegroup()
+                            return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
+                        } else if (datasetMetadata.hasIntField(name.name)) {
+                            final long[] ints = new long[values.expressions.size()];
+                            int index = 0;
+                            for (Expression expression : values.expressions) {
+                                if(!(expression instanceof NumberExpression)) {
+                                    throw new IllegalArgumentException("A non integer value specified for an integer field: " + name.name);
+                                }
+                                ints[index++] = parseLong(expression);
+                            }
+                            Arrays.sort(ints); // looks like terms being sorted is a pre-requisite of intOrRegroup()
+                            return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                        } else {
+                            throw new IllegalArgumentException("Unknown field: " + name.name);
+                        }
+                    }
+                case NOT_EQ:
+                    usingNegation = !usingNegation;
+                    // fall through to EQ
+                case EQ:
+                    if(left instanceof NameExpression) {
+                        final NameExpression name = (NameExpression) left;
+                        if(datasetMetadata.hasField(name.name)) {
+                            return handleFieldComparison(name, right, usingNegation);
+                        }
+                    }
+                    return handleMetricComparison(left, right, usingNegation);
+                case REGEX_NOT_EQ:
+                    usingNegation = !usingNegation;
+                    // fall through to REGEX_EQ
+                case REGEX_EQ:
+                    if(!(left instanceof NameExpression)) {
+                        throw new UnsupportedOperationException("Regexp compare only works on field names. Instead given: " + String.valueOf(left));
+                    }
+                    final NameExpression nameExpression = (NameExpression) left;
+                    final String fieldName = nameExpression.name;
+                    if (!datasetMetadata.hasStringField(fieldName)) {
+                        throw new IllegalArgumentException("Unknown field: " + fieldName);
+                    }
+                    String regexp = getStr(right);
+                    final Pattern pattern = Pattern.compile(regexp);
+                    return Collections.<Condition>singletonList(new StringPredicateCondition(Field.stringField(fieldName), new Predicate<String>() {
+                            @Override
+                            public boolean apply(@Nullable String input) {
+                                return pattern.matcher(input).matches();
+                            }
+                        },
+                        usingNegation));
+                case AND:
+                    final List<Condition> ret = Lists.newArrayList();
+                    ret.addAll(left.match(this));
+                    ret.addAll(right.match(this));
+                    return ret;
+                case LESS:
+                case LESS_EQ:
+                case GREATER:
+                case GREATER_EQ:
+                    if (!(right instanceof NumberExpression)) throw new IllegalArgumentException("Comparison values have to be numbers. Given: " + right.toString());
+                    final Stat stat = left.match(statMatcher);
+                    long value = parseLong(right);    // constant we are comparing against
+                    if(op == Op.LESS) {
+                        value -= 1;
+                    } else if(op == Op.GREATER) {
+                        value += 1;
+                    }
+                    final long min;
+                    final long max;
+                    if(op == Op.LESS || op == Op.LESS_EQ) {
+                        min = Long.MIN_VALUE;
+                        max = value;
+                    } else { // GREATER / GREATER_EQ
+                        min = value;
+                        max = Long.MAX_VALUE;
+                    }
+                    return Collections.<Condition>singletonList(new MetricCondition(stat, min, max, negation));
+                default:
+                    throw new UnsupportedOperationException();
+            }
+        }
+
+        private List<Condition> handleMetricComparison(Expression left, Expression right, boolean usingNegation) {
+            final Stat stat;
+            try {
+                stat = left.match(statMatcher);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Left side of comparison is not a known field or metric: " + left.toString());
+            }
+            if (!(right instanceof NumberExpression)) throw new IllegalArgumentException("Metric comparison values have to be numbers");
+            final long value = parseLong(right);    // constant we are comparing against
+
+            return Collections.<Condition>singletonList(new MetricCondition(stat, value, value, usingNegation));
+        }
+
+        private List<Condition> handleFieldComparison(NameExpression name, Expression right, boolean usingNegation) {
+            if (datasetMetadata.hasStringField(name.name)) {
+                final String value = getStr(right);
+
+                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null || !keywordAnalyzerWhitelist.contains(name.name));
+                if(isTokenized && right instanceof StringExpression) {
+                    // special handling for tokenized fields and multi-word queries e.g. jobsearch:q
+                    String[] words = value.split("\\s+");
+                    if(words.length > 1) {
+                        List<Condition> conditions = Lists.newArrayList();
+                        for(String word : words) {
+                            conditions.add(new StringInCondition(Field.stringField(name.name), usingNegation, true, word));
+                        }
+                        return Lists.newArrayList(conditions);
+                    } // else fall through to the normal case
+                }
+
+                final String[] strings = new String[] { value };
+                return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
+            } else if (datasetMetadata.hasIntField(name.name)) {
+                final long[] ints = new long[1];
+                if(!(right instanceof NumberExpression)) {
+                    throw new IllegalArgumentException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
+                }
+                ints[0] = parseLong(right);
+                return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+            } else {
+                throw new IllegalArgumentException("Unknown field: " + name.name);
+            }
+        }
+
+        @Override
+        protected List<Condition> unaryExpression(Op op, Expression operand) {
+            if(op.equals(Op.NEG)) {
+                negation = !negation;
+                List<Condition> result = operand.match(this);
+                negation = !negation;
+                return result;
+            }
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected List<Condition> functionExpression(final String name, final List<Expression> args) {
+            final Function<List<Expression>, Condition> function = functionLookup.get(name);
+            if (function == null) {
+                throw new IllegalArgumentException();
+            }
+            return Collections.singletonList(function.apply(args));
+        }
+    }
+
+    private static final class GroupByMatcher extends Expression.Matcher<Grouping> {
+        private static final int MAX_RECOMMENDED_BUCKETS = 1000;
+
+        private final Map<String, Function<List<Expression>, Grouping>> functionLookup;
+
+        private final DatasetMetadata datasetMetadata;
+        private final DateTime start;
+        private final DateTime end;
+
+        private final StatMatcher statMatcher;
+
+
+        private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end) {
+            statMatcher = new StatMatcher(datasetMetadata);
+            this.datasetMetadata = datasetMetadata;
+            this.start = start;
+            this.end = end;
+            final ImmutableMap.Builder<String, Function<List<Expression>, Grouping>> builder = ImmutableMap.builder();
+            builder.put("topterms", new Function<List<Expression>, Grouping>() {
+                public Grouping apply(final List<Expression> input) {
+                    if (input.size() < 2 || input.size() > 4) {
+                        throw new IllegalArgumentException("topterms() takes 2 to 4 arguments. " + input.size() + " given");
+                    }
+                    final String fieldName = getName(input.get(0));
+                    final int topK = parseInt(input.get(1));
+                    final Stat stat;
+                    if (input.size() >= 3) {
+                        stat = input.get(2).match(statMatcher);
+                    } else {
+                        stat = counts();
+                    }
+                    final boolean bottom;
+                    if(input.size() >= 4) {
+                        String ascDesc = getStr(input.get(3));
+                        bottom = ascDesc.equals("bottom");
+                    } else {
+                        bottom = false;
+                    }
+
+                    final Field field = getField(fieldName, datasetMetadata);
+                    return new FieldGrouping(field, topK, stat, bottom);
+                }
+            });
+
+            Function<List<Expression>, Grouping> bucketHandler =
+                new Function<List<Expression>, Grouping>() {
+                    public Grouping apply(final List<Expression> input) {
+                        if (input.size() == 4) {
+                            final long min = parseLong(input.get(1));
+                            final long max = parseLong(input.get(2));
+                            final long interval = parseTimeBucketInterval(getStr(input.get(3)), false, 0, 0);
+                            return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, new LongStringifier());
+                        } else if (input.size() == 8) {
+                            final Stat xStat = input.get(0).match(statMatcher);
+                            final long xMin = parseLong(input.get(1));
+                            final long xMax = parseLong(input.get(2));
+                            final long xInterval = parseTimeBucketInterval(getStr(input.get(3)), false, 0, 0);
+                            final Stat yStat = input.get(4).match(statMatcher);
+                            final long yMin = parseLong(input.get(5));
+                            final long yMax = parseLong(input.get(6));
+                            final long yInterval = parseTimeBucketInterval(getStr(input.get(7)), false, 0, 0);
+                            return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval);
+                        } else {
+                            throw new IllegalArgumentException("Bucketing function takes 1 or 2 groups of following arguments: stat, min, max, bucket_size");
+                        }
+                    }
+                };
+            builder.put("bucket", bucketHandler);
+            builder.put("buckets", bucketHandler);
+
+            Function<List<Expression>, Grouping> timeHandler = new Function<List<Expression>, Grouping>() {
+                public Grouping apply(final List<Expression> input) {
+                    if (input.size() > 3) {
+                        throw new IllegalArgumentException("time function takes up to 3 args");
+                    }
+                    final String bucket = input.size() > 0 ? getStr(input.get(0)) : null;
+                    final String format = input.size() > 1 ? getStr(input.get(1)) : null;
+                    final Expression timeField = input.size() > 2 ? input.get(2) : null;
+
+                    return timeBuckets(bucket, format, timeField);
+                }
+            };
+            builder.put("timebuckets", timeHandler);
+            builder.put("time", timeHandler);
+            functionLookup = builder.build();
+        }
+
+        private Grouping timeBuckets(String bucket, String format, Expression timeField) {
+            final int min = (int) (start.getMillis()/1000);
+            final int max = (int) (end.getMillis()/1000);
+            final long interval = parseTimeBucketInterval(bucket, true, min, max);
+            final DateTimeFormatter dateTimeFormatter;
+            if (format != null) {
+                dateTimeFormatter = DateTimeFormat.forPattern(format);
+            } else {
+                dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+            }
+            final Stringifier<Long> stringifier = new Stringifier<Long>() {
+                public String toString(final Long integer) {
+                    return new DateTime(integer*1000).toString(dateTimeFormatter);
+                }
+
+                public Long fromString(final String str) {
+                    return (new DateTime(str).getMillis()/1000);
+                }
+            };
+            final Stat stat;
+            if (timeField != null) {
+                stat = timeField.match(statMatcher);
+            } else {
+                // TODO: time field inference?
+                stat = intField(datasetMetadata.getTimeFieldName());
+            }
+            return new StatRangeGrouping(stat, min, max, interval, stringifier);
+        }
+
+
+
+        private long parseTimeBucketInterval(String bucketSizeStr, boolean isTime, int min, int max) {
+            if(Strings.isNullOrEmpty(bucketSizeStr)) {
+                bucketSizeStr = inferTimeBucketSize();
+            }
+
+            long bucketSize;
+
+            if(StringUtils.isNumeric(bucketSizeStr)) {
+                // given a pure number
+                bucketSize = Long.parseLong(bucketSizeStr);
+                if(isTime) {
+                    // no suffix specified for a time bucket size.
+                    // assume hours instead of seconds to avoid overflows due to unintended second buckets
+                    bucketSize *= SECONDS_IN_HOUR;
+                }
+            } else if(bucketSizeStr.charAt(bucketSizeStr.length()-1) == 'b' && min > 0 && max > 0) {
+                // given the number of buckets instead of the bucket size. so compute the bucket size ourselves
+                int bucketCount = Integer.parseInt(bucketSizeStr.substring(0, bucketSizeStr.length() - 1));
+                return (long)Math.ceil((max-min) / (double)bucketCount); // bucket size rounded up
+            } else {
+                Period period = PeriodParser.parseString(bucketSizeStr);
+                if(period == null) {
+                    throw new IllegalArgumentException("Bucket size argument couldn't be parsed: " + bucketSizeStr);
+                }
+                if(period.getMonths() > 0 || period.getYears() > 0) {
+                    throw new IllegalArgumentException("Months and years are not supported as bucket sizes because they vary in length. " +
+                            "Please convert to a fixed period (e.g days, weeks) or request an absolute number of buckets (e.g. 5b)");
+                }
+                bucketSize =  period.toStandardSeconds().getSeconds();
+            }
+
+            // validate time period bucketing is compatible with the given time range
+            if(isTime) {
+                int xMin = (int)(start.getMillis() / 1000);
+                int xMax = (int)(end.getMillis() / 1000);
+                long timePeriod = xMax - xMin;
+
+                if (timePeriod % bucketSize != 0) {
+                    StringBuilder exceptionBuilder = new StringBuilder("You requested a time period(");
+                    appendTimePeriod(timePeriod, exceptionBuilder);
+                    exceptionBuilder.append(") not evenly divisible by the bucket size(");
+                    appendTimePeriod(bucketSize, exceptionBuilder);
+                    exceptionBuilder.append(")");
+                    throw new IllegalArgumentException(exceptionBuilder.toString());
+                }
+            }
+
+            return bucketSize;
+        }
+
+        private static int appendTimePeriod(long timePeriod, StringBuilder builder) {
+            final int timePeriodUnits;
+            if (timePeriod % SECONDS_IN_WEEK == 0) {
+                // duration is in days
+                builder.append(timePeriod / SECONDS_IN_WEEK);
+                builder.append(" weeks");
+                timePeriodUnits = SECONDS_IN_WEEK;
+            } else if (timePeriod % SECONDS_IN_DAY == 0) {
+                // duration is in days
+                builder.append(timePeriod / SECONDS_IN_DAY);
+                builder.append(" days");
+                timePeriodUnits = SECONDS_IN_DAY;
+            } else if (timePeriod % SECONDS_IN_HOUR == 0) {
+                // duration is in hours
+                builder.append(timePeriod / SECONDS_IN_HOUR);
+                builder.append(" hours");
+                timePeriodUnits = SECONDS_IN_HOUR;
+            } else if (timePeriod % SECONDS_IN_MINUTE == 0) {
+                // duration is in minutes
+                builder.append(timePeriod / SECONDS_IN_MINUTE);
+                builder.append(" minutes");
+                timePeriodUnits = SECONDS_IN_MINUTE;
+            } else {
+                // duration is seconds
+                builder.append(timePeriod);
+                builder.append(" seconds");
+                timePeriodUnits = 1;
+            }
+            return timePeriodUnits;
+        }
+
+        private static final int SECONDS_IN_MINUTE = 60;
+        private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
+        private static final int SECONDS_IN_DAY = SECONDS_IN_HOUR * 24;
+        private static final int SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
+
+
+        protected Grouping functionExpression(final String name, final List<Expression> args) {
+            final Function<List<Expression>, Grouping> function = functionLookup.get(name);
+            if (function == null) {
+                throw new IllegalArgumentException("Unknown function in group by: " + name);
+            }
+            return function.apply(args);
+        }
+
+        protected Grouping nameExpression(final String name) {
+            if("time".equals(name)) {   // time buckets special case
+                return timeBuckets(null, null, null);
+            } // else // normal simple field grouping
+
+            final Field field = getField(name, datasetMetadata);
+            return new FieldGrouping(field);
+        }
+
+        @Override
+        protected Grouping bracketsExpression(final String field, final String content) {
+            return topTerms(field, content);
+        }
+
+        @Override
+        protected Grouping binaryExpression(final Expression left, final Op op, final Expression right) {
+            switch (op) {
+                case IN:
+                {
+                    final NameExpression name = (NameExpression) left;
+                    final TupleExpression values = (TupleExpression) right;
+                    List<String> terms = Lists.newArrayListWithCapacity(values.expressions.size());
+                    for (Expression expression : values.expressions) {
+                        terms.add(getStr(expression));
+                    }
+                    final Field field = getField(name.name, datasetMetadata);
+                    return new FieldInGrouping(field, terms);
+                }
+                default:
+                    throw new UnsupportedOperationException();
+            }
+        }
+
+        private String inferTimeBucketSize() {
+            Period period = new Period(start, end,
+                    PeriodType.forFields(new DurationFieldType[]{DurationFieldType.weeks(), DurationFieldType.days(),
+                            DurationFieldType.hours(), DurationFieldType.minutes(), DurationFieldType.seconds()})
+            );
+            // try various sizes from smallest to largest until we find one that gives us number of buckets no more than we want
+            for(int i = 0; i <= 4; i++) {
+                int buckets;
+                String value;
+                switch (i) {
+                    case 4: {
+                        buckets = period.toStandardWeeks().getWeeks();
+                        value = "1w";
+                        break;
+                    }
+                    case 3: {
+                        buckets = period.toStandardDays().getDays();
+                        value = "1d";
+                        break;
+                    }
+                    case 2: {
+                        buckets = period.toStandardHours().getHours();
+                        value = "1h";
+                        break;
+                    }
+                    case 1: {
+                        buckets = period.toStandardMinutes().getMinutes();
+                        value = "1m";
+                        break;
+                    }
+                    case 0: {
+                        buckets = period.toStandardSeconds().getSeconds();
+                        value = "1s";
+                        break;
+                    }
+                    default: {
+                        throw new RuntimeException("Shouldn't happen");
+                    }
+                }
+                if(buckets < MAX_RECOMMENDED_BUCKETS) {
+                    return value;
+                }
+            }
+            // we should never get here but just in case
+            return "1w";
+        }
+
+
+        private final String syntaxExamples =
+                "Syntax examples:" +
+                "\nTop terms: country[top 5 by sjc]" +
+                "\nBucketing: buckets(oji, 0, 10, 1)";
+
+        private Grouping topTerms(String fieldName, String arg) {
+            if(arg == null || arg.trim().isEmpty()) {
+                // treat as a request to get all terms but not explode
+                final Field field = getField(fieldName, datasetMetadata);
+                return new FieldGrouping(field, true);
+            }
+
+            Pattern topTermsPattern = Pattern.compile("\\s*(?:(top|bottom)\\s+)?(\\d+)\\s*(?:\\s*(?:by|,)\\s*(.+))?\\s*");
+            Matcher matcher = topTermsPattern.matcher(arg);
+            if(!matcher.matches()) {
+                throw new IllegalArgumentException("'group by' part treated as top terms couldn't be parsed: " +
+                        fieldName + "[" + arg + "].\n" + syntaxExamples);
+            }
+
+            final int topK = Integer.parseInt(matcher.group(2));
+            final Stat stat;
+            String statStr = matcher.group(3);
+            if (!Strings.isNullOrEmpty(statStr)) {
+                try {
+                    Expression statExpression = ExpressionParser.parseExpression(statStr);
+                    stat = statExpression.match(statMatcher);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Couldn't parse the stat expression for top terms: " + statStr +
+                            "\n" + syntaxExamples, e);
+                }
+            } else {
+                stat = counts();
+            }
+            final boolean bottom = "bottom".equals(matcher.group(1));
+
+            final Field field = getField(fieldName, datasetMetadata);
+            return new FieldGrouping(field, topK, stat, bottom);
+        }
+    }
+
+    private static int parseInt(Expression expression) {
+        return Integer.parseInt(((NumberExpression)expression).number);
+    }
+
+    private static long parseLong(Expression expression) {
+        return Long.parseLong(((NumberExpression) expression).number);
+    }
+
+    private static final Expression.Matcher<String> GET_STR = new Expression.Matcher<String>() {
+        protected String numberExpression(final String value) {
+            return value;
+        }
+
+        protected String stringExpression(final String value) {
+            return value;
+        }
+
+        protected String nameExpression(final String value) {
+            return value;
+        }
+    };
+
+    private static String getStr(Expression expression) {
+        return expression.match(GET_STR);
+    }
+
+    private static String getName(Expression expression) {
+        return ((NameExpression)expression).name;
+    }
+}

@@ -1,0 +1,25 @@
+# Either Zookeeper quorum or direct host should be provided
+imhotep.daemons.zookeeper.quorum=
+imhotep.daemons.zookeeper.path=
+imhotep.daemons.host=
+
+imhotep.daemons.interactive.zookeeper.quorum=
+imhotep.daemons.interactive.zookeeper.path=
+imhotep.daemons.interactive.host=
+
+#ramses.metadata.dir=/var/lucene/ramses_metadata
+
+query.cache.enabled=true
+query.cache.backend=HDFS
+query.cache.hdfs.path=
+query.cache.worldwritable=false
+
+user.concurrent.query.limit=2
+
+kerberos.principal=
+kerberos.keytab=
+
+topterms.cache.dir=/tmp
+
+# enforced max row limit of groups(resulting rows). Trying to query for more than this will lead to an exception
+row.limit=1000000

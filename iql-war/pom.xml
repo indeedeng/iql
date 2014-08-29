@@ -1,0 +1,99 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+	<parent>
+        <groupId>com.indeed</groupId>
+        <artifactId>iql-parent</artifactId>
+        <version>1.0.5-SNAPSHOT</version>
+	</parent>
+	
+	<groupId>com.indeed</groupId>
+	<artifactId>iql-war</artifactId>
+	<packaging>war</packaging>
+	
+	<name>IQL WAR package</name>
+	<url>http://maven.apache.org</url>
+	
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+    <build>
+        <plugins>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-dependency-plugin</artifactId>
+              <version>2.3</version>
+              <executions>
+                  <execution>
+                      <phase>package</phase>
+                      <goals><goal>copy</goal></goals>
+                      <configuration>
+                          <artifactItems>
+                              <artifactItem>
+                                  <groupId>com.github.jsimone</groupId>
+                                  <artifactId>webapp-runner</artifactId>
+                                  <version>7.0.40.0</version>
+                                  <destFileName>webapp-runner.jar</destFileName>
+                              </artifactItem>
+                          </artifactItems>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+        </plugins>
+    </build>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>iql-core</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jasper-el</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-el-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+		<dependency>
+		  <groupId>com.github.jsimone</groupId>
+		  <artifactId>webapp-runner</artifactId>
+		  <version>7.0.34.1</version>
+		  <scope>provided</scope>
+		</dependency>
+
+    </dependencies>
+
+    <properties>
+        <!-- releases of our own projects to use -->
+        <!-- these should only be SNAPSHOTs when no release is available -->
+        <indeed-util.version>[1.0.10-SNAPSHOT,)</indeed-util.version>
+        <spring.version>4.0.2.RELEASE</spring.version>
+    </properties>
+
+</project>
