@@ -319,15 +319,45 @@ public final class IQLTranslator {
             builder.put("min", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() < 2) {
-                        throw new UnsupportedOperationException("Requires at least 2 arguments");
+                        throw new UnsupportedOperationException("min() requires at least 2 arguments");
                     }
                     return min(getStats(input));
+                }
+            });
+            builder.put("mulshr", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 3) {
+                        throw new UnsupportedOperationException("mulshr requires 3 arguments: shift, stat1, stat2");
+                    }
+                    if(!(input.get(0) instanceof NumberExpression)) {
+                        throw new IllegalArgumentException("First argument of mulshr() has to be an integer. ");
+                    }
+                    final String shiftStr = getStr(input.get(0));
+                    final int shift = Integer.parseInt(shiftStr);
+                    final Stat stat1 = input.get(1).match(StatMatcher.this);
+                    final Stat stat2 = input.get(2).match(StatMatcher.this);
+                    return multiplyShiftRight(shift, stat1, stat2);
+                }
+            });
+            builder.put("shldiv", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 3) {
+                        throw new UnsupportedOperationException("shldiv requires 3 arguments: shift, stat1, stat2");
+                    }
+                    if(!(input.get(0) instanceof NumberExpression)) {
+                        throw new IllegalArgumentException("First argument of shldiv() has to be an integer. ");
+                    }
+                    final String shiftStr = getStr(input.get(0));
+                    final int shift = Integer.parseInt(shiftStr);
+                    final Stat stat1 = input.get(1).match(StatMatcher.this);
+                    final Stat stat2 = input.get(2).match(StatMatcher.this);
+                    return shiftLeftDivide(shift, stat1, stat2);
                 }
             });
             builder.put("max", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() < 2) {
-                        throw new UnsupportedOperationException("Requires at least 2 arguments");
+                        throw new UnsupportedOperationException("max() requires at least 2 arguments");
                     }
                     return max(getStats(input));
                 }

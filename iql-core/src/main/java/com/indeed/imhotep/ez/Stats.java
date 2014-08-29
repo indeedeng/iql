@@ -266,4 +266,42 @@ public class Stats {
             return Lists.newArrayList("floatscale "+fieldName+" * "+mult+" + "+add);
         }
     }
+
+    public static class MultiplyShiftRight extends Stat {
+        private final int shift;
+        private final Stat stat1;
+        private final Stat stat2;
+
+        MultiplyShiftRight(int shift, Stat stat1, Stat stat2) {
+            this.shift = shift;
+            this.stat1 = stat1;
+            this.stat2 = stat2;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            List<String> ret = Lists.newArrayList(stat1.pushes(session));
+            ret.addAll(stat2.pushes(session));
+            ret.add("mulshr " + shift);
+            return ret;
+        }
+    }
+
+    public static class ShiftLeftDivide extends Stat {
+        private final int shift;
+        private final Stat stat1;
+        private final Stat stat2;
+
+        ShiftLeftDivide(int shift, Stat stat1, Stat stat2) {
+            this.shift = shift;
+            this.stat1 = stat1;
+            this.stat2 = stat2;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            List<String> ret = Lists.newArrayList(stat1.pushes(session));
+            ret.addAll(stat2.pushes(session));
+            ret.add("shldiv " + shift);
+            return ret;
+        }
+    }
 }

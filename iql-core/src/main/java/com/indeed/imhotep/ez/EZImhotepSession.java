@@ -933,6 +933,12 @@ public class EZImhotepSession implements Closeable {
     public static Stat floatScale(String intField, int mult, int add) {
         return new Stats.FloatScaleStat(intField, mult, add);
     }
+    public static Stat multiplyShiftRight(int shift, Stat stat1, Stat stat2) {
+        return new Stats.MultiplyShiftRight(shift, stat1, stat2);
+    }
+    public static Stat shiftLeftDivide(int shift, Stat stat1, Stat stat2) {
+        return new Stats.ShiftLeftDivide(shift, stat1, stat2);
+    }
 
     public static Stat aggDiv(Stat stat1, Stat stat2) {
         return new Stats.AggregateBinOpStat("/", stat1, stat2);
