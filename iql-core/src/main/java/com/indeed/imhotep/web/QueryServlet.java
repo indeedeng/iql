@@ -143,7 +143,8 @@ public class QueryServlet {
                     queryStartTimestamp = System.currentTimeMillis();   // ignore time spent waiting
 
                     // actually process
-                    selectExecutionStats = handleSelectStatement(req, resp, (SelectStatement) parsedQuery, userName, queryTracker);
+                    final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName);
+                    selectExecutionStats = handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, userName, queryTracker);
                 } finally {
                     // this must be closed. but we may have to defer it to the async thread finishing query processing
                     if(!queryTracker.isAsynchronousRelease()) {
@@ -244,82 +245,67 @@ public class QueryServlet {
         }
     }
 
-    private SelectExecutionStats handleSelectStatement(final HttpServletRequest req, final HttpServletResponse resp, SelectStatement parsedQuery, String userName, final ExecutionManager.QueryTracker queryTracker) throws IOException {
-        final boolean avoidFileSave = req.getParameter("view") != null;
-        final boolean synchronous = req.getParameter("sync") != null || avoidFileSave;
-        final boolean csv = req.getParameter("csv") != null;
-        final boolean interactive = req.getParameter("interactive") != null;
-        final boolean returnShardlist = req.getParameter("getshardlist") != null;
-        final boolean returnNewestShardVersion = req.getParameter("getversion") != null;
-        final boolean cacheReadDisabled = !queryCache.isEnabled() || req.getParameter("nocacheread") != null || req.getParameter("nocache") != null;
-        final boolean cacheWriteDisabled = !queryCache.isEnabled() || req.getParameter("nocachewrite") != null || req.getParameter("nocache") != null;
-        final boolean headOnly = "HEAD".equals(req.getMethod()) || req.getParameter("head") != null;
-        final boolean progress = req.getParameter("progress") != null;
-        final boolean getTotals = req.getParameter("totals") != null;
-        final String clientName = Strings.nullToEmpty(req.getParameter("client"));
-        final String imhotepUserName = "IQL:" + (!Strings.isNullOrEmpty(userName) ? userName : clientName);
-
+    private SelectExecutionStats handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, String userName, final ExecutionManager.QueryTracker queryTracker) throws IOException {
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
-        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, interactive ? imhotepInteractiveClient : imhotepClient, imhotepUserName, metadata);
+        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient, args.imhotepUserName, metadata);
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
-        final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), csv);
-        final String cacheFileName = queryHash + (csv ? ".csv" : ".tsv");
+        final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
+        final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         final boolean isCached = queryCache.isFileCached(cacheFileName);
 
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode headerObject = mapper.createObjectNode();
 
         if(isCached) {
-            setHeader(resp, "IQL-Cached", "true", progress, headerObject);
+            setHeader(resp, "IQL-Cached", "true", args.progress, headerObject);
         }
-        if (returnNewestShardVersion) {
+        if (args.returnNewestShardVersion) {
             final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
             if (newestShard != null) {
-                setHeader(resp, "IQL-Newest-Shard", String.valueOf(newestShard), progress, headerObject);
+                setHeader(resp, "IQL-Newest-Shard", String.valueOf(newestShard), args.progress, headerObject);
             }
         }
 
-        if (returnShardlist) {
+        if (args.returnShardlist) {
             final String shardList = shardListToString(iqlQuery.getShardVersionList());
-            setHeader(resp, "IQL-Shard-List", shardList, progress, headerObject);
+            setHeader(resp, "IQL-Shard-List", shardList, args.progress, headerObject);
         }
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         if(timeIntervalsMissingShards.size() > 0) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
-            setHeader(resp, "IQL-Missing-Shards", missingIntervals, progress, headerObject);
+            setHeader(resp, "IQL-Missing-Shards", missingIntervals, args.progress, headerObject);
         }
 
-        if (headOnly) {
+        if (args.headOnly) {
             return new SelectExecutionStats(true);
         }
         final ServletOutputStream outputStream = resp.getOutputStream();
-        if (progress) {
+        if (args.progress) {
             outputStream.print(": This is the start of the IQL Query Stream\n\n");
         }
-        if (synchronous) {
-            ResultServlet.setContentType(resp, avoidFileSave, csv, progress);
-            if (!cacheReadDisabled && isCached) {
+        if (args.synchronous) {
+            ResultServlet.setContentType(resp, args.avoidFileSave, args.csv, args.progress);
+            if (!args.cacheReadDisabled && isCached) {
                 log.trace("Returning cached data in " + cacheFileName);
-                final int rowsWritten = queryCache.sendResult(outputStream, cacheFileName, iqlQuery.getRowLimit(), progress);
+                final int rowsWritten = queryCache.sendResult(outputStream, cacheFileName, iqlQuery.getRowLimit(), args.progress);
                 outputStream.close();
                 return new SelectExecutionStats(isCached, rowsWritten, false, queryHash);
             }
             final IQLQuery.WriteResults writeResults;
             try {
-                final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(progress, outputStream, getTotals);
-                // TODO: if(progress) { send as event source events }
-                if(progress) {
-                    setHeader(resp, "IQL-Timings", executionResult.getTimings().replace('\n', '\t'), progress, headerObject);
+                final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(args.progress, outputStream, args.getTotals);
+                if(args.progress) {
+                    setHeader(resp, "IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress, headerObject);
                 }
-                if(getTotals) {
-                    setHeader(resp, "IQL-Totals", Arrays.toString(executionResult.getTotals()), progress, headerObject);
+                if(args.getTotals) {
+                    setHeader(resp, "IQL-Totals", Arrays.toString(executionResult.getTotals()), args.progress, headerObject);
                 }
-                setHeader(resp, "Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "), progress, headerObject);
-                if(progress && headerObject.size() > 0) {
+                setHeader(resp, "Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "), args.progress, headerObject);
+                if(args.progress && headerObject.size() > 0) {
                     outputStream.println("event: header");
                     outputStream.print("data: ");
                     outputStream.print(headerObject.toString() + "\n\n");
@@ -327,13 +313,13 @@ public class QueryServlet {
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
-                writeResults = iqlQuery.outputResults(groupStats, outputStream, csv, progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, cacheWriteDisabled);
-                if (!cacheWriteDisabled && !isCached) {
+                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             try {
-                                uploadResultsToHDFS(writeResults, cacheFileName, csv);
+                                uploadResultsToHDFS(writeResults, cacheFileName, args.csv);
                             } catch (Exception e) {
                                 log.warn("Failed to upload cache to HDFS: " + cacheFileName, e);
                             } finally {
@@ -352,7 +338,7 @@ public class QueryServlet {
             outputStream.close();
             return new SelectExecutionStats(isCached, writeResults, queryHash);
         } else {
-            if (!isCached && cacheWriteDisabled) {
+            if (!isCached && args.cacheWriteDisabled) {
                 throw new IllegalStateException("HDFS cache is disabled so only synchronous calls can be served");
             }
 
@@ -367,7 +353,7 @@ public class QueryServlet {
                             final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(false, null, false);
                             final Iterator<GroupStats> groupStats = executionResult.getRows();
 
-                            queryCache.saveResult(cacheFileName, groupStats, csv);
+                            queryCache.saveResult(cacheFileName, groupStats, args.csv);
                             return null;
                         } finally {
                             Closeables2.closeQuietly(iqlQuery, log);
@@ -378,7 +364,7 @@ public class QueryServlet {
                 queryTracker.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
             }
 
-            URL baseURL = new URL(req.getRequestURL().toString());
+            URL baseURL = new URL(args.requestURL);
             // hack to generate correct URL when behind proxy
             if (baseURL.getHost().endsWith(".ext.indeed.com")) {
                 baseURL = new URL("https", baseURL.getHost(), baseURL.getPort(), baseURL.getFile());
@@ -784,6 +770,91 @@ public class QueryServlet {
     public static class IdentificationRequiredException extends RuntimeException {
         public IdentificationRequiredException(String message) {
             super(message);
+        }
+    }
+
+    private class SelectRequestArgs {
+        public final boolean avoidFileSave;
+        public final boolean synchronous;
+        public final boolean csv;
+        public final boolean interactive;
+        public final boolean returnShardlist;
+        public final boolean returnNewestShardVersion;
+        public final boolean cacheReadDisabled;
+        public final boolean cacheWriteDisabled;
+        public final boolean headOnly;
+        public final boolean progress;
+        public final boolean getTotals;
+        public final String imhotepUserName;
+        public final String requestURL;
+
+        public SelectRequestArgs(HttpServletRequest req, String userName) {
+            avoidFileSave = req.getParameter("view") != null;
+            synchronous = req.getParameter("sync") != null || avoidFileSave;
+            csv = req.getParameter("csv") != null;
+            interactive = req.getParameter("interactive") != null;
+            returnShardlist = req.getParameter("getshardlist") != null;
+            returnNewestShardVersion = req.getParameter("getversion") != null;
+            cacheReadDisabled = !queryCache.isEnabled() || req.getParameter("nocacheread") != null || req.getParameter("nocache") != null;
+            cacheWriteDisabled = !queryCache.isEnabled() || req.getParameter("nocachewrite") != null || req.getParameter("nocache") != null;
+            headOnly = "HEAD".equals(req.getMethod()) || req.getParameter("head") != null;
+            progress = req.getParameter("progress") != null;
+            getTotals = req.getParameter("totals") != null;
+            final String clientName = Strings.nullToEmpty(req.getParameter("client"));
+            imhotepUserName = "IQL:" + (!Strings.isNullOrEmpty(userName) ? userName : clientName);
+            requestURL = req.getRequestURL().toString();
+        }
+
+        public boolean isAvoidFileSave() {
+            return avoidFileSave;
+        }
+
+        public boolean isSynchronous() {
+            return synchronous;
+        }
+
+        public boolean isCsv() {
+            return csv;
+        }
+
+        public boolean isInteractive() {
+            return interactive;
+        }
+
+        public boolean isReturnShardlist() {
+            return returnShardlist;
+        }
+
+        public boolean isReturnNewestShardVersion() {
+            return returnNewestShardVersion;
+        }
+
+        public boolean isCacheReadDisabled() {
+            return cacheReadDisabled;
+        }
+
+        public boolean isCacheWriteDisabled() {
+            return cacheWriteDisabled;
+        }
+
+        public boolean isHeadOnly() {
+            return headOnly;
+        }
+
+        public boolean isProgress() {
+            return progress;
+        }
+
+        public boolean isGetTotals() {
+            return getTotals;
+        }
+
+        public String getImhotepUserName() {
+            return imhotepUserName;
+        }
+
+        public String getRequestURL() {
+            return requestURL;
         }
     }
 }
