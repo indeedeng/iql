@@ -1,5 +1,6 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -174,6 +175,7 @@ public class ExecutionManager {
             this.asynchronousRelease = true;
         }
 
+        @JsonIgnore
         public boolean isAsynchronousRelease() {
             return asynchronousRelease;
         }
