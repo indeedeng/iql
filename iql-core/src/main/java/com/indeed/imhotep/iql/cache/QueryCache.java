@@ -2,15 +2,13 @@ package com.indeed.imhotep.iql.cache;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
-
-import com.indeed.imhotep.iql.GroupStats;
 
 public interface QueryCache {
 
     /**
-     * Returns whether the HDFS cache is available.
+     * Returns whether the cache is available.
      */
     public boolean isEnabled();
 
@@ -21,16 +19,26 @@ public interface QueryCache {
 
     public boolean isFileCached(String fileName);
 
-    public void saveResultFromFile(String cachedFileName, File localFile) throws IOException;
+    /**
+     * Returns InputStream that can be used to read data in the cache.
+     * close() should be called when done.
+     */
+    public InputStream getInputStream(String cachedFileName) throws IOException;
 
-    public void saveResult(String cachedFileName,
-                           Iterator<GroupStats> groupStats,
-                           boolean csv) throws IOException;
-    
-    public int sendResult(OutputStream outputStream, 
-                          String fileName, 
-                          int rowLimit,
-                          boolean eventStream) throws IOException;
+    /**
+     * Returns OutputStream that can be written to to store data in the cache.
+     * close() on the OutputStream MUST be called when done.
+     * Note that for S3 cache this actually writes to a memory buffer first, so large data should be uploaded with writeFromFile().
+     * @param cachedFileName Name of the file to upload to
+     */
+    public OutputStream getOutputStream(String cachedFileName) throws IOException;
+
+    /**
+     * Better optimized than getOutputStream when whole data is available in a file.
+     * @param cachedFileName Name of the file to upload to
+     * @param localFile Local File instance to upload from
+     */
+    public void writeFromFile(String cachedFileName, File localFile) throws IOException;
 
     public void healthcheck() throws IOException;
 

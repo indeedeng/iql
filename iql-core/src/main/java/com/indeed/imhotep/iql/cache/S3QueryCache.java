@@ -1,7 +1,5 @@
 package com.indeed.imhotep.iql.cache;
 
-import com.indeed.imhotep.iql.GroupStats;
-import com.indeed.imhotep.iql.IQLQuery;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -16,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
 
 /**
  * @author darren
@@ -51,7 +48,7 @@ public class S3QueryCache implements QueryCache {
     }
 
     /**
-     * Returns whether the HDFS cache is available.
+     * Returns whether the cache is available.
      */
     @Override
     public boolean isEnabled() {
@@ -78,39 +75,65 @@ public class S3QueryCache implements QueryCache {
         } catch (Exception e) {
             return false;
         }
-
     }
 
     @Override
-    public int sendResult(OutputStream outputStream, String fileName, int rowLimit, boolean eventStream) throws IOException {
+    public InputStream getInputStream(String cachedFileName) throws IOException {
         if(!enabled) {
             throw new IllegalStateException("Can't send data from S3 cache as it is disabled");
         }
-        final InputStream is = client.getObject(bucket, fileName).getObjectContent();
-        return IQLQuery.copyStream(is, outputStream, rowLimit, eventStream);
+        return client.getObject(bucket, cachedFileName).getObjectContent();
     }
 
     @Override
-    public void saveResultFromFile(String cachedFileName, File localFile) throws IOException {
+    public OutputStream getOutputStream(final String cachedFileName) throws IOException {
+        if(!enabled) {
+            throw new IllegalStateException("Can't send data to S3 cache as it is disabled");
+        }
+
+        final ByteArrayOutputStream os = new ByteArrayOutputStream();
+        // Wrap the returned OutputStream so that we can write to buffer and do actual write on close()
+        return new OutputStream() {
+            @Override
+            public void write(byte[] b) throws IOException {
+                os.write(b);
+            }
+
+            @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                os.write(b, off, len);
+            }
+
+            @Override
+            public void flush() throws IOException {
+                os.flush();
+            }
+
+            @Override
+            public void write(int b) throws IOException {
+                os.write(b);
+            }
+
+            @Override
+            public void close() throws IOException {
+                os.close();
+
+                // do actual write
+                byte[] csvData = os.toByteArray();
+                ByteArrayInputStream is = new ByteArrayInputStream(csvData);
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentLength(csvData.length);
+                client.putObject(bucket, cachedFileName, is, metadata);
+            }
+        };
+    }
+
+    @Override
+    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
         if(!enabled) {
             throw new IllegalStateException("Can't send data to S3 cache as it is disabled");
         }
         client.putObject(bucket, cachedFileName, localFile);
-    }
-
-    @Override
-    public void saveResult(String cachedFileName, Iterator<GroupStats> groupStats, boolean csv) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data to S3 cache as it is disabled");
-        }
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        IQLQuery.writeRowsToStream(groupStats, os, csv, Integer.MAX_VALUE, false);
-
-        byte[] csvData = os.toByteArray();
-        ByteArrayInputStream is = new ByteArrayInputStream(csvData);
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(csvData.length);
-        client.putObject(bucket, cachedFileName, is, metadata);
     }
 
     /**

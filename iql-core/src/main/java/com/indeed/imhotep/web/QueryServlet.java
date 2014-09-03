@@ -53,6 +53,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -300,11 +302,12 @@ public class QueryServlet {
         if (args.progress) {
             outputStream.print(": This is the start of the IQL Query Stream\n\n");
         }
-        if (args.synchronous) {
+        if (!args.asynchronous) {
             ResultServlet.setContentType(resp, args.avoidFileSave, args.csv, args.progress);
             if (!args.cacheReadDisabled && isCached) {
                 log.trace("Returning cached data in " + cacheFileName);
-                final int rowsWritten = queryCache.sendResult(outputStream, cacheFileName, iqlQuery.getRowLimit(), args.progress);
+                final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
+                final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
                 outputStream.close();
                 return new SelectExecutionStats(isCached, rowsWritten, false, queryHash);
             }
@@ -326,13 +329,17 @@ public class QueryServlet {
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
-                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                if(!args.asynchronous) {
+                    writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                } else {
+                    writeResults = new IQLQuery.WriteResults(0, null, groupStats, 0);
+                }
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             try {
-                                uploadResultsToHDFS(writeResults, cacheFileName, args.csv);
+                                uploadResultsToCache(writeResults, cacheFileName, args.csv);
                             } catch (Exception e) {
                                 log.warn("Failed to upload cache to HDFS: " + cacheFileName, e);
                             } finally {
@@ -366,7 +373,9 @@ public class QueryServlet {
                             final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(false, null, false);
                             final Iterator<GroupStats> groupStats = executionResult.getRows();
 
-                            queryCache.saveResult(cacheFileName, groupStats, args.csv);
+                            final OutputStream cacheStream = queryCache.getOutputStream(cacheFileName);
+                            IQLQuery.writeRowsToStream(groupStats, cacheStream, args.csv, Integer.MAX_VALUE, false);
+                            cacheStream.close();    // has to be closed
                             return null;
                         } finally {
                             Closeables2.closeQuietly(iqlQuery, log);
@@ -377,19 +386,12 @@ public class QueryServlet {
                 queryTracker.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
             }
 
-            URL baseURL = new URL(args.requestURL);
-            // hack to generate correct URL when behind proxy
-            if (baseURL.getHost().endsWith(".ext.indeed.com")) {
-                baseURL = new URL("https", baseURL.getHost(), baseURL.getPort(), baseURL.getFile());
-            }
+            final URL baseURL = new URL(args.requestURL);
             final URL resultsURL = new URL(baseURL, "results/" + cacheFileName);
 
             final ObjectMapper mapper = new ObjectMapper();
             final ObjectNode ret = mapper.createObjectNode();
             ret.put("filename", resultsURL.toString());
-            if (isCached) {
-                ret.put("cached", isCached);
-            }
             mapper.writeValue(outputStream, ret);
             outputStream.close();
             return new SelectExecutionStats(isCached, new IQLQuery.WriteResults(0, null, null, 0), queryHash);    // we don't know number of rows as it's handled asynchronously
@@ -465,14 +467,16 @@ public class QueryServlet {
         return sb.toString();
     }
 
-    private void uploadResultsToHDFS(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
-        if(writeResults.resultCache != null) {
+    private void uploadResultsToCache(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
+        if(writeResults.resultCacheIterator != null) {
             // use the memory cached data
-            queryCache.saveResult(cachedFileName, writeResults.resultCache.iterator(), csv);
+            final OutputStream cacheStream = queryCache.getOutputStream(cachedFileName);
+            IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheStream, csv, Integer.MAX_VALUE, false);
+            cacheStream.close(); // has to be closed
         } else if(writeResults.unsortedFile != null) {
             // cache overflowed to disk so read from file
             try {
-                queryCache.saveResultFromFile(cachedFileName, writeResults.unsortedFile);
+                queryCache.writeFromFile(cachedFileName, writeResults.unsortedFile);
             } finally {
                 if(!writeResults.unsortedFile.delete()) {
                     log.info("Failed to delete: " + writeResults.unsortedFile.getPath());
@@ -801,7 +805,7 @@ public class QueryServlet {
 
     private class SelectRequestArgs {
         public final boolean avoidFileSave;
-        public final boolean synchronous;
+        public final boolean asynchronous;
         public final boolean csv;
         public final boolean interactive;
         public final boolean returnShardlist;
@@ -815,8 +819,8 @@ public class QueryServlet {
         public final String requestURL;
 
         public SelectRequestArgs(HttpServletRequest req, String userName) {
-            avoidFileSave = req.getParameter("view") != null;
-            synchronous = req.getParameter("sync") != null || avoidFileSave;
+            asynchronous = req.getParameter("async") != null;
+            avoidFileSave = req.getParameter("view") != null && !this.asynchronous;
             csv = req.getParameter("csv") != null;
             interactive = req.getParameter("interactive") != null;
             returnShardlist = req.getParameter("getshardlist") != null;
@@ -829,58 +833,6 @@ public class QueryServlet {
             final String clientName = Strings.nullToEmpty(req.getParameter("client"));
             imhotepUserName = "IQL:" + (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
-        }
-
-        public boolean isAvoidFileSave() {
-            return avoidFileSave;
-        }
-
-        public boolean isSynchronous() {
-            return synchronous;
-        }
-
-        public boolean isCsv() {
-            return csv;
-        }
-
-        public boolean isInteractive() {
-            return interactive;
-        }
-
-        public boolean isReturnShardlist() {
-            return returnShardlist;
-        }
-
-        public boolean isReturnNewestShardVersion() {
-            return returnNewestShardVersion;
-        }
-
-        public boolean isCacheReadDisabled() {
-            return cacheReadDisabled;
-        }
-
-        public boolean isCacheWriteDisabled() {
-            return cacheWriteDisabled;
-        }
-
-        public boolean isHeadOnly() {
-            return headOnly;
-        }
-
-        public boolean isProgress() {
-            return progress;
-        }
-
-        public boolean isGetTotals() {
-            return getTotals;
-        }
-
-        public String getImhotepUserName() {
-            return imhotepUserName;
-        }
-
-        public String getRequestURL() {
-            return requestURL;
         }
     }
 }

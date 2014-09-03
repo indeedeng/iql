@@ -2,15 +2,13 @@ package com.indeed.imhotep.iql.cache;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
 
 import javax.xml.bind.PropertyException;
 
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
-
-import com.indeed.imhotep.iql.GroupStats;
 
 public class QueryCacheFactory {
     static final Logger log = Logger.getLogger(QueryCacheFactory.class);
@@ -54,17 +52,17 @@ public class QueryCacheFactory {
         }
 
         @Override
-        public void saveResultFromFile(String cachedFileName, File localFile) throws IOException {
+        public InputStream getInputStream(String cachedFileName) throws IOException {
+            throw new IllegalStateException("Can't read data from cache as it is disabled");
+        }
+
+        @Override
+        public OutputStream getOutputStream(String cachedFileName) throws IOException {
             throw new IllegalStateException("Can't send data to cache as it is disabled");
         }
 
         @Override
-        public void saveResult(String cachedFileName, Iterator<GroupStats> groupStats, boolean csv) throws IOException {
-            throw new IllegalStateException("Can't send data to cache as it is disabled");
-        }
-
-        @Override
-        public int sendResult(OutputStream outputStream, String fileName, int rowLimit, boolean eventStream) throws IOException {
+        public void writeFromFile(String cachedFileName, File localFile) throws IOException {
             throw new IllegalStateException("Can't send data to cache as it is disabled");
         }
 

@@ -1,8 +1,7 @@
 package com.indeed.imhotep.web;
 
+import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.cache.QueryCache;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -42,7 +42,8 @@ public class ResultServlet {
         }
 
         setContentType(resp, avoidFileSave, csv, false);
-        queryCache.sendResult(outputStream, filename, Integer.MAX_VALUE, false);
+        final InputStream cacheInputStream = queryCache.getInputStream(filename);
+        IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, false);
         outputStream.close();
 
     }

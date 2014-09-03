@@ -1,8 +1,6 @@
 package com.indeed.imhotep.iql.cache;
 
 import com.google.common.io.ByteStreams;
-import com.indeed.imhotep.iql.GroupStats;
-import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.web.KerberosUtils;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -18,7 +16,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
 
 /**
  * @author vladimir
@@ -88,17 +85,16 @@ public class HDFSQueryCache implements QueryCache {
     }
 
     @Override
-    public int sendResult(OutputStream outputStream, String fileName, int rowLimit, boolean eventStream) throws IOException {
+    public InputStream getInputStream(String cachedFileName) throws IOException {
         if(!enabled) {
             throw new IllegalStateException("Can't send data from HDFS cache as it is disabled");
         }
-        final Path f = new Path(cachePath, fileName);
-        final InputStream is = hdfs.open(f);
-        return IQLQuery.copyStream(is, outputStream, rowLimit, eventStream);
+        final Path f = new Path(cachePath, cachedFileName);
+        return hdfs.open(f);
     }
 
     @Override
-    public void saveResultFromFile(String cachedFileName, File localFile) throws IOException {
+    public OutputStream getOutputStream(String cachedFileName) throws IOException {
         if(!enabled) {
             throw new IllegalStateException("Can't send data to HDFS cache as it is disabled");
         }
@@ -106,29 +102,46 @@ public class HDFSQueryCache implements QueryCache {
         final Path filePath = new Path(cachePath, cachedFileName);
         final Path tempPath = new Path(filePath.toString() + "." + (System.currentTimeMillis() % 100000) + ".tmp");
 
+        final FSDataOutputStream fileOut = hdfs.create(tempPath);
+        // Wrap the returned OutputStream so that we can finish when it is closed
+        return new OutputStream() {
+            @Override
+            public void write(byte[] b) throws IOException {
+                fileOut.write(b);
+            }
+
+            @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                fileOut.write(b, off, len);
+            }
+
+            @Override
+            public void flush() throws IOException {
+                fileOut.flush();
+            }
+
+            @Override
+            public void write(int b) throws IOException {
+                fileOut.write(b);
+            }
+
+            @Override
+            public void close() throws IOException {
+                fileOut.close();
+
+                // Move to the final file location
+                hdfs.rename(tempPath, filePath);
+            }
+        };
+    }
+
+    @Override
+    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
+        final OutputStream cacheStream = getOutputStream(cachedFileName);
         final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile));
-        final FSDataOutputStream fileOut = hdfs.create(tempPath);
-        ByteStreams.copy(fileIn, fileOut);
+        ByteStreams.copy(fileIn, cacheStream);
         fileIn.close();
-        fileOut.close();
-
-        hdfs.rename(tempPath, filePath);
-    }
-
-    @Override
-    public void saveResult(String cachedFileName, Iterator<GroupStats> groupStats, boolean csv) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data to HDFS cache as it is disabled");
-        }
-        makeSurePathExists(cachePath);
-        final Path filePath = new Path(cachePath, cachedFileName);
-        final Path tempPath = new Path(filePath.toString() + "." + (System.currentTimeMillis() % 100000) + ".tmp");
-
-        final FSDataOutputStream fileOut = hdfs.create(tempPath);
-        IQLQuery.writeRowsToStream(groupStats, fileOut, csv, Integer.MAX_VALUE, false);
-        fileOut.close();
-
-        hdfs.rename(tempPath, filePath);
+        cacheStream.close();
     }
 
     private void makeSurePathExists(Path path) throws IOException {

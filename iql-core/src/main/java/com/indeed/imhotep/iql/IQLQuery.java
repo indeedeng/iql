@@ -286,13 +286,13 @@ public final class IQLQuery implements Closeable {
     public static class WriteResults {
         public final int rowsWritten;
         public final File unsortedFile;
-        public final List<GroupStats> resultCache;
+        public final Iterator<GroupStats> resultCacheIterator;
         public final long timeTaken;
 
-        public WriteResults(int rowsWritten, File unsortedFile, List<GroupStats> resultCache, long timeTaken) {
+        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, long timeTaken) {
             this.rowsWritten = rowsWritten;
             this.unsortedFile = unsortedFile;
-            this.resultCache = resultCache;
+            this.resultCacheIterator = resultCacheIterator;
             this.timeTaken = timeTaken;
         }
 
@@ -328,7 +328,7 @@ public final class IQLQuery implements Closeable {
             // results fit in memory. stream them out
             // TODO: in memory sort if necessary? or just always defer to gnu sort?
             final int rowsWritten = writeRowsToStream(resultsCache.iterator(), httpOutStream, csv, rowLimit, progress);
-            return new WriteResults(rowsWritten, null, resultsCache, System.currentTimeMillis() - timeStarted);
+            return new WriteResults(rowsWritten, null, resultsCache.iterator(), System.currentTimeMillis() - timeStarted);
         } else {    // have to work with the files on the hard drive to avoid OOM
             try {
                 final File unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
