@@ -129,8 +129,7 @@ public class QueryServlet {
         Throwable errorOccurred = null;
         try {
             if(Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(userName)) {
-                throw new IdentificationRequiredException("IQL query requests now have to include parameters 'client' and 'username' for identification.\n" +
-                        "You can get latest versions of iql.sh at https://squall.indeed.com/iql/iql.sh and of iql.py at http://go.indeed.com/qggzq");
+                throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
             parsedQuery = StatementParser.parse(query, metadata);
             if(parsedQuery instanceof SelectStatement) {
@@ -245,6 +244,27 @@ public class QueryServlet {
         }
     }
 
+
+    private static class QueryMetadata {
+        private final String name;
+        private final String value;
+        private boolean sendPending;
+
+        private QueryMetadata(String name, Object value) {
+            this(name, value, true);
+        }
+
+        private QueryMetadata(String name, Object value, boolean sendPending) {
+            this.name = name;
+            this.value = value == null ? "" : String.valueOf(value);
+            this.sendPending = sendPending;
+        }
+
+        public void markSent() {
+            sendPending = false;
+        }
+    }
+
     private SelectExecutionStats handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, String userName, final ExecutionManager.QueryTracker queryTracker) throws IOException {
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
@@ -256,29 +276,22 @@ public class QueryServlet {
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         final boolean isCached = queryCache.isFileCached(cacheFileName);
 
-        final ObjectMapper mapper = new ObjectMapper();
-        final ObjectNode headerObject = mapper.createObjectNode();
+        final List<QueryMetadata> queryMetadata = Lists.newArrayList();
 
-        if(isCached) {
-            setHeader(resp, "IQL-Cached", "true", args.progress, headerObject);
-        }
-        if (args.returnNewestShardVersion) {
-            final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
-            if (newestShard != null) {
-                setHeader(resp, "IQL-Newest-Shard", String.valueOf(newestShard), args.progress, headerObject);
-            }
-        }
+        queryMetadata.add(new QueryMetadata("IQL-Cached", isCached, true));
+        final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
+        queryMetadata.add(new QueryMetadata("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion));
 
-        if (args.returnShardlist) {
-            final String shardList = shardListToString(iqlQuery.getShardVersionList());
-            setHeader(resp, "IQL-Shard-List", shardList, args.progress, headerObject);
-        }
+        final String shardList = shardListToString(iqlQuery.getShardVersionList());
+        queryMetadata.add(new QueryMetadata("IQL-Shard-List", shardList, args.returnShardlist));
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         if(timeIntervalsMissingShards.size() > 0) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
-            setHeader(resp, "IQL-Missing-Shards", missingIntervals, args.progress, headerObject);
+            queryMetadata.add(new QueryMetadata("IQL-Missing-Shards", missingIntervals));
         }
+
+        setPendingHeaders(queryMetadata, resp);
 
         if (args.headOnly) {
             return new SelectExecutionStats(true);
@@ -297,18 +310,18 @@ public class QueryServlet {
             }
             final IQLQuery.WriteResults writeResults;
             try {
-                final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(args.progress, outputStream, args.getTotals);
+                // TODO: should we always get totals? opt out http param?
+                final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(args.progress, outputStream, true);
+                queryMetadata.add(new QueryMetadata("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress));
+                queryMetadata.add(new QueryMetadata("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals));
+
+                setPendingHeaders(queryMetadata, resp);
+                resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
+
                 if(args.progress) {
-                    setHeader(resp, "IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress, headerObject);
-                }
-                if(args.getTotals) {
-                    setHeader(resp, "IQL-Totals", Arrays.toString(executionResult.getTotals()), args.progress, headerObject);
-                }
-                setHeader(resp, "Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "), args.progress, headerObject);
-                if(args.progress && headerObject.size() > 0) {
                     outputStream.println("event: header");
                     outputStream.print("data: ");
-                    outputStream.print(headerObject.toString() + "\n\n");
+                    outputStream.print(getMetadataAsJson(queryMetadata) + "\n\n");
                 }
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
@@ -371,6 +384,7 @@ public class QueryServlet {
             }
             final URL resultsURL = new URL(baseURL, "results/" + cacheFileName);
 
+            final ObjectMapper mapper = new ObjectMapper();
             final ObjectNode ret = mapper.createObjectNode();
             ret.put("filename", resultsURL.toString());
             if (isCached) {
@@ -382,12 +396,24 @@ public class QueryServlet {
         }
     }
 
-    private void setHeader(HttpServletResponse resp, String headerName, String value, boolean progress, ObjectNode headerObject) {
-        resp.setHeader(headerName, value);
-        if(progress) {
-            headerObject.put(headerName, value);
+    private String getMetadataAsJson(List<QueryMetadata> queryMetadataList) {
+        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectNode headerObject = mapper.createObjectNode();
+        for(QueryMetadata queryMetadata : queryMetadataList) {
+            headerObject.put(queryMetadata.name, queryMetadata.value);
+        }
+        return headerObject.toString();
+    }
+
+    private void setPendingHeaders(List<QueryMetadata> queryMetadataList, HttpServletResponse resp) {
+        for(QueryMetadata queryMetadata : queryMetadataList) {
+            if(queryMetadata.sendPending) {
+                resp.setHeader(queryMetadata.name, queryMetadata.value);
+                queryMetadata.markSent();
+            }
         }
     }
+
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 
     @Nullable
