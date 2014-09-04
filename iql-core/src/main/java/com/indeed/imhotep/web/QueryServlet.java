@@ -84,6 +84,7 @@ public class QueryServlet {
     private static final Logger log = Logger.getLogger(QueryServlet.class);
     private static final Logger dataLog = Logger.getLogger("indeed.logging");
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    private static final String METADATA_FILE_SUFFIX = ".meta";
     // this can be incremented to invalidate the old cache
     private static final byte VERSION_FOR_HASHING = 1;
 
@@ -145,7 +146,7 @@ public class QueryServlet {
 
                     // actually process
                     final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName);
-                    selectExecutionStats = handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, userName, queryTracker);
+                    selectExecutionStats = handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, queryTracker);
                 } finally {
                     // this must be closed. but we may have to defer it to the async thread finishing query processing
                     if(!queryTracker.isAsynchronousRelease()) {
@@ -246,28 +247,7 @@ public class QueryServlet {
         }
     }
 
-
-    private static class QueryMetadata {
-        private final String name;
-        private final String value;
-        private boolean sendPending;
-
-        private QueryMetadata(String name, Object value) {
-            this(name, value, true);
-        }
-
-        private QueryMetadata(String name, Object value, boolean sendPending) {
-            this.name = name;
-            this.value = value == null ? "" : String.valueOf(value);
-            this.sendPending = sendPending;
-        }
-
-        public void markSent() {
-            sendPending = false;
-        }
-    }
-
-    private SelectExecutionStats handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, String userName, final ExecutionManager.QueryTracker queryTracker) throws IOException {
+    private SelectExecutionStats handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, final ExecutionManager.QueryTracker queryTracker) throws IOException {
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
@@ -278,22 +258,22 @@ public class QueryServlet {
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         final boolean isCached = queryCache.isFileCached(cacheFileName);
 
-        final List<QueryMetadata> queryMetadata = Lists.newArrayList();
+        final QueryMetadata queryMetadata = new QueryMetadata();
 
-        queryMetadata.add(new QueryMetadata("IQL-Cached", isCached, true));
+        queryMetadata.addItem("IQL-Cached", isCached, true);
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
-        queryMetadata.add(new QueryMetadata("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion));
+        queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
         final String shardList = shardListToString(iqlQuery.getShardVersionList());
-        queryMetadata.add(new QueryMetadata("IQL-Shard-List", shardList, args.returnShardlist));
+        queryMetadata.addItem("IQL-Shard-List", shardList, args.returnShardlist);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         if(timeIntervalsMissingShards.size() > 0) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
-            queryMetadata.add(new QueryMetadata("IQL-Missing-Shards", missingIntervals));
+            queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
         }
 
-        setPendingHeaders(queryMetadata, resp);
+        queryMetadata.setPendingHeaders(resp);
 
         if (args.headOnly) {
             return new SelectExecutionStats(true);
@@ -306,6 +286,24 @@ public class QueryServlet {
             ResultServlet.setContentType(resp, args.avoidFileSave, args.csv, args.progress);
             if (!args.cacheReadDisabled && isCached) {
                 log.trace("Returning cached data in " + cacheFileName);
+
+                // read metadata from cache
+                try {
+                    final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                    final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                    queryMetadata.mergeIn(cachedMetadata);
+
+                    queryMetadata.setPendingHeaders(resp);
+                    resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
+                    if(args.progress) {
+                        outputStream.println("event: header");
+                        outputStream.print("data: ");
+                        outputStream.print(queryMetadata.toJSON() + "\n\n");
+                    }
+                } catch (Exception e) {
+                    log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                }
+
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
                 outputStream.close();
@@ -315,16 +313,16 @@ public class QueryServlet {
             try {
                 // TODO: should we always get totals? opt out http param?
                 final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(args.progress, outputStream, true);
-                queryMetadata.add(new QueryMetadata("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress));
-                queryMetadata.add(new QueryMetadata("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals));
+                queryMetadata.addItem("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress);
+                queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
 
-                setPendingHeaders(queryMetadata, resp);
+                queryMetadata.setPendingHeaders(resp);
                 resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
 
                 if(args.progress) {
                     outputStream.println("event: header");
                     outputStream.print("data: ");
-                    outputStream.print(getMetadataAsJson(queryMetadata) + "\n\n");
+                    outputStream.print(queryMetadata.toJSON() + "\n\n");
                 }
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
@@ -339,9 +337,18 @@ public class QueryServlet {
                         @Override
                         public Void call() throws Exception {
                             try {
-                                uploadResultsToCache(writeResults, cacheFileName, args.csv);
-                            } catch (Exception e) {
-                                log.warn("Failed to upload cache to HDFS: " + cacheFileName, e);
+                                try {
+                                    final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                    queryMetadata.toStream(metadataCacheStream);
+                                    metadataCacheStream.close();
+                                } catch (Exception e) {
+                                    log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                }
+                                try {
+                                    uploadResultsToCache(writeResults, cacheFileName, args.csv);
+                                } catch (Exception e) {
+                                    log.warn("Failed to upload cache: " + cacheFileName, e);
+                                }
                             } finally {
                                 Closeables2.closeQuietly(queryTracker, log);
                             }
@@ -358,8 +365,9 @@ public class QueryServlet {
             outputStream.close();
             return new SelectExecutionStats(isCached, writeResults, queryHash);
         } else {
+            // TODO: rework the async case to use the same code path as the sync case above except running under an executor
             if (!isCached && args.cacheWriteDisabled) {
-                throw new IllegalStateException("HDFS cache is disabled so only synchronous calls can be served");
+                throw new IllegalStateException("Query cache is disabled so only synchronous calls can be served");
             }
 
             resp.setContentType("application/json");
@@ -398,23 +406,7 @@ public class QueryServlet {
         }
     }
 
-    private String getMetadataAsJson(List<QueryMetadata> queryMetadataList) {
-        final ObjectMapper mapper = new ObjectMapper();
-        final ObjectNode headerObject = mapper.createObjectNode();
-        for(QueryMetadata queryMetadata : queryMetadataList) {
-            headerObject.put(queryMetadata.name, queryMetadata.value);
-        }
-        return headerObject.toString();
-    }
 
-    private void setPendingHeaders(List<QueryMetadata> queryMetadataList, HttpServletResponse resp) {
-        for(QueryMetadata queryMetadata : queryMetadataList) {
-            if(queryMetadata.sendPending) {
-                resp.setHeader(queryMetadata.name, queryMetadata.value);
-                queryMetadata.markSent();
-            }
-        }
-    }
 
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 

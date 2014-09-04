@@ -105,6 +105,8 @@ public class HDFSQueryCache implements QueryCache {
         final FSDataOutputStream fileOut = hdfs.create(tempPath);
         // Wrap the returned OutputStream so that we can finish when it is closed
         return new OutputStream() {
+            private boolean closed = false;
+
             @Override
             public void write(byte[] b) throws IOException {
                 fileOut.write(b);
@@ -127,6 +129,10 @@ public class HDFSQueryCache implements QueryCache {
 
             @Override
             public void close() throws IOException {
+                if(closed) {
+                    return;
+                }
+                closed = true;
                 fileOut.close();
 
                 // Move to the final file location

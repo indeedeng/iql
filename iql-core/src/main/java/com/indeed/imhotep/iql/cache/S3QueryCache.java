@@ -94,6 +94,8 @@ public class S3QueryCache implements QueryCache {
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         // Wrap the returned OutputStream so that we can write to buffer and do actual write on close()
         return new OutputStream() {
+            private boolean closed = false;
+
             @Override
             public void write(byte[] b) throws IOException {
                 os.write(b);
@@ -116,6 +118,10 @@ public class S3QueryCache implements QueryCache {
 
             @Override
             public void close() throws IOException {
+                if(closed) {
+                    return;
+                }
+                closed = true;
                 os.close();
 
                 // do actual write

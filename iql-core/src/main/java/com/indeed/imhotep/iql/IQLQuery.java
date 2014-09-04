@@ -156,7 +156,9 @@ public final class IQLQuery implements Closeable {
                     timer.pop();
                 }
                 // do FTGS on the last grouping
+                timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
+                timer.pop();
                 updateProgress(progress, out, count);
                 return new ExecutionResult(groupStatsIterator, totals, timer.toString());
             } else {
@@ -400,7 +402,7 @@ public final class IQLQuery implements Closeable {
         for (final Iterator it = items.iterator(); it.hasNext(); ) {
             sb.append(it.next());
             if (it.hasNext()) {
-                sb.append(" ");
+                sb.append(delimiter);
             }
         }
         return sb.toString();
