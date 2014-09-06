@@ -16,6 +16,8 @@ import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.common.util.Pair;
+import com.indeed.flamdex.query.*;
+import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
@@ -110,25 +112,7 @@ public class Session {
         org.apache.log4j.BasicConfigurator.configure();
         Logger.getRootLogger().setLevel(Level.INFO);
 
-//        String[] commands = ("{\"command\":\"filterDocs\",\"filter\":{\"arg1\":{\"value\":\"x\",\"type\":\"atom\"},\"type\":\"metricEquals\",\"arg2\":{\"value\":\"y\",\"type\":\"atom\"}}}\n" +
-//                "{\"command\":\"iterate\",\"field\":\"country\",\"opts\":[]}\n" +
-//                "{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},{\"m2\":{\"value\":[\"sji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"sjc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"field\":\"qnorm\",\"value\":\"part time .*\",\"type\":\"regex\"},\"type\":\"filter\"}]}").split("\n");
-//        String[] commands = {"{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"value\":[\"ojc\"],\"type\":\"atom\"},{\"value\":[\"oji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},{\"value\":[\"sjc\"],\"type\":\"atom\"},{\"value\":[\"sji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"sji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"sjc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"field\":\"qnorm\",\"value\":\"part time .*\",\"type\":\"regex\"},\"type\":\"filter\"}]}"};
-//        String[] commands = {"{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"value\":[\"ojc\"],\"type\":\"atom\"},{\"value\":[\"oji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"arg1\":{\"arg1\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":100000,\"type\":\"constant\"}},\"type\":\"and\",\"arg2\":{\"arg1\":{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":4.0e-2,\"type\":\"constant\"}}},\"type\":\"filter\"}]}"};
-        String[] commands = {"{\"command\":\"filterDocs\",\"filter\":{\"field\":\"country\",\"value\":{\"value\":\"us\",\"type\":\"string\"},\"type\":\"fieldEquals\"}}",
-                "{\"command\":\"iterate\",\"field\":\"qnorm\",\"opts\":[{\"metrics\":[{\"value\":[\"ojc\"],\"type\":\"atom\"},{\"value\":[\"oji\"],\"type\":\"atom\"},{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"}],\"type\":\"selecting\"},{\"filter\":{\"arg1\":{\"arg1\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":100000,\"type\":\"constant\"}},\"type\":\"and\",\"arg2\":{\"arg1\":{\"m2\":{\"value\":[\"oji\"],\"type\":\"atom\"},\"m1\":{\"value\":[\"ojc\"],\"type\":\"atom\"},\"type\":\"division\"},\"type\":\"greaterThan\",\"arg2\":{\"value\":4.0e-2,\"type\":\"constant\"}}},\"type\":\"filter\"}]}"};
         final ImhotepClient client = new ImhotepClient("/home/jwolfe/hosts.txt");
-//        final List<String> commands2 = Arrays.asList(
-//                "{\"command\":\"iterate\",\"field\":\"country\",\"opts\":[]}",
-//                "{\"command\":\"explodeGroups\",\"field\":\"country\",\"strings\":[[\"it\",\"nl\",\"ru\",\"br\",\"de\",\"ca\",\"fr\",\"jp\",\"gb\",\"us\"]]}"
-//        );
-//        try (final ImhotepSession session = client.sessionBuilder("organic", DateTime.parse("2014-07-01T00:00:00"), DateTime.parse("2014-07-02T00:00:00")).build()) {
-//            Session session1 = new Session(session);
-//            for (final String command : commands2) {
-//                System.out.println("command = " + command);
-//                session1.evaluateCommand(command, new PrintWriter(System.err));
-//            }
-//        }
 
         final ServerSocket serverSocket = new ServerSocket(28347);
         while (true) {
@@ -522,7 +506,7 @@ public class Session {
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats(getGroupStats, Optional.of(groupKeys), getSessionsMap(), numGroups);
+            final List<GroupStats> results = getGroupStats(getGroupStats, getGroupStats.returnGroupKeys ? Optional.of(groupKeys) : Optional.empty(), getSessionsMap(), numGroups);
 
             mapper.writeValue(out, results);
             out.println();
@@ -600,6 +584,55 @@ public class Session {
         } else if (command instanceof Commands.GetNumGroups) {
             mapper.writeValue(out, Collections.singletonList(numGroups));
             out.println();
+        } else if (command instanceof Commands.ExplodePerGroup) {
+            final Commands.ExplodePerGroup explodePerGroup = (Commands.ExplodePerGroup) command;
+
+            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
+            int nextGroup = 1;
+            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey)null);
+            for (int group = 1; group <= numGroups; group++) {
+                final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
+
+                final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
+
+                final List<Term> terms = termsWithExplodeOpts.terms;
+                if (terms.isEmpty()) {
+                    rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake",true,152,null,false)});
+                    continue;
+                }
+
+                for (final Term term : terms) {
+                    if (term.isIntField()) {
+                        regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), term.getTermIntVal(), null, false));
+                        nextGroupKeys.add(new GroupKey(term.getFieldName() + ":" + term.getTermIntVal(), nextGroupKeys.size(), groupKeys.get(group)));
+                    } else {
+                        regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), 0, term.getTermStringVal(), false));
+                        nextGroupKeys.add(new GroupKey(term.getFieldName() + ":" + term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
+                    }
+                }
+
+                final int[] positiveGroups = new int[regroupConditionsList.size()];
+                for (int j = 0; j < regroupConditionsList.size(); j++) {
+                    positiveGroups[j] = nextGroup++;
+                }
+                final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
+                final int negativeGroup;
+                if (termsWithExplodeOpts.defaultName.isPresent()) {
+                    negativeGroup = nextGroup++;
+                    nextGroupKeys.add(new GroupKey(termsWithExplodeOpts.defaultName.get(), nextGroupKeys.size(), groupKeys.get(group)));
+                } else {
+                    negativeGroup = 0;
+                }
+                rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
+            }
+            System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
+            getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(rules)));
+            numGroups = nextGroup - 1;
+            groupKeys = nextGroupKeys;
+            currentDepth += 1;
+            System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
+            out.println("success");
+
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
         }

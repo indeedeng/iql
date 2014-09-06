@@ -3,6 +3,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
+import com.indeed.flamdex.query.Term;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
@@ -66,16 +67,7 @@ public class Commands {
                 return new FilterDocs(DocFilter.fromJson(command.get("filter")));
             case "explodeGroups": {
                 final String field = command.get("field").asText();
-                Optional<String> defaultName = Optional.empty();
-                if (command.has("opts")) {
-                    for (final JsonNode opt : command.get("opts")) {
-                        switch (opt.get("type").asText()) {
-                            case "addDefault":
-                                defaultName = Optional.of(opt.get("name").asText());
-                                break;
-                        }
-                    }
-                }
+                final Optional<String> defaultName = parseExplodeOpts(command.get("opts"));
                 if (command.has("strings")) {
                     final List<List<String>> allGroupTerms = Lists.newArrayList();
                     for (final JsonNode group : command.get("strings")) {
@@ -105,7 +97,16 @@ public class Commands {
                 for (final JsonNode metric : command.get("metrics")) {
                     metrics.add(AggregateMetric.fromJson(metric, namedMetricLookup));
                 }
-                return new GetGroupStats(metrics);
+                boolean returnGroupKeys = false;
+                for (final JsonNode opt : command.get("opts")) {
+                    switch (opt.get("type").asText()) {
+                        case "returnGroupKeys": {
+                            returnGroupKeys = true;
+                            break;
+                        }
+                    }
+                }
+                return new GetGroupStats(metrics, returnGroupKeys);
             }
             case "createGroupStatsLookup": {
                 final JsonNode valuesNode = command.get("values");
@@ -147,8 +148,46 @@ public class Commands {
             case "getNumGroups": {
                 return new GetNumGroups();
             }
+            case "explodePerGroup": {
+                final JsonNode fieldTermOpts = command.get("fieldTermOpts");
+                final List<TermsWithExplodeOpts> termsWithExplodeOpts = Lists.newArrayListWithCapacity(fieldTermOpts.size() + 1);
+                termsWithExplodeOpts.add(null);
+                for (int i = 0; i < fieldTermOpts.size(); i++) {
+                    final JsonNode pairNode = fieldTermOpts.get(i);
+                    final JsonNode fieldTermsNode = pairNode.get(0);
+                    final List<Term> terms = Lists.newArrayListWithCapacity(fieldTermsNode.size());
+                    for (int j = 0; j < fieldTermsNode.size(); j++) {
+                        final JsonNode fieldTermNode = fieldTermsNode.get(j);
+                        final String field = fieldTermNode.get(0).asText();
+                        final JsonNode termNode = fieldTermNode.get(1);
+                        final Term term;
+                        if (termNode.get("type").asText().equals("string")) {
+                            term = Term.stringTerm(field, termNode.get("value").asText());
+                        } else {
+                            term = Term.intTerm(field, termNode.get("value").asLong());
+                        }
+                        terms.add(term);
+                    }
+                    final JsonNode explodeOpts = pairNode.get(1);
+                    final Optional<String> defaultName = parseExplodeOpts(explodeOpts);
+                    termsWithExplodeOpts.add(new TermsWithExplodeOpts(terms, defaultName));
+                }
+                return new ExplodePerGroup(termsWithExplodeOpts);
+            }
         }
         throw new RuntimeException("oops:" + command);
+    }
+
+    private static Optional<String> parseExplodeOpts(JsonNode opts) {
+        Optional<String> defaultName = Optional.empty();
+        for (final JsonNode opt : opts) {
+            switch (opt.get("type").asText()) {
+                case "addDefault":
+                    defaultName = Optional.of(opt.get("name").asText());
+                    break;
+            }
+        }
+        return defaultName;
     }
 
     /**
@@ -269,9 +308,11 @@ public class Commands {
      */
     public static class GetGroupStats {
         public final List<AggregateMetric> metrics;
+        public final boolean returnGroupKeys;
 
-        public GetGroupStats(List<AggregateMetric> metrics) {
+        public GetGroupStats(List<AggregateMetric> metrics, boolean returnGroupKeys) {
             this.metrics = metrics;
+            this.returnGroupKeys = returnGroupKeys;
         }
     }
 
@@ -330,5 +371,23 @@ public class Commands {
     }
 
     public static class GetNumGroups {
+    }
+
+    public static class TermsWithExplodeOpts {
+        public final List<Term> terms;
+        public final Optional<String> defaultName;
+
+        public TermsWithExplodeOpts(List<Term> terms, Optional<String> defaultName) {
+            this.terms = terms;
+            this.defaultName = defaultName;
+        }
+    }
+
+    public static class ExplodePerGroup {
+        public final List<TermsWithExplodeOpts> termsWithExplodeOpts;
+
+        public ExplodePerGroup(List<TermsWithExplodeOpts> termsWithExplodeOpts) {
+            this.termsWithExplodeOpts = termsWithExplodeOpts;
+        }
     }
 }

@@ -40,6 +40,8 @@ public interface AggregateFilter {
                 return new And(f1.get(), f2.get());
             case "or":
                 return new Or(f1.get(), f2.get());
+            case "always":
+                return new Constant(true);
         }
         throw new RuntimeException("Oops: " + node);
     }
@@ -285,6 +287,33 @@ public interface AggregateFilter {
         @Override
         public boolean allow(long term, long[] stats, int group) {
             return false;
+        }
+    }
+
+    static class Constant implements AggregateFilter {
+        private final boolean value;
+
+        public Constant(boolean value) {
+            this.value = value;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes) {
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return true;
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return true;
         }
     }
 }
