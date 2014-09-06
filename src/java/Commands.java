@@ -1,11 +1,15 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.indeed.common.util.Pair;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -16,8 +20,48 @@ public class Commands {
 
     public static Object parseCommand(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
         switch (command.get("command").asText()) {
-            case "iterate":
-                return new Iterate(command.get("field").asText(), command.get("opts"), namedMetricLookup);
+            case "iterate": {
+                final List<AggregateMetric> selecting = Lists.newArrayList();
+                Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
+                final Iterate.FieldIterateOpts defaultOpts = new Iterate.FieldIterateOpts();
+
+                final JsonNode globalOpts = command.get("opts");
+                for (final JsonNode globalOpt : globalOpts) {
+                    switch (globalOpt.get("type").asText()) {
+                        case "selecting": {
+                            for (final JsonNode metric : globalOpt.get("metrics")) {
+                                selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
+                            }
+                            break;
+                        }
+                        case "limitingFields": {
+                            fieldLimits = Optional.of(Pair.of(
+                                    globalOpt.get("numFields").asInt(),
+                                    Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").asText())
+                            ));
+                            break;
+                        }
+                        case "defaultedFieldOpts": {
+                            defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup);
+                            break;
+                        }
+                    }
+                }
+
+                final List<Iterate.FieldWithOptions> fieldsWithOpts = Lists.newArrayList();
+                final JsonNode fields = command.get("fields");
+                for (final JsonNode field : fields) {
+                    final String fieldName = field.get(0).asText();
+                    final JsonNode optsNode = field.get(1);
+
+                    final Iterate.FieldIterateOpts fieldIterateOpts = defaultOpts.copy();
+                    fieldIterateOpts.parseFrom(optsNode, namedMetricLookup);
+
+                    fieldsWithOpts.add(new Iterate.FieldWithOptions(fieldName, fieldIterateOpts));
+                }
+
+                return new Iterate(fieldsWithOpts, fieldLimits, selecting);
+            }
             case "filterDocs":
                 return new FilterDocs(DocFilter.fromJson(command.get("filter")));
             case "explodeGroups": {
@@ -72,16 +116,36 @@ public class Commands {
                 return new CreateGroupStatsLookup(stats);
             }
             case "getGroupDistincts": {
-                return new GetGroupDistincts(command.get("field").asText());
+                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
+                final String field = command.get("field").asText();
+                return new GetGroupDistincts(scope, field);
             }
             case "getGroupPercentiles": {
                 final String field = command.get("field").asText();
+                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
                 final JsonNode percentilesNode = command.get("percentiles");
                 final double[] percentiles = new double[percentilesNode.size()];
                 for (int i = 0; i < percentilesNode.size(); i++) {
                     percentiles[i] = percentilesNode.get(i).asDouble();
                 }
-                return new GetGroupPercentiles(field, percentiles);
+                return new GetGroupPercentiles(scope, field, percentiles);
+            }
+            case "metricRegroup": {
+                return new MetricRegroup(
+                        DocMetric.fromJson(command.get("metric")),
+                        command.get("min").asLong(),
+                        command.get("max").asLong(),
+                        command.get("interval").asLong()
+                );
+            }
+            case "timeRegroup": {
+                return new TimeRegroup(
+                        command.get("value").asLong(),
+                        command.get("unit").asText().charAt(0)
+                );
+            }
+            case "getNumGroups": {
+                return new GetNumGroups();
             }
         }
         throw new RuntimeException("oops:" + command);
@@ -95,44 +159,17 @@ public class Commands {
      ]
      */
     public static class Iterate {
-        public final String field;
-        public final OptionalInt limit;
-        public final Optional<TopK> topK;
-        public final List<AggregateMetric> selecting = Lists.newArrayList();
-        public final Optional<AggregateFilter> filter;
+        public final List<FieldWithOptions> fields;
+        public final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimitingOpts;
+        public final List<AggregateMetric> selecting;
 
-
-        public Iterate(String field, JsonNode options, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
-            this.field = field;
-            OptionalInt limit = OptionalInt.empty();
-            Optional<TopK> topK = Optional.empty();
-            Optional<AggregateFilter> filter = Optional.empty();
-            for (final JsonNode option : options) {
-                switch (option.get("type").asText()) {
-                    case "filter": {
-                        filter = Optional.of(AggregateFilter.fromJson(option.get("filter"), namedMetricLookup));
-                    }
-                        break;
-                    case "limit":
-                        limit = OptionalInt.of(option.get("k").asInt());
-                        break;
-                    case "top": {
-                        final int k = option.get("k").asInt();
-                        final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"), namedMetricLookup);
-                        topK = Optional.of(new TopK(k, metric));
-                    }
-                        break;
-                    case "selecting":
-                        for (final JsonNode metric : option.get("metrics")) {
-                            selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
-                        }
-                        break;
-                }
-            }
-            this.limit = limit;
-            this.topK = topK;
-            this.filter = filter;
+        public Iterate(List<FieldWithOptions> fields, Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimitingOpts, List<AggregateMetric> selecting) {
+            this.fields = fields;
+            this.fieldLimitingOpts = fieldLimitingOpts;
+            this.selecting = selecting;
         }
+
+        enum FieldLimitingMechanism {MinimalMin, MaximalMax}
 
         public static class TopK {
             public final int limit;
@@ -141,6 +178,51 @@ public class Commands {
             private TopK(int limit, AggregateMetric metric) {
                 this.limit = limit;
                 this.metric = metric;
+            }
+        }
+
+        public static class FieldWithOptions {
+            public final String field;
+            public final FieldIterateOpts opts;
+
+            public FieldWithOptions(String field, FieldIterateOpts opts) {
+                this.field = field;
+                this.opts = opts;
+            }
+        }
+
+        public static class FieldIterateOpts {
+            OptionalInt limit = OptionalInt.empty();
+            Optional<Iterate.TopK> topK = Optional.empty();
+            Optional<AggregateFilter> filter = Optional.empty();
+
+            public void parseFrom(JsonNode options, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
+                for (final JsonNode option : options) {
+                    switch (option.get("type").asText()) {
+                        case "filter": {
+                            this.filter = Optional.of(AggregateFilter.fromJson(option.get("filter"), namedMetricLookup));
+                            break;
+                        }
+                        case "limit": {
+                            this.limit = OptionalInt.of(option.get("k").asInt());
+                            break;
+                        }
+                        case "top": {
+                            final int k = option.get("k").asInt();
+                            final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"), namedMetricLookup);
+                            this.topK = Optional.of(new Iterate.TopK(k, metric));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            public FieldIterateOpts copy() {
+                final FieldIterateOpts result = new FieldIterateOpts();
+                result.limit = this.limit;
+                result.topK = this.topK;
+                result.filter = this.filter;
+                return result;
             }
         }
     }
@@ -202,20 +284,51 @@ public class Commands {
     }
 
     public static class GetGroupDistincts {
+        public final Set<String> scope;
         public final String field;
 
-        public GetGroupDistincts(String field) {
+        public GetGroupDistincts(Set<String> scope, String field) {
+            this.scope = scope;
             this.field = field;
         }
     }
 
     public static class GetGroupPercentiles {
+        public final Set<String> scope;
         public final String field;
         public final double[] percentiles;
 
-        public GetGroupPercentiles(String field, double[] percentiles) {
+        public GetGroupPercentiles(Set<String> scope, String field, double[] percentiles) {
+            this.scope = scope;
             this.field = field;
             this.percentiles = percentiles;
         }
+    }
+
+    public static class MetricRegroup {
+        public final DocMetric metric;
+        public final long min;
+        public final long max;
+        public final long interval;
+
+        public MetricRegroup(DocMetric metric, long min, long max, long interval) {
+            this.metric = metric;
+            this.min = min;
+            this.max = max;
+            this.interval = interval;
+        }
+    }
+
+    public static class TimeRegroup {
+        public final long value;
+        public final char unit;
+
+        public TimeRegroup(long value, char unit) {
+            this.value = value;
+            this.unit = unit;
+        }
+    }
+
+    public static class GetNumGroups {
     }
 }

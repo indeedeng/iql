@@ -11,7 +11,7 @@ import java.util.Arrays;
 * @author jwolfe
 */
 public class TermSelects {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    public final String field;
 
     public boolean isIntTerm;
     public String stringTerm;
@@ -21,7 +21,8 @@ public class TermSelects {
     public double topMetric;
     public final Session.GroupKey groupKey;
 
-    TermSelects(boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
+    TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
+        this.field = field;
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
         this.isIntTerm = isIntTerm;

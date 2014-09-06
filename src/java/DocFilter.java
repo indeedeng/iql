@@ -184,7 +184,7 @@ public interface DocFilter {
         public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             final Pattern pattern = Pattern.compile(regex);
             final FTGSIterator it = session.getFTGSIterator(new String[0], new String[]{field});
-            final Int2ObjectArrayMap<List<String>> groupTerms = new Int2ObjectArrayMap<>();
+            final DenseInt2ObjectMap<List<String>> groupTerms = new DenseInt2ObjectMap<>();
             while (it.nextField()) {
                 while (it.nextTerm()) {
                     final String term = it.termStringVal();
