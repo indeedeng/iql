@@ -910,11 +910,14 @@ public final class IQLTranslator {
                 long timePeriod = xMax - xMin;
 
                 if (timePeriod % bucketSize != 0) {
-                    StringBuilder exceptionBuilder = new StringBuilder("You requested a time period(");
+                    StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
                     appendTimePeriod(timePeriod, exceptionBuilder);
-                    exceptionBuilder.append(") not evenly divisible by the bucket size(");
+                    exceptionBuilder.append(") not evenly divisible by the bucket size (");
                     appendTimePeriod(bucketSize, exceptionBuilder);
-                    exceptionBuilder.append(")");
+                    exceptionBuilder.append("). To correct, increase the time range by ");
+                    appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
+                    exceptionBuilder.append(" or reduce the time range by ");
+                    appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
                     throw new IllegalArgumentException(exceptionBuilder.toString());
                 }
             }
