@@ -148,18 +148,20 @@ public class Stats {
 
     static class ExpStat extends Stat {
         private final Stat stat;
-        public ExpStat(Stat stat) {
+        private final int scaleFactor;
+        public ExpStat(Stat stat, int scaleFactor) {
             this.stat = stat;
+            this.scaleFactor = scaleFactor;
         }
         @Override
         protected List<String> pushes(EZImhotepSession session) {
             List<String> prev = Lists.newArrayList(stat.pushes(session));
-            prev.add("exp");
+            prev.add("exp " + scaleFactor);
             return prev;
         }
         @Override
         public String toString() {
-            return "exp("+stat.toString()+")";
+            return "exp("+stat.toString()+", " + scaleFactor + ")";
         }
     }
 

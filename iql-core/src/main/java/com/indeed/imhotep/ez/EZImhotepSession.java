@@ -897,8 +897,8 @@ public class EZImhotepSession implements Closeable {
     public static Stat max(Stat... stats) {
         return new BinOpStat("max()", stats);
     }
-    public static Stat exp(Stat ref) {
-        return new ExpStat(ref);
+    public static Stat exp(Stat ref, int scaleFactor) {
+        return new ExpStat(ref, scaleFactor);
     }
     public static Stat constant(long value) {
         return new ConstantStat(value);
