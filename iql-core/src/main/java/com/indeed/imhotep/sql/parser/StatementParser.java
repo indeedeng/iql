@@ -193,7 +193,7 @@ public class StatementParser {
                 if(!startTime.isBefore(endTime)) {
                     throw new IllegalArgumentException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
                 }
-                if(startTime.isBefore(new DateTime(1900, 1, 1, 0, 0))) {
+                if(startTime.isBefore(new DateTime(0, 1, 1, 0, 0))) {
                     throw new IllegalArgumentException("The start date appears to be too low. Check for a typo: " + startTime);
                 }
                 return new FromClause(dataset, startTime, endTime, start, end);
