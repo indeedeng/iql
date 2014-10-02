@@ -9,7 +9,7 @@
         <version>11-internal</version>
     </parent>
 
-    <artifactId>iql-</artifactId>
+    <artifactId>iql</artifactId>
     <version>1.0.4-internal</version>
     <packaging>jar</packaging>
 
