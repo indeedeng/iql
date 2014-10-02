@@ -9,7 +9,7 @@
         <version>11-internal</version>
     </parent>
 
-    <artifactId>iql-</artifactId>
+    <artifactId>iql</artifactId>
     <version>1.0.5-SNAPSHOT</version>
     <packaging>war</packaging>
 
