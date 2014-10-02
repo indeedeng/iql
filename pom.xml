@@ -11,7 +11,7 @@
 
     <artifactId>iql-</artifactId>
     <version>1.0.5-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <name>IQL core</name>
     <url>http://github.com/indeedeng</url>
