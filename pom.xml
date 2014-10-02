@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>iql-</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.0.4-internal</version>
     <packaging>jar</packaging>
 
     <name>IQL core</name>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.indeed</groupId>
             <artifactId>imhotep-server</artifactId>
-            <version>[1.0.3-internal,)</version>
+            <version>1.0.8</version>
         </dependency>
 
         <dependency>
@@ -200,7 +200,7 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <indeed-util.version>[1.0.9-SNAPSHOT,)</indeed-util.version>
+        <indeed-util.version>1.0.12-internal-20140805170920</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
