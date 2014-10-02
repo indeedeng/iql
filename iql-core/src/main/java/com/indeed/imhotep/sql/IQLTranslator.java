@@ -6,6 +6,8 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.ez.Stats;
+import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
@@ -480,6 +482,43 @@ public final class IQLTranslator {
                     return div(left.match(this), right.match(this));
                 case MOD:
                     return mod(left.match(this), right.match(this));
+                case LESS:
+                    return less(left.match(this), right.match(this));
+                case LESS_EQ:
+                    return lessEq(left.match(this), right.match(this));
+                case EQ:
+                    if(left instanceof NameExpression) {
+                        // probably a has[str/int] operation
+                        final String fieldName = ((NameExpression) left).name;
+                        final FieldMetadata field = datasetMetadata.getField(fieldName);
+                        if(field == null) {
+                            throw new IllegalArgumentException("Field not found: " + fieldName);
+                        }
+                        final FieldType fieldMetadataType = field.getType();
+                        if(field.isIntImhotepField() && right instanceof NumberExpression) {
+                            long value = parseInt(right);
+                            return hasInt(fieldName, value);
+                        } else if(fieldMetadataType == FieldType.Integer && right instanceof NumberExpression ||
+                                fieldMetadataType == FieldType.String && (right instanceof NameExpression ||
+                                right instanceof StringExpression || right instanceof NumberExpression)) {
+                            return hasString(fieldName, getStr(right));
+                        }
+                        // if it got here, it's not a has[str/int] operation
+                    }
+                    // try to compare as metrics
+                    return isEqual(left.match(this), right.match(this));
+                case NOT_EQ:
+                    if(left instanceof NameExpression) {
+                        final Stat equalsStat = binaryExpression(left, Op.EQ, right);
+                        // TODO: only return if equalsStat is a HasIntStat or a HasStringStat
+                        return sub(counts(), equalsStat);
+                    }
+                    // try to compare as metrics
+                    return isNotEqual(left.match(this), right.match(this));
+                case GREATER:
+                    return greater(left.match(this), right.match(this));
+                case GREATER_EQ:
+                    return greaterEq(left.match(this), right.match(this));
                 case AGG_DIV:
                 {
                     if(right instanceof NumberExpression) {

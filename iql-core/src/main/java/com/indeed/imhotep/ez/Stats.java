@@ -31,6 +31,10 @@ public class Stats {
         public String toString() {
             return "int:"+fieldName;
         }
+
+        public String getFieldName() {
+            return fieldName;
+        }
     }
 
     public static class DynamicMetricStat extends Stat {
@@ -147,6 +151,10 @@ public class Stats {
         @Override
         public String toString() {
             return Long.toString(value);
+        }
+
+        public long getValue() {
+            return value;
         }
     }
 

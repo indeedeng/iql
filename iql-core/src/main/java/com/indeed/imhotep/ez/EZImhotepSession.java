@@ -891,6 +891,28 @@ public class EZImhotepSession implements Closeable {
     public static Stat mod(Stat... stats) {
         return new BinOpStat("%", stats);
     }
+    public static Stat less(Stat... stats) {
+        return new BinOpStat("<", stats);
+    }
+    public static Stat lessEq(Stat... stats) {
+        return new BinOpStat("<=", stats);
+    }
+    public static Stat isEqual(Stat... stats) {
+        // try to optimize it as a hasint stat
+        if(stats.length == 2 && stats[0] instanceof IntFieldStat && stats[1] instanceof ConstantStat) {
+            return hasInt(((IntFieldStat)stats[0]).getFieldName(), ((ConstantStat) stats[1]).getValue());
+        }
+        return new BinOpStat("=", stats);
+    }
+    public static Stat isNotEqual(Stat... stats) {
+        return new BinOpStat("!=", stats);
+    }
+    public static Stat greater(Stat... stats) {
+        return new BinOpStat(">", stats);
+    }
+    public static Stat greaterEq(Stat... stats) {
+        return new BinOpStat(">=", stats);
+    }
     public static Stat min(Stat... stats) {
         return new BinOpStat("min()", stats);
     }
