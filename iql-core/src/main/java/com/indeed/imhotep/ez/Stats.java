@@ -2,6 +2,10 @@ package com.indeed.imhotep.ez;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
+import com.indeed.imhotep.protobuf.QueryMessage;
+import org.apache.commons.codec.binary.Base64;
 
 import java.util.Arrays;
 import java.util.List;
@@ -196,6 +200,23 @@ public class Stats {
         @Override
         public String toString() {
             return "hasstr:" + field + ":" + value;
+        }
+    }
+
+    static class LuceneQueryStat extends Stat {
+        private final Query luceneQuery;
+        public LuceneQueryStat(Query luceneQuery) {
+            this.luceneQuery = luceneQuery;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(luceneQuery);
+            final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
+            return Lists.newArrayList("lucene " + base64EncodedQuery);
+        }
+        @Override
+        public String toString() {
+            return "lucene(" + luceneQuery + ")";
         }
     }
 

@@ -92,7 +92,7 @@ public final class IQLTranslator {
             throw new IllegalArgumentException("Cannot use distinct and percentile in the same query");
         }
 
-        final StatMatcher statMatcher = new StatMatcher(datasetMetadata);
+        final StatMatcher statMatcher = new StatMatcher(datasetMetadata, keywordAnalyzerWhitelist);
         for (Expression expression : projections) {
             stats.add(expression.match(statMatcher));
         }
@@ -105,7 +105,7 @@ public final class IQLTranslator {
         }
 
         final List<Grouping> groupings = Lists.newArrayList();
-        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd());
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, keywordAnalyzerWhitelist, fromClause.getStart(), fromClause.getEnd());
         if (parse.groupBy != null) {
             for (Expression groupBy : parse.groupBy.groupings) {
                 groupings.add(groupBy.match(groupByMatcher));
@@ -281,6 +281,7 @@ public final class IQLTranslator {
 
     private static class StatMatcher extends Expression.Matcher<Stat> {
         private final DatasetMetadata datasetMetadata;
+        private final Set<String> keywordAnalyzerWhitelist;
 
         private final Map<String, Function<List<Expression>, Stat>> statLookup;
 
@@ -292,8 +293,9 @@ public final class IQLTranslator {
             return stats.toArray(new Stat[stats.size()]);
         }
 
-        private StatMatcher(final DatasetMetadata datasetMetadata) {
+        private StatMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist) {
             this.datasetMetadata = datasetMetadata;
+            this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
@@ -452,6 +454,16 @@ public final class IQLTranslator {
                     }
                 }
             });
+            builder.put("lucene", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new UnsupportedOperationException("lucene() requires a string argument containing the lucene query to try on each document");
+                    }
+                    final String luceneQuery = getStr(input.get(0));
+                    final com.indeed.flamdex.query.Query flamdexQuery = parseLuceneQuery(luceneQuery, datasetMetadata, keywordAnalyzerWhitelist);
+                    return lucene(flamdexQuery);
+                }
+            });
             statLookup = builder.build();
         }
 
@@ -514,44 +526,15 @@ public final class IQLTranslator {
         private ConditionMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist) {
             this.datasetMetadata = datasetMetadata;
             this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
-            statMatcher = new StatMatcher(datasetMetadata);
+            statMatcher = new StatMatcher(datasetMetadata, keywordAnalyzerWhitelist);
             final ImmutableMap.Builder<String, Function<List<Expression>, Condition>> builder = ImmutableMap.builder();
 
             Function<List<Expression>, Condition> luceneQueryHandler = new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
                     if (input.size() != 1) throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
                     final String queryString = getStr(input.get(0));
-
-                    // Pick a lucene query analyzer based on whether it is for a lucene or flamdex dataset
-                    // and what is in the keywordAnalyzerWhitelist for the dataset
-                    final Analyzer analyzer;
-                    if(datasetMetadata.isImhotepDataset()) {
-                        analyzer = new KeywordAnalyzer();
-                    } else if (!keywordAnalyzerWhitelist.isEmpty()) {
-                        final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
-                        if(keywordAnalyzerWhitelist.contains("*")) {
-                            analyzer = kwAnalyzer;
-                        } else {
-                            final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
-                            final PerFieldAnalyzerWrapper perFieldAnalyzer = new PerFieldAnalyzerWrapper(whitespaceAnalyzer);
-                            for (String field : keywordAnalyzerWhitelist) {
-                                perFieldAnalyzer.addAnalyzer(field, kwAnalyzer);
-                            }
-                            analyzer = perFieldAnalyzer;
-                        }
-                    } else {
-                        analyzer = new WhitespaceAnalyzer();
-                    }
-
-                    final QueryParser queryParser = new QueryParser("foo", analyzer);
-                    queryParser.setDefaultOperator(QueryParser.Operator.AND);
-                    final Query query;
-                    try {
-                        query = queryParser.parse(queryString);
-                    } catch (ParseException e) {
-                        throw Throwables.propagate(e);
-                    }
-                    return new QueryCondition(LuceneQueryTranslator.rewrite(query, datasetMetadata.getIntImhotepFieldSet()), negation);
+                    final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata, keywordAnalyzerWhitelist);
+                    return new QueryCondition(luceneQuery, negation);
                 }
             };
             builder.put("lucene", luceneQueryHandler);
@@ -760,6 +743,39 @@ public final class IQLTranslator {
         }
     }
 
+    private static com.indeed.flamdex.query.Query parseLuceneQuery(String queryString, DatasetMetadata datasetMetadata, Set<String> keywordAnalyzerWhitelist) {
+        // Pick a lucene query analyzer based on whether it is for a lucene or flamdex dataset
+        // and what is in the keywordAnalyzerWhitelist for the dataset
+        final Analyzer analyzer;
+        if(datasetMetadata.isImhotepDataset()) {
+            analyzer = new KeywordAnalyzer();
+        } else if (!keywordAnalyzerWhitelist.isEmpty()) {
+            final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
+            if(keywordAnalyzerWhitelist.contains("*")) {
+                analyzer = kwAnalyzer;
+            } else {
+                final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
+                final PerFieldAnalyzerWrapper perFieldAnalyzer = new PerFieldAnalyzerWrapper(whitespaceAnalyzer);
+                for (String field : keywordAnalyzerWhitelist) {
+                    perFieldAnalyzer.addAnalyzer(field, kwAnalyzer);
+                }
+                analyzer = perFieldAnalyzer;
+            }
+        } else {
+            analyzer = new WhitespaceAnalyzer();
+        }
+
+        final QueryParser queryParser = new QueryParser("foo", analyzer);
+        queryParser.setDefaultOperator(QueryParser.Operator.AND);
+        final Query query;
+        try {
+            query = queryParser.parse(queryString);
+        } catch (ParseException e) {
+            throw Throwables.propagate(e);
+        }
+        return LuceneQueryTranslator.rewrite(query, datasetMetadata.getIntImhotepFieldSet());
+    }
+
     private static final class GroupByMatcher extends Expression.Matcher<Grouping> {
         private static final int MAX_RECOMMENDED_BUCKETS = 1000;
 
@@ -772,8 +788,8 @@ public final class IQLTranslator {
         private final StatMatcher statMatcher;
 
 
-        private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end) {
-            statMatcher = new StatMatcher(datasetMetadata);
+        private GroupByMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist, final DateTime start, final DateTime end) {
+            statMatcher = new StatMatcher(datasetMetadata, keywordAnalyzerWhitelist);
             this.datasetMetadata = datasetMetadata;
             this.start = start;
             this.end = end;

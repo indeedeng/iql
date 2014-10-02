@@ -918,6 +918,9 @@ public class EZImhotepSession implements Closeable {
     public static Stat hasString(String field, String value) {
         return new HasStringStat(field, value);
     }
+    public static Stat lucene(Query luceneQuery) {
+        return new Stats.LuceneQueryStat(luceneQuery);
+    }
     public static Stat ref(SingleStatReference ref) {
         return new StatRefStat(ref);
     }
