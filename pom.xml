@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.indeed</groupId>
             <artifactId>imhotep-server</artifactId>
-            <version>[1.0.3-internal,)</version>
+            <version>${imhotep-server.version}</version>
         </dependency>
 
         <dependency>
@@ -200,6 +200,7 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
+        <imhotep-server.version>[1.0.3-internal,)</imhotep-server.version>
         <indeed-util.version>[1.0.9-SNAPSHOT,)</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
