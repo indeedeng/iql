@@ -3,3 +3,10 @@
 .settings/
 .project
 .classpath
+
+# /
+/*.iml
+/web-build
+/build-transient-src
+/build
+/dist
