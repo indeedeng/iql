@@ -6,7 +6,6 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.ez.Stats;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
@@ -61,7 +60,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -283,7 +281,6 @@ public final class IQLTranslator {
 
     private static class StatMatcher extends Expression.Matcher<Stat> {
         private final DatasetMetadata datasetMetadata;
-        private final Set<String> keywordAnalyzerWhitelist;
 
         private final Map<String, Function<List<Expression>, Stat>> statLookup;
 
@@ -297,7 +294,6 @@ public final class IQLTranslator {
 
         private StatMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist) {
             this.datasetMetadata = datasetMetadata;
-            this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
@@ -680,7 +676,7 @@ public final class IQLTranslator {
                     final Pattern pattern = Pattern.compile(regexp);
                     return Collections.<Condition>singletonList(new StringPredicateCondition(Field.stringField(fieldName), new Predicate<String>() {
                             @Override
-                            public boolean apply(@Nullable String input) {
+                            public boolean apply(String input) {
                                 return pattern.matcher(input).matches();
                             }
                         },

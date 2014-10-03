@@ -75,12 +75,12 @@ public final class ExpressionParser {
         .infixl(binary("*", Op.MUL), 20)
         .infixl(binary("\\", Op.DIV), 20)
         .infixl(binary("%", Op.MOD), 20)
-        .infixl(binary("<", Op.LESS), 30)
-        .infixl(binary("<=", Op.LESS_EQ), 30)
-        .infixl(binary("=", Op.EQ), 30)
-        .infixl(binary("!=", Op.NOT_EQ), 30)
-        .infixl(binary(">", Op.GREATER), 30)
-        .infixl(binary(">=", Op.GREATER_EQ), 30)
+//        .infixl(binary("<", Op.LESS), 30)
+//        .infixl(binary("<=", Op.LESS_EQ), 30)
+//        .infixl(binary("=", Op.EQ), 30)
+//        .infixl(binary("!=", Op.NOT_EQ), 30)
+//        .infixl(binary(">", Op.GREATER), 30)
+//        .infixl(binary(">=", Op.GREATER_EQ), 30)
         .build(operand);
     reference.set(parser);
     return parser;
