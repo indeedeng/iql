@@ -1,6 +1,7 @@
 package com.indeed.imhotep.web.config;
 
 import com.google.common.base.Strings;
+import com.indeed.imhotep.LocalImhotepDaemon;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.imhotep.client.Host;
@@ -11,6 +12,7 @@ import com.indeed.imhotep.web.ImhotepMetadataCache;
 import com.indeed.imhotep.web.QueryServlet;
 import com.indeed.imhotep.web.TopTermsCache;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +39,8 @@ import javax.xml.bind.PropertyException;
 @EnableScheduling
 @ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
+    private static final Logger log = Logger.getLogger(SpringConfiguration.class);
+
     @Autowired
     Environment env;
 
@@ -54,6 +59,18 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean(destroyMethod = "close")
     public ImhotepClient imhotepClient() {
+        if(env.getProperty("imhotep.daemons.localmode", Boolean.class, false)) {
+            // when running an imhotep daemon instance in process
+            final String shardsDir = env.getProperty("imhotep.shards.directory");
+            if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
+                final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
+                return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
+            } else {
+                log.warn("Local mode is enabled for the Imhotep Daemon but imhotep.shards.directory is not set to an existing location." +
+                        "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
+            }
+        }
+        // connect to an externally running Imhotep Daemon
         return getImhotepClient(
                 env.getProperty("imhotep.daemons.zookeeper.quorum"),
                 env.getProperty("imhotep.daemons.zookeeper.path"),
