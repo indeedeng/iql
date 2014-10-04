@@ -527,6 +527,17 @@ public final class IQLTranslator {
             }
         }
 
+        @Override
+        protected Stat unaryExpression(Op op, Expression operand) {
+            if(operand instanceof NumberExpression) {
+                final String stringValue = "-" + ((NumberExpression)operand).number;
+                final long value = Long.parseLong(stringValue);
+                return constant(value);
+            } else {
+                throw new UnsupportedOperationException("Unary negation is only supported on constants");
+            }
+        }
+
         protected Stat functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Stat> function = statLookup.get(name);
             if (function == null) {
@@ -1149,12 +1160,28 @@ public final class IQLTranslator {
     }
 
     private static int parseInt(Expression expression) {
-        return Integer.parseInt(((NumberExpression)expression).number);
+        return (int) parseLong(expression);
     }
 
     private static long parseLong(Expression expression) {
-        return Long.parseLong(((NumberExpression) expression).number);
+        return expression.match(GET_LONG);
     }
+
+    private static final Expression.Matcher<Long> GET_LONG = new Expression.Matcher<Long>() {
+        protected Long numberExpression(final String value) {
+            return Long.parseLong(value);
+        }
+
+        @Override
+        protected Long unaryExpression(Op op, Expression operand) {
+            if(operand instanceof NumberExpression) {
+                final String stringValue = "-" + ((NumberExpression)operand).number;
+                return Long.parseLong(stringValue);
+            } else {
+                throw new UnsupportedOperationException("Expected a number to negate, got " + operand.toString());
+            }
+        }
+    };
 
     private static final Expression.Matcher<String> GET_STR = new Expression.Matcher<String>() {
         protected String numberExpression(final String value) {
