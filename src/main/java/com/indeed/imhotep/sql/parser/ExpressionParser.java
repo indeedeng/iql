@@ -79,24 +79,25 @@ public final class ExpressionParser {
   static <T> Parser<T> paren(Parser<T> parser) {
     return parser.between(term("("), term(")"));
   }
+
   static Parser<Expression> arithmetic(Parser<Expression> atom) {
     Reference<Expression> reference = Parser.newReference();
     Parser<Expression> operand =
         Parsers.or(paren(reference.lazy()), functionCall(reference.lazy()), atom);
     Parser<Expression> parser = new OperatorTable<Expression>()
         .infixl(binary("/", Op.AGG_DIV), 5)
+        .infixl(binary("<", Op.LESS), 7)
+        .infixl(binary("<=", Op.LESS_EQ), 7)
+        .infixl(binary("=", Op.EQ), 7)
+        .infixl(binary("!=", Op.NOT_EQ), 7)
+        .infixl(binary(">", Op.GREATER), 7)
+        .infixl(binary(">=", Op.GREATER_EQ), 7)
         .infixl(binary("+", Op.PLUS), 10)
         .infixl(binary("-", Op.MINUS), 10)
         .infixl(binary("*", Op.MUL), 20)
         .infixl(binary("\\", Op.DIV), 20)
         .infixl(binary("%", Op.MOD), 20)
-        .prefix(unary("-", Op.NEG), 50)
-//        .infixl(binary("<", Op.LESS), 30)
-//        .infixl(binary("<=", Op.LESS_EQ), 30)
-//        .infixl(binary("=", Op.EQ), 30)
-//        .infixl(binary("!=", Op.NOT_EQ), 30)
-//        .infixl(binary(">", Op.GREATER), 30)
-//        .infixl(binary(">=", Op.GREATER_EQ), 30)
+        .prefix(unary("-", Op.NEG), 30)
         .build(operand);
     reference.set(parser);
     return parser;
@@ -152,7 +153,8 @@ public final class ExpressionParser {
     // each filter is one of: 1) simple field equality 2) metric inequality/comparison 3) IN operation 4) function call with any expressions as params
     return Parsers.or(
             comparison(NAME, atomWhere()),
-            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER),
+            arithmetic(atomWhere()),    // TODO: fix: using this instead of the line below lets through some input that will fail in IQLTranslator
+//            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER),
             inCondition(),
             functionCall(arithmetic(atom())));  // function parameters are away from top level so we use non-where version of atom
   }
@@ -169,7 +171,6 @@ public final class ExpressionParser {
   static Parser<Expression> metricComparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
       return Parsers.or(
               compare(opLeft, "=", Op.EQ, opRight),
-              compare(opLeft, ":", Op.EQ, opRight),
               compare(opLeft, "!=", Op.NOT_EQ, opRight),
               compare(opLeft, ">=", Op.GREATER_EQ, opRight),
               compare(opLeft, ">", Op.GREATER, opRight),
