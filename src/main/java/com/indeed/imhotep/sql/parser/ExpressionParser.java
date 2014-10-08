@@ -24,6 +24,7 @@ import org.codehaus.jparsec.Parser;
 import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.Parser.Reference;
 import org.codehaus.jparsec.functors.Binary;
+import org.codehaus.jparsec.functors.Map2;
 import org.codehaus.jparsec.functors.Unary;
 import org.codehaus.jparsec.misc.Mapper;
 
@@ -36,6 +37,20 @@ public final class ExpressionParser {
   
   static final Parser<Expression> NUMBER =
       curry(NumberExpression.class).sequence(TerminalParser.NUMBER);
+
+  static final Parser<Expression> SIGNED_NUMBER =
+      Parsers.sequence(term("-").retn("-").optional(), TerminalParser.NUMBER, new Map2<String, String, Expression>() {
+          @Override
+          public Expression map(String o, String s) {
+              final String val;
+              if(o != null) {
+                  val = "-"+s;
+              } else {
+                  val = s;
+              }
+              return new NumberExpression(val);
+          }
+      });
   
   static final Parser<Expression> STRING =
        curry(StringExpression.class).sequence(TerminalParser.STRING);
@@ -64,23 +79,25 @@ public final class ExpressionParser {
   static <T> Parser<T> paren(Parser<T> parser) {
     return parser.between(term("("), term(")"));
   }
+
   static Parser<Expression> arithmetic(Parser<Expression> atom) {
     Reference<Expression> reference = Parser.newReference();
     Parser<Expression> operand =
         Parsers.or(paren(reference.lazy()), functionCall(reference.lazy()), atom);
     Parser<Expression> parser = new OperatorTable<Expression>()
         .infixl(binary("/", Op.AGG_DIV), 5)
+        .infixl(binary("<", Op.LESS), 7)
+        .infixl(binary("<=", Op.LESS_EQ), 7)
+        .infixl(binary("=", Op.EQ), 7)
+        .infixl(binary("!=", Op.NOT_EQ), 7)
+        .infixl(binary(">", Op.GREATER), 7)
+        .infixl(binary(">=", Op.GREATER_EQ), 7)
         .infixl(binary("+", Op.PLUS), 10)
         .infixl(binary("-", Op.MINUS), 10)
         .infixl(binary("*", Op.MUL), 20)
         .infixl(binary("\\", Op.DIV), 20)
         .infixl(binary("%", Op.MOD), 20)
-//        .infixl(binary("<", Op.LESS), 30)
-//        .infixl(binary("<=", Op.LESS_EQ), 30)
-//        .infixl(binary("=", Op.EQ), 30)
-//        .infixl(binary("!=", Op.NOT_EQ), 30)
-//        .infixl(binary(">", Op.GREATER), 30)
-//        .infixl(binary(">=", Op.GREATER_EQ), 30)
+        .prefix(unary("-", Op.NEG), 30)
         .build(operand);
     reference.set(parser);
     return parser;
@@ -88,11 +105,11 @@ public final class ExpressionParser {
 
   static Parser<Expression> atomWhere() {
       // can't have unquoted strings at the top level of where expressions as the spaces there are meaningful
-      return Parsers.or(NUMBER, STRING, NAME);
+      return Parsers.or(SIGNED_NUMBER, STRING, NAME);
   }
 
   static Parser<Expression> atom() {
-      return Parsers.longest(NUMBER, STRING, NAME, UNQUOTED_STRING);
+      return Parsers.longest(SIGNED_NUMBER, STRING, NAME, UNQUOTED_STRING);
   }
 
   static Parser<Expression> groupByExpression() {
@@ -136,9 +153,11 @@ public final class ExpressionParser {
     // each filter is one of: 1) simple field equality 2) metric inequality/comparison 3) IN operation 4) function call with any expressions as params
     return Parsers.or(
             comparison(NAME, atomWhere()),
-            metricComparison(arithmetic(atomWhere()), NUMBER),
             inCondition(),
-            functionCall(arithmetic(atom())));  // function parameters are away from top level so we use non-where version of atom
+            functionCall(arithmetic(atom())),  // function parameters are away from top level so we use non-where version of atom
+            arithmetic(atomWhere())    // TODO: fix: using this instead of the line below lets through some input that will fail in IQLTranslator
+//            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER)
+    );
   }
 
   static Parser<Expression> comparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
@@ -153,7 +172,6 @@ public final class ExpressionParser {
   static Parser<Expression> metricComparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
       return Parsers.or(
               compare(opLeft, "=", Op.EQ, opRight),
-              compare(opLeft, ":", Op.EQ, opRight),
               compare(opLeft, "!=", Op.NOT_EQ, opRight),
               compare(opLeft, ">=", Op.GREATER_EQ, opRight),
               compare(opLeft, ">", Op.GREATER, opRight),

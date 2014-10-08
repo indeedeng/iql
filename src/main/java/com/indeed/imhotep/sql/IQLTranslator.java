@@ -7,6 +7,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.metadata.FieldType;
+import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
@@ -483,7 +484,9 @@ public final class IQLTranslator {
                 case LESS_EQ:
                     return lessEq(left.match(this), right.match(this));
                 case EQ:
-                    if(left instanceof NameExpression) {
+                    if(left instanceof NameExpression && (
+                            right instanceof NumberExpression ||
+                            right instanceof StringExpression)) {
                         // probably a has[str/int] operation
                         final String fieldName = ((NameExpression) left).name;
                         final FieldMetadata field = datasetMetadata.getField(fieldName);
@@ -495,8 +498,7 @@ public final class IQLTranslator {
                             long value = parseInt(right);
                             return hasInt(fieldName, value);
                         } else if(fieldMetadataType == FieldType.Integer && right instanceof NumberExpression ||
-                                fieldMetadataType == FieldType.String && (right instanceof NameExpression ||
-                                right instanceof StringExpression || right instanceof NumberExpression)) {
+                                fieldMetadataType == FieldType.String) {
                             return hasString(fieldName, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
@@ -504,7 +506,9 @@ public final class IQLTranslator {
                     // try to compare as metrics
                     return isEqual(left.match(this), right.match(this));
                 case NOT_EQ:
-                    if(left instanceof NameExpression) {
+                    if(left instanceof NameExpression && (
+                            right instanceof NumberExpression ||
+                            right instanceof StringExpression)) {
                         final Stat equalsStat = binaryExpression(left, Op.EQ, right);
                         // TODO: only return if equalsStat is a HasIntStat or a HasStringStat
                         return sub(counts(), equalsStat);
@@ -524,6 +528,17 @@ public final class IQLTranslator {
                 }
                 default:
                     throw new UnsupportedOperationException();
+            }
+        }
+
+        @Override
+        protected Stat unaryExpression(Op op, Expression operand) {
+            if(operand instanceof NumberExpression) {
+                final String stringValue = "-" + ((NumberExpression)operand).number;
+                final long value = Long.parseLong(stringValue);
+                return constant(value);
+            } else {
+                throw new UnsupportedOperationException("Unary negation is only supported on constants");
             }
         }
 
@@ -658,8 +673,15 @@ public final class IQLTranslator {
                         if(datasetMetadata.hasField(name.name)) {
                             return handleFieldComparison(name, right, usingNegation);
                         }
+                    } else if(right instanceof NumberExpression) {
+                        return handleMetricComparison(left, right, usingNegation);
+                    } else if (!(left instanceof StringExpression || right instanceof StringExpression)) {
+                        // assume we have a comparison of 2 metrics. filter for the result of that = 1
+                        return handleMetricComparison(new BinaryExpression(left, Op.EQ, right),
+                                new NumberExpression("1"), usingNegation);
+                    } else {
+                        throw new IllegalArgumentException("Can't compare the provided operands: " + left + "; " + right);
                     }
-                    return handleMetricComparison(left, right, usingNegation);
                 case REGEX_NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to REGEX_EQ
@@ -690,24 +712,39 @@ public final class IQLTranslator {
                 case LESS_EQ:
                 case GREATER:
                 case GREATER_EQ:
-                    if (!(right instanceof NumberExpression)) throw new IllegalArgumentException("Comparison values have to be numbers. Given: " + right.toString());
-                    final Stat stat = left.match(statMatcher);
-                    long value = parseLong(right);    // constant we are comparing against
-                    if(op == Op.LESS) {
-                        value -= 1;
-                    } else if(op == Op.GREATER) {
-                        value += 1;
+                    if ((left instanceof  StringExpression || right instanceof StringExpression)) {
+                        throw new IllegalArgumentException(op.toString() + " operation can't be applied to a string");
                     }
-                    final long min;
-                    final long max;
-                    if(op == Op.LESS || op == Op.LESS_EQ) {
-                        min = Long.MIN_VALUE;
-                        max = value;
-                    } else { // GREATER / GREATER_EQ
-                        min = value;
-                        max = Long.MAX_VALUE;
+                    if(left instanceof NameExpression && right instanceof NumberExpression) {
+                        final Stat stat = left.match(statMatcher);
+                        long value = parseLong(right);    // constant we are comparing against
+                        if (op == Op.LESS) {
+                            value -= 1;
+                        } else if (op == Op.GREATER) {
+                            value += 1;
+                        }
+                        final long min;
+                        final long max;
+                        if (op == Op.LESS || op == Op.LESS_EQ) {
+                            min = Long.MIN_VALUE;
+                            max = value;
+                        } else { // GREATER / GREATER_EQ
+                            min = value;
+                            max = Long.MAX_VALUE;
+                        }
+                        return Collections.<Condition>singletonList(new MetricCondition(stat, min, max, negation));
+                    } else {
+                        // assume we have a comparison of 2 metrics. filter for the result of that = 1
+                        return handleMetricComparison(new BinaryExpression(left, op, right),
+                                new NumberExpression("1"), negation);
                     }
-                    return Collections.<Condition>singletonList(new MetricCondition(stat, min, max, negation));
+                case PLUS:
+                case MINUS:
+                case MUL:
+                case DIV:
+                case AGG_DIV:
+                case MOD:
+                    throw new UnsupportedOperationException(op.toString() + " operation is not usable as a filter");
                 default:
                     throw new UnsupportedOperationException();
             }
@@ -1149,12 +1186,28 @@ public final class IQLTranslator {
     }
 
     private static int parseInt(Expression expression) {
-        return Integer.parseInt(((NumberExpression)expression).number);
+        return (int) parseLong(expression);
     }
 
     private static long parseLong(Expression expression) {
-        return Long.parseLong(((NumberExpression) expression).number);
+        return expression.match(GET_LONG);
     }
+
+    private static final Expression.Matcher<Long> GET_LONG = new Expression.Matcher<Long>() {
+        protected Long numberExpression(final String value) {
+            return Long.parseLong(value);
+        }
+
+        @Override
+        protected Long unaryExpression(Op op, Expression operand) {
+            if(operand instanceof NumberExpression) {
+                final String stringValue = "-" + ((NumberExpression)operand).number;
+                return Long.parseLong(stringValue);
+            } else {
+                throw new UnsupportedOperationException("Expected a number to negate, got " + operand.toString());
+            }
+        }
+    };
 
     private static final Expression.Matcher<String> GET_STR = new Expression.Matcher<String>() {
         protected String numberExpression(final String value) {
