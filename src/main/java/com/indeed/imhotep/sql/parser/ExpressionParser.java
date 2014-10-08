@@ -153,10 +153,11 @@ public final class ExpressionParser {
     // each filter is one of: 1) simple field equality 2) metric inequality/comparison 3) IN operation 4) function call with any expressions as params
     return Parsers.or(
             comparison(NAME, atomWhere()),
-            arithmetic(atomWhere()),    // TODO: fix: using this instead of the line below lets through some input that will fail in IQLTranslator
-//            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER),
             inCondition(),
-            functionCall(arithmetic(atom())));  // function parameters are away from top level so we use non-where version of atom
+            functionCall(arithmetic(atom())),  // function parameters are away from top level so we use non-where version of atom
+            arithmetic(atomWhere())    // TODO: fix: using this instead of the line below lets through some input that will fail in IQLTranslator
+//            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER)
+    );
   }
 
   static Parser<Expression> comparison(Parser<Expression> opLeft, Parser<Expression> opRight) {

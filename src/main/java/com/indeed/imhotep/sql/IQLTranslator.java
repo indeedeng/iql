@@ -466,14 +466,6 @@ public final class IQLTranslator {
             statLookup = builder.build();
         }
 
-        private boolean isIntFieldNameExpression(Expression expression) {
-            if(!(expression instanceof NameExpression)) {
-                return false;
-            }
-            final FieldMetadata fieldMetadata = datasetMetadata.getField(((NameExpression) expression).name);
-            return fieldMetadata != null && fieldMetadata.getType() == FieldType.Integer;
-        }
-
         protected Stat binaryExpression(final Expression left, final Op op, final Expression right) {
             switch (op) {
 
@@ -494,8 +486,7 @@ public final class IQLTranslator {
                 case EQ:
                     if(left instanceof NameExpression && (
                             right instanceof NumberExpression ||
-                            right instanceof StringExpression ||
-                            right instanceof NameExpression && !isIntFieldNameExpression(right))) {
+                            right instanceof StringExpression)) {
                         // probably a has[str/int] operation
                         final String fieldName = ((NameExpression) left).name;
                         final FieldMetadata field = datasetMetadata.getField(fieldName);
@@ -517,8 +508,7 @@ public final class IQLTranslator {
                 case NOT_EQ:
                     if(left instanceof NameExpression && (
                             right instanceof NumberExpression ||
-                            right instanceof StringExpression ||
-                            right instanceof NameExpression && !isIntFieldNameExpression(right))) {
+                            right instanceof StringExpression)) {
                         final Stat equalsStat = binaryExpression(left, Op.EQ, right);
                         // TODO: only return if equalsStat is a HasIntStat or a HasStringStat
                         return sub(counts(), equalsStat);
