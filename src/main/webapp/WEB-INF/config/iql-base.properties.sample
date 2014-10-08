@@ -3,11 +3,7 @@ imhotep.daemons.zookeeper.quorum=
 imhotep.daemons.zookeeper.path=
 imhotep.daemons.host=
 
-imhotep.daemons.interactive.zookeeper.quorum=
-imhotep.daemons.interactive.zookeeper.path=
-imhotep.daemons.interactive.host=
-
-#ramses.metadata.dir=/var/lucene/ramses_metadata
+#ramses.metadata.dir=/var/lucene/iql_metadata
 
 query.cache.enabled=true
 query.cache.backend=HDFS
