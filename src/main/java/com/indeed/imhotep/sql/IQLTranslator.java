@@ -984,6 +984,9 @@ public final class IQLTranslator {
             } else if(bucketSizeStr.charAt(bucketSizeStr.length()-1) == 'b' && min > 0 && max > 0) {
                 // given the number of buckets instead of the bucket size. so compute the bucket size ourselves
                 int bucketCount = Integer.parseInt(bucketSizeStr.substring(0, bucketSizeStr.length() - 1));
+                if(bucketCount < 1) {
+                    throw new IllegalArgumentException("Number of time buckets has to be at least 1");
+                }
                 return (long)Math.ceil((max-min) / (double)bucketCount); // bucket size rounded up
             } else {
                 Period period = PeriodParser.parseString(bucketSizeStr);
