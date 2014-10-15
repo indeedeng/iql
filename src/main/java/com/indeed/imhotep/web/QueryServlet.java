@@ -82,7 +82,7 @@ public class QueryServlet {
     }
 
     private static final Logger log = Logger.getLogger(QueryServlet.class);
-    private static final Logger dataLog = Logger.getLogger("indeed.logging");
+    private static final Logger dataLog = Logger.getLogger("indeed.logentry");
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final String METADATA_FILE_SUFFIX = ".meta";
     // this can be incremented to invalidate the old cache
