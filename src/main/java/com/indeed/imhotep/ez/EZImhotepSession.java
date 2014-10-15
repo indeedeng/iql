@@ -580,17 +580,30 @@ public class EZImhotepSession implements Closeable {
         return positiveGroup;
     }
 
-    public Map<Integer, GroupKey> metricRegroup(SingleStatReference statRef, long min, long max, long intervalSize, Stringifier<Long> stringifier) throws ImhotepOutOfMemoryException {
+    public Map<Integer, GroupKey> metricRegroup(SingleStatReference statRef, long min, long max, long intervalSize,
+                                                boolean noGutters, Stringifier<Long> stringifier,
+                                                @Nullable Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         final Map<Integer, GroupKey> ret = Maps.newHashMap();
-        numGroups = session.metricRegroup(statRef.depth, min, max, intervalSize);
-        int nextGroup = 1;
-        for (long i = min; i < max; i += intervalSize) {
-            ret.put(nextGroup++, GroupKey.singleton(String.format("[%s, %s)", stringifier.toString(i), stringifier.toString(i+intervalSize))));
+        final int gutterBuckets = noGutters ? 0 : 2;
+        final int numBuckets = (int)((max-min-1)/intervalSize + 1 + gutterBuckets);
+        for (int group = 1; group < numGroups; group++) {
+            int bucket = 1;
+            int newGroupOffset = (group - 1) * numBuckets;
+            final GroupKey<String> groupKey = groupKeys != null ? groupKeys.get(group) : GroupKey.empty();
+            for (long i = min; i < max; i += intervalSize, bucket++) {
+                final String bucketString = String.format("[%s, %s)", stringifier.toString(i), stringifier.toString(i + intervalSize));
+                ret.put(newGroupOffset + bucket, groupKey.add(bucketString));
+            }
+
+            if(!noGutters) {
+                ret.put(newGroupOffset + numBuckets - 1, groupKey.add(String.format("< %s", stringifier.toString(min))));
+                ret.put(newGroupOffset + numBuckets, groupKey.add(String.format(">= %s", stringifier.toString(max))));
+            }
         }
-        ret.put(nextGroup++, GroupKey.singleton(String.format("< %s", stringifier.toString(min))));
-        ret.put(nextGroup, GroupKey.singleton(String.format(">= %s", stringifier.toString(max))));
-        final int numBuckets = (int)((max-min-1)/intervalSize+3);
-        for (int group = numGroups; group <= numBuckets; group++) {
+        final int newExpectedNumberOfGroups = (numGroups-1) * numBuckets;
+        numGroups = session.metricRegroup(statRef.depth, min, max, intervalSize, noGutters);
+        // Delete the keys for trailing groups that don't exist on the server
+        for (int group = numGroups; group <= newExpectedNumberOfGroups; group++) {
             ret.remove(group);
         }
         return ret;

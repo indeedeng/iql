@@ -24,9 +24,10 @@ public final class StatRangeGrouping extends Grouping {
     private final long minValue;
     private final long maxValue;
     private final long intervalSize;
+    private final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
 
-    public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize, Stringifier<Long> stringFormatter) {
+    public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize, final boolean noGutters, Stringifier<Long> stringFormatter) {
         if(intervalSize <= 0) {
             throw new IllegalArgumentException("Bucket size has to be positive for stat: " + stat.toString());
         }
@@ -34,6 +35,7 @@ public final class StatRangeGrouping extends Grouping {
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.intervalSize = intervalSize;
+        this.noGutters = noGutters;
         this.stringFormatter = stringFormatter;
 
         final long expectedBucketCount = (maxValue - minValue) / intervalSize;
@@ -45,7 +47,7 @@ public final class StatRangeGrouping extends Grouping {
 
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         final SingleStatReference statRef = session.pushStat(stat);
-        final Map<Integer, GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, stringFormatter);
+        final Map<Integer, GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
         session.popStat();
         return ret;
     }
