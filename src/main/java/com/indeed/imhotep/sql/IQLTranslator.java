@@ -113,8 +113,6 @@ public final class IQLTranslator {
             }
         }
 
-        ensureBucketsComeFirst(groupings);
-
         if(distinctGrouping != null) {
             ensureDistinctSelectDoesntMatchGroupings(groupings, distinctGrouping);
             groupings.add(distinctGrouping);    // distinct has to come last
@@ -148,19 +146,6 @@ public final class IQLTranslator {
             FieldGrouping fieldGrouping = (FieldGrouping) groupings.get(0);
             if(fieldGrouping.getTopK() == 0 && !fieldGrouping.isNoExplode()) {
                 groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true));
-            }
-        }
-    }
-
-    private static void ensureBucketsComeFirst(List<Grouping> groupings) {
-        boolean inBucketing = true;
-        for(Grouping grouping : groupings) {
-            boolean bucketGrouping = grouping instanceof StatRangeGrouping || grouping instanceof  StatRangeGrouping2D;
-            if(bucketGrouping && !inBucketing) {
-                throw new UnsupportedOperationException("Bucketing groupings (e.g. time or bucket()) have to come before all other non-bucketing groupings. " +
-                        "'group by time, country' is supported but 'group by country, time' is not.");
-            } else if(!bucketGrouping) {
-                inBucketing = false;
             }
         }
     }
@@ -895,12 +880,19 @@ public final class IQLTranslator {
             Function<List<Expression>, Grouping> bucketHandler =
                 new Function<List<Expression>, Grouping>() {
                     public Grouping apply(final List<Expression> input) {
-                        if (input.size() == 4) {
+                        if (input.size() == 4 || input.size() == 5) {
                             final long min = parseLong(input.get(1));
                             final long max = parseLong(input.get(2));
                             final long interval = parseTimeBucketInterval(getStr(input.get(3)), false, 0, 0);
-                            return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, new LongStringifier());
+                            boolean noGutters = false;
+                            if(input.size() == 5) {
+                                final String noGuttersStr = getStr(input.get(4));
+                                noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
+                            }
+                            return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
+                                    new LongStringifier());
                         } else if (input.size() == 8) {
+                            // DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each
                             final Stat xStat = input.get(0).match(statMatcher);
                             final long xMin = parseLong(input.get(1));
                             final long xMax = parseLong(input.get(2));
@@ -911,7 +903,7 @@ public final class IQLTranslator {
                             final long yInterval = parseTimeBucketInterval(getStr(input.get(7)), false, 0, 0);
                             return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval);
                         } else {
-                            throw new IllegalArgumentException("Bucketing function takes 1 or 2 groups of following arguments: stat, min, max, bucket_size");
+                            throw new IllegalArgumentException("buckets() takes 4 or 5 arguments: stat, min(long), max(long), bucket_size(long), [noGutters(boolean)]");
                         }
                     }
                 };
@@ -961,7 +953,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, stringifier);
+            return new StatRangeGrouping(stat, min, max, interval, true, stringifier);
         }
 
 
