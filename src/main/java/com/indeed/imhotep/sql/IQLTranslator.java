@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.iql.DiffGrouping;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.util.serialization.LongStringifier;
@@ -122,6 +123,8 @@ public final class IQLTranslator {
 
         handleMultitermIn(conditions, groupings);
 
+        handleDiffGrouping(groupings, stats);
+
         optimizeGroupings(groupings);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
@@ -154,7 +157,7 @@ public final class IQLTranslator {
      * Handles converting queries of the form WHERE field IN (term1, term2, ...) GROUP BY field
      * to queries like: GROUP BY field IN (term1, term2, ...) .
      * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
-     * Modified the passed in lists.
+     * Modifies the passed in lists.
      */
     static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings) {
         for(int i = 0; i < conditions.size(); i++) {
@@ -186,6 +189,44 @@ public final class IQLTranslator {
                 i--;    // have to redo the current index as indexes were shifted
                 groupings.set(j, fieldInGrouping);
             }
+        }
+    }
+
+    /**
+     * Handles converting queries of the form GROUP BY diff(field, filter1, filter2, limit) SELECT metric
+     * to queries like: GROUP BY field[top limit by abs(filter1*metric-filter2*metric)] select abs(filter1*metric-filter2*metric), filter1*metric, filter2*metric.
+     * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
+     * Modifies the passed in lists.
+     */
+    private static void handleDiffGrouping(List<Grouping> groupings, List<Stat> stats) {
+        for(int i = 0; i < groupings.size(); i++) {
+            final Grouping grouping = groupings.get(i);
+            if(!(grouping instanceof DiffGrouping)) {
+                continue;
+            }
+            final Stat selectStat= stats.get(0);
+
+            DiffGrouping diff = (DiffGrouping) grouping;
+            Stat filter1 = diff.getFilter1();
+            Stat filter2 = diff.getFilter2();
+
+            Stat stat1 = mult(filter1, selectStat);
+            Stat stat2 = mult(filter2, selectStat);
+
+            Stat diffStat = abs(sub(stat1, stat2));
+            stats.set(0, diffStat);
+            // TODO: make client understand
+            if(stats.size() > 1) {
+                stats.set(1, stat1);
+            } else {
+                stats.add(stat1);
+            }
+            if(stats.size() > 2) {
+                stats.set(2, stat2);
+            } else {
+                stats.add(stat2);
+            }
+            groupings.set(i, new FieldGrouping(diff.getField(), diff.getTopK(), diffStat, false));
         }
     }
 
@@ -874,6 +915,21 @@ public final class IQLTranslator {
 
                     final Field field = getField(fieldName, datasetMetadata);
                     return new FieldGrouping(field, topK, stat, bottom);
+                }
+            });
+
+            builder.put("diff", new Function<List<Expression>, Grouping>() {
+                public Grouping apply(final List<Expression> input) {
+                    if (input.size() != 4) {
+                        throw new IllegalArgumentException("diff() takes 4 args: fieldName(string), metricFilter1(StatExpression), metricFilter2(StatExpression), topK(int)");
+                    }
+                    final String fieldName = getName(input.get(0));
+                    Stat statFilter1 = input.get(1).match(statMatcher);
+                    Stat statFilter2 = input.get(2).match(statMatcher);
+                    final int topK = parseInt(input.get(3));
+
+                    final Field field = getField(fieldName, datasetMetadata);
+                    return new DiffGrouping(field, statFilter1, statFilter2, topK);
                 }
             });
 
