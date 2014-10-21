@@ -839,6 +839,11 @@ public final class IQLTranslator {
             }
             return Collections.singletonList(function.apply(args));
         }
+
+        @Override
+        protected List<Condition> otherwise() {
+            throw new UnsupportedOperationException("Syntax error in a Where condition");
+        }
     }
 
     private static com.indeed.flamdex.query.Query parseLuceneQuery(String queryString, DatasetMetadata datasetMetadata, Set<String> keywordAnalyzerWhitelist) {
