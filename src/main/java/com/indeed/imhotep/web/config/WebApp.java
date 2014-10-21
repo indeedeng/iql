@@ -15,15 +15,19 @@
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.iql.IQLQuery;
+import com.indeed.imhotep.web.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 import org.springframework.web.util.Log4jConfigListener;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
 import java.io.File;
+import java.util.EnumSet;
 
 
 /**
@@ -49,6 +53,9 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         initWebapp(servletContext);
 
         super.onStartup(servletContext);
+
+        FilterRegistration.Dynamic noCacheFilter = servletContext.addFilter("nocache", NoCacheFilter.class);
+        noCacheFilter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
 
         cleanupTempFiles();
     }
