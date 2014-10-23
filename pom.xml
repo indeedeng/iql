@@ -6,14 +6,14 @@
     <parent>
         <groupId>com.indeed</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>11-internal</version>
+        <version>12</version>
     </parent>
 
     <artifactId>iql</artifactId>
     <version>1.0.5-SNAPSHOT</version>
     <packaging>war</packaging>
 
-    <name>IQL core</name>
+    <name>IQL Server</name>
     <url>http://github.com/indeedeng</url>
 
     <licenses>
@@ -23,6 +23,12 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <scm>
+        <url>https://github.com/indeedeng/iql</url>
+        <connection>scm:git:https://github.com/indeedeng/iql.git</connection>
+        <developerConnection>scm:git:git@github.com:indeedeng/iql.git</developerConnection>
+    </scm>
 
     <repositories>
         <repository>
