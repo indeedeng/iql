@@ -13,6 +13,7 @@
  */
  package com.indeed.imhotep.iql.cache;
 
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -41,11 +42,20 @@ public class S3QueryCache implements QueryCache {
 
     public S3QueryCache(PropertyResolver props) {
         String awsRegion;
+        String awsKey;
+        String awsSecret;
         
         enabled = true;
         try {
             bucket = props.getProperty("query.cache.s3.bucket", String.class);
-            client = new AmazonS3Client();
+            awsKey = props.getProperty("query.cache.s3.s3key", String.class);
+            awsSecret = props.getProperty("query.cache.s3.s3secret", String.class);
+            if (awsKey == null || awsSecret == null) {
+                log.warn("No AWS key or Secret found.  Using Anonymous access.");
+                client = new AmazonS3Client();
+            } else {
+                client = new AmazonS3Client(new BasicAWSCredentials(awsKey, awsSecret));
+            }
 
             boolean exists = client.doesBucketExist(bucket);
             if (! exists) {
