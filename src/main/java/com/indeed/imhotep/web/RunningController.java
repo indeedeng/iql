@@ -18,6 +18,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -36,7 +38,14 @@ public class RunningController {
     @RequestMapping("/running")
     @ResponseBody
     public State handle() {
-        return new State(executionManager.getRunningQueries());
+        List<ExecutionManager.QueryTracker> queries = executionManager.getRunningQueries();
+        Collections.sort(queries, new Comparator<ExecutionManager.QueryTracker>() {
+            @Override
+            public int compare(ExecutionManager.QueryTracker o1, ExecutionManager.QueryTracker o2) {
+                return o1.getStartedTime().compareTo(o2.getStartedTime());
+            }
+        });
+        return new State(queries);
     }
 
     public static class State {
