@@ -18,6 +18,7 @@ import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.web.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
+import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 import org.springframework.web.util.Log4jConfigListener;
 
@@ -51,6 +52,8 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         WebApp.started = true;
 
         initWebapp(servletContext);
+
+        initCharacterEncodingFilter(servletContext);
 
         super.onStartup(servletContext);
 
@@ -138,5 +141,12 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         return new Class<?>[0]; // root ApplicationContext not used by default. everything is in the servlet context
     }
 
+    private void initCharacterEncodingFilter(final ServletContext servletContext) {
+        final CharacterEncodingFilter utf8 = new CharacterEncodingFilter();
+        utf8.setEncoding("utf-8");
+        utf8.setForceEncoding(true);
+        servletContext.addFilter("SetCharacterEncodingFilter", utf8)
+                .addMappingForUrlPatterns(null, false, "/*");
+    }
 }
 
