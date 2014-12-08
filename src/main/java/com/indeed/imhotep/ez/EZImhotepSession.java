@@ -155,21 +155,17 @@ public class EZImhotepSession implements Closeable {
         throw new UnsupportedOperationException("Sorry, this isn't actually possible yet");
     }
 
-    public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
-        final List<String> intFields = Lists.newArrayList();
-        final List<String> stringFields = Lists.newArrayList();
-        for (Field field : fields) {
-            if (field.isIntField()) {
-                intFields.add(field.fieldName);
-            } else {
-                stringFields.add(field.fieldName);
-            }
-        }
+    public void ftgsSubsetIterate(Map<Field, List<?>> fieldsToTermsSubsets, FTGSCallback callback) {
+        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+        performIteration(callback, ftgsIterator);
+    }
 
-        final FTGSIterator ftgsIterator = session.getFTGSIterator(
-                intFields.toArray(new String[intFields.size()]),
-                stringFields.toArray(new String[stringFields.size()])
-        );
+    public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+        performIteration(callback, ftgsIterator);
+    }
+
+    private void performIteration(FTGSCallback callback, FTGSIterator ftgsIterator) {
         try {
             while (ftgsIterator.nextField()) {
                 final String field = ftgsIterator.fieldName();
@@ -199,7 +195,55 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
+    public <E> Iterator<E> ftgsGetSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets, final FTGSIteratingCallback<E> callback) {
+        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+
+        // TODO: make sure ftgsIterator gets closed
+        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+    }
+
+    private FTGSIterator getFtgsSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets) {
+        final Map<String, long[]> intFields = Maps.newHashMap();
+        final Map<String, String[]> stringFields = Maps.newHashMap();
+        for (Field field : fieldsToTermsSubsets.keySet()) {
+            final List<?> terms = fieldsToTermsSubsets.get(field);
+            if (field.isIntField()) {
+                final long[] intTermsSubset = new long[terms.size()];
+                for(int i = 0; i < intTermsSubset.length; i++) {
+                    final Object term = terms.get(i);
+                    if(term instanceof Long) {
+                        intTermsSubset[i] = (Long) term;
+                    } else if(term instanceof String) {
+                        try {
+                            intTermsSubset[i] = Long.valueOf((String) term);
+                        } catch (NumberFormatException e) {
+                            // TODO: move
+                            throw new IllegalArgumentException("IN grouping for int field " + field.getFieldName() +
+                                    " has a non integer argument: " + term);
+                        }
+                    }
+                }
+                intFields.put(field.fieldName, intTermsSubset);
+            } else {
+                final String[] stringTermsSubset = new String[terms.size()];
+                for(int i = 0; i < stringTermsSubset.length; i++) {
+                    stringTermsSubset[i] = (String)terms.get(i);
+                }
+                stringFields.put(field.fieldName, stringTermsSubset);
+            }
+        }
+
+        return session.getSubsetFTGSIterator(intFields, stringFields);
+    }
+
     public <E> Iterator<E> ftgsGetIterator(List<Field> fields, final FTGSIteratingCallback<E> callback) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+
+        // TODO: make sure ftgsIterator gets closed
+        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+    }
+
+    private FTGSIterator getFtgsIterator(List<Field> fields) {
         final List<String> intFields = Lists.newArrayList();
         final List<String> stringFields = Lists.newArrayList();
         for (Field field : fields) {
@@ -210,13 +254,10 @@ public class EZImhotepSession implements Closeable {
             }
         }
 
-        final FTGSIterator ftgsIterator = session.getFTGSIterator(
+        return session.getFTGSIterator(
                 intFields.toArray(new String[intFields.size()]),
                 stringFields.toArray(new String[stringFields.size()])
         );
-
-        // TODO: make sure ftgsIterator gets closed
-        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
     public void filter(IntField field, Predicate<Long> predicate) throws ImhotepOutOfMemoryException {

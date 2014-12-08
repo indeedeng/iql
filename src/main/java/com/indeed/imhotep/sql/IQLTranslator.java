@@ -197,7 +197,8 @@ public final class IQLTranslator {
                     continue;
                 }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
-                FieldInGrouping fieldInGrouping = new FieldInGrouping(field, Lists.newArrayList(inCondition.getValues()));
+                FieldGrouping fieldInGrouping = new FieldGrouping(field, fieldGrouping.isNoExplode(),
+                        Lists.newArrayList(inCondition.getValues()));
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
                 groupings.set(j, fieldInGrouping);
@@ -883,6 +884,8 @@ public final class IQLTranslator {
 
         final QueryParser queryParser = new QueryParser("foo", analyzer);
         queryParser.setDefaultOperator(QueryParser.Operator.AND);
+        // TODO: should we disable forced lowercasing of terms for prefix Lucene queries?
+//        queryParser.setLowercaseExpandedTerms(false);
         final Query query;
         try {
             query = queryParser.parse(queryString);
@@ -1027,7 +1030,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, true, stringifier);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier);
         }
 
 
@@ -1159,7 +1162,7 @@ public final class IQLTranslator {
                         terms.add(getStr(expression));
                     }
                     final Field field = getField(name.name, datasetMetadata);
-                    return new FieldInGrouping(field, terms);
+                    return new FieldGrouping(field, true, terms);
                 }
                 default:
                     throw new UnsupportedOperationException();
