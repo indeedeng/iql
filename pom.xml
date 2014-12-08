@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>iql</artifactId>
-    <version>1.0.9-internal</version>
+    <version>1.0.10-internal</version>
     <packaging>jar</packaging>
 
     <name>IQL Server</name>
