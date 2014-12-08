@@ -129,11 +129,16 @@ public final class ExpressionParser {
     return Parsers.longest(NAME,
             functionCall(expression()),
             bracketExpression(),
+            explodeExpression(),
             groupByIn()).label("group by expression");
   }
 
     static Parser<Expression> groupByIn() {
         return binaryExpression(Op.IN).sequence(NAME, term("in"), tuple(atom())).label("IN grouping");
+    }
+
+    static Parser<Expression> explodeExpression() {
+        return unaryExpression(Op.EXPLODE).sequence(NAME, term("*")).label("explode grouping");
     }
 
   static Parser<Expression> expression() {

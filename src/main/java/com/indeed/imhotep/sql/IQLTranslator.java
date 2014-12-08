@@ -1140,12 +1140,26 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
-            return new FieldGrouping(field);
+            return new FieldGrouping(field, true);
         }
 
         @Override
         protected Grouping bracketsExpression(final String field, final String content) {
             return topTerms(field, content);
+        }
+
+        @Override
+        protected Grouping unaryExpression(Op op, Expression operand) {
+            switch (op) {
+                case EXPLODE:
+                {
+                    final String fieldName = getStr(operand);
+                    final Field field = getField(fieldName, datasetMetadata);
+                    return new FieldGrouping(field, false);
+                }
+                default:
+                    throw new UnsupportedOperationException();
+            }
         }
 
         @Override
