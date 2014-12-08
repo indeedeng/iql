@@ -806,7 +806,8 @@ public final class IQLTranslator {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
 
-                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null || !keywordAnalyzerWhitelist.contains(name.name));
+                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null ||
+                        !keywordAnalyzerWhitelist.contains(name.name) && !keywordAnalyzerWhitelist.contains("*"));
                 if(isTokenized && right instanceof StringExpression) {
                     // special handling for tokenized fields and multi-word queries e.g. jobsearch:q
                     String[] words = value.split("\\s+");
