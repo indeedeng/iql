@@ -1,16 +1,34 @@
-package com.indeed.imhotep.web.config;
+/*
+ * Copyright (C) 2014 Indeed Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ package com.indeed.imhotep.web.config;
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.iql.IQLQuery;
+import com.indeed.imhotep.web.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
+import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 import org.springframework.web.util.Log4jConfigListener;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
 import java.io.File;
+import java.util.EnumSet;
 
 
 /**
@@ -35,7 +53,12 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
 
         initWebapp(servletContext);
 
+        initCharacterEncodingFilter(servletContext);
+
         super.onStartup(servletContext);
+
+        FilterRegistration.Dynamic noCacheFilter = servletContext.addFilter("nocache", NoCacheFilter.class);
+        noCacheFilter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
 
         cleanupTempFiles();
     }
@@ -118,5 +141,12 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         return new Class<?>[0]; // root ApplicationContext not used by default. everything is in the servlet context
     }
 
+    private void initCharacterEncodingFilter(final ServletContext servletContext) {
+        final CharacterEncodingFilter utf8 = new CharacterEncodingFilter();
+        utf8.setEncoding("utf-8");
+        utf8.setForceEncoding(true);
+        servletContext.addFilter("SetCharacterEncodingFilter", utf8)
+                .addMappingForUrlPatterns(null, false, "/*");
+    }
 }
 

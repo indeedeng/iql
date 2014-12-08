@@ -1,5 +1,19 @@
-package com.indeed.imhotep.iql.cache;
+/*
+ * Copyright (C) 2014 Indeed Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ package com.indeed.imhotep.iql.cache;
 
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -28,11 +42,20 @@ public class S3QueryCache implements QueryCache {
 
     public S3QueryCache(PropertyResolver props) {
         String awsRegion;
+        String awsKey;
+        String awsSecret;
         
         enabled = true;
         try {
             bucket = props.getProperty("query.cache.s3.bucket", String.class);
-            client = new AmazonS3Client();
+            awsKey = props.getProperty("query.cache.s3.s3key", String.class);
+            awsSecret = props.getProperty("query.cache.s3.s3secret", String.class);
+            if (awsKey == null || awsSecret == null) {
+                log.warn("No AWS key or Secret found.  Using Anonymous access.");
+                client = new AmazonS3Client();
+            } else {
+                client = new AmazonS3Client(new BasicAWSCredentials(awsKey, awsSecret));
+            }
 
             boolean exists = client.doesBucketExist(bucket);
             if (! exists) {
