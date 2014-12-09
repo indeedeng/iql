@@ -99,7 +99,15 @@ public class EZImhotepSession implements Closeable {
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
-        final SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        if(stat instanceof Stats.AggregateBinOpConstStat) { // hacks for handling division by a constant
+            final Stats.AggregateBinOpConstStat statAsConstAggregate = (Stats.AggregateBinOpConstStat) stat;
+            if(!"/".equals(statAsConstAggregate.getOp())) {
+                throw new IllegalArgumentException("Only aggregate division is currently supported");
+            }
+            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue(), this);
+        }
+
         statStack.push(statReference);
         return statReference;
     }
@@ -993,6 +1001,10 @@ public class EZImhotepSession implements Closeable {
 
     public static Stat aggDiv(Stat stat1, Stat stat2) {
         return new Stats.AggregateBinOpStat("/", stat1, stat2);
+    }
+
+    public static Stat aggDivConst(Stat stat1, long value) {
+        return new Stats.AggregateBinOpConstStat("/", stat1, value);
     }
 
     @Nonnull
