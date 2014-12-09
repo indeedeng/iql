@@ -561,7 +561,11 @@ public final class IQLTranslator {
                 case AGG_DIV:
                 {
                     if(right instanceof NumberExpression) {
-                        throw new UnsupportedOperationException("Aggregate division (/) by a number is not yet supported. To divide each document's value, use '\\' e.g. 'tottime\\1000'");
+                        long value = parseLong(right);
+                        if(value == 0) {
+                            throw new IllegalArgumentException("Can't divide by 0");
+                        }
+                        return aggDivConst(left.match(this), value);
                     }
                     return aggDiv(left.match(this), right.match(this));
                 }
