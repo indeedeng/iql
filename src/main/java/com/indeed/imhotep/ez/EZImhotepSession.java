@@ -223,12 +223,14 @@ public class EZImhotepSession implements Closeable {
                         }
                     }
                 }
+                Arrays.sort(intTermsSubset);
                 intFields.put(field.fieldName, intTermsSubset);
             } else {
                 final String[] stringTermsSubset = new String[terms.size()];
                 for(int i = 0; i < stringTermsSubset.length; i++) {
                     stringTermsSubset[i] = (String)terms.get(i);
                 }
+                Arrays.sort(stringTermsSubset);
                 stringFields.put(field.fieldName, stringTermsSubset);
             }
         }
