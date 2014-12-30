@@ -112,7 +112,7 @@ public class Session {
         org.apache.log4j.BasicConfigurator.configure();
         Logger.getRootLogger().setLevel(Level.INFO);
 
-        final ImhotepClient client = new ImhotepClient("/home/jwolfe/hosts.txt");
+        final ImhotepClient client = new ImhotepClient("");
 
         final ServerSocket serverSocket = new ServerSocket(28347);
         while (true) {
