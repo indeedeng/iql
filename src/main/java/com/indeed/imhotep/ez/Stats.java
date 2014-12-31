@@ -152,6 +152,36 @@ public class Stats {
         }
     }
 
+    static class AggregateBinOpConstStat extends Stat {
+        private final String op;
+        private final long value;
+        Stat statLeft;
+
+        public AggregateBinOpConstStat(String op, Stat statLeft, long value) {
+            this.op = op;
+            this.statLeft = statLeft;
+            this.value = value;
+        }
+
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            return statLeft.pushes(session);
+        }
+
+        @Override
+        public String toString() {
+            return "(" + statLeft.toString() + ") " + op + " " + value;
+        }
+
+        public long getValue() {
+            return value;
+        }
+
+        public String getOp() {
+            return op;
+        }
+    }
+
     static class ConstantStat extends Stat {
         private final long value;
         public ConstantStat(long value) {

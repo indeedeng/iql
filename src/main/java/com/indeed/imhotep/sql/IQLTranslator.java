@@ -562,7 +562,11 @@ public final class IQLTranslator {
                 case AGG_DIV:
                 {
                     if(right instanceof NumberExpression) {
-                        throw new UnsupportedOperationException("Aggregate division (/) by a number is not yet supported. To divide each document's value, use '\\' e.g. 'tottime\\1000'");
+                        long value = parseLong(right);
+                        if(value == 0) {
+                            throw new IllegalArgumentException("Can't divide by 0");
+                        }
+                        return aggDivConst(left.match(this), value);
                     }
                     return aggDiv(left.match(this), right.match(this));
                 }
@@ -807,7 +811,8 @@ public final class IQLTranslator {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
 
-                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null || !keywordAnalyzerWhitelist.contains(name.name));
+                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null ||
+                        !keywordAnalyzerWhitelist.contains(name.name) && !keywordAnalyzerWhitelist.contains("*"));
                 if(isTokenized && right instanceof StringExpression) {
                     // special handling for tokenized fields and multi-word queries e.g. jobsearch:q
                     String[] words = value.split("\\s+");
@@ -1142,12 +1147,26 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
-            return new FieldGrouping(field);
+            return new FieldGrouping(field, true);
         }
 
         @Override
         protected Grouping bracketsExpression(final String field, final String content) {
             return topTerms(field, content);
+        }
+
+        @Override
+        protected Grouping unaryExpression(Op op, Expression operand) {
+            switch (op) {
+                case EXPLODE:
+                {
+                    final String fieldName = getStr(operand);
+                    final Field field = getField(fieldName, datasetMetadata);
+                    return new FieldGrouping(field, false);
+                }
+                default:
+                    throw new UnsupportedOperationException();
+            }
         }
 
         @Override
