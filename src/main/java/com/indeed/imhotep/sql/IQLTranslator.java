@@ -20,6 +20,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.DiffGrouping;
+import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.util.serialization.LongStringifier;
@@ -58,6 +59,7 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.parser.ExpressionParser;
 import com.indeed.imhotep.sql.parser.PeriodParser;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
+import dk.brics.automaton.RegExp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -738,13 +740,15 @@ public final class IQLTranslator {
                         throw new IllegalArgumentException("Unknown field: " + fieldName);
                     }
                     String regexp = getStr(right);
-                    final Pattern pattern = Pattern.compile(regexp);
-                    return Collections.<Condition>singletonList(new StringPredicateCondition(Field.stringField(fieldName), new Predicate<String>() {
-                            @Override
-                            public boolean apply(String input) {
-                                return pattern.matcher(input).matches();
-                            }
-                        },
+                    // validate the provided regex
+                    try {
+                        new RegExp(regexp).toAutomaton();
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("The provided regex filter '" + regexp + "' failed to parse. " +
+                                "\nError was: " + e.getMessage() +
+                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
+                    }
+                    return Collections.<Condition>singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();

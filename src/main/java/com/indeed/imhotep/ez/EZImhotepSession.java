@@ -347,6 +347,32 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
+    /**
+     * @param field field to filter on
+     * @param regex regex to test with
+     */
+    public void filterRegex(Field field, String regex) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a filter with more than one group. Consider filtering before regrouping.");
+        }
+        for (int group = 1; group < numGroups; group++) {
+            session.regexRegroup(field.getFieldName(), regex, group, 0, group);
+        }
+    }
+
+    /**
+     * @param field field to filter on
+     * @param regex regex to test with
+     */
+    public void filterRegexNegation(Field field, String regex) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a filter with more than one group. Consider filtering before regrouping.");
+        }
+        for (int group = 1; group < numGroups; group++) {
+            session.regexRegroup(field.getFieldName(), regex, group, group, 0);
+        }
+    }
+
     public static Map<Integer, GroupKey> newGroupKeys() {
         final Map<Integer, GroupKey> ret = Maps.newHashMap();
         ret.put(1, GroupKey.empty());
