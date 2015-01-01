@@ -98,7 +98,7 @@ public final class FieldGrouping extends Grouping {
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if (topK > 0) {
             return Preconditions.checkNotNull(session.splitAllTopK(field, groupKeys, topK, sortStat, isBottom));
-        } else if(termSubset.size() > 0) {
+        } else if(isTermSubset()) {
             if(field.isIntField()) {
                 Field.IntField intField = (Field.IntField) field;
                 long[] termsArray = new long[termSubset.size()];
@@ -134,7 +134,7 @@ public final class FieldGrouping extends Grouping {
             return callback.getResults().iterator();
         } else if(noExplode) {
             final GroupingFTGSCallbackNoExplode callback = new GroupingFTGSCallbackNoExplode(session.getStackDepth(), statRefs, groupKeys);
-            if(termSubset.size() ==  0) {
+            if(!isTermSubset()) {
                 return session.ftgsGetIterator(Arrays.asList(field), callback);
             } else {
                 final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
@@ -143,7 +143,7 @@ public final class FieldGrouping extends Grouping {
             }
         } else {
             final GroupingFTGSCallback callback = new GroupingFTGSCallback(session.getStackDepth(), statRefs, groupKeys);
-            if(termSubset.size() == 0) {
+            if(!isTermSubset()) {
                 session.ftgsIterate(Arrays.asList(field), callback);
             } else {
                 final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
@@ -164,5 +164,13 @@ public final class FieldGrouping extends Grouping {
 
     public boolean isNoExplode() {
         return noExplode;
+    }
+
+    public boolean isTopK() {
+        return topK != 0;
+    }
+
+    public boolean isTermSubset() {
+        return termSubset.size() != 0;
     }
 }
