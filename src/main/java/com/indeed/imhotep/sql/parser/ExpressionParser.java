@@ -169,6 +169,7 @@ public final class ExpressionParser {
 
   static Parser<Expression> filter() {
     // each filter is one of: 1) simple field equality 2) metric inequality/comparison 3) IN operation 4) function call with any expressions as params
+    // TODO: should be able to do a metric comparison involving functions e.g. floatscale(yearlysalary,1,0) != 0
     return Parsers.or(
             comparison(NAME, atomWhere()),
             inCondition(),

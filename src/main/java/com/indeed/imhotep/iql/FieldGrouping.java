@@ -14,6 +14,9 @@
  package com.indeed.imhotep.iql;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
@@ -22,6 +25,7 @@ import com.indeed.imhotep.ez.StatReference;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,13 +47,18 @@ public final class FieldGrouping extends Grouping {
     private final Stat sortStat;
     private final boolean isBottom;
     private final boolean noExplode;
+    private final ArrayList<String> termSubset;
 
     public FieldGrouping(final Field field) {
         this(field, 0);
     }
 
     public FieldGrouping(final Field field, final boolean noExplode) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode);
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList());
+    }
+
+    public FieldGrouping(final Field field, boolean noExplode, List<String> termSubset) {
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset);
     }
 
     public FieldGrouping(final Field field, int topK) {
@@ -65,15 +74,17 @@ public final class FieldGrouping extends Grouping {
     }
 
     public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom) {
-        this(field, topK, sortStat, isBottom, false);
+        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList());
     }
 
-    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode) {
+    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset) {
         this.field = field;
         this.topK = topK;
         this.sortStat = sortStat;
         this.isBottom = isBottom;
         this.noExplode = noExplode;
+        // remove duplicated terms as it makes Imhotep complain
+        this.termSubset = Lists.newArrayList(Sets.newLinkedHashSet(termSubset));
 
         // validation
         if(topK > EZImhotepSession.GROUP_LIMIT) {
@@ -87,6 +98,23 @@ public final class FieldGrouping extends Grouping {
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if (topK > 0) {
             return Preconditions.checkNotNull(session.splitAllTopK(field, groupKeys, topK, sortStat, isBottom));
+        } else if(isTermSubset()) {
+            if(field.isIntField()) {
+                Field.IntField intField = (Field.IntField) field;
+                long[] termsArray = new long[termSubset.size()];
+                for(int i = 0; i < termSubset.size(); i++) {
+                    try {
+                        termsArray[i] = Long.valueOf(termSubset.get(i));
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("IN grouping for int field " + intField.getFieldName() +
+                                " has a non integer argument: " + termSubset.get(i));
+                    }
+                }
+                return Preconditions.checkNotNull(session.explodeEachGroup(intField, termsArray, groupKeys));
+            } else {
+                String[] termsArray = termSubset.toArray(new String[termSubset.size()]);
+                return Preconditions.checkNotNull(session.explodeEachGroup((Field.StringField) field, termsArray, groupKeys));
+            }
         } else if(noExplode) {
             return Preconditions.checkNotNull(session.splitAll(field, groupKeys));
         } else {
@@ -106,10 +134,22 @@ public final class FieldGrouping extends Grouping {
             return callback.getResults().iterator();
         } else if(noExplode) {
             final GroupingFTGSCallbackNoExplode callback = new GroupingFTGSCallbackNoExplode(session.getStackDepth(), statRefs, groupKeys);
-            return session.ftgsGetIterator(Arrays.asList(field), callback);
+            if(!isTermSubset()) {
+                return session.ftgsGetIterator(Arrays.asList(field), callback);
+            } else {
+                final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
+                fieldsToTermsSubsets.put(field, termSubset);
+                return session.ftgsGetSubsetIterator(fieldsToTermsSubsets, callback);
+            }
         } else {
             final GroupingFTGSCallback callback = new GroupingFTGSCallback(session.getStackDepth(), statRefs, groupKeys);
-            session.ftgsIterate(Arrays.asList(field), callback);
+            if(!isTermSubset()) {
+                session.ftgsIterate(Arrays.asList(field), callback);
+            } else {
+                final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
+                fieldsToTermsSubsets.put(field, termSubset);
+                session.ftgsSubsetIterate(fieldsToTermsSubsets, callback);
+            }
             return callback.getResults().iterator();
         }
     }
@@ -124,5 +164,13 @@ public final class FieldGrouping extends Grouping {
 
     public boolean isNoExplode() {
         return noExplode;
+    }
+
+    public boolean isTopK() {
+        return topK != 0;
+    }
+
+    public boolean isTermSubset() {
+        return termSubset.size() != 0;
     }
 }
