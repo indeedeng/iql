@@ -16,8 +16,8 @@ import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.common.util.Pair;
-import com.indeed.flamdex.query.*;
 import com.indeed.flamdex.query.Term;
+import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
@@ -112,38 +112,49 @@ public class Session {
         org.apache.log4j.BasicConfigurator.configure();
         Logger.getRootLogger().setLevel(Level.INFO);
 
-        final ImhotepClient client = new ImhotepClient("");
+        final ImhotepClient client = new ImhotepClient("***REMOVED***", true);
 
         final ServerSocket serverSocket = new ServerSocket(28347);
         while (true) {
             final Socket clientSocket = serverSocket.accept();
             new Thread(() -> {
                 try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                     final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+                    final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
                     final JsonNode sessionRequest = mapper.readTree(in.readLine());
-                    final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
-                    try (final Closer closer = Closer.create()) {
-                        for (int i = 0; i < sessionRequest.size(); i++) {
-                            final JsonNode elem = sessionRequest.get(i);
-                            final String dataset = elem.get("dataset").asText();
-                            final String start = elem.get("start").asText();
-                            final String end = elem.get("end").asText();
-                            final String name = elem.has("name") ? elem.get("name").asText() : dataset;
+
+                    if (sessionRequest.has("describe")) {
+                        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").asText());
+                        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo);
+                        mapper.writeValue(out, datasetDescriptor);
+                        out.println();
+                    } else {
+                        final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
+                        try (final Closer closer = Closer.create()) {
+                            for (int i = 0; i < sessionRequest.size(); i++) {
+                                final JsonNode elem = sessionRequest.get(i);
+                                final String dataset = elem.get("dataset").asText();
+                                final String start = elem.get("start").asText();
+                                final String end = elem.get("end").asText();
+                                final String name = elem.has("name") ? elem.get("name").asText() : dataset;
 
 
-                            final Collection<String> sessionIntFields = client.getDatasetToShardList().get(dataset).getIntFields();
-                            final DateTime startDateTime = parseDateTime(start);
-                            final DateTime endDateTime = parseDateTime(end);
-                            final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
+                                final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
+                                final Collection<String> sessionIntFields = datasetInfo.getIntFields();
+                                final DateTime startDateTime = parseDateTime(start);
+                                final DateTime endDateTime = parseDateTime(end);
+                                final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
 
-                            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, startDateTime, endDateTime));
-                        }
-                        final Session session1 = new Session(sessions);
-                        out.println("opened");
-                        String inputLine;
-                        while ((inputLine = in.readLine()) != null) {
-                            System.out.println("inputLine = " + inputLine);
-                            session1.evaluateCommand(inputLine, out);
+                                final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
+
+                                sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
+                            }
+                            final Session session1 = new Session(sessions);
+                            out.println("opened");
+                            String inputLine;
+                            while ((inputLine = in.readLine()) != null) {
+                                System.out.println("inputLine = " + inputLine);
+                                session1.evaluateCommand(inputLine, out);
+                            }
                         }
                     }
                 } catch (Throwable e) {
@@ -484,14 +495,11 @@ public class Session {
             final long latestEnd = sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
             final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
             final long unitSize = timeRegroup.value * timeUnit.millis;
-            final long realStart = earliestStart - earliestStart % unitSize;
-            System.out.println("realStart = " + realStart);
+            final long realStart = new DateTime(earliestStart).withTimeAtStartOfDay().getMillis();
             final long realEnd = latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize));
-            System.out.println("realEnd = " + realEnd);
-            System.out.println("unitSize = " + unitSize);
             sessions.values().forEach(sessionInfo -> unchecked(() -> {
                 final ImhotepSession session = sessionInfo.session;
-                session.pushStat("unixtime");
+                session.pushStat(sessionInfo.timeFieldName);
                 session.metricRegroup(0, realStart / 1000, realEnd / 1000, unitSize / 1000);
                 session.popStat();
             }));
@@ -1023,12 +1031,14 @@ public class Session {
         private final Collection<String> intFields;
         private final DateTime startTime;
         private final DateTime endTime;
+        private final String timeFieldName;
 
-        private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, DateTime startTime, DateTime endTime) {
+        private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
             this.intFields = intFields;
             this.startTime = startTime;
             this.endTime = endTime;
+            this.timeFieldName = timeFieldName;
         }
     }
 }
