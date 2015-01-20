@@ -154,6 +154,7 @@ public class Session {
                             while ((inputLine = in.readLine()) != null) {
                                 System.out.println("inputLine = " + inputLine);
                                 session1.evaluateCommand(inputLine, out);
+                                System.out.println("Evaluated.");
                             }
                         }
                     }
@@ -237,9 +238,9 @@ public class Session {
                 sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
             }
             for (final AggregateMetric metric : metrics) {
-                metric.register(metricIndexes);
+                metric.register(metricIndexes, groupKeys);
             }
-            iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes)));
+            iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes, groupKeys)));
             
             final DenseInt2ObjectMap<Queue<Queue<TermSelects>>> qqs = new DenseInt2ObjectMap<>();
             if (iterate.fieldLimitingOpts.isPresent()) {
@@ -310,7 +311,7 @@ public class Session {
                 final AggregateMetric topKMetricOrNull;
                 if (opts.topK.isPresent()) {
                     topKMetricOrNull = opts.topK.get().metric;
-                    topKMetricOrNull.register(metricIndexes);
+                    topKMetricOrNull.register(metricIndexes, groupKeys);
                 } else {
                     topKMetricOrNull = null;
                 }
@@ -491,6 +492,7 @@ public class Session {
             if (numGroups != 1) {
                 throw new IllegalStateException("Time regroup must be the initial regroup.");
             }
+            // TODO: This whole time thing needs a rethink.
             final long earliestStart = sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
             final long latestEnd = sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
             final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
@@ -514,7 +516,7 @@ public class Session {
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats(getGroupStats, getGroupStats.returnGroupKeys ? Optional.of(groupKeys) : Optional.empty(), getSessionsMap(), numGroups);
+            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMap(), numGroups, getGroupStats.returnGroupKeys);
 
             mapper.writeValue(out, results);
             out.println();
@@ -923,7 +925,7 @@ public class Session {
         }
     }
 
-    public static List<GroupStats> getGroupStats(Commands.GetGroupStats getGroupStats, Optional<List<GroupKey>> groupKeys, Map<String, ImhotepSession> sessions, int numGroups) throws ImhotepOutOfMemoryException {
+    public static List<GroupStats> getGroupStats(Commands.GetGroupStats getGroupStats, List<GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
         System.out.println("getGroupStats = [" + getGroupStats + "], sessions = [" + sessions + "], numGroups = [" + numGroups + "]");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
         getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
@@ -938,7 +940,7 @@ public class Session {
             sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
         }
 
-        getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes));
+        getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
 
         final long[][] allStats = new long[numStats][];
         sessionMetricIndexes.forEach((name, positions) -> {
@@ -963,8 +965,8 @@ public class Session {
         final List<GroupStats> groupStats = Lists.newArrayList();
         for (int i = 0; i < numGroups; i++) {
             final GroupKey groupKey;
-            if (groupKeys.isPresent()) {
-                groupKey = groupKeys.get().get(i + 1);
+            if (returnGroupKeys) {
+                groupKey = groupKeys.get(i + 1);
             } else {
                 groupKey = null;
             }
