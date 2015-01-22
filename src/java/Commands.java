@@ -174,6 +174,9 @@ public class Commands {
                 }
                 return new ExplodePerGroup(termsWithExplodeOpts);
             }
+            case "explodeDayOfWeek": {
+                return new ExplodeDayOfWeek();
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
@@ -389,5 +392,8 @@ public class Commands {
         public ExplodePerGroup(List<TermsWithExplodeOpts> termsWithExplodeOpts) {
             this.termsWithExplodeOpts = termsWithExplodeOpts;
         }
+    }
+
+    public static class ExplodeDayOfWeek {
     }
 }

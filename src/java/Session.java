@@ -25,7 +25,6 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
@@ -498,8 +497,8 @@ public class Session {
                 throw new IllegalStateException("Time regroup must be the initial regroup.");
             }
             // TODO: This whole time thing needs a rethink.
-            final long earliestStart = sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
-            final long latestEnd = sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
+            final long earliestStart = getEarliestStart();
+            final long latestEnd = getLatestEnd();
             final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
 
             final long unitSize;
@@ -534,13 +533,7 @@ public class Session {
             }
             final long realStart = new DateTime(earliestStart).withTimeAtStartOfDay().getMillis();
             final long realEnd = latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize));
-            sessions.values().forEach(sessionInfo -> unchecked(() -> {
-                final ImhotepSession session = sessionInfo.session;
-                session.pushStat(sessionInfo.timeFieldName);
-                session.metricRegroup(0, realStart / 1000, realEnd / 1000, unitSize / 1000);
-                session.popStat();
-            }));
-            final long numGroups = (realEnd - realStart) / unitSize;
+            final int numGroups = performTimeRegroup(realStart, realEnd, unitSize);
             if (timeUnit == TimeUnit.MONTH) {
                 final List<GroupRemapRule> rules = Lists.newArrayList();
                 final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
@@ -648,7 +641,7 @@ public class Session {
 
             final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
             int nextGroup = 1;
-            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey)null);
+            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
             for (int group = 1; group <= numGroups; group++) {
                 final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
 
@@ -656,7 +649,7 @@ public class Session {
 
                 final List<Term> terms = termsWithExplodeOpts.terms;
                 if (terms.isEmpty()) {
-                    rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake",true,152,null,false)});
+                    rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
                     continue;
                 }
 
@@ -691,10 +684,49 @@ public class Session {
             currentDepth += 1;
             System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
             out.println("success");
+        } else if (command instanceof Commands.ExplodeDayOfWeek) {
+            if (numGroups != 1) {
+                // TODO: Get rid of this restriction
+                throw new IllegalStateException("Time regroup must be the initial regroup.");
+            }
 
+            final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+            final long start = new DateTime(getEarliestStart()).withTimeAtStartOfDay().getMillis();
+            final long end = new DateTime(getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
+            final int numGroups = performTimeRegroup(start, end, TimeUnit.DAY.millis);
+            final List<GroupRemapRule> rules = Lists.newArrayList();
+            final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
+            for (int group = 1; group <= numGroups; group++) {
+                final long groupStart = start + (group - 1) * TimeUnit.DAY.millis;
+                final int newGroup = new DateTime(groupStart).getDayOfWeek();
+                rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
+            }
+            final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+            sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
+            assumeDense(group -> Pair.of(dayKeys[group - 1], groupKeys.get(1)), dayKeys.length);
+            out.println("success");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
         }
+    }
+
+    private long getLatestEnd() {
+        return sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
+    }
+
+    private long getEarliestStart() {
+        return sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
+    }
+
+    private int performTimeRegroup(long start, long end, long unitSize) {
+        sessions.values().forEach(sessionInfo -> unchecked(() -> {
+            final ImhotepSession session = sessionInfo.session;
+            session.pushStat(sessionInfo.timeFieldName);
+            session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000);
+            session.popStat();
+        }));
+        return (int) ((end - start) / unitSize);
     }
 
     private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
