@@ -25,6 +25,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
@@ -33,6 +34,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -160,6 +163,7 @@ public class Session {
                     }
                 } catch (Throwable e) {
                     log.error("wat", e);
+                    System.out.println("e = " + e);
                 }
             }).start();
         }
@@ -490,13 +494,44 @@ public class Session {
         } else if (command instanceof Commands.TimeRegroup) {
             final Commands.TimeRegroup timeRegroup = (Commands.TimeRegroup) command;
             if (numGroups != 1) {
+                // TODO: Get rid of this restriction
                 throw new IllegalStateException("Time regroup must be the initial regroup.");
             }
             // TODO: This whole time thing needs a rethink.
             final long earliestStart = sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
             final long latestEnd = sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
             final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
-            final long unitSize = timeRegroup.value * timeUnit.millis;
+
+            final long unitSize;
+            final Map<DateTime, Integer> monthToGroup = Maps.newHashMap();
+            final Map<Integer, String> groupToKey = Maps.newHashMap();
+            if (timeUnit == TimeUnit.MONTH) {
+                final DateTime startOfStartMonth = new DateTime(earliestStart).withDayOfMonth(1);
+                if (startOfStartMonth.getMillis() != earliestStart) {
+                    throw new IllegalArgumentException("Earliest time not aligned at start of month: " + new DateTime(earliestStart));
+                }
+                final DateTime startOfEndMonth = new DateTime(latestEnd).withDayOfMonth(1);
+                if (startOfEndMonth.getMillis() != latestEnd) {
+                    throw new IllegalArgumentException("Latest time not aligned with start of month: " + new DateTime(latestEnd));
+                }
+                if (!startOfStartMonth.isBefore(startOfEndMonth)) {
+                    throw new IllegalArgumentException("Start must come before end. start = [" + startOfStartMonth + "], end = [" + startOfEndMonth + "]");
+                }
+                DateTime current = startOfStartMonth;
+                final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
+                while (true) {
+                    final int group = monthToGroup.size() + 1;
+                    monthToGroup.put(current, group);
+                    groupToKey.put(group, formatter.print(current));
+                    if (current.equals(startOfEndMonth)) {
+                        break;
+                    }
+                    current = current.plusMonths(1);
+                }
+                unitSize = TimeUnit.DAY.millis;
+            } else {
+                unitSize = timeRegroup.value * timeUnit.millis;
+            }
             final long realStart = new DateTime(earliestStart).withTimeAtStartOfDay().getMillis();
             final long realEnd = latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize));
             sessions.values().forEach(sessionInfo -> unchecked(() -> {
@@ -505,14 +540,28 @@ public class Session {
                 session.metricRegroup(0, realStart / 1000, realEnd / 1000, unitSize / 1000);
                 session.popStat();
             }));
-            final String formatString = timeUnit.formatString;
-            assumeDense(group -> {
-                final long startInclusive = realStart + (group - 1) * unitSize;
-                final long endExclusive = realStart + group * unitSize;
-                final String startString = new DateTime(startInclusive).toString(formatString);
-                final String endString = new DateTime(endExclusive).toString(formatString);
-                return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(1));
-            }, (int) ((realEnd - realStart) / unitSize));
+            final long numGroups = (realEnd - realStart) / unitSize;
+            if (timeUnit == TimeUnit.MONTH) {
+                final List<GroupRemapRule> rules = Lists.newArrayList();
+                final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
+                for (int group = 1; group <= numGroups; group++) {
+                    final long start = realStart + (group - 1) * unitSize;
+                    final int newGroup = monthToGroup.get(new DateTime(start).withDayOfMonth(1).withTimeAtStartOfDay());
+                    rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
+                }
+                final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+                sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
+                assumeDense(group -> Pair.of(groupToKey.get(group), groupKeys.get(1)), monthToGroup.size() - 1);
+            } else {
+                final String formatString = timeUnit.formatString;
+                assumeDense(group -> {
+                    final long startInclusive = realStart + (group - 1) * unitSize;
+                    final long endExclusive = realStart + group * unitSize;
+                    final String startString = new DateTime(startInclusive).toString(formatString);
+                    final String endString = new DateTime(endExclusive).toString(formatString);
+                    return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(1));
+                }, (int) numGroups);
+            }
             out.println("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
