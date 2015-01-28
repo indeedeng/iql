@@ -33,6 +33,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,9 @@ public class PercentileGrouping extends Grouping {
 
     @Override
     public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, final long timeoutTS) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
+            return Collections.<GroupStats>emptyList().iterator();
+        }
         final StatReference countStatRef = session.pushStat(countStat);
         final long[] counts = getCounts(countStatRef);
 

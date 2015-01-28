@@ -59,6 +59,9 @@ public final class StatRangeGrouping extends Grouping {
     }
 
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {
+            return groupKeys;
+        }
         final SingleStatReference statRef = session.pushStat(stat);
         final Map<Integer, GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
         session.popStat();

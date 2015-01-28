@@ -96,6 +96,9 @@ public final class FieldGrouping extends Grouping {
     }
 
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {
+            return groupKeys;
+        }
         if (topK > 0) {
             return Preconditions.checkNotNull(session.splitAllTopK(field, groupKeys, topK, sortStat, isBottom));
         } else if(isTermSubset()) {
