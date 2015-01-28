@@ -889,8 +889,8 @@ public final class IQLTranslator {
 
         final QueryParser queryParser = new QueryParser("foo", analyzer);
         queryParser.setDefaultOperator(QueryParser.Operator.AND);
-        // TODO: should we disable forced lowercasing of terms for prefix Lucene queries?
-//        queryParser.setLowercaseExpandedTerms(false);
+        // only auto-lowercase for non-Flamdex datasets
+        queryParser.setLowercaseExpandedTerms(!datasetMetadata.isImhotepDataset());
         final Query query;
         try {
             query = queryParser.parse(queryString);
