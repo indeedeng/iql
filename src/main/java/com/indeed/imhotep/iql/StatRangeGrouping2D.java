@@ -63,6 +63,9 @@ public final class StatRangeGrouping2D extends Grouping {
     }
 
     public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {
+            return groupKeys;
+        }
         final SingleStatReference xStatRef = session.pushStat(xStat);
         final SingleStatReference yStatRef = session.pushStat(yStat);
         final Map<Integer, GroupKey> ret = session.metricRegroup2D(xStatRef, xMin, xMax, xIntervalSize, yStatRef, yMin, yMax, yIntervalSize);

@@ -138,7 +138,6 @@ public class QueryServlet {
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
         long queryStartTimestamp = System.currentTimeMillis();
 
-        resp.setHeader("Access-Control-Allow-Origin", "*");
         final boolean json = req.getParameter("json") != null;
         IQLStatement parsedQuery = null;
         SelectExecutionStats selectExecutionStats = null;

@@ -15,6 +15,7 @@
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.LocalImhotepDaemon;
+import com.indeed.imhotep.web.CORSInterceptor;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.imhotep.client.Host;
@@ -35,6 +36,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.io.File;
@@ -151,6 +153,16 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Override
     public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
         configurer.enable();
+    }
+
+    @Bean
+    CORSInterceptor corsInterceptor() {
+        return new CORSInterceptor(env);
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(corsInterceptor());
     }
 
     // do we need this?

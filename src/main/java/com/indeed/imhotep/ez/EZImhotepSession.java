@@ -486,7 +486,9 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            if(newGroupCount > 0) {
+                numGroups = session.regroup(rules, false);
+            }
         } else {
             final StringField stringField = (StringField) field;
             final TIntObjectHashMap<List<String>> termListsMap = getStringGroupTerms(stringField);
@@ -509,7 +511,9 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            if(newGroupCount > 0) {
+                numGroups = session.regroup(rules, false);
+            }
         }
         return ret;
     }
