@@ -23,6 +23,7 @@ import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,9 @@ public class DistinctGrouping extends Grouping {
     }
 
     public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
+            return Collections.<GroupStats>emptyList().iterator();
+        }
         final int statCount = statRefs.size();
         final int groupCount = groupKeys.size();
         final List<GroupStats> result = Lists.newArrayList();
