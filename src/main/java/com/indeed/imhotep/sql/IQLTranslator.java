@@ -14,7 +14,6 @@
  package com.indeed.imhotep.sql;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -43,7 +42,6 @@ import com.indeed.imhotep.iql.SampleCondition;
 import com.indeed.imhotep.iql.StatRangeGrouping;
 import com.indeed.imhotep.iql.StatRangeGrouping2D;
 import com.indeed.imhotep.iql.StringInCondition;
-import com.indeed.imhotep.iql.StringPredicateCondition;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.sql.ast.Expression;
@@ -89,7 +87,8 @@ import static com.indeed.imhotep.ez.EZImhotepSession.*;
 public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
-    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata) {
+    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
+                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -142,7 +141,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata);
+                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {

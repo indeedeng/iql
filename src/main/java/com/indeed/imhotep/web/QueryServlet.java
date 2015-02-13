@@ -110,6 +110,8 @@ public class QueryServlet {
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
     private final ExecutorService executorService;
+    private final long imhotepLocalTempFileSizeLimit;
+    private final long imhotepDaemonTempFileSizeLimit;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -119,7 +121,9 @@ public class QueryServlet {
                         QueryCache queryCache,
                         ExecutionManager executionManager,
                         ExecutorService executorService,
-                        Integer rowLimit) {
+                        Integer rowLimit,
+                        Long imhotepLocalTempFileSizeLimit,
+                        Long imhotepDaemonTempFileSizeLimit) {
         this.imhotepClient = imhotepClient;
         this.imhotepInteractiveClient = imhotepInteractiveClient;
         this.metadata = metadata;
@@ -127,6 +131,8 @@ public class QueryServlet {
         this.queryCache = queryCache;
         this.executionManager = executionManager;
         this.executorService = executorService;
+        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
+        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
         EZImhotepSession.GROUP_LIMIT = rowLimit;
     }
 
@@ -263,7 +269,8 @@ public class QueryServlet {
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
-        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient, args.imhotepUserName, metadata);
+        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
+                args.imhotepUserName, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);

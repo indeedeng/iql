@@ -86,6 +86,13 @@ public final class IQLQuery implements Closeable {
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
                     final String username, ImhotepMetadataCache metadata) {
+        this(client, stats, dataset, start, end, conditions, groupings, rowLimit, username, metadata, -1, -1);
+    }
+
+    public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
+                    final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
+                    final String username, ImhotepMetadataCache metadata, final long imhotepLocalTempFileSizeLimit,
+                    final long imhotepDaemonTempFileSizeLimit) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -95,7 +102,9 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.metadata = metadata;
 
-        sessionBuilder = client.sessionBuilder(dataset, start, end).username(username);
+        sessionBuilder = client.sessionBuilder(dataset, start, end)
+                .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
+                .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit).username(username);
         shardVersionList = sessionBuilder.getChosenShards();
         timeIntervalsMissingShards = sessionBuilder.getTimeIntervalsMissingShards();
     }
