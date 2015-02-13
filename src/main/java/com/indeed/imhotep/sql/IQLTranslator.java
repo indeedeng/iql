@@ -14,12 +14,12 @@
  package com.indeed.imhotep.sql;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.DiffGrouping;
+import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.util.serialization.LongStringifier;
@@ -42,7 +42,6 @@ import com.indeed.imhotep.iql.SampleCondition;
 import com.indeed.imhotep.iql.StatRangeGrouping;
 import com.indeed.imhotep.iql.StatRangeGrouping2D;
 import com.indeed.imhotep.iql.StringInCondition;
-import com.indeed.imhotep.iql.StringPredicateCondition;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.sql.ast.Expression;
@@ -57,6 +56,7 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.parser.ExpressionParser;
 import com.indeed.imhotep.sql.parser.PeriodParser;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
+import dk.brics.automaton.RegExp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -87,7 +87,8 @@ import static com.indeed.imhotep.ez.EZImhotepSession.*;
 public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
-    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata) {
+    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
+                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -140,7 +141,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata);
+                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
@@ -739,13 +740,15 @@ public final class IQLTranslator {
                         throw new IllegalArgumentException("Unknown field: " + fieldName);
                     }
                     String regexp = getStr(right);
-                    final Pattern pattern = Pattern.compile(regexp);
-                    return Collections.<Condition>singletonList(new StringPredicateCondition(Field.stringField(fieldName), new Predicate<String>() {
-                            @Override
-                            public boolean apply(String input) {
-                                return pattern.matcher(input).matches();
-                            }
-                        },
+                    // validate the provided regex
+                    try {
+                        new RegExp(regexp).toAutomaton();
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("The provided regex filter '" + regexp + "' failed to parse. " +
+                                "\nError was: " + e.getMessage() +
+                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
+                    }
+                    return Collections.<Condition>singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();

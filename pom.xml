@@ -103,6 +103,12 @@
             <version>1.4</version>
         </dependency>
 
+        <dependency>
+            <groupId>dk.brics.automaton</groupId>
+            <artifactId>automaton</artifactId>
+            <version>${automaton.version}</version>
+        </dependency>
+
         <!-- Hadoop for caching -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -185,6 +191,7 @@
         <joda-time.version>2.0</joda-time.version>
         <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
+        <automaton.version>1.11-8</automaton.version>
     </properties>
 
 </project>
