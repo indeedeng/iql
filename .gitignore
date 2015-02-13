@@ -5,3 +5,6 @@ dist
 
 *.js_hi
 *.js_o
+
+build
+node_modules
