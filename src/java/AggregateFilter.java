@@ -287,7 +287,7 @@ public interface AggregateFilter {
 
         @Override
         public boolean allow(long term, long[] stats, int group) {
-            return false;
+            return pattern.matcher(String.valueOf(term)).matches();
         }
     }
 
