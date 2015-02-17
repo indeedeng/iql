@@ -658,10 +658,10 @@ public class Session {
                 for (final Term term : terms) {
                     if (term.isIntField()) {
                         regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), term.getTermIntVal(), null, false));
-                        nextGroupKeys.add(new GroupKey(term.getFieldName() + ":" + term.getTermIntVal(), nextGroupKeys.size(), groupKeys.get(group)));
+                        nextGroupKeys.add(new GroupKey(String.valueOf(term.getTermIntVal()), nextGroupKeys.size(), groupKeys.get(group)));
                     } else {
                         regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), 0, term.getTermStringVal(), false));
-                        nextGroupKeys.add(new GroupKey(term.getFieldName() + ":" + term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
+                        nextGroupKeys.add(new GroupKey(term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
                     }
                 }
 
