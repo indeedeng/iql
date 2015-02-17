@@ -142,7 +142,8 @@ public class Commands {
             case "timeRegroup": {
                 return new TimeRegroup(
                         command.get("value").asLong(),
-                        command.get("unit").asText().charAt(0)
+                        command.get("unit").asText().charAt(0),
+                        command.get("offsetMinutes").asLong()
                 );
             }
             case "getNumGroups": {
@@ -366,10 +367,12 @@ public class Commands {
     public static class TimeRegroup {
         public final long value;
         public final char unit;
+        public final long offsetMinutes;
 
-        public TimeRegroup(long value, char unit) {
+        public TimeRegroup(long value, char unit, long offsetMinutes) {
             this.value = value;
             this.unit = unit;
+            this.offsetMinutes = offsetMinutes;
         }
     }
 

@@ -531,27 +531,29 @@ public class Session {
             } else {
                 unitSize = timeRegroup.value * timeUnit.millis;
             }
-            final long realStart = new DateTime(earliestStart).withTimeAtStartOfDay().getMillis();
-            final long realEnd = latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize));
+            final DateTimeZone zone = DateTimeZone.forOffsetHoursMinutes((int) timeRegroup.offsetMinutes / 60, (int) timeRegroup.offsetMinutes % 60);
+            final long offsetMillis = timeRegroup.offsetMinutes * 60 * 1000;
+            final long realStart = new DateTime(earliestStart, zone).withTimeAtStartOfDay().getMillis();
+            final long realEnd = (latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize))) + offsetMillis;
             final int numGroups = performTimeRegroup(realStart, realEnd, unitSize);
             if (timeUnit == TimeUnit.MONTH) {
                 final List<GroupRemapRule> rules = Lists.newArrayList();
                 final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
                 for (int group = 1; group <= numGroups; group++) {
                     final long start = realStart + (group - 1) * unitSize;
-                    final int newGroup = monthToGroup.get(new DateTime(start).withDayOfMonth(1).withTimeAtStartOfDay());
+                    final int newGroup = monthToGroup.get(new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay());
                     rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
                 }
                 final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
                 sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
                 assumeDense(group -> Pair.of(groupToKey.get(group), groupKeys.get(1)), monthToGroup.size() - 1);
             } else {
-                final String formatString = timeUnit.formatString;
+                final String formatString = TimeUnit.SECOND.formatString; // timeUnit.formatString;
                 assumeDense(group -> {
                     final long startInclusive = realStart + (group - 1) * unitSize;
                     final long endExclusive = realStart + group * unitSize;
-                    final String startString = new DateTime(startInclusive).toString(formatString);
-                    final String endString = new DateTime(endExclusive).toString(formatString);
+                    final String startString = new DateTime(startInclusive, zone).toString(formatString);
+                    final String endString = new DateTime(endExclusive, zone).toString(formatString);
                     return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(1));
                 }, (int) numGroups);
             }
