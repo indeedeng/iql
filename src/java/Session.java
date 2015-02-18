@@ -531,10 +531,36 @@ public class Session {
             } else {
                 unitSize = timeRegroup.value * timeUnit.millis;
             }
-            final DateTimeZone zone = DateTimeZone.forOffsetHoursMinutes((int) timeRegroup.offsetMinutes / 60, (int) timeRegroup.offsetMinutes % 60);
-            final long offsetMillis = timeRegroup.offsetMinutes * 60 * 1000;
-            final long realStart = new DateTime(earliestStart, zone).withTimeAtStartOfDay().getMillis();
-            final long realEnd = (latestEnd % unitSize == 0 ? latestEnd : latestEnd + (unitSize - (latestEnd % unitSize))) + offsetMillis;
+            final long timeOffsetMinutes = timeRegroup.offsetMinutes - 360;
+            final DateTimeZone zone = DateTimeZone.forOffsetHoursMinutes((int) timeOffsetMinutes / 60, (int) timeOffsetMinutes % 60);
+            final long realStart;
+            switch (timeUnit) {
+                case SECOND:
+                    realStart = new DateTime(earliestStart, zone).withMillisOfSecond(0).getMillis();
+                    break;
+                case MINUTE:
+                    realStart = new DateTime(earliestStart, zone).withSecondOfMinute(0).withMillisOfSecond(0).getMillis();
+                    break;
+                case HOUR:
+                    realStart = new DateTime(earliestStart, zone).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).getMillis();
+                    break;
+                case DAY:
+                case WEEK:
+                case MONTH:
+                    realStart = new DateTime(earliestStart, zone).withTimeAtStartOfDay().getMillis();
+                    break;
+                default:
+                    throw new IllegalStateException("Unhandled enum value: " + timeUnit);
+            }
+            final long shardsEnd = new DateTime(latestEnd).getMillis();
+            final long difference = shardsEnd - realStart;
+            final long realEnd;
+            if (difference % timeUnit.millis == 0) {
+                realEnd = shardsEnd;
+            } else {
+                realEnd = shardsEnd + (timeUnit.millis - difference % timeUnit.millis);
+            }
+
             final int numGroups = performTimeRegroup(realStart, realEnd, unitSize);
             if (timeUnit == TimeUnit.MONTH) {
                 final List<GroupRemapRule> rules = Lists.newArrayList();

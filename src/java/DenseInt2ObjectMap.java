@@ -69,22 +69,22 @@ public class DenseInt2ObjectMap<T> extends AbstractInt2ObjectMap<T> {
 
     @Override
     public T remove(int i) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean containsKey(int i) {
-        return false;
+        return elements.size() > i && elements.get(i) != null;
     }
 
     @Override
     public void defaultReturnValue(T t) {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public T defaultReturnValue() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -8,6 +8,8 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.joda.time.DateTime;
 
 import java.util.Arrays;
@@ -183,29 +185,45 @@ public interface DocFilter {
         @Override
         public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             final Pattern pattern = Pattern.compile(regex);
-            final FTGSIterator it = session.getFTGSIterator(new String[0], new String[]{field});
-            final DenseInt2ObjectMap<List<String>> groupTerms = new DenseInt2ObjectMap<>();
+            final FTGSIterator it = session.getFTGSIterator(new String[]{field}, new String[]{field});
+            final DenseInt2ObjectMap<List<String>> stringGroupTerms = new DenseInt2ObjectMap<>();
+            final DenseInt2ObjectMap<List<Long>> intGroupTerms = new DenseInt2ObjectMap<>();
             while (it.nextField()) {
                 while (it.nextTerm()) {
-                    final String term = it.termStringVal();
+                    final String term = it.fieldIsIntType() ? String.valueOf(it.termIntVal()) : it.termStringVal();
                     if (pattern.matcher(term).matches()) {
                         while (it.nextGroup()) {
                             final int group = it.group();
-                            groupTerms.computeIfAbsent(group, ignored -> Lists.newArrayList()).add(term);
+                            if (it.fieldIsIntType()) {
+                                intGroupTerms.computeIfAbsent(group, ignored -> new LongArrayList()).add(it.termIntVal());
+                            } else {
+                                stringGroupTerms.computeIfAbsent(group, ignored -> Lists.newArrayList()).add(it.termStringVal());
+                            }
                         }
                     }
                 }
             }
             final List<GroupMultiRemapRule> rules = Lists.newArrayList();
             for (int group = 1; group <= numGroups; group++) {
-                if (groupTerms.containsKey(group)) {
-                    final List<String> terms = groupTerms.get(group);
+                if (stringGroupTerms.containsKey(group)) {
+                    final List<String> terms = stringGroupTerms.get(group);
                     final int[] positives = new int[terms.size()];
                     Arrays.fill(positives, group);
                     final RegroupCondition[] conditions = new RegroupCondition[terms.size()];
                     for (int i = 0; i < terms.size(); i++) {
                         final String term = terms.get(i);
                         conditions[i] = new RegroupCondition(field, false, 0, term, false);
+                    }
+                    rules.add(new GroupMultiRemapRule(group, 0, positives, conditions));
+                }
+                if (intGroupTerms.containsKey(group)) {
+                    final List<Long> terms = intGroupTerms.get(group);
+                    final int[] positives = new int[terms.size()];
+                    Arrays.fill(positives, group);
+                    final RegroupCondition[] conditions = new RegroupCondition[terms.size()];
+                    for (int i = 0; i < terms.size(); i++) {
+                        final long term = terms.get(i);
+                        conditions[i] = new RegroupCondition(field, true, term, null, false);
                     }
                     rules.add(new GroupMultiRemapRule(group, 0, positives, conditions));
                 }
