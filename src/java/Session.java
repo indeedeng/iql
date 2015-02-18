@@ -231,18 +231,9 @@ public class Session {
             }
             iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> allPushes.addAll(filter.requires())));
             final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
-            int numStats = 0;
             final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-            for (final QualifiedPush push : allPushes) {
-                final int index = numStats++;
-                metricIndexes.put(push, index);
-                final String sessionName = push.sessionName;
-                sessions.get(sessionName).session.pushStats(push.pushes);
-                sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
-            }
-            for (final AggregateMetric metric : metrics) {
-                metric.register(metricIndexes, groupKeys);
-            }
+            pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
+            registerMetrics(metricIndexes, metrics, Arrays.asList());
             iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes, groupKeys)));
             
             final DenseInt2ObjectMap<Queue<Queue<TermSelects>>> qqs = new DenseInt2ObjectMap<>();
@@ -604,12 +595,36 @@ public class Session {
             final String field = getGroupDistincts.field;
             final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
             getGroupDistincts.scope.forEach(s -> sessionsSubset.put(s, sessions.get(s).session));
+            final List<AggregateFilter> filters = Lists.newArrayList();
+            getGroupDistincts.filter.ifPresent(filters::add);
+            final Set<QualifiedPush> pushes = Sets.newHashSet();
+            filters.forEach(f -> pushes.addAll(f.requires()));
+            final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
+            final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
+            pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
+            registerMetrics(metricIndexes, Arrays.asList(), filters);
             final boolean isIntField = isIntField(field);
             final long[] groupCounts = new long[numGroups];
             if (isIntField) {
-                iterateMultiInt(sessionsSubset, Collections.emptyMap(), field, (term, stats, group) -> groupCounts[group - 1]++);
+                iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, (term, stats, group) -> {
+                    if (getGroupDistincts.filter.isPresent()) {
+                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                            groupCounts[group - 1]++;
+                        }
+                    } else {
+                        groupCounts[group - 1]++;
+                    }
+                });
             } else {
-                iterateMultiString(sessionsSubset, Collections.emptyMap(), field, (term, stats, group) -> groupCounts[group - 1]++);
+                iterateMultiString(sessionsSubset, sessionMetricIndexes, field, (term, stats, group) -> {
+                    if (getGroupDistincts.filter.isPresent()) {
+                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                            groupCounts[group - 1]++;
+                        }
+                    } else {
+                        groupCounts[group - 1]++;
+                    }
+                });
             }
             mapper.writeValue(out, groupCounts);
             out.println();
@@ -736,6 +751,22 @@ public class Session {
             out.println("success");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandString);
+        }
+    }
+
+    private void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
+        metrics.forEach(m -> m.register(metricIndexes, groupKeys));
+        filters.forEach(f -> f.register(metricIndexes, groupKeys));
+    }
+
+    private void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
+        int numStats = 0;
+        for (final QualifiedPush push : allPushes) {
+            final int index = numStats++;
+            metricIndexes.put(push, index);
+            final String sessionName = push.sessionName;
+            sessions.get(sessionName).session.pushStats(push.pushes);
+            sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
         }
     }
 
