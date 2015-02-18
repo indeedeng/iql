@@ -40,6 +40,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
@@ -54,7 +55,9 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.LongStream;
@@ -76,7 +79,7 @@ public class Session {
     private final Map<String, ImhotepSessionInfo> sessions;
     private int numGroups = 1;
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    public static final ObjectMapper MAPPER = new ObjectMapper();
     static {
         final SimpleModule module = new SimpleModule();
         module.addSerializer(TermSelects.class, new JsonSerializer<TermSelects>() {
@@ -102,70 +105,95 @@ public class Session {
                 jgen.writeObject(value.asList());
             }
         });
-        mapper.registerModule(module);
-        mapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+        MAPPER.registerModule(module);
+        MAPPER.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
 
     public Session(Map<String, ImhotepSessionInfo> sessions) {
         this.sessions = sessions;
     }
 
-    public static void main(String[] args) throws IOException, ImhotepOutOfMemoryException {
+    public static void main(String[] args) throws Exception {
         org.apache.log4j.BasicConfigurator.configure();
         Logger.getRootLogger().setLevel(Level.INFO);
 
         final ImhotepClient client = new ImhotepClient("***REMOVED***", true);
 
-        final ServerSocket serverSocket = new ServerSocket(28347);
-        while (true) {
-            final Socket clientSocket = serverSocket.accept();
-            new Thread(() -> {
-                try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                    final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
-                    final JsonNode sessionRequest = mapper.readTree(in.readLine());
+        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(8001))) {
+            wsServer.start();
 
-                    if (sessionRequest.has("describe")) {
-                        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").asText());
-                        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo);
-                        mapper.writeValue(out, datasetDescriptor);
-                        out.println();
-                    } else {
-                        final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
-                        try (final Closer closer = Closer.create()) {
-                            for (int i = 0; i < sessionRequest.size(); i++) {
-                                final JsonNode elem = sessionRequest.get(i);
-                                final String dataset = elem.get("dataset").asText();
-                                final String start = elem.get("start").asText();
-                                final String end = elem.get("end").asText();
-                                final String name = elem.has("name") ? elem.get("name").asText() : dataset;
+            final ServerSocket serverSocket = new ServerSocket(28347);
+            while (true) {
+                final Socket clientSocket = serverSocket.accept();
+                new Thread(() -> {
+                    try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                         final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-
-                                final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
-                                final Collection<String> sessionIntFields = datasetInfo.getIntFields();
-                                final DateTime startDateTime = parseDateTime(start);
-                                final DateTime endDateTime = parseDateTime(end);
-                                final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
-
-                                final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
-
-                                sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
+                        final Supplier<JsonNode> nodeSupplier = () -> {
+                            try {
+                                final String line = in.readLine();
+                                return line == null ? null : MAPPER.readTree(line);
+                            } catch (final IOException e) {
+                                throw Throwables.propagate(e);
                             }
-                            final Session session1 = new Session(sessions);
-                            out.println("opened");
-                            String inputLine;
-                            while ((inputLine = in.readLine()) != null) {
-                                System.out.println("inputLine = " + inputLine);
-                                session1.evaluateCommand(inputLine, out);
-                                System.out.println("Evaluated.");
-                            }
-                        }
+                        };
+
+                        final Consumer<String> resultConsumer = out::println;
+
+                        processConnection(client, nodeSupplier, resultConsumer);
+                    } catch (Throwable e) {
+                        log.error("wat", e);
+                        System.out.println("e = " + e);
                     }
-                } catch (Throwable e) {
-                    log.error("wat", e);
-                    System.out.println("e = " + e);
-                }
-            }).start();
+                }).start();
+            }
         }
+    }
+
+    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out) throws IOException, ImhotepOutOfMemoryException {
+        final JsonNode sessionRequest = in.get();
+        if (sessionRequest.has("describe")) {
+            processDescribe(client, out, sessionRequest);
+        } else {
+            try (final Closer closer = Closer.create()) {
+                final Session session1 = createSession(client, sessionRequest, closer);
+                out.accept("opened");
+                JsonNode inputTree;
+                while ((inputTree = in.get()) != null) {
+                    System.out.println("inputLine = " + inputTree);
+                    session1.evaluateCommand(inputTree, out);
+                    System.out.println("Evaluated.");
+                }
+            }
+        }
+    }
+
+    public static void processDescribe(ImhotepClient client, Consumer<String> out, JsonNode sessionRequest) throws JsonProcessingException {
+        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").asText());
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo);
+        out.accept(MAPPER.writeValueAsString(datasetDescriptor));
+    }
+
+    public static Session createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer) {
+        final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
+        for (int i = 0; i < sessionRequest.size(); i++) {
+            final JsonNode elem = sessionRequest.get(i);
+            final String dataset = elem.get("dataset").asText();
+            final String start = elem.get("start").asText();
+            final String end = elem.get("end").asText();
+            final String name = elem.has("name") ? elem.get("name").asText() : dataset;
+
+            final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
+            final Collection<String> sessionIntFields = datasetInfo.getIntFields();
+            final DateTime startDateTime = parseDateTime(start);
+            final DateTime endDateTime = parseDateTime(end);
+            final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
+
+            final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
+
+            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
+        }
+        return new Session(sessions);
     }
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
@@ -218,8 +246,8 @@ public class Session {
         }
     }
 
-    public void evaluateCommand(String commandString, PrintWriter out) throws ImhotepOutOfMemoryException, IOException {
-        final Object command = Commands.parseCommand(mapper.readTree(commandString), this::namedMetricLookup);
+    public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
         if (command instanceof Commands.Iterate) {
             final Commands.Iterate iterate = (Commands.Iterate) command;
             final Set<QualifiedPush> allPushes = Sets.newHashSet();
@@ -376,8 +404,7 @@ public class Session {
                 }
                 allTermSelects.add(groupTermSelects);
             }
-            mapper.writeValue(out, allTermSelects);
-            out.println();
+            out.accept(MAPPER.writeValueAsString(allTermSelects));
             getSessionsMap().values().forEach(session -> {
                 while (session.getNumStats() != 0) {
                     session.popStat();
@@ -388,7 +415,7 @@ public class Session {
             final int numGroupsTmp = numGroups;
             // TODO: Pass in the index name so that filters can be index=? filters.
             getSessionsMap().values().parallelStream().forEach(session -> unchecked(() -> filterDocs.docFilter.apply(session, numGroupsTmp)));
-            out.println("{}");
+            out.accept("{}");
         } else if (command instanceof Commands.ExplodeGroups) {
             final Commands.ExplodeGroups explodeGroups = (Commands.ExplodeGroups) command;
             if ((explodeGroups.intTerms == null) == (explodeGroups.stringTerms == null)) {
@@ -434,7 +461,7 @@ public class Session {
             groupKeys = nextGroupKeys;
             currentDepth += 1;
             System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
-            out.println("success");
+            out.accept("success");
         } else if (command instanceof Commands.MetricRegroup) {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
             if (numGroups != 1) {
@@ -480,7 +507,7 @@ public class Session {
 
             densify(group -> Pair.of(groupDescriptions.get(group), groupParents.get(group)));
 
-            out.println("success");
+            out.accept("success");
         } else if (command instanceof Commands.TimeRegroup) {
             final Commands.TimeRegroup timeRegroup = (Commands.TimeRegroup) command;
             if (numGroups != 1) {
@@ -574,13 +601,12 @@ public class Session {
                     return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(1));
                 }, (int) numGroups);
             }
-            out.println("success");
+            out.accept("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
             final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMap(), numGroups, getGroupStats.returnGroupKeys);
 
-            mapper.writeValue(out, results);
-            out.println();
+            out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.CreateGroupStatsLookup) {
             final Commands.CreateGroupStatsLookup createGroupStatsLookup = (Commands.CreateGroupStatsLookup) command;
             final int depth = currentDepth;
@@ -588,8 +614,7 @@ public class Session {
             final SavedGroupStats savedStats = new SavedGroupStats(depth, stats);
             final String lookupName = String.valueOf(savedGroupStats.size());
             savedGroupStats.put(lookupName, savedStats);
-            mapper.writeValue(out, Arrays.asList(lookupName));
-            out.println();
+            out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
         } else if (command instanceof Commands.GetGroupDistincts) {
             final Commands.GetGroupDistincts getGroupDistincts = (Commands.GetGroupDistincts) command;
             final String field = getGroupDistincts.field;
@@ -626,8 +651,7 @@ public class Session {
                     }
                 });
             }
-            mapper.writeValue(out, groupCounts);
-            out.println();
+            out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof Commands.GetGroupPercentiles) {
             final Commands.GetGroupPercentiles getGroupPercentiles = (Commands.GetGroupPercentiles) command;
             final String field = getGroupPercentiles.field;
@@ -674,11 +698,9 @@ public class Session {
 
             sessionsSubset.values().forEach(ImhotepSession::popStat);
 
-            mapper.writeValue(out, results);
-            out.println();
+            out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.GetNumGroups) {
-            mapper.writeValue(out, Collections.singletonList(numGroups));
-            out.println();
+            out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
         } else if (command instanceof Commands.ExplodePerGroup) {
             final Commands.ExplodePerGroup explodePerGroup = (Commands.ExplodePerGroup) command;
 
@@ -726,7 +748,7 @@ public class Session {
             groupKeys = nextGroupKeys;
             currentDepth += 1;
             System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
-            out.println("success");
+            out.accept("success");
         } else if (command instanceof Commands.ExplodeDayOfWeek) {
             if (numGroups != 1) {
                 // TODO: Get rid of this restriction
@@ -748,9 +770,9 @@ public class Session {
             final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
             sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
             assumeDense(group -> Pair.of(dayKeys[group - 1], groupKeys.get(1)), dayKeys.length);
-            out.println("success");
+            out.accept("success");
         } else {
-            throw new IllegalArgumentException("Invalid command: " + commandString);
+            throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
     }
 
@@ -870,7 +892,7 @@ public class Session {
         return new AggregateMetric.PerGroupConstant(stats);
     }
 
-    private void unchecked(RunnableWithException runnable) {
+    public static void unchecked(RunnableWithException runnable) {
         try {
             runnable.run();
         } catch (final Throwable t) {
@@ -1154,7 +1176,7 @@ public class Session {
         }
     }
 
-    private interface RunnableWithException {
+    public interface RunnableWithException {
         void run() throws Throwable;
     }
 
