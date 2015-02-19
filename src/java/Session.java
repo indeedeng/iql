@@ -608,6 +608,7 @@ public class Session {
                     return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(oldGroup));
                 }, (int) numGroups);
             }
+            this.currentDepth += 1;
             out.accept("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
