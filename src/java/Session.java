@@ -780,6 +780,7 @@ public class Session {
                 final int dayOfWeek = (group - 1) % dayKeys.length;
                 return Pair.of(dayKeys[dayOfWeek], groupKeys.get(originalGroup));
             }, oldNumGroups * dayKeys.length);
+            currentDepth += 1;
             out.accept("success");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
