@@ -33,6 +33,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -510,18 +511,12 @@ public class Session {
             out.accept("success");
         } else if (command instanceof Commands.TimeRegroup) {
             final Commands.TimeRegroup timeRegroup = (Commands.TimeRegroup) command;
-            if (numGroups != 1) {
-                // TODO: Get rid of this restriction
-                throw new IllegalStateException("Time regroup must be the initial regroup.");
-            }
             // TODO: This whole time thing needs a rethink.
             final long earliestStart = getEarliestStart();
             final long latestEnd = getLatestEnd();
             final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
 
             final long unitSize;
-            final Map<DateTime, Integer> monthToGroup = Maps.newHashMap();
-            final Map<Integer, String> groupToKey = Maps.newHashMap();
             if (timeUnit == TimeUnit.MONTH) {
                 final DateTime startOfStartMonth = new DateTime(earliestStart).withDayOfMonth(1);
                 if (startOfStartMonth.getMillis() != earliestStart) {
@@ -533,17 +528,6 @@ public class Session {
                 }
                 if (!startOfStartMonth.isBefore(startOfEndMonth)) {
                     throw new IllegalArgumentException("Start must come before end. start = [" + startOfStartMonth + "], end = [" + startOfEndMonth + "]");
-                }
-                DateTime current = startOfStartMonth;
-                final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
-                while (true) {
-                    final int group = monthToGroup.size() + 1;
-                    monthToGroup.put(current, group);
-                    groupToKey.put(group, formatter.print(current));
-                    if (current.equals(startOfEndMonth)) {
-                        break;
-                    }
-                    current = current.plusMonths(1);
                 }
                 unitSize = TimeUnit.DAY.millis;
             } else {
@@ -579,26 +563,49 @@ public class Session {
                 realEnd = shardsEnd + (timeUnit.millis - difference % timeUnit.millis);
             }
 
+            final int oldNumGroups = this.numGroups;
             final int numGroups = performTimeRegroup(realStart, realEnd, unitSize);
+            final int numBuckets = (int)((realEnd - realStart) / unitSize);
             if (timeUnit == TimeUnit.MONTH) {
+                final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
+                final DateTime startMonth = new DateTime(earliestStart).withDayOfMonth(1).withTimeAtStartOfDay();
+                final DateTime endMonthExclusive = new DateTime(latestEnd).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
+                final int numMonths = Months.monthsBetween(
+                        startMonth,
+                        endMonthExclusive
+                ).getMonths();
+
                 final List<GroupRemapRule> rules = Lists.newArrayList();
                 final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
-                for (int group = 1; group <= numGroups; group++) {
-                    final long start = realStart + (group - 1) * unitSize;
-                    final int newGroup = monthToGroup.get(new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay());
-                    rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
+                for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
+                    for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
+                        final long start = realStart + innerGroup * unitSize;
+                        final int base = 1 + (outerGroup - 1) * numBuckets;
+                        final int newBase = 1 + (outerGroup - 1) * numMonths;
+
+                        final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
+                        final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
+                        rules.add(new GroupRemapRule(base, fakeCondition, newGroup, newGroup));
+                    }
                 }
                 final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
                 sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-                assumeDense(group -> Pair.of(groupToKey.get(group), groupKeys.get(1)), monthToGroup.size() - 1);
+                assumeDense(group -> {
+                    final int originalGroup = 1 + (group - 1) / numMonths;
+                    final int monthOffset = (group - 1) % numMonths;
+                    final String key = formatter.print(startMonth.plusMonths(monthOffset));
+                    return Pair.of(key, groupKeys.get(originalGroup));
+                }, oldNumGroups * numMonths);
             } else {
                 final String formatString = TimeUnit.SECOND.formatString; // timeUnit.formatString;
                 assumeDense(group -> {
-                    final long startInclusive = realStart + (group - 1) * unitSize;
-                    final long endExclusive = realStart + group * unitSize;
+                    final int oldGroup = 1 + (group - 1) / numBuckets;
+                    final int timeBucket = (group - 1) % numBuckets;
+                    final long startInclusive = realStart + timeBucket * unitSize;
+                    final long endExclusive = realStart + (timeBucket + 1) * unitSize;
                     final String startString = new DateTime(startInclusive, zone).toString(formatString);
                     final String endString = new DateTime(endExclusive, zone).toString(formatString);
-                    return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(1));
+                    return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(oldGroup));
                 }, (int) numGroups);
             }
             out.accept("success");
@@ -750,26 +757,29 @@ public class Session {
             System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
             out.accept("success");
         } else if (command instanceof Commands.ExplodeDayOfWeek) {
-            if (numGroups != 1) {
-                // TODO: Get rid of this restriction
-                throw new IllegalStateException("Time regroup must be the initial regroup.");
-            }
-
             final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
             final long start = new DateTime(getEarliestStart()).withTimeAtStartOfDay().getMillis();
             final long end = new DateTime(getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
             final int numGroups = performTimeRegroup(start, end, TimeUnit.DAY.millis);
+            final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
             final List<GroupRemapRule> rules = Lists.newArrayList();
             final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
             for (int group = 1; group <= numGroups; group++) {
-                final long groupStart = start + (group - 1) * TimeUnit.DAY.millis;
-                final int newGroup = new DateTime(groupStart).getDayOfWeek();
+                final int oldGroup = 1 + (group - 1) / numBuckets;
+                final int dayOffset = (group - 1) % numBuckets;
+                final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
+                final int newGroup = 1 + ((oldGroup - 1) * dayKeys.length) + new DateTime(groupStart).getDayOfWeek() - 1;
                 rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
             }
             final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+            final int oldNumGroups = this.numGroups;
             sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-            assumeDense(group -> Pair.of(dayKeys[group - 1], groupKeys.get(1)), dayKeys.length);
+            assumeDense(group -> {
+                final int originalGroup = 1 + (group - 1) / dayKeys.length;
+                final int dayOfWeek = (group - 1) % dayKeys.length;
+                return Pair.of(dayKeys[dayOfWeek], groupKeys.get(originalGroup));
+            }, oldNumGroups * dayKeys.length);
             out.accept("success");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
@@ -801,13 +811,14 @@ public class Session {
     }
 
     private int performTimeRegroup(long start, long end, long unitSize) {
+        final int oldNumGroups = this.numGroups;
         sessions.values().forEach(sessionInfo -> unchecked(() -> {
             final ImhotepSession session = sessionInfo.session;
             session.pushStat(sessionInfo.timeFieldName);
-            session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000);
+            session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
             session.popStat();
         }));
-        return (int) ((end - start) / unitSize);
+        return (int) (oldNumGroups * ((end - start) / unitSize));
     }
 
     private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
