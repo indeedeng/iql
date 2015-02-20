@@ -546,8 +546,10 @@ public class Session {
                 case HOUR:
                     realStart = new DateTime(earliestStart, zone).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).getMillis();
                     break;
-                case DAY:
                 case WEEK:
+                    realStart = new DateTime(earliestStart, zone).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).withDayOfWeek(1).getMillis();
+                    break;
+                case DAY:
                 case MONTH:
                     realStart = new DateTime(earliestStart, zone).withTimeAtStartOfDay().getMillis();
                     break;
