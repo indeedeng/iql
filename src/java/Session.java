@@ -41,6 +41,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.ref.Reference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -641,25 +642,85 @@ public class Session {
             final boolean isIntField = isIntField(field);
             final long[] groupCounts = new long[numGroups];
             if (isIntField) {
-                iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, (term, stats, group) -> {
-                    if (getGroupDistincts.filter.isPresent()) {
-                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                final IntIterateCallback callback = new IntIterateCallback() {
+                    private final BitSet groupSeen = new BitSet();
+                    private boolean started = false;
+                    private int lastGroup = 0;
+                    private long currentTerm = 0;
+
+                    @Override
+                    public void term(long term, long[] stats, int group) {
+                        if (started && currentTerm != term) {
+                            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
+                                groupCounts[lastGroup - 1]++;
+                            }
+                            groupSeen.clear();
+                        }
+                        currentTerm = term;
+                        started = true;
+                        lastGroup = group;
+                        final GroupKey parent = groupKeys.get(group).parent;
+                        if (getGroupDistincts.filter.isPresent()) {
+                            if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                                for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                                    if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
+                                        groupSeen.set(group + offset);
+                                    }
+                                }
+                            }
+                        } else {
+                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                                if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
+                                    groupSeen.set(group + offset);
+                                }
+                            }
+                        }
+                        if (groupSeen.get(group)) {
                             groupCounts[group - 1]++;
                         }
-                    } else {
-                        groupCounts[group - 1]++;
                     }
-                });
+                };
+                iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, callback);
             } else {
-                iterateMultiString(sessionsSubset, sessionMetricIndexes, field, (term, stats, group) -> {
-                    if (getGroupDistincts.filter.isPresent()) {
-                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                final StringIterateCallback callback = new StringIterateCallback() {
+                    private final BitSet groupSeen = new BitSet();
+                    private boolean started = false;
+                    private int lastGroup = 0;
+                    private String currentTerm;
+
+                    @Override
+                    public void term(String term, long[] stats, int group) {
+                        if (started && !currentTerm.equals(term)) {
+                            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
+                                groupCounts[lastGroup - 1]++;
+                            }
+                            groupSeen.clear();
+                        }
+                        currentTerm = term;
+                        started = true;
+                        lastGroup = group;
+                        final GroupKey parent = groupKeys.get(group).parent;
+                        if (getGroupDistincts.filter.isPresent()) {
+                            if (getGroupDistincts.filter.get().allow(term, stats, group)) {
+                                for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                                    if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
+                                        groupSeen.set(group + offset);
+                                    }
+                                }
+                            }
+                        } else {
+                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                                if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
+                                    groupSeen.set(group + offset);
+                                }
+                            }
+                        }
+                        if (groupSeen.get(group)) {
                             groupCounts[group - 1]++;
                         }
-                    } else {
-                        groupCounts[group - 1]++;
                     }
-                });
+                };
+                iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
             }
             out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof Commands.GetGroupPercentiles) {

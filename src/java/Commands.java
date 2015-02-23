@@ -120,6 +120,7 @@ public class Commands {
                 final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
                 final String field = command.get("field").asText();
                 final JsonNode filterNode = command.get("filter");
+                final int windowSize = command.get("windowSize").asInt();
 
                 final Optional<AggregateFilter> filter;
                 if (filterNode.isNull()) {
@@ -127,7 +128,7 @@ public class Commands {
                 } else {
                     filter = Optional.of(AggregateFilter.fromJson(filterNode, namedMetricLookup));
                 }
-                return new GetGroupDistincts(scope, field, filter);
+                return new GetGroupDistincts(scope, field, filter, windowSize);
             }
             case "getGroupPercentiles": {
                 final String field = command.get("field").asText();
@@ -339,12 +340,14 @@ public class Commands {
     public static class GetGroupDistincts {
         public final Set<String> scope;
         public final String field;
-        public Optional<AggregateFilter> filter;
+        public final Optional<AggregateFilter> filter;
+        public final int windowSize;
 
-        public GetGroupDistincts(Set<String> scope, String field, Optional<AggregateFilter> filter) {
+        public GetGroupDistincts(Set<String> scope, String field, Optional<AggregateFilter> filter, int windowSize) {
             this.scope = scope;
             this.field = field;
             this.filter = filter;
+            this.windowSize = windowSize;
         }
     }
 
