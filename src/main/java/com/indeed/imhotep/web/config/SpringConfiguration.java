@@ -142,7 +142,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public Long imhotepLocalTempFileSizeLimit() {
-         return mbToBytes(env.getProperty("imhotep.local.temp.file.size.mb.limit", Long.class, -1l));
+        final long limitInMegabytes = env.getProperty("imhotep.local.temp.file.size.mb.limit", Long.class, Long.MAX_VALUE);
+        if(limitInMegabytes < Long.MAX_VALUE) {
+            return mbToBytes(limitInMegabytes);
+        } else {
+            return Long.MAX_VALUE;
+        }
     }
 
     @Bean
