@@ -200,7 +200,7 @@ public class PercentileGrouping extends Grouping {
             for (final int group : percentileValues.keySet()) {
                 final LongList stats = new LongArrayList();
                 for (int i = 0; i < percentileValues.get(group).size(); ++i) {
-                    stats.add(-1);
+                    stats.add(Long.MIN_VALUE);
                 }
                 groupToPercentileStats.put(group, stats);
             }
@@ -233,8 +233,8 @@ public class PercentileGrouping extends Grouping {
             for (final int group : groupToPercentileStats.keySet()) {
                 final LongList stats = groupToPercentileStats.get(group);
                 for (int i = 0; i < stats.size(); ++i) {
-                    if (stats.getLong(i) == -1) {
-                        stats.set(i, groupToPrevTerm.get(i));
+                    if (stats.getLong(i) == Long.MIN_VALUE) {
+                        stats.set(i, groupToPrevTerm.get(group));
                     }
                 }
             }

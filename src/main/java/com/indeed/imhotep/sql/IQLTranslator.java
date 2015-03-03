@@ -737,6 +737,10 @@ public final class IQLTranslator {
                     final NameExpression nameExpression = (NameExpression) left;
                     final String fieldName = nameExpression.name;
                     if (!datasetMetadata.hasStringField(fieldName)) {
+                        if(datasetMetadata.hasIntField(fieldName)) {
+                            throw new IllegalArgumentException("Regex filter currently only works on String fields. " +
+                                    "Int field given: " + fieldName);
+                        }
                         throw new IllegalArgumentException("Unknown field: " + fieldName);
                     }
                     String regexp = getStr(right);

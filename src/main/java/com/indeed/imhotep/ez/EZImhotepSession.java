@@ -16,6 +16,7 @@
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
@@ -148,6 +149,17 @@ public class EZImhotepSession implements Closeable {
 
     long[] getGroupStats(int depth) {
         return session.getGroupStats(depth);
+    }
+
+    /**
+     * Returns the number of bytes written to the temp files for this session locally.
+     * Returns -1 if tempFileSizeBytesLeft was set to null or if the session is not a RemoteImhotepMultiSession.
+     */
+    public long getTempFilesBytesWritten() {
+        if(!(session instanceof RemoteImhotepMultiSession)) {
+            return -1;
+        }
+        return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
     }
 
     public DynamicMetric createDynamicMetric(String name) throws ImhotepOutOfMemoryException {

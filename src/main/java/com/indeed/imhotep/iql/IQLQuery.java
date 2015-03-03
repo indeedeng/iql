@@ -182,7 +182,7 @@ public final class IQLQuery implements Closeable {
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
                 timer.pop();
                 updateProgress(progress, out, count);
-                return new ExecutionResult(groupStatsIterator, totals, timer.toString());
+                return new ExecutionResult(groupStatsIterator, totals, timer.toString(), session.getTempFilesBytesWritten());
             } else {
                 timer.push("Pushing stats");
                 final List<StatReference> statRefs = pushStats(session);
@@ -193,7 +193,7 @@ public final class IQLQuery implements Closeable {
                 count = updateProgress(progress, out, count);
                 final List<GroupStats> result = Lists.newArrayList();
                 result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));
-                return new ExecutionResult(result.iterator(), stats, timer.toString());
+                return new ExecutionResult(result.iterator(), stats, timer.toString(), session.getTempFilesBytesWritten());
             }
         } catch (Throwable t) {
             log.error("Error while executing the query", t);
@@ -224,11 +224,13 @@ public final class IQLQuery implements Closeable {
         private final Iterator<GroupStats> rows;
         private final double[] totals;
         private final String timings;
+        private final long imhotepTempFilesBytesWritten;
 
-        public ExecutionResult(Iterator<GroupStats> rows, double[] totals, String timings) {
+        public ExecutionResult(Iterator<GroupStats> rows, double[] totals, String timings, long imhotepTempFilesBytesWritten) {
             this.rows = rows;
             this.totals = totals;
             this.timings = timings;
+            this.imhotepTempFilesBytesWritten = imhotepTempFilesBytesWritten;
         }
 
         public Iterator<GroupStats> getRows() {
@@ -241,6 +243,10 @@ public final class IQLQuery implements Closeable {
 
         public String getTimings() {
             return timings;
+        }
+
+        public long getImhotepTempFilesBytesWritten() {
+            return imhotepTempFilesBytesWritten;
         }
     }
 
