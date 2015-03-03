@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>iql</artifactId>
-    <version>1.0.14-internal</version>
+    <version>1.0.15-internal</version>
     <packaging>jar</packaging>
 
     <name>IQL Server</name>
@@ -184,7 +184,7 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep-server.version>1.0.12-internal</imhotep-server.version>
+        <imhotep-server.version>1.0.14-internal</imhotep-server.version>
         <indeed-util.version>1.0.12-internal-20140805170920</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
