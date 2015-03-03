@@ -31,7 +31,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
     private static final Logger log = Logger.getLogger(TopKGroupingFTGSCallback.class);
 
     private final Map<Integer, PriorityQueue<Pair<Double, GroupStats>>> groupToTopK = Maps.newHashMap();
-    private final Comparator<Pair> comparator;
+    private final Comparator<Pair<Double, GroupStats>> comparator;
     private final int topK;
     private final boolean isBottom;
     private final StatReference countStat;
@@ -47,8 +47,37 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.countStat = countStat;
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;
-        final Comparator<Pair> baseComparator = new Pair.HalfPairComparator();
-        this.comparator = isBottom ? Collections.reverseOrder(baseComparator) : baseComparator;
+        // do a custom comparator to ensure that real numbers are preferred to NaNs
+        final Comparator<Pair<Double, GroupStats>> baseComparator = new Comparator<Pair<Double, GroupStats>>() {
+            @Override
+            public int compare(Pair<Double, GroupStats> o1, Pair<Double, GroupStats> o2) {
+                Double a = o1.getFirst();
+                if(a.isNaN()) {
+                    a = Double.NEGATIVE_INFINITY;
+                }
+                Double b = o2.getFirst();
+                if(b.isNaN()) {
+                    b = Double.NEGATIVE_INFINITY;
+                }
+                return a.compareTo(b);
+            }
+        };
+        final Comparator<Pair<Double, GroupStats>> reverseComparator = new Comparator<Pair<Double, GroupStats>>() {
+            @Override
+            public int compare(Pair<Double, GroupStats> o1, Pair<Double, GroupStats> o2) {
+                Double a = o1.getFirst();
+                if(a.isNaN()) {
+                    a = Double.POSITIVE_INFINITY;
+                }
+                Double b = o2.getFirst();
+                if(b.isNaN()) {
+                    b = Double.POSITIVE_INFINITY;
+                }
+                return b.compareTo(a);  // reverse the result by swapping the sides
+            }
+        };
+
+        this.comparator = isBottom ? reverseComparator : baseComparator;
     }
 
     protected void intTermGroup(final String field, final long term, final int group) {
@@ -77,7 +106,8 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         } else {
             final Double headCount = topTerms.peek().getFirst();
             if ((!isBottom && count > headCount) ||
-                    (isBottom && count < headCount)) {
+                    (isBottom && count < headCount) ||
+                    (headCount.isNaN() && !Double.isNaN(count))) {
                 topTerms.remove();
                 topTerms.add(getStats(count, group, term));
             }
