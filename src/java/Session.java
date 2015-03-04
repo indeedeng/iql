@@ -39,9 +39,9 @@ import org.joda.time.format.DateTimeFormatter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.ref.Reference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -119,16 +120,28 @@ public class Session {
         org.apache.log4j.BasicConfigurator.configure();
         Logger.getRootLogger().setLevel(Level.INFO);
 
-        final ImhotepClient client = new ImhotepClient("***REMOVED***", true);
+        final Properties props = new Properties();
+        final InputStream propsStream = Session.class.getResourceAsStream("config.properties");
+        if (propsStream != null) {
+            props.load(propsStream);
+        }
+        final String zkPath = (String) props.getOrDefault("zk_path", "***REMOVED***");
+        log.info("zkPath = " + zkPath);
 
-        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(8001))) {
+        final ImhotepClient client = new ImhotepClient(zkPath, true);
+
+        final int wsSocketPort = Integer.parseInt((String) props.getOrDefault("ws_socket", "8001"));
+        log.info("wsSocketPort = " + wsSocketPort);
+        final int unixSocketPort = Integer.parseInt((String) props.getOrDefault("unix_socket", "28347"));
+        log.info("unixSocketPort = " + unixSocketPort);
+        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort))) {
             new Thread(() -> {
                 while (true) {
                     wsServer.run();
                 }
             }).start();
 
-            final ServerSocket serverSocket = new ServerSocket(28347);
+            final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
                 new Thread(() -> {
