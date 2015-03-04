@@ -10,7 +10,7 @@ public enum TimeUnit {
     HOUR(1000L * 60 * 60, "yyyy-MM-dd HH"),
     DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd"),
     WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd"),
-    MONTH(0L, "MMMM yyyy");
+    MONTH(TimeUnit.DAY.millis, "MMMM yyyy");
 
     public final long millis;
     public final String formatString;

@@ -122,7 +122,11 @@ public class Session {
         final ImhotepClient client = new ImhotepClient("***REMOVED***", true);
 
         try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(8001))) {
-            wsServer.start();
+            new Thread(() -> {
+                while (true) {
+                    wsServer.run();
+                }
+            }).start();
 
             final ServerSocket serverSocket = new ServerSocket(28347);
             while (true) {
