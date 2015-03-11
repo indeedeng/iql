@@ -6,13 +6,10 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.client.ImhotepClient;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import org.joda.time.DateTime;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -21,7 +18,7 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public interface DocFilter {
-    public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException;
+    public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException;
 
     public static DocFilter fromJson(JsonNode node) {
         final Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("arg1"));
@@ -45,6 +42,14 @@ public interface DocFilter {
                 return new And(f1.get(), f2.get());
             case "or":
                 return new Or(f1.get(), f2.get());
+            case "qualified": {
+                final List<String> names = Lists.newArrayList();
+                final JsonNode namesArr = node.get("names");
+                for (int i = 0; i < namesArr.size(); i++) {
+                    names.add(namesArr.get(i).asText());
+                }
+                return new QualifiedFilter(names, fromJson(node.get("filter")));
+            }
         }
         throw new RuntimeException("Oops: " + node);
     }
@@ -59,7 +64,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             final GroupRemapRule[] rules = new GroupRemapRule[numGroups];
             for (int group = 1; group <= numGroups; group++) {
                 rules[group-1] = new GroupRemapRule(group, new RegroupCondition(field, value.isIntTerm, value.intTerm, value.stringTerm, false), 0, group);
@@ -76,7 +81,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             throw new UnsupportedOperationException();
         }
     }
@@ -91,7 +96,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             session.pushStats(m1.pushes());
             session.pushStats(m2.pushes());
             final int index = session.pushStat("-") - 1;
@@ -110,7 +115,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             session.pushStats(m1.pushes());
             session.pushStats(m2.pushes());
             final int index = session.pushStat("-") - 1;
@@ -131,7 +136,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             session.pushStats(m1.pushes());
             session.pushStats(m2.pushes());
             final int index = session.pushStat("-") - 1;
@@ -152,9 +157,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
-            f1.apply(session, numGroups);
-            f2.apply(session, numGroups);
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            f1.apply(name, session, numGroups);
+            f2.apply(name, session, numGroups);
         }
     }
 
@@ -168,7 +173,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             throw new UnsupportedOperationException();
         }
     }
@@ -183,7 +188,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void apply(ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
             final Pattern pattern = Pattern.compile(regex);
             final FTGSIterator it = session.getFTGSIterator(new String[]{field}, new String[]{field});
             final DenseInt2ObjectMap<List<String>> stringGroupTerms = new DenseInt2ObjectMap<>();
@@ -230,6 +235,23 @@ public interface DocFilter {
             }
             final GroupMultiRemapRule[] rulesArray = rules.toArray(new GroupMultiRemapRule[rules.size()]);
             session.regroup(rulesArray);
+        }
+    }
+
+    public static class QualifiedFilter implements DocFilter {
+        private final Collection<String> name;
+        private final DocFilter filter;
+
+        public QualifiedFilter(Collection<String> name, DocFilter filter) {
+            this.name = name;
+            this.filter = filter;
+        }
+
+        @Override
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            if (this.name.contains(name)) {
+                filter.apply(name, session, numGroups);
+            }
         }
     }
 }

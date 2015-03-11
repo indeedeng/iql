@@ -204,13 +204,14 @@ public class Session {
 
             final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
             final Collection<String> sessionIntFields = datasetInfo.getIntFields();
+            final Collection<String> sessionStringFields = datasetInfo.getStringFields();
             final DateTime startDateTime = parseDateTime(start);
             final DateTime endDateTime = parseDateTime(end);
             final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
 
             final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
 
-            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
+            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
         }
         return new Session(sessions);
     }
@@ -433,7 +434,7 @@ public class Session {
             final Commands.FilterDocs filterDocs = (Commands.FilterDocs) command;
             final int numGroupsTmp = numGroups;
             // TODO: Pass in the index name so that filters can be index=? filters.
-            getSessionsMap().values().parallelStream().forEach(session -> unchecked(() -> filterDocs.docFilter.apply(session, numGroupsTmp)));
+            getSessionsMap().entrySet().parallelStream().forEach(e -> unchecked(() -> filterDocs.docFilter.apply(e.getKey(), e.getValue(), numGroupsTmp)));
             out.accept("{}");
         } else if (command instanceof Commands.ExplodeGroups) {
             final Commands.ExplodeGroups explodeGroups = (Commands.ExplodeGroups) command;
@@ -963,12 +964,12 @@ public class Session {
     }
 
     private boolean isIntField(String field) {
-        final boolean allIntFields = sessions.values().stream().allMatch(x -> x.intFields.contains(field));
         final boolean anyIntFields = sessions.values().stream().anyMatch(x -> x.intFields.contains(field));
-        if (allIntFields != anyIntFields) {
-            throw new RuntimeException("[" + field + "] is an int field in some sessions but not others.");
+        final boolean anyStringFields = sessions.values().stream().anyMatch(x -> x.stringFields.contains(field));
+        if (anyIntFields && anyStringFields) {
+            throw new RuntimeException("[" + field + "] is an int field in some sessions but a string field in others others.");
         }
-        return allIntFields;
+        return anyIntFields;
     }
 
     private AggregateMetric.PerGroupConstant namedMetricLookup(String name) {
@@ -1286,13 +1287,15 @@ public class Session {
     private static class ImhotepSessionInfo {
         private final ImhotepSession session;
         private final Collection<String> intFields;
+        private final Collection<String> stringFields;
         private final DateTime startTime;
         private final DateTime endTime;
         private final String timeFieldName;
 
-        private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
             this.intFields = intFields;
+            this.stringFields = stringFields;
             this.startTime = startTime;
             this.endTime = endTime;
             this.timeFieldName = timeFieldName;
