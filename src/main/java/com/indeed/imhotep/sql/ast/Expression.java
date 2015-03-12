@@ -72,6 +72,10 @@ public interface Expression {
             return otherwise();
         }
 
+        protected Z nameExplodeExpression(String name) {
+            return otherwise();
+        }
+
         protected Z otherwise() {
             throw new UnsupportedOperationException();
         }

@@ -16,6 +16,7 @@
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
@@ -99,7 +100,15 @@ public class EZImhotepSession implements Closeable {
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
-        final SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        if(stat instanceof Stats.AggregateBinOpConstStat) { // hacks for handling division by a constant
+            final Stats.AggregateBinOpConstStat statAsConstAggregate = (Stats.AggregateBinOpConstStat) stat;
+            if(!"/".equals(statAsConstAggregate.getOp())) {
+                throw new IllegalArgumentException("Only aggregate division is currently supported");
+            }
+            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue(), this);
+        }
+
         statStack.push(statReference);
         return statReference;
     }
@@ -142,6 +151,17 @@ public class EZImhotepSession implements Closeable {
         return session.getGroupStats(depth);
     }
 
+    /**
+     * Returns the number of bytes written to the temp files for this session locally.
+     * Returns -1 if tempFileSizeBytesLeft was set to null or if the session is not a RemoteImhotepMultiSession.
+     */
+    public long getTempFilesBytesWritten() {
+        if(!(session instanceof RemoteImhotepMultiSession)) {
+            return -1;
+        }
+        return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
+    }
+
     public DynamicMetric createDynamicMetric(String name) throws ImhotepOutOfMemoryException {
         if (dynamicMetrics.containsKey(name)) {
             throw new IllegalArgumentException("Dynamic metric with name "+name+" already exists!");
@@ -155,21 +175,17 @@ public class EZImhotepSession implements Closeable {
         throw new UnsupportedOperationException("Sorry, this isn't actually possible yet");
     }
 
-    public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
-        final List<String> intFields = Lists.newArrayList();
-        final List<String> stringFields = Lists.newArrayList();
-        for (Field field : fields) {
-            if (field.isIntField()) {
-                intFields.add(field.fieldName);
-            } else {
-                stringFields.add(field.fieldName);
-            }
-        }
+    public void ftgsSubsetIterate(Map<Field, List<?>> fieldsToTermsSubsets, FTGSCallback callback) {
+        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+        performIteration(callback, ftgsIterator);
+    }
 
-        final FTGSIterator ftgsIterator = session.getFTGSIterator(
-                intFields.toArray(new String[intFields.size()]),
-                stringFields.toArray(new String[stringFields.size()])
-        );
+    public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+        performIteration(callback, ftgsIterator);
+    }
+
+    private void performIteration(FTGSCallback callback, FTGSIterator ftgsIterator) {
         try {
             while (ftgsIterator.nextField()) {
                 final String field = ftgsIterator.fieldName();
@@ -199,7 +215,57 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
+    public <E> Iterator<E> ftgsGetSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets, final FTGSIteratingCallback<E> callback) {
+        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+
+        // TODO: make sure ftgsIterator gets closed
+        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+    }
+
+    private FTGSIterator getFtgsSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets) {
+        final Map<String, long[]> intFields = Maps.newHashMap();
+        final Map<String, String[]> stringFields = Maps.newHashMap();
+        for (Field field : fieldsToTermsSubsets.keySet()) {
+            final List<?> terms = fieldsToTermsSubsets.get(field);
+            if (field.isIntField()) {
+                final long[] intTermsSubset = new long[terms.size()];
+                for(int i = 0; i < intTermsSubset.length; i++) {
+                    final Object term = terms.get(i);
+                    if(term instanceof Long) {
+                        intTermsSubset[i] = (Long) term;
+                    } else if(term instanceof String) {
+                        try {
+                            intTermsSubset[i] = Long.valueOf((String) term);
+                        } catch (NumberFormatException e) {
+                            // TODO: move
+                            throw new IllegalArgumentException("IN grouping for int field " + field.getFieldName() +
+                                    " has a non integer argument: " + term);
+                        }
+                    }
+                }
+                Arrays.sort(intTermsSubset);
+                intFields.put(field.fieldName, intTermsSubset);
+            } else {
+                final String[] stringTermsSubset = new String[terms.size()];
+                for(int i = 0; i < stringTermsSubset.length; i++) {
+                    stringTermsSubset[i] = (String)terms.get(i);
+                }
+                Arrays.sort(stringTermsSubset);
+                stringFields.put(field.fieldName, stringTermsSubset);
+            }
+        }
+
+        return session.getSubsetFTGSIterator(intFields, stringFields);
+    }
+
     public <E> Iterator<E> ftgsGetIterator(List<Field> fields, final FTGSIteratingCallback<E> callback) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+
+        // TODO: make sure ftgsIterator gets closed
+        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+    }
+
+    private FTGSIterator getFtgsIterator(List<Field> fields) {
         final List<String> intFields = Lists.newArrayList();
         final List<String> stringFields = Lists.newArrayList();
         for (Field field : fields) {
@@ -210,13 +276,10 @@ public class EZImhotepSession implements Closeable {
             }
         }
 
-        final FTGSIterator ftgsIterator = session.getFTGSIterator(
+        return session.getFTGSIterator(
                 intFields.toArray(new String[intFields.size()]),
                 stringFields.toArray(new String[stringFields.size()])
         );
-
-        // TODO: make sure ftgsIterator gets closed
-        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
     public void filter(IntField field, Predicate<Long> predicate) throws ImhotepOutOfMemoryException {
@@ -339,6 +402,32 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
+    /**
+     * @param field field to filter on
+     * @param regex regex to test with
+     */
+    public void filterRegex(Field field, String regex) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a filter with more than one group. Consider filtering before regrouping.");
+        }
+        for (int group = 1; group < numGroups; group++) {
+            session.regexRegroup(field.getFieldName(), regex, group, 0, group);
+        }
+    }
+
+    /**
+     * @param field field to filter on
+     * @param regex regex to test with
+     */
+    public void filterRegexNegation(Field field, String regex) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a filter with more than one group. Consider filtering before regrouping.");
+        }
+        for (int group = 1; group < numGroups; group++) {
+            session.regexRegroup(field.getFieldName(), regex, group, group, 0);
+        }
+    }
+
     public static Map<Integer, GroupKey> newGroupKeys() {
         final Map<Integer, GroupKey> ret = Maps.newHashMap();
         ret.put(1, GroupKey.empty());
@@ -435,7 +524,9 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            if(newGroupCount > 0) {
+                numGroups = session.regroup(rules, false);
+            }
         } else {
             final StringField stringField = (StringField) field;
             final TIntObjectHashMap<List<String>> termListsMap = getStringGroupTerms(stringField);
@@ -458,7 +549,9 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            if(newGroupCount > 0) {
+                numGroups = session.regroup(rules, false);
+            }
         }
         return ret;
     }
@@ -993,6 +1086,10 @@ public class EZImhotepSession implements Closeable {
 
     public static Stat aggDiv(Stat stat1, Stat stat2) {
         return new Stats.AggregateBinOpStat("/", stat1, stat2);
+    }
+
+    public static Stat aggDivConst(Stat stat1, long value) {
+        return new Stats.AggregateBinOpConstStat("/", stat1, value);
     }
 
     @Nonnull

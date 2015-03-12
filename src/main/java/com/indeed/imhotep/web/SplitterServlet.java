@@ -40,7 +40,6 @@ public class SplitterServlet {
 
     @RequestMapping("/split")
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) throws ServletException, IOException {
-        resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setContentType("application/json");
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode json = mapper.createObjectNode();

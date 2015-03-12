@@ -14,12 +14,12 @@
  package com.indeed.imhotep.sql;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.DiffGrouping;
+import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.util.serialization.LongStringifier;
@@ -32,7 +32,6 @@ import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.iql.Condition;
 import com.indeed.imhotep.iql.DistinctGrouping;
 import com.indeed.imhotep.iql.FieldGrouping;
-import com.indeed.imhotep.iql.FieldInGrouping;
 import com.indeed.imhotep.iql.Grouping;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.IntInCondition;
@@ -43,7 +42,6 @@ import com.indeed.imhotep.iql.SampleCondition;
 import com.indeed.imhotep.iql.StatRangeGrouping;
 import com.indeed.imhotep.iql.StatRangeGrouping2D;
 import com.indeed.imhotep.iql.StringInCondition;
-import com.indeed.imhotep.iql.StringPredicateCondition;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.sql.ast.Expression;
@@ -58,6 +56,7 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.parser.ExpressionParser;
 import com.indeed.imhotep.sql.parser.PeriodParser;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
+import dk.brics.automaton.RegExp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -88,7 +87,8 @@ import static com.indeed.imhotep.ez.EZImhotepSession.*;
 public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
-    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata) {
+    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
+                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -141,14 +141,13 @@ public final class IQLTranslator {
         optimizeGroupings(groupings);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata);
+                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
         for(Field distinctField : distinctGrouping.getFields()) {
             for(Grouping grouping: groupings) {
-                if(grouping instanceof FieldGrouping && ((FieldGrouping) grouping).getField().equals(distinctField) ||
-                grouping instanceof FieldInGrouping && ((FieldInGrouping) grouping).getField().equals(distinctField)) {
+                if(grouping instanceof FieldGrouping && ((FieldGrouping) grouping).getField().equals(distinctField)) {
                     throw new IllegalArgumentException("Please remove distinct(" + distinctField.getFieldName() +
                         ") from the SELECT clause as it is always going to be 1 due to it being one of the GROUP BY groups");
                 }
@@ -160,7 +159,9 @@ public final class IQLTranslator {
         // if we have only one grouping we can safely disable exploding which allows us to stream the result
         if(groupings.size() == 1 && groupings.get(0) instanceof FieldGrouping) {
             FieldGrouping fieldGrouping = (FieldGrouping) groupings.get(0);
-            if(fieldGrouping.getTopK() == 0 && !fieldGrouping.isNoExplode()) {
+            if(!fieldGrouping.isNoExplode()
+                    && !fieldGrouping.isTopK()
+                    && !fieldGrouping.isTermSubset()) {
                 groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true));
             }
         }
@@ -197,7 +198,8 @@ public final class IQLTranslator {
                     continue;
                 }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
-                FieldInGrouping fieldInGrouping = new FieldInGrouping(field, Lists.newArrayList(inCondition.getValues()));
+                FieldGrouping fieldInGrouping = new FieldGrouping(field, fieldGrouping.isNoExplode(),
+                        Lists.newArrayList(inCondition.getValues()));
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
                 groupings.set(j, fieldInGrouping);
@@ -561,7 +563,11 @@ public final class IQLTranslator {
                 case AGG_DIV:
                 {
                     if(right instanceof NumberExpression) {
-                        throw new UnsupportedOperationException("Aggregate division (/) by a number is not yet supported. To divide each document's value, use '\\' e.g. 'tottime\\1000'");
+                        long value = parseLong(right);
+                        if(value == 0) {
+                            throw new IllegalArgumentException("Can't divide by 0");
+                        }
+                        return aggDivConst(left.match(this), value);
                     }
                     return aggDiv(left.match(this), right.match(this));
                 }
@@ -731,16 +737,22 @@ public final class IQLTranslator {
                     final NameExpression nameExpression = (NameExpression) left;
                     final String fieldName = nameExpression.name;
                     if (!datasetMetadata.hasStringField(fieldName)) {
+                        if(datasetMetadata.hasIntField(fieldName)) {
+                            throw new IllegalArgumentException("Regex filter currently only works on String fields. " +
+                                    "Int field given: " + fieldName);
+                        }
                         throw new IllegalArgumentException("Unknown field: " + fieldName);
                     }
                     String regexp = getStr(right);
-                    final Pattern pattern = Pattern.compile(regexp);
-                    return Collections.<Condition>singletonList(new StringPredicateCondition(Field.stringField(fieldName), new Predicate<String>() {
-                            @Override
-                            public boolean apply(String input) {
-                                return pattern.matcher(input).matches();
-                            }
-                        },
+                    // validate the provided regex
+                    try {
+                        new RegExp(regexp).toAutomaton();
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("The provided regex filter '" + regexp + "' failed to parse. " +
+                                "\nError was: " + e.getMessage() +
+                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
+                    }
+                    return Collections.<Condition>singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();
@@ -806,7 +818,8 @@ public final class IQLTranslator {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
 
-                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null || !keywordAnalyzerWhitelist.contains(name.name));
+                final boolean isTokenized = !datasetMetadata.isImhotepDataset() && (keywordAnalyzerWhitelist == null ||
+                        !keywordAnalyzerWhitelist.contains(name.name) && !keywordAnalyzerWhitelist.contains("*"));
                 if(isTokenized && right instanceof StringExpression) {
                     // special handling for tokenized fields and multi-word queries e.g. jobsearch:q
                     String[] words = value.split("\\s+");
@@ -883,6 +896,8 @@ public final class IQLTranslator {
 
         final QueryParser queryParser = new QueryParser("foo", analyzer);
         queryParser.setDefaultOperator(QueryParser.Operator.AND);
+        // only auto-lowercase for non-Flamdex datasets
+        queryParser.setLowercaseExpandedTerms(!datasetMetadata.isImhotepDataset());
         final Query query;
         try {
             query = queryParser.parse(queryString);
@@ -1027,7 +1042,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, true, stringifier);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier);
         }
 
 
@@ -1139,12 +1154,26 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
-            return new FieldGrouping(field);
+            return new FieldGrouping(field, true);
         }
 
         @Override
         protected Grouping bracketsExpression(final String field, final String content) {
             return topTerms(field, content);
+        }
+
+        @Override
+        protected Grouping unaryExpression(Op op, Expression operand) {
+            switch (op) {
+                case EXPLODE:
+                {
+                    final String fieldName = getStr(operand);
+                    final Field field = getField(fieldName, datasetMetadata);
+                    return new FieldGrouping(field, false);
+                }
+                default:
+                    throw new UnsupportedOperationException();
+            }
         }
 
         @Override
@@ -1159,7 +1188,7 @@ public final class IQLTranslator {
                         terms.add(getStr(expression));
                     }
                     final Field field = getField(name.name, datasetMetadata);
-                    return new FieldInGrouping(field, terms);
+                    return new FieldGrouping(field, true, terms);
                 }
                 default:
                     throw new UnsupportedOperationException();

@@ -33,6 +33,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,9 @@ public class PercentileGrouping extends Grouping {
 
     @Override
     public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, final long timeoutTS) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
+            return Collections.<GroupStats>emptyList().iterator();
+        }
         final StatReference countStatRef = session.pushStat(countStat);
         final long[] counts = getCounts(countStatRef);
 
@@ -196,7 +200,7 @@ public class PercentileGrouping extends Grouping {
             for (final int group : percentileValues.keySet()) {
                 final LongList stats = new LongArrayList();
                 for (int i = 0; i < percentileValues.get(group).size(); ++i) {
-                    stats.add(-1);
+                    stats.add(Long.MIN_VALUE);
                 }
                 groupToPercentileStats.put(group, stats);
             }
@@ -229,8 +233,8 @@ public class PercentileGrouping extends Grouping {
             for (final int group : groupToPercentileStats.keySet()) {
                 final LongList stats = groupToPercentileStats.get(group);
                 for (int i = 0; i < stats.size(); ++i) {
-                    if (stats.getLong(i) == -1) {
-                        stats.set(i, groupToPrevTerm.get(i));
+                    if (stats.getLong(i) == Long.MIN_VALUE) {
+                        stats.set(i, groupToPrevTerm.get(group));
                     }
                 }
             }

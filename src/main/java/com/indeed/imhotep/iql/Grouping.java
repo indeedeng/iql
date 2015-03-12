@@ -20,6 +20,7 @@ import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import org.apache.log4j.Logger;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,9 @@ public abstract class Grouping {
     public abstract Map<Integer, GroupKey> regroup(EZImhotepSession session, Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException;
 
     public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Map<Integer, GroupKey> groupKeys, List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+        if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
+            return Collections.<GroupStats>emptyList().iterator();
+        }
         groupKeys = regroup(session, groupKeys);
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
