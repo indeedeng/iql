@@ -585,7 +585,7 @@ public class Session {
             }
 
             final int oldNumGroups = this.numGroups;
-            final int numGroups = performTimeRegroup(realStart, realEnd, unitSize);
+            final int numGroups = performTimeRegroup(realStart, realEnd, unitSize, timeRegroup.timeField);
             final int numBuckets = (int)((realEnd - realStart) / unitSize);
             if (timeUnit == TimeUnit.MONTH) {
                 final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
@@ -843,7 +843,7 @@ public class Session {
 
             final long start = new DateTime(getEarliestStart()).withTimeAtStartOfDay().getMillis();
             final long end = new DateTime(getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
-            final int numGroups = performTimeRegroup(start, end, TimeUnit.DAY.millis);
+            final int numGroups = performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty());
             final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
             final List<GroupRemapRule> rules = Lists.newArrayList();
             final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
@@ -893,11 +893,11 @@ public class Session {
         return sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
     }
 
-    private int performTimeRegroup(long start, long end, long unitSize) {
+    private int performTimeRegroup(long start, long end, long unitSize, Optional<String> fieldOverride) {
         final int oldNumGroups = this.numGroups;
         sessions.values().forEach(sessionInfo -> unchecked(() -> {
             final ImhotepSession session = sessionInfo.session;
-            session.pushStat(sessionInfo.timeFieldName);
+            session.pushStat(fieldOverride.orElseGet(() -> sessionInfo.timeFieldName));
             session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
             session.popStat();
         }));

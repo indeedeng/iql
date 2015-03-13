@@ -149,11 +149,17 @@ public class Commands {
                 );
             }
             case "timeRegroup": {
+                final Optional<String> timeField;
+                if (command.has("timeField")) {
+                    timeField = Optional.ofNullable(command.get("timeField").textValue());
+                } else {
+                    timeField = Optional.empty();
+                }
                 return new TimeRegroup(
                         command.get("value").asLong(),
                         command.get("unit").asText().charAt(0),
-                        command.get("offsetMinutes").asLong()
-                );
+                        command.get("offsetMinutes").asLong(),
+                        timeField);
             }
             case "getNumGroups": {
                 return new GetNumGroups();
@@ -381,11 +387,13 @@ public class Commands {
         public final long value;
         public final char unit;
         public final long offsetMinutes;
+        public final Optional<String> timeField;
 
-        public TimeRegroup(long value, char unit, long offsetMinutes) {
+        public TimeRegroup(long value, char unit, long offsetMinutes, Optional<String> timeField) {
             this.value = value;
             this.unit = unit;
             this.offsetMinutes = offsetMinutes;
+            this.timeField = timeField;
         }
     }
 
