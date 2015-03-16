@@ -193,6 +193,9 @@ public class Commands {
             case "explodeDayOfWeek": {
                 return new ExplodeDayOfWeek();
             }
+            case "explodeSessionNames": {
+                return new ExplodeSessionNames();
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
@@ -419,5 +422,8 @@ public class Commands {
     }
 
     public static class ExplodeDayOfWeek {
+    }
+
+    public static class ExplodeSessionNames {
     }
 }

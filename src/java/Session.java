@@ -58,6 +58,7 @@ import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -864,6 +865,10 @@ public class Session {
             }, oldNumGroups * dayKeys.length);
             currentDepth += 1;
             out.accept("success");
+        } else if (command instanceof Commands.ExplodeSessionNames) {
+            final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
+            // TODO: This
+            throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
