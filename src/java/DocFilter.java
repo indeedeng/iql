@@ -28,10 +28,14 @@ public interface DocFilter {
         switch (node.get("type").asText()) {
             case "fieldEquals":
                 return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
+            case "fieldNotEquals":
+                return new FieldNotEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
             case "not":
                 return new Not(DocFilter.fromJson(node.get("value")));
             case "regex":
-                return new RegexFilter(node.get("field").asText(), node.get("value").asText());
+                return new RegexFilter(node.get("field").asText(), node.get("value").asText(), false);
+            case "notRegex":
+                return new RegexFilter(node.get("field").asText(), node.get("value").asText(), true);
             case "metricEquals":
                 return new MetricEquals(m1.get(), m2.get());
             case "greaterThan":
@@ -68,6 +72,25 @@ public interface DocFilter {
             final GroupRemapRule[] rules = new GroupRemapRule[numGroups];
             for (int group = 1; group <= numGroups; group++) {
                 rules[group-1] = new GroupRemapRule(group, new RegroupCondition(field, value.isIntTerm, value.intTerm, value.stringTerm, false), 0, group);
+            }
+            session.regroup(rules);
+        }
+    }
+
+    public static class FieldNotEquals implements DocFilter {
+        private final String field;
+        private final Term value;
+
+        public FieldNotEquals(String field, Term value) {
+            this.field = field;
+            this.value = value;
+        }
+
+        @Override
+        public void apply(String name, ImhotepSession session, int numGroups) throws ImhotepOutOfMemoryException {
+            final GroupRemapRule[] rules = new GroupRemapRule[numGroups];
+            for (int group = 1; group <= numGroups; group++) {
+                rules[group-1] = new GroupRemapRule(group, new RegroupCondition(field, value.isIntTerm, value.intTerm, value.stringTerm, false), group, 0);
             }
             session.regroup(rules);
         }
@@ -181,10 +204,12 @@ public interface DocFilter {
     public static class RegexFilter implements DocFilter {
         private final String field;
         private final String regex;
+        private final boolean negate;
 
-        public RegexFilter(String field, String regex) {
+        public RegexFilter(String field, String regex, boolean negate) {
             this.field = field;
             this.regex = regex;
+            this.negate = negate;
         }
 
         @Override
@@ -196,7 +221,11 @@ public interface DocFilter {
             while (it.nextField()) {
                 while (it.nextTerm()) {
                     final String term = it.fieldIsIntType() ? String.valueOf(it.termIntVal()) : it.termStringVal();
-                    if (pattern.matcher(term).matches()) {
+                    boolean matches = pattern.matcher(term).matches();
+                    if (this.negate) {
+                        matches = !matches;
+                    }
+                    if (matches) {
                         while (it.nextGroup()) {
                             final int group = it.group();
                             if (it.fieldIsIntType()) {
