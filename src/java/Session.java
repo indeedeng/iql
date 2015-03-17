@@ -538,17 +538,17 @@ public class Session {
 
             final long unitSize;
             if (timeUnit == TimeUnit.MONTH) {
-                final DateTime startOfStartMonth = new DateTime(earliestStart).withDayOfMonth(1);
-                if (startOfStartMonth.getMillis() != earliestStart) {
-                    throw new IllegalArgumentException("Earliest time not aligned at start of month: " + new DateTime(earliestStart));
-                }
-                final DateTime startOfEndMonth = new DateTime(latestEnd).withDayOfMonth(1);
-                if (startOfEndMonth.getMillis() != latestEnd) {
-                    throw new IllegalArgumentException("Latest time not aligned with start of month: " + new DateTime(latestEnd));
-                }
-                if (!startOfStartMonth.isBefore(startOfEndMonth)) {
-                    throw new IllegalArgumentException("Start must come before end. start = [" + startOfStartMonth + "], end = [" + startOfEndMonth + "]");
-                }
+//                final DateTime startOfStartMonth = new DateTime(earliestStart).withDayOfMonth(1);
+//                if (startOfStartMonth.getMillis() != earliestStart) {
+//                    throw new IllegalArgumentException("Earliest time not aligned at start of month: " + new DateTime(earliestStart));
+//                }
+//                final DateTime startOfEndMonth = new DateTime(latestEnd).withDayOfMonth(1);
+//                if (startOfEndMonth.getMillis() != latestEnd) {
+//                    throw new IllegalArgumentException("Latest time not aligned with start of month: " + new DateTime(latestEnd));
+//                }
+//                if (!startOfStartMonth.isBefore(startOfEndMonth)) {
+//                    throw new IllegalArgumentException("Start must come before end. start = [" + startOfStartMonth + "], end = [" + startOfEndMonth + "]");
+//                }
                 unitSize = TimeUnit.DAY.millis;
             } else {
                 unitSize = timeRegroup.value * timeUnit.millis;
@@ -591,7 +591,7 @@ public class Session {
             if (timeUnit == TimeUnit.MONTH) {
                 final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
                 final DateTime startMonth = new DateTime(earliestStart).withDayOfMonth(1).withTimeAtStartOfDay();
-                final DateTime endMonthExclusive = new DateTime(latestEnd).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
+                final DateTime endMonthExclusive = new DateTime(latestEnd).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
                 final int numMonths = Months.monthsBetween(
                         startMonth,
                         endMonthExclusive
@@ -602,7 +602,7 @@ public class Session {
                 for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
                     for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
                         final long start = realStart + innerGroup * unitSize;
-                        final int base = 1 + (outerGroup - 1) * numBuckets;
+                        final int base = 1 + (outerGroup - 1) * numBuckets + innerGroup;
                         final int newBase = 1 + (outerGroup - 1) * numMonths;
 
                         final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
