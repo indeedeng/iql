@@ -587,7 +587,7 @@ public class Session {
 
             final int oldNumGroups = this.numGroups;
             final int numGroups = performTimeRegroup(realStart, realEnd, unitSize, timeRegroup.timeField);
-            final int numBuckets = (int)((realEnd - realStart) / unitSize);
+            final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
             if (timeUnit == TimeUnit.MONTH) {
                 final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
                 final DateTime startMonth = new DateTime(earliestStart).withDayOfMonth(1).withTimeAtStartOfDay();
@@ -916,7 +916,7 @@ public class Session {
             session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
             session.popStat();
         }));
-        return (int) (oldNumGroups * ((end - start) / unitSize));
+        return (int) (oldNumGroups * Math.ceil(((double)end - start) / unitSize));
     }
 
     private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
