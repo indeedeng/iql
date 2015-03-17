@@ -56,6 +56,7 @@ import static com.indeed.imhotep.ez.Stats.ConstantStat;
 import static com.indeed.imhotep.ez.Stats.CountStat;
 import static com.indeed.imhotep.ez.Stats.DynamicMetricStat;
 import static com.indeed.imhotep.ez.Stats.ExpStat;
+import static com.indeed.imhotep.ez.Stats.LogStat;
 import static com.indeed.imhotep.ez.Stats.HasIntStat;
 import static com.indeed.imhotep.ez.Stats.HasStringStat;
 import static com.indeed.imhotep.ez.Stats.IntFieldStat;
@@ -803,7 +804,7 @@ public class EZImhotepSession implements Closeable {
 
     private TIntObjectHashMap<List<String>> getStringGroupTerms(StringField field) {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth);
-        ftgsIterate(Arrays.asList((Field)field), callback);
+        ftgsIterate(Arrays.asList((Field) field), callback);
         return callback.stringTermListsMap;
     }
 
@@ -1040,6 +1041,9 @@ public class EZImhotepSession implements Closeable {
     }
     public static Stat exp(Stat ref, int scaleFactor) {
         return new ExpStat(ref, scaleFactor);
+    }
+    public static Stat log(Stat ref, int scaleFactor) {
+        return new LogStat(ref, scaleFactor);
     }
     public static Stat constant(long value) {
         return new ConstantStat(value);
