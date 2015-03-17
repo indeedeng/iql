@@ -612,15 +612,20 @@ public class Session {
                 }
                 final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
                 sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-                assumeDense(group -> {
+                final Function<Integer, Pair<String, GroupKey>> groupMapper = group -> {
                     final int originalGroup = 1 + (group - 1) / numMonths;
                     final int monthOffset = (group - 1) % numMonths;
                     final String key = formatter.print(startMonth.plusMonths(monthOffset));
                     return Pair.of(key, groupKeys.get(originalGroup));
-                }, oldNumGroups * numMonths);
+                };
+                if (oldNumGroups == 1) {
+                    assumeDense(groupMapper, oldNumGroups * numMonths);
+                } else {
+                    densify(groupMapper);
+                }
             } else {
                 final String formatString = TimeUnit.SECOND.formatString; // timeUnit.formatString;
-                assumeDense(group -> {
+                final Function<Integer, Pair<String, GroupKey>> groupMapper = group -> {
                     final int oldGroup = 1 + (group - 1) / numBuckets;
                     final int timeBucket = (group - 1) % numBuckets;
                     final long startInclusive = realStart + timeBucket * unitSize;
@@ -628,7 +633,12 @@ public class Session {
                     final String startString = new DateTime(startInclusive, zone).toString(formatString);
                     final String endString = new DateTime(endExclusive, zone).toString(formatString);
                     return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(oldGroup));
-                }, (int) numGroups);
+                };
+                if (oldNumGroups == 1) {
+                    assumeDense(groupMapper, numGroups);
+                } else {
+                    densify(groupMapper);
+                }
             }
             this.currentDepth += 1;
             out.accept("success");
