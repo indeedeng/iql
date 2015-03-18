@@ -73,6 +73,7 @@ public class Session {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
+
     private static final Logger log = Logger.getLogger(Session.class);
 
     public List<String> fields = Lists.newArrayList();
@@ -112,6 +113,8 @@ public class Session {
         MAPPER.registerModule(module);
         MAPPER.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
+
+    public static final String INFINITY_SYMBOL = "∞";
 
     public Session(Map<String, ImhotepSessionInfo> sessions) {
         this.sessions = sessions;
@@ -485,48 +488,34 @@ public class Session {
             out.accept("success");
         } else if (command instanceof Commands.MetricRegroup) {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
-            if (numGroups != 1) {
-                throw new IllegalStateException("Cannot metric regroup when groups are split up.");
-            }
-            final int numBuckets = (int)(((metricRegroup.max - 1) - metricRegroup.min) / metricRegroup.interval + 1);
-            // TODO: Figure out what bucket is what, fix the group keys. this includes gutters ([buckets,(<min),(>max)])
-            final List<String> groupDescriptions = Lists.newArrayList((String) null);
-            final List<GroupKey> groupParents = Lists.newArrayList((GroupKey) null);
-            for (int i = 1; i < groupKeys.size(); i++) {
-                final GroupKey groupKey = groupKeys.get(i);
-                for (int bucket = 0; bucket < numBuckets; bucket++) {
-                    final long minInclusive = metricRegroup.min + bucket * metricRegroup.interval;
-                    final long maxExclusive = minInclusive + metricRegroup.interval;
-                    if (metricRegroup.interval == 1) {
-                        groupDescriptions.add(String.valueOf(minInclusive));
-                        groupParents.add(groupKey);
-                    } else {
-                        groupDescriptions.add("[" + minInclusive + ", " + maxExclusive + ")");
-                        groupParents.add(groupKey);
-                    }
-                }
-                final String INFINITY = "∞";
-                groupDescriptions.add("[-" + INFINITY + ", " + (metricRegroup.min - metricRegroup.interval) + ")");
-                groupParents.add(groupKey);
-                groupDescriptions.add("[" + metricRegroup.max + ", " + INFINITY + ")");
-                groupParents.add(groupKey);
-            }
-
+            final int numBuckets = 2 + (int)Math.ceil(((double) metricRegroup.max - metricRegroup.min) / metricRegroup.interval);
+//
             getSessionsMap().values().forEach(session -> unchecked(() -> {
-                session.pushStats(metricRegroup.metric.pushes());
-                if (metricRegroup.min >= 0) {
-                    session.pushStats(Arrays.asList(String.valueOf(metricRegroup.min), "-"));
-                } else {
-                    session.pushStats(Arrays.asList(String.valueOf(-metricRegroup.min), "+"));
+                final int numStats = session.pushStats(metricRegroup.metric.pushes());
+                if (numStats != 1) {
+                    throw new IllegalStateException("Pushed more than one stat!:" + metricRegroup.metric.pushes());
                 }
-                session.pushStats(Arrays.asList(String.valueOf(metricRegroup.interval), "/"));
-                session.metricRegroup(0, 0, numBuckets, 1);
-                while (session.getNumStats() > 0) {
-                    session.popStat();
-                }
+                session.metricRegroup(0, metricRegroup.min, metricRegroup.max, metricRegroup.interval);
+                session.popStat();
             }));
 
-            densify(group -> Pair.of(groupDescriptions.get(group), groupParents.get(group)));
+            densify(group -> {
+                final int oldGroup = 1 + (group - 1) / numBuckets;
+                final int innerGroup = (group - 1) % numBuckets;
+                final String key;
+                if (innerGroup == numBuckets - 1) {
+                    key = "[" + metricRegroup.max + ", " + INFINITY_SYMBOL + ")";
+                } else if (innerGroup == numBuckets - 2) {
+                    key = "[-" + INFINITY_SYMBOL + ", " + (metricRegroup.min - metricRegroup.interval) + ")";
+                } else if (metricRegroup.interval == 1) {
+                    key = String.valueOf(metricRegroup.min + innerGroup);
+                } else {
+                    final long minInclusive = metricRegroup.min + numBuckets * metricRegroup.interval;
+                    final long maxExclusive = metricRegroup.min + numBuckets * (metricRegroup.interval + 1);
+                    key = "[" + minInclusive + ", " + maxExclusive + ")";
+                }
+                return Pair.of(key, groupKeys.get(oldGroup));
+            });
 
             out.accept("success");
         } else if (command instanceof Commands.TimeRegroup) {
@@ -916,7 +905,7 @@ public class Session {
             session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
             session.popStat();
         }));
-        return (int) (oldNumGroups * Math.ceil(((double)end - start) / unitSize));
+        return (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
     }
 
     private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
