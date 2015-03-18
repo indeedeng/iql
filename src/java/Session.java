@@ -504,14 +504,14 @@ public class Session {
                 final int innerGroup = (group - 1) % numBuckets;
                 final String key;
                 if (innerGroup == numBuckets - 1) {
-                    key = "[" + metricRegroup.max + ", " + INFINITY_SYMBOL + ")";
+                    key = "[" + (metricRegroup.min + metricRegroup.interval * (numBuckets - 2)) + ", " + INFINITY_SYMBOL + ")";
                 } else if (innerGroup == numBuckets - 2) {
-                    key = "[-" + INFINITY_SYMBOL + ", " + (metricRegroup.min - metricRegroup.interval) + ")";
+                    key = "[-" + INFINITY_SYMBOL + ", " + metricRegroup.min + ")";
                 } else if (metricRegroup.interval == 1) {
                     key = String.valueOf(metricRegroup.min + innerGroup);
                 } else {
-                    final long minInclusive = metricRegroup.min + numBuckets * metricRegroup.interval;
-                    final long maxExclusive = metricRegroup.min + numBuckets * (metricRegroup.interval + 1);
+                    final long minInclusive = metricRegroup.min + innerGroup * metricRegroup.interval;
+                    final long maxExclusive = metricRegroup.min + (innerGroup + 1) * metricRegroup.interval;
                     key = "[" + minInclusive + ", " + maxExclusive + ")";
                 }
                 return Pair.of(key, groupKeys.get(oldGroup));
