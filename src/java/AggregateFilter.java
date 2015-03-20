@@ -25,8 +25,8 @@ public interface AggregateFilter {
         final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);
         final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"), namedMetricLookup);
         switch (node.get("type").asText()) {
-            case "fieldEquals":
-                return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
+            case "termEquals":
+                return new TermEquals(Term.fromJson(node.get("value")));
             case "not":
                 return new Not(AggregateFilter.fromJson(node.get("value"), namedMetricLookup));
             case "regex":
@@ -47,12 +47,10 @@ public interface AggregateFilter {
         throw new RuntimeException("Oops: " + node);
     }
 
-    public static class FieldEquals implements AggregateFilter {
-        private final String field;
+    public static class TermEquals implements AggregateFilter {
         private final Term value;
 
-        public FieldEquals(String field, Term value) {
-            this.field = field;
+        public TermEquals(Term value) {
             this.value = value;
         }
 
@@ -72,7 +70,7 @@ public interface AggregateFilter {
 
         @Override
         public boolean allow(long term, long[] stats, int group) {
-            return Long.compare(term, value.intTerm) == 0;
+            return term == value.intTerm;
         }
     }
 
