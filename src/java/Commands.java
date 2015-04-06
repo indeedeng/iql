@@ -114,7 +114,13 @@ public class Commands {
                 for (int i = 0; i < valuesNode.size(); i++) {
                     stats[i + 1] = valuesNode.get(i).asDouble();
                 }
-                return new CreateGroupStatsLookup(stats);
+                final Optional<String> name;
+                if (command.has("name")) {
+                    name = Optional.ofNullable(command.get("name").textValue());
+                } else {
+                    name = Optional.empty();
+                }
+                return new CreateGroupStatsLookup(stats, name);
             }
             case "getGroupDistincts": {
                 final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
@@ -340,9 +346,11 @@ public class Commands {
 
     public static class CreateGroupStatsLookup {
         public final double[] stats;
+        public final Optional<String> name;
 
-        public CreateGroupStatsLookup(double[] stats) {
+        public CreateGroupStatsLookup(double[] stats, Optional<String> name) {
             this.stats = stats;
+            this.name = name;
         }
     }
 

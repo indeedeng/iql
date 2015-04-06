@@ -641,7 +641,15 @@ public class Session {
             final int depth = currentDepth;
             final double[] stats = createGroupStatsLookup.stats;
             final SavedGroupStats savedStats = new SavedGroupStats(depth, stats);
-            final String lookupName = String.valueOf(savedGroupStats.size());
+            final String lookupName;
+            if (createGroupStatsLookup.name.isPresent()) {
+                lookupName = createGroupStatsLookup.name.get();
+                if (savedGroupStats.containsKey(lookupName)) {
+                    throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
+                }
+            } else {
+                lookupName = String.valueOf(savedGroupStats.size());
+            }
             savedGroupStats.put(lookupName, savedStats);
             out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
         } else if (command instanceof Commands.GetGroupDistincts) {
