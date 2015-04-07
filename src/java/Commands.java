@@ -24,7 +24,7 @@ public class Commands {
             case "iterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final Iterate.FieldIterateOpts defaultOpts = new Iterate.FieldIterateOpts();
-                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(command, namedMetricLookup, selecting, defaultOpts);
+                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, defaultOpts, command.get("opts"));
 
                 final List<Iterate.FieldWithOptions> fieldsWithOpts = Lists.newArrayList();
                 final JsonNode fields = command.get("fields");
@@ -179,13 +179,22 @@ public class Commands {
             case "explodeSessionNames": {
                 return new ExplodeSessionNames();
             }
+            case "iterateAndExplode": {
+                final String field = command.get("field").textValue();
+                final Optional<String> explodeDefaultName = parseExplodeOpts(command.get("explodeOpts"));
+
+                final List<AggregateMetric> selecting = Lists.newArrayList();
+                final Iterate.FieldIterateOpts fieldOpts = new Iterate.FieldIterateOpts();
+                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
+
+                return new IterateAndExplode(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
 
-    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts) {
+    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
         Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
-        final JsonNode globalOpts = command.get("opts");
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").asText()) {
                 case "selecting": {
@@ -211,6 +220,9 @@ public class Commands {
     }
 
     private static Optional<String> parseExplodeOpts(JsonNode opts) {
+        if (opts == null) {
+            return Optional.empty();
+        }
         Optional<String> defaultName = Optional.empty();
         for (final JsonNode opt : opts) {
             switch (opt.get("type").asText()) {
@@ -437,5 +449,21 @@ public class Commands {
     }
 
     public static class ExplodeSessionNames {
+    }
+
+    public static class IterateAndExplode {
+        public final String field;
+        public final List<AggregateMetric> selecting;
+        public final Iterate.FieldIterateOpts fieldOpts;
+        public final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits;
+        public final Optional<String> explodeDefaultName;
+
+        public IterateAndExplode(String field, List<AggregateMetric> selecting, Iterate.FieldIterateOpts fieldOpts, Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
+            this.field = field;
+            this.selecting = selecting;
+            this.fieldOpts = fieldOpts;
+            this.fieldLimits = fieldLimits;
+            this.explodeDefaultName = explodeDefaultName;
+        }
     }
 }

@@ -46,6 +46,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -677,6 +678,20 @@ public class Session {
             final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
             // TODO: This
             throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
+        } else if (command instanceof Commands.IterateAndExplode) {
+            final Commands.IterateAndExplode iterateAndExplode = (Commands.IterateAndExplode) command;
+            final List<Commands.Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Commands.Iterate.FieldWithOptions(iterateAndExplode.field, iterateAndExplode.fieldOpts));
+            final List<List<List<TermSelects>>> iterationResults = performIterate(new Commands.Iterate(fieldWithOpts, iterateAndExplode.fieldLimits, iterateAndExplode.selecting));
+            final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
+            final List<List<TermSelects>> fieldResults = iterationResults.stream().findFirst().get();
+            for (final List<TermSelects> groupResults : fieldResults) {
+                final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
+                for (final TermSelects result : groupResults) {
+                    terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
+                }
+                explodes.add(new Commands.TermsWithExplodeOpts(terms, iterateAndExplode.explodeDefaultName));
+            }
+            performExplodePerGroup(out, new Commands.ExplodePerGroup(explodes));
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
