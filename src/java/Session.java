@@ -274,160 +274,7 @@ public class Session {
         final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
         if (command instanceof Commands.Iterate) {
             final Commands.Iterate iterate = (Commands.Iterate) command;
-            final Set<QualifiedPush> allPushes = Sets.newHashSet();
-            final List<AggregateMetric> metrics = Lists.newArrayList();
-            iterate.fields.forEach(field -> field.opts.topK.ifPresent(topK -> metrics.add(topK.metric)));
-            metrics.addAll(iterate.selecting);
-            for (final AggregateMetric metric : metrics) {
-                allPushes.addAll(metric.requires());
-            }
-            iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> allPushes.addAll(filter.requires())));
-            final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
-            final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-            pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
-            registerMetrics(metricIndexes, metrics, Arrays.asList());
-            iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes, groupKeys)));
-            
-            final DenseInt2ObjectMap<Queue<Queue<TermSelects>>> qqs = new DenseInt2ObjectMap<>();
-            if (iterate.fieldLimitingOpts.isPresent()) {
-                final Pair<Integer, Commands.Iterate.FieldLimitingMechanism> p = iterate.fieldLimitingOpts.get();
-                final int fieldLimitCount = p.getFirst();
-                final Commands.Iterate.FieldLimitingMechanism mechanism = p.getSecond();
-                final Comparator<Queue<TermSelects>> queueComparator;
-                switch (mechanism) {
-                    case MinimalMin:
-                        queueComparator = new Comparator<Queue<TermSelects>>() {
-                            @Override
-                            public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
-                                double o1Min = Double.POSITIVE_INFINITY;
-                                for (final TermSelects termSelects : o1) {
-                                    o1Min = Math.min(termSelects.topMetric, o1Min);
-                                }
-                                double o2Min = Double.POSITIVE_INFINITY;
-                                for (final TermSelects termSelects : o2) {
-                                    o2Min = Math.min(termSelects.topMetric, o2Min);
-                                }
-                                return Doubles.compare(o1Min, o2Min);
-                            }
-                        };
-                        break;
-                    case MaximalMax:
-                        queueComparator = new Comparator<Queue<TermSelects>>() {
-                            @Override
-                            public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
-                                double o1Max = Double.POSITIVE_INFINITY;
-                                for (final TermSelects termSelects : o1) {
-                                    o1Max = Math.max(termSelects.topMetric, o1Max);
-                                }
-                                double o2Max = Double.POSITIVE_INFINITY;
-                                for (final TermSelects termSelects : o2) {
-                                    o2Max = Math.max(termSelects.topMetric, o2Max);
-                                }
-                                return Doubles.compare(o2Max, o1Max);
-                            }
-                        };
-                        break;
-                    default:
-                        throw new IllegalStateException();
-                }
-                for (int i = 1; i <= numGroups; i++) {
-                    qqs.put(i, BoundedPriorityQueue.newInstance(fieldLimitCount, queueComparator));
-                }
-            } else {
-                for (int i = 1; i <= numGroups; i++) {
-                    qqs.put(i, new ArrayDeque<>());
-                }
-            }
-            
-            for (final Commands.Iterate.FieldWithOptions fieldWithOpts : iterate.fields) {
-                final String field = fieldWithOpts.field;
-                final Commands.Iterate.FieldIterateOpts opts = fieldWithOpts.opts;
-
-                final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
-                if (opts.topK.isPresent()) {
-                    final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
-                    for (int i = 1; i <= numGroups; i++) {
-                        pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
-                    }
-                } else {
-                    for (int i = 1; i <= numGroups; i++) {
-                        pqs.put(i, new ArrayDeque<>());
-                    }
-                }
-                final AggregateMetric topKMetricOrNull;
-                if (opts.topK.isPresent()) {
-                    topKMetricOrNull = opts.topK.get().metric;
-                    topKMetricOrNull.register(metricIndexes, groupKeys);
-                } else {
-                    topKMetricOrNull = null;
-                }
-                final AggregateFilter filterOrNull = opts.filter.orElse(null);
-
-                if (isIntField(field)) {
-                    iterateMultiInt(getSessionsMap(), sessionMetricIndexes, field, new IntIterateCallback() {
-                        @Override
-                        public void term(long term, long[] stats, int group) {
-                            if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                                return;
-                            }
-                            final double[] selectBuffer = new double[iterate.selecting.size()];
-                            final double value;
-                            if (topKMetricOrNull != null) {
-                                value = topKMetricOrNull.apply(term, stats, group);
-                            } else {
-                                value = 0.0;
-                            }
-                            final List<AggregateMetric> selecting = iterate.selecting;
-                            for (int i = 0; i < selecting.size(); i++) {
-                                selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                            }
-                            pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, groupKeys.get(group)));
-                        }
-                    });
-                } else {
-                    iterateMultiString(getSessionsMap(), sessionMetricIndexes, field, new StringIterateCallback() {
-                        @Override
-                        public void term(String term, long[] stats, int group) {
-                            if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                                return;
-                            }
-                            final double[] selectBuffer = new double[iterate.selecting.size()];
-                            final double value;
-                            if (topKMetricOrNull != null) {
-                                value = topKMetricOrNull.apply(term, stats, group);
-                            } else {
-                                value = 0.0;
-                            }
-                            final List<AggregateMetric> selecting = iterate.selecting;
-                            for (int i = 0; i < selecting.size(); i++) {
-                                selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                            }
-                            pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, groupKeys.get(group)));
-                        }
-                    });
-                }
-
-                for (int i = 1; i <= numGroups; i++) {
-                    final Queue<TermSelects> pq = pqs.get(i);
-                    if (!pq.isEmpty()) {
-                        qqs.get(i).offer(pq);
-                    }
-                }
-            }
-            final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
-            for (int group = 1; group <= numGroups; group++) {
-                final Queue<Queue<TermSelects>> qq = qqs.get(group);
-                final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
-                while (!qq.isEmpty()) {
-                    final Queue<TermSelects> pq = qq.poll();
-                    final List<TermSelects> listTermSelects = Lists.newArrayList();
-                    while (!pq.isEmpty()) {
-                        listTermSelects.add(pq.poll());
-                    }
-                    groupTermSelects.add(listTermSelects);
-                }
-                allTermSelects.add(groupTermSelects);
-            }
+            final List<List<List<TermSelects>>> allTermSelects = performIterate(iterate);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
             getSessionsMap().values().forEach(session -> {
                 while (session.getNumStats() != 0) {
@@ -799,53 +646,7 @@ public class Session {
         } else if (command instanceof Commands.GetNumGroups) {
             out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
         } else if (command instanceof Commands.ExplodePerGroup) {
-            final Commands.ExplodePerGroup explodePerGroup = (Commands.ExplodePerGroup) command;
-
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
-            int nextGroup = 1;
-            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-            for (int group = 1; group <= numGroups; group++) {
-                final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
-
-                final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
-
-                final List<Term> terms = termsWithExplodeOpts.terms;
-                if (terms.isEmpty()) {
-                    rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
-                    continue;
-                }
-
-                for (final Term term : terms) {
-                    if (term.isIntField()) {
-                        regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), term.getTermIntVal(), null, false));
-                        nextGroupKeys.add(new GroupKey(String.valueOf(term.getTermIntVal()), nextGroupKeys.size(), groupKeys.get(group)));
-                    } else {
-                        regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), 0, term.getTermStringVal(), false));
-                        nextGroupKeys.add(new GroupKey(term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
-                    }
-                }
-
-                final int[] positiveGroups = new int[regroupConditionsList.size()];
-                for (int j = 0; j < regroupConditionsList.size(); j++) {
-                    positiveGroups[j] = nextGroup++;
-                }
-                final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
-                final int negativeGroup;
-                if (termsWithExplodeOpts.defaultName.isPresent()) {
-                    negativeGroup = nextGroup++;
-                    nextGroupKeys.add(new GroupKey(termsWithExplodeOpts.defaultName.get(), nextGroupKeys.size(), groupKeys.get(group)));
-                } else {
-                    negativeGroup = 0;
-                }
-                rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
-            }
-            System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
-            getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(rules)));
-            numGroups = nextGroup - 1;
-            groupKeys = nextGroupKeys;
-            currentDepth += 1;
-            System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
-            out.accept("success");
+            performExplodePerGroup(out, (Commands.ExplodePerGroup) command);
         } else if (command instanceof Commands.ExplodeDayOfWeek) {
             final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
@@ -879,6 +680,212 @@ public class Session {
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
+    }
+
+    private void performExplodePerGroup(Consumer<String> out, Commands.ExplodePerGroup explodePerGroup) throws ImhotepOutOfMemoryException {
+        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
+        int nextGroup = 1;
+        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
+        for (int group = 1; group <= numGroups; group++) {
+            final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
+
+            final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
+
+            final List<Term> terms = termsWithExplodeOpts.terms;
+            if (terms.isEmpty()) {
+                rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
+                continue;
+            }
+
+            for (final Term term : terms) {
+                if (term.isIntField()) {
+                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), term.getTermIntVal(), null, false));
+                    nextGroupKeys.add(new GroupKey(String.valueOf(term.getTermIntVal()), nextGroupKeys.size(), groupKeys.get(group)));
+                } else {
+                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), term.isIntField(), 0, term.getTermStringVal(), false));
+                    nextGroupKeys.add(new GroupKey(term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
+                }
+            }
+
+            final int[] positiveGroups = new int[regroupConditionsList.size()];
+            for (int j = 0; j < regroupConditionsList.size(); j++) {
+                positiveGroups[j] = nextGroup++;
+            }
+            final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
+            final int negativeGroup;
+            if (termsWithExplodeOpts.defaultName.isPresent()) {
+                negativeGroup = nextGroup++;
+                nextGroupKeys.add(new GroupKey(termsWithExplodeOpts.defaultName.get(), nextGroupKeys.size(), groupKeys.get(group)));
+            } else {
+                negativeGroup = 0;
+            }
+            rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
+        }
+        System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
+        getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(rules)));
+        numGroups = nextGroup - 1;
+        groupKeys = nextGroupKeys;
+        currentDepth += 1;
+        System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
+        out.accept("success");
+    }
+
+    private List<List<List<TermSelects>>> performIterate(final Commands.Iterate iterate) throws ImhotepOutOfMemoryException, IOException {
+        final Set<QualifiedPush> allPushes = Sets.newHashSet();
+        final List<AggregateMetric> metrics = Lists.newArrayList();
+        iterate.fields.forEach(field -> field.opts.topK.ifPresent(topK -> metrics.add(topK.metric)));
+        metrics.addAll(iterate.selecting);
+        for (final AggregateMetric metric : metrics) {
+            allPushes.addAll(metric.requires());
+        }
+        iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> allPushes.addAll(filter.requires())));
+        final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
+        final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
+        pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
+        registerMetrics(metricIndexes, metrics, Arrays.asList());
+        iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes, groupKeys)));
+
+        final DenseInt2ObjectMap<Queue<Queue<TermSelects>>> qqs = new DenseInt2ObjectMap<>();
+        if (iterate.fieldLimitingOpts.isPresent()) {
+            final Pair<Integer, Commands.Iterate.FieldLimitingMechanism> p = iterate.fieldLimitingOpts.get();
+            final int fieldLimitCount = p.getFirst();
+            final Commands.Iterate.FieldLimitingMechanism mechanism = p.getSecond();
+            final Comparator<Queue<TermSelects>> queueComparator;
+            switch (mechanism) {
+                case MinimalMin:
+                    queueComparator = new Comparator<Queue<TermSelects>>() {
+                        @Override
+                        public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
+                            double o1Min = Double.POSITIVE_INFINITY;
+                            for (final TermSelects termSelects : o1) {
+                                o1Min = Math.min(termSelects.topMetric, o1Min);
+                            }
+                            double o2Min = Double.POSITIVE_INFINITY;
+                            for (final TermSelects termSelects : o2) {
+                                o2Min = Math.min(termSelects.topMetric, o2Min);
+                            }
+                            return Doubles.compare(o1Min, o2Min);
+                        }
+                    };
+                    break;
+                case MaximalMax:
+                    queueComparator = new Comparator<Queue<TermSelects>>() {
+                        @Override
+                        public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
+                            double o1Max = Double.POSITIVE_INFINITY;
+                            for (final TermSelects termSelects : o1) {
+                                o1Max = Math.max(termSelects.topMetric, o1Max);
+                            }
+                            double o2Max = Double.POSITIVE_INFINITY;
+                            for (final TermSelects termSelects : o2) {
+                                o2Max = Math.max(termSelects.topMetric, o2Max);
+                            }
+                            return Doubles.compare(o2Max, o1Max);
+                        }
+                    };
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
+            for (int i = 1; i <= numGroups; i++) {
+                qqs.put(i, BoundedPriorityQueue.newInstance(fieldLimitCount, queueComparator));
+            }
+        } else {
+            for (int i = 1; i <= numGroups; i++) {
+                qqs.put(i, new ArrayDeque<>());
+            }
+        }
+
+        for (final Commands.Iterate.FieldWithOptions fieldWithOpts : iterate.fields) {
+            final String field = fieldWithOpts.field;
+            final Commands.Iterate.FieldIterateOpts opts = fieldWithOpts.opts;
+
+            final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
+            if (opts.topK.isPresent()) {
+                final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
+                for (int i = 1; i <= numGroups; i++) {
+                    pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
+                }
+            } else {
+                for (int i = 1; i <= numGroups; i++) {
+                    pqs.put(i, new ArrayDeque<>());
+                }
+            }
+            final AggregateMetric topKMetricOrNull;
+            if (opts.topK.isPresent()) {
+                topKMetricOrNull = opts.topK.get().metric;
+                topKMetricOrNull.register(metricIndexes, groupKeys);
+            } else {
+                topKMetricOrNull = null;
+            }
+            final AggregateFilter filterOrNull = opts.filter.orElse(null);
+
+            if (isIntField(field)) {
+                iterateMultiInt(getSessionsMap(), sessionMetricIndexes, field, new IntIterateCallback() {
+                    @Override
+                    public void term(long term, long[] stats, int group) {
+                        if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
+                            return;
+                        }
+                        final double[] selectBuffer = new double[iterate.selecting.size()];
+                        final double value;
+                        if (topKMetricOrNull != null) {
+                            value = topKMetricOrNull.apply(term, stats, group);
+                        } else {
+                            value = 0.0;
+                        }
+                        final List<AggregateMetric> selecting = iterate.selecting;
+                        for (int i = 0; i < selecting.size(); i++) {
+                            selectBuffer[i] = selecting.get(i).apply(term, stats, group);
+                        }
+                        pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, groupKeys.get(group)));
+                    }
+                });
+            } else {
+                iterateMultiString(getSessionsMap(), sessionMetricIndexes, field, new StringIterateCallback() {
+                    @Override
+                    public void term(String term, long[] stats, int group) {
+                        if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
+                            return;
+                        }
+                        final double[] selectBuffer = new double[iterate.selecting.size()];
+                        final double value;
+                        if (topKMetricOrNull != null) {
+                            value = topKMetricOrNull.apply(term, stats, group);
+                        } else {
+                            value = 0.0;
+                        }
+                        final List<AggregateMetric> selecting = iterate.selecting;
+                        for (int i = 0; i < selecting.size(); i++) {
+                            selectBuffer[i] = selecting.get(i).apply(term, stats, group);
+                        }
+                        pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, groupKeys.get(group)));
+                    }
+                });
+            }
+
+            for (int i = 1; i <= numGroups; i++) {
+                final Queue<TermSelects> pq = pqs.get(i);
+                if (!pq.isEmpty()) {
+                    qqs.get(i).offer(pq);
+                }
+            }
+        }
+        final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
+        for (int group = 1; group <= numGroups; group++) {
+            final Queue<Queue<TermSelects>> qq = qqs.get(group);
+            final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
+            while (!qq.isEmpty()) {
+                final Queue<TermSelects> pq = qq.poll();
+                final List<TermSelects> listTermSelects = Lists.newArrayList();
+                while (!pq.isEmpty()) {
+                    listTermSelects.add(pq.poll());
+                }
+                groupTermSelects.add(listTermSelects);
+            }
+            allTermSelects.add(groupTermSelects);
+        }
+        return allTermSelects;
     }
 
     private void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
