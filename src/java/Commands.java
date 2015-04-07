@@ -23,31 +23,8 @@ public class Commands {
         switch (command.get("command").asText()) {
             case "iterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
-                Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
                 final Iterate.FieldIterateOpts defaultOpts = new Iterate.FieldIterateOpts();
-
-                final JsonNode globalOpts = command.get("opts");
-                for (final JsonNode globalOpt : globalOpts) {
-                    switch (globalOpt.get("type").asText()) {
-                        case "selecting": {
-                            for (final JsonNode metric : globalOpt.get("metrics")) {
-                                selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
-                            }
-                            break;
-                        }
-                        case "limitingFields": {
-                            fieldLimits = Optional.of(Pair.of(
-                                    globalOpt.get("numFields").asInt(),
-                                    Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").asText())
-                            ));
-                            break;
-                        }
-                        case "defaultedFieldOpts": {
-                            defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup);
-                            break;
-                        }
-                    }
-                }
+                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(command, namedMetricLookup, selecting, defaultOpts);
 
                 final List<Iterate.FieldWithOptions> fieldsWithOpts = Lists.newArrayList();
                 final JsonNode fields = command.get("fields");
@@ -204,6 +181,33 @@ public class Commands {
             }
         }
         throw new RuntimeException("oops:" + command);
+    }
+
+    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts) {
+        Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
+        final JsonNode globalOpts = command.get("opts");
+        for (final JsonNode globalOpt : globalOpts) {
+            switch (globalOpt.get("type").asText()) {
+                case "selecting": {
+                    for (final JsonNode metric : globalOpt.get("metrics")) {
+                        selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
+                    }
+                    break;
+                }
+                case "limitingFields": {
+                    fieldLimits = Optional.of(Pair.of(
+                            globalOpt.get("numFields").asInt(),
+                            Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").asText())
+                    ));
+                    break;
+                }
+                case "defaultedFieldOpts": {
+                    defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup);
+                    break;
+                }
+            }
+        }
+        return fieldLimits;
     }
 
     private static Optional<String> parseExplodeOpts(JsonNode opts) {
