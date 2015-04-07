@@ -1,5 +1,9 @@
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.ref.Reference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -60,6 +65,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -273,6 +279,10 @@ public class Session {
 
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+        evaluateCommandInternal(commandTree, out, command);
+    }
+
+    private void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
         if (command instanceof Commands.Iterate) {
             final Commands.Iterate iterate = (Commands.Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = performIterate(iterate);
@@ -296,7 +306,7 @@ public class Session {
             final boolean intType = explodeGroups.intTerms != null;
             final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
             int nextGroup = 1;
-            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey)null);
+            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
             for (int i = 0; i < numGroups; i++) {
                 final int group = i + 1;
                 final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
@@ -692,9 +702,39 @@ public class Session {
                 explodes.add(new Commands.TermsWithExplodeOpts(terms, iterateAndExplode.explodeDefaultName));
             }
             performExplodePerGroup(out, new Commands.ExplodePerGroup(explodes));
+        } else if (command instanceof Commands.ComputeAndCreateGroupStatsLookup) {
+            // TODO: Seriously? Serializing to JSON and then back? To the same program?
+            final Commands.ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (Commands.ComputeAndCreateGroupStatsLookup) command;
+            final AtomicReference<String> reference = new AtomicReference<>();
+            final Object computation = computeAndCreateGroupStatsLookup.computation;
+            evaluateCommandInternal(null, reference::set, computation);
+            System.out.println("reference.get() = " + reference.get());
+            double[] results;
+            if (computation instanceof Commands.GetGroupDistincts) {
+                results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
+            } else if (computation instanceof Commands.GetGroupPercentiles) {
+                final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
+                results = intellijDoesntLikeInlining.get(0);
+            } else if (computation instanceof Commands.GetGroupStats) {
+                final List<GroupStats> groupStats = MAPPER.readValue(reference.get(), new TypeReference<List<GroupStats>>(){});
+                results = new double[groupStats.size()];
+                for (int i = 0; i < groupStats.size(); i++) {
+                    results[i] = groupStats.get(i).stats[0];
+                }
+            } else {
+                throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
+            }
+            evaluateCommandInternal(null, out, new Commands.CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
+    }
+
+    // TODO: Any call sites of this could be optimized.
+    private static double[] prependZero(double[] in) {
+        final double[] out = new double[in.length + 1];
+        System.arraycopy(in, 0, out, 1, in.length);
+        return out;
     }
 
     private void performExplodePerGroup(Consumer<String> out, Commands.ExplodePerGroup explodePerGroup) throws ImhotepOutOfMemoryException {
@@ -1276,7 +1316,8 @@ public class Session {
         public final GroupKey key;
         public final double[] stats;
 
-        public GroupStats(GroupKey key, double[] stats) {
+        @JsonCreator
+        public GroupStats(@JsonProperty("key") GroupKey key, @JsonProperty("stats") double[] stats) {
             this.key = key;
             this.stats = stats;
         }

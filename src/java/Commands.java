@@ -91,12 +91,7 @@ public class Commands {
                 for (int i = 0; i < valuesNode.size(); i++) {
                     stats[i + 1] = valuesNode.get(i).asDouble();
                 }
-                final Optional<String> name;
-                if (command.has("name")) {
-                    name = Optional.ofNullable(command.get("name").textValue());
-                } else {
-                    name = Optional.empty();
-                }
+                final Optional<String> name = getOptionalName(command);
                 return new CreateGroupStatsLookup(stats, name);
             }
             case "getGroupDistincts": {
@@ -189,8 +184,36 @@ public class Commands {
 
                 return new IterateAndExplode(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
             }
+            case "computeAndCreateGroupStatsLookup": {
+                final Object computation = parseCommand(command.get("computation"), namedMetricLookup);
+                if (computation instanceof GetGroupDistincts) {
+                } else if (computation instanceof GetGroupPercentiles) {
+                    final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
+                    if (getGroupPercentiles.percentiles.length != 1) {
+                        throw new IllegalArgumentException("Cannot handle multi-percentile GetGroupPercentiles in ComputeAndCreateGroupStatsLookup");
+                    }
+                } else if (computation instanceof GetGroupStats) {
+                    final GetGroupStats getGroupStats = (GetGroupStats) computation;
+                    if (getGroupStats.metrics.size() != 1) {
+                        throw new IllegalArgumentException("Cannot handle multiple metrics in ComputeAndCreateGroupStatsLookup");
+                    }
+                } else {
+                    throw new IllegalArgumentException("Can only do group distincts, group percentiles, or group stats!");
+                }
+                return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
+            }
         }
         throw new RuntimeException("oops:" + command);
+    }
+
+    private static Optional<String> getOptionalName(JsonNode command) {
+        final Optional<String> name;
+        if (command.has("name")) {
+            name = Optional.ofNullable(command.get("name").textValue());
+        } else {
+            name = Optional.empty();
+        }
+        return name;
     }
 
     private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
@@ -464,6 +487,16 @@ public class Commands {
             this.fieldOpts = fieldOpts;
             this.fieldLimits = fieldLimits;
             this.explodeDefaultName = explodeDefaultName;
+        }
+    }
+
+    public static class ComputeAndCreateGroupStatsLookup {
+        public final Object computation;
+        public final Optional<String> name;
+
+        public ComputeAndCreateGroupStatsLookup(Object computation, Optional<String> name) {
+            this.computation = computation;
+            this.name = name;
         }
     }
 }
