@@ -1,7 +1,6 @@
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,12 +45,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.ref.Reference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -287,7 +284,7 @@ public class Session {
             final Commands.Iterate iterate = (Commands.Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = performIterate(iterate);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
-            getSessionsMap().values().forEach(session -> {
+            getSessionsMapRaw().values().forEach(session -> {
                 while (session.getNumStats() != 0) {
                     session.popStat();
                 }
@@ -338,7 +335,7 @@ public class Session {
                 rules[i] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
             }
             System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
-            getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(rules)));
+            getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
             numGroups = nextGroup - 1;
             groupKeys = nextGroupKeys;
             currentDepth += 1;
@@ -348,7 +345,7 @@ public class Session {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
             final int numBuckets = 2 + (int)Math.ceil(((double) metricRegroup.max - metricRegroup.min) / metricRegroup.interval);
 //
-            getSessionsMap().values().forEach(session -> unchecked(() -> {
+            getSessionsMapRaw().values().forEach(session -> unchecked(() -> {
                 final int numStats = session.pushStats(metricRegroup.metric.pushes());
                 if (numStats != 1) {
                     throw new IllegalStateException("Pushed more than one stat!:" + metricRegroup.metric.pushes());
@@ -491,7 +488,7 @@ public class Session {
             out.accept("success");
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMap(), numGroups, getGroupStats.returnGroupKeys);
+            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
 
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.CreateGroupStatsLookup) {
@@ -777,7 +774,7 @@ public class Session {
             rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
         }
         System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
-        getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(rules)));
+        getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
         numGroups = nextGroup - 1;
         groupKeys = nextGroupKeys;
         currentDepth += 1;
@@ -876,7 +873,7 @@ public class Session {
             final AggregateFilter filterOrNull = opts.filter.orElse(null);
 
             if (isIntField(field)) {
-                iterateMultiInt(getSessionsMap(), sessionMetricIndexes, field, new IntIterateCallback() {
+                iterateMultiInt(getSessionsMapRaw(), sessionMetricIndexes, field, new IntIterateCallback() {
                     @Override
                     public void term(long term, long[] stats, int group) {
                         if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
@@ -897,7 +894,7 @@ public class Session {
                     }
                 });
             } else {
-                iterateMultiString(getSessionsMap(), sessionMetricIndexes, field, new StringIterateCallback() {
+                iterateMultiString(getSessionsMapRaw(), sessionMetricIndexes, field, new StringIterateCallback() {
                     @Override
                     public void term(String term, long[] stats, int group) {
                         if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
@@ -980,7 +977,7 @@ public class Session {
 
     private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
         final BitSet anyPresent = new BitSet();
-        getSessionsMap().values().forEach(session -> unchecked(() -> {
+        getSessionsMapRaw().values().forEach(session -> unchecked(() -> {
             session.pushStat("count()");
             final long[] counts = session.getGroupStats(0);
             for (int i = 0; i < counts.length; i++) {
@@ -1010,7 +1007,7 @@ public class Session {
 
         if (anyNonIdentity) {
             final GroupRemapRule[] ruleArray = rules.toArray(new GroupRemapRule[rules.size()]);
-            getSessionsMap().values().forEach(session -> unchecked(() -> session.regroup(ruleArray)));
+            getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(ruleArray)));
         }
 
         numGroups = nextGroupKeys.size() - 1;
@@ -1031,10 +1028,14 @@ public class Session {
         groupKeys = nextGroupKeys;
     }
 
-    private Map<String, ImhotepSession> getSessionsMap() {
+    private Map<String, ImhotepSession> getSessionsMapRaw() {
         final Map<String, ImhotepSession> sessionMap = Maps.newHashMap();
         sessions.forEach((k,v) -> sessionMap.put(k, v.session));
         return sessionMap;
+    }
+
+    private Map<String, ImhotepSessionInfo> getSessionsMap() {
+        return Maps.newHashMap(sessions);
     }
 
     private boolean isIntField(String field) {
@@ -1359,18 +1360,18 @@ public class Session {
         }
     }
 
-    private static class ImhotepSessionInfo {
-        private final ImhotepSession session;
-        private final Collection<String> intFields;
-        private final Collection<String> stringFields;
-        private final DateTime startTime;
-        private final DateTime endTime;
-        private final String timeFieldName;
+    static class ImhotepSessionInfo {
+        public final ImhotepSession session;
+        public final Collection<String> intFields;
+        public final Collection<String> stringFields;
+        public final DateTime startTime;
+        public final DateTime endTime;
+        public final String timeFieldName;
 
         private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
-            this.intFields = intFields;
-            this.stringFields = stringFields;
+            this.intFields = Collections.unmodifiableCollection(intFields);
+            this.stringFields = Collections.unmodifiableCollection(stringFields);
             this.startTime = startTime;
             this.endTime = endTime;
             this.timeFieldName = timeFieldName;
