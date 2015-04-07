@@ -602,6 +602,12 @@ public class Session {
                 };
                 iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
             } else {
+                for (final Map.Entry<String, ImhotepSessionInfo> session : sessions.entrySet()) {
+                    final String name = session.getKey();
+                    final boolean isIntField = session.getValue().intFields.contains(field);
+                    final boolean isStringField = session.getValue().stringFields.contains(field);
+                    System.out.println("name = " + name + ", isIntField=" + isIntField + ", isStringField=" + isStringField);
+                }
                 throw new IllegalStateException("Field is neither all int nor all string field: " + field);
             }
             out.accept(MAPPER.writeValueAsString(groupCounts));
