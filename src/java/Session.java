@@ -520,9 +520,8 @@ public class Session {
             final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
             pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
             registerMetrics(metricIndexes, Arrays.asList(), filters);
-            final boolean isIntField = isIntField(field);
             final long[] groupCounts = new long[numGroups];
-            if (isIntField) {
+            if (isIntField(field)) {
                 final IntIterateCallback callback = new IntIterateCallback() {
                     private final BitSet groupSeen = new BitSet();
                     private boolean started = false;
@@ -562,7 +561,7 @@ public class Session {
                     }
                 };
                 iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, callback);
-            } else {
+            } else if (isStringField(field)) {
                 final StringIterateCallback callback = new StringIterateCallback() {
                     private final BitSet groupSeen = new BitSet();
                     private boolean started = false;
@@ -602,6 +601,8 @@ public class Session {
                     }
                 };
                 iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
+            } else {
+                throw new IllegalStateException("Field is neither all int nor all string field: " + field);
             }
             out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof Commands.GetGroupPercentiles) {
@@ -893,7 +894,7 @@ public class Session {
                         pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, groupKeys.get(group)));
                     }
                 });
-            } else {
+            } else if (isStringField(field)) {
                 iterateMultiString(getSessionsMapRaw(), sessionMetricIndexes, field, new StringIterateCallback() {
                     @Override
                     public void term(String term, long[] stats, int group) {
@@ -914,6 +915,8 @@ public class Session {
                         pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, groupKeys.get(group)));
                     }
                 });
+            } else {
+                throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
             }
 
             for (int i = 1; i <= numGroups; i++) {
@@ -1039,12 +1042,11 @@ public class Session {
     }
 
     private boolean isIntField(String field) {
-        final boolean anyIntFields = sessions.values().stream().anyMatch(x -> x.intFields.contains(field));
-        final boolean anyStringFields = sessions.values().stream().anyMatch(x -> x.stringFields.contains(field));
-        if (anyIntFields && anyStringFields) {
-            throw new RuntimeException("[" + field + "] is an int field in some sessions but a string field in others others.");
-        }
-        return anyIntFields;
+        return sessions.values().stream().allMatch(x -> x.intFields.contains(field));
+    }
+
+    private boolean isStringField(String field) {
+        return sessions.values().stream().allMatch(x -> x.stringFields.contains(field));
     }
 
     private AggregateMetric.PerGroupConstant namedMetricLookup(String name) {
