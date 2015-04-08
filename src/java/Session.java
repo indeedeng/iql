@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
+import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -32,6 +33,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -183,13 +185,16 @@ public class Session {
             processDescribe(client, out, sessionRequest);
         } else {
             try (final Closer closer = Closer.create()) {
-                final Session session1 = createSession(client, sessionRequest, closer);
-                out.accept("opened");
-                JsonNode inputTree;
-                while ((inputTree = in.get()) != null) {
-                    System.out.println("inputLine = " + inputTree);
-                    session1.evaluateCommand(inputTree, out);
-                    System.out.println("Evaluated.");
+                final Optional<Session> session = createSession(client, sessionRequest, closer, out);
+                if (session.isPresent()) {
+                    // Not using ifPresent because of exceptions
+                    final Session session1 = session.get();
+                    JsonNode inputTree;
+                    while ((inputTree = in.get()) != null) {
+                        System.out.println("inputLine = " + inputTree);
+                        session1.evaluateCommand(inputTree, out);
+                        System.out.println("Evaluated.");
+                    }
                 }
             }
         }
@@ -201,8 +206,30 @@ public class Session {
         out.accept(MAPPER.writeValueAsString(datasetDescriptor));
     }
 
-    public static Session createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer) {
+    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
+        if (sessionRequest.has("commands")) {
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions);
+            final Session session = new Session(sessions);
+            final JsonNode commands = sessionRequest.get("commands");
+            for (int i = 0; i < commands.size(); i++) {
+                final JsonNode command = commands.get(i);
+                final boolean isLast = i == commands.size() - 1;
+                if (isLast) {
+                    session.evaluateCommandToTSV(command, out);
+                } else {
+                    session.evaluateCommand(command, x -> {});
+                }
+            }
+            return Optional.empty();
+        } else {
+            createSubSessions(client, sessionRequest, closer, sessions);
+            out.accept("opened");
+            return Optional.of(new Session(sessions));
+        }
+    }
+
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions) {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String dataset = elem.get("dataset").asText();
@@ -221,7 +248,6 @@ public class Session {
 
             sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
         }
-        return new Session(sessions);
     }
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
@@ -277,6 +303,62 @@ public class Session {
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
         evaluateCommandInternal(commandTree, out, command);
+    }
+
+    public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+        if (command instanceof Commands.Iterate) {
+            final List<List<List<TermSelects>>> results = performIterate((Commands.Iterate) command);
+            final StringBuilder sb = new StringBuilder();
+            final List<List<TermSelects>> perGroupTerms = results.get(0);
+            for (final List<TermSelects> groupTerms : perGroupTerms) {
+                for (final TermSelects termSelects : groupTerms) {
+                    final List<String> keyColumns = termSelects.groupKey.asList();
+                    keyColumns.forEach(k -> sb.append(k).append('\t'));
+                    if (termSelects.isIntTerm) {
+                        sb.append(termSelects.intTerm).append('\t');
+                    } else {
+                        sb.append(termSelects.stringTerm).append('\t');
+                    }
+                    for (final double stat : termSelects.selects) {
+                        if (DoubleMath.isMathematicalInteger(stat)) {
+                            sb.append((long)stat).append('\t');
+                        } else {
+                            sb.append(stat).append('\t');
+                        }
+                    }
+                    sb.setLength(sb.length() - 1);
+                    sb.append('\n');
+                }
+            }
+            sb.setLength(sb.length() - 1);
+            out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
+        } else if (command instanceof Commands.GetGroupStats) {
+            final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
+            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+            final StringBuilder sb = new StringBuilder();
+            for (final GroupStats result : results) {
+                final List<String> keyColumns = result.key.asList();
+                keyColumns.forEach(k -> sb.append(k).append('\t'));
+                for (final double stat : result.stats) {
+                    if (DoubleMath.isMathematicalInteger(stat)) {
+                        sb.append((long)stat).append('\t');
+                    } else {
+                        sb.append(stat).append('\t');
+                    }
+                }
+                if (keyColumns.size() + result.stats.length > 0) {
+                    sb.setLength(sb.length() - 1);
+                }
+                sb.append('\n');
+            }
+            if (results.size() > 0) {
+                sb.setLength(sb.length() - 1);
+            }
+            out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
+        } else {
+            throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
+        }
     }
 
     private void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
@@ -489,7 +571,6 @@ public class Session {
         } else if (command instanceof Commands.GetGroupStats) {
             final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
             final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
-
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.CreateGroupStatsLookup) {
             final Commands.CreateGroupStatsLookup createGroupStatsLookup = (Commands.CreateGroupStatsLookup) command;
@@ -942,7 +1023,7 @@ public class Session {
                 while (!pq.isEmpty()) {
                     listTermSelects.add(pq.poll());
                 }
-                groupTermSelects.add(listTermSelects);
+                groupTermSelects.add(Lists.reverse(listTermSelects));
             }
             allTermSelects.add(groupTermSelects);
         }
