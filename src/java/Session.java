@@ -366,11 +366,6 @@ public class Session {
             final Commands.Iterate iterate = (Commands.Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = performIterate(iterate);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
-            getSessionsMapRaw().values().forEach(session -> {
-                while (session.getNumStats() != 0) {
-                    session.popStat();
-                }
-            });
         } else if (command instanceof Commands.FilterDocs) {
             final Commands.FilterDocs filterDocs = (Commands.FilterDocs) command;
             final int numGroupsTmp = numGroups;
@@ -1013,6 +1008,13 @@ public class Session {
                 }
             }
         }
+
+        getSessionsMapRaw().values().forEach(session -> {
+            while (session.getNumStats() != 0) {
+                session.popStat();
+            }
+        });
+
         final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
         for (int group = 1; group <= numGroups; group++) {
             final Queue<Queue<TermSelects>> qq = qqs.get(group);
