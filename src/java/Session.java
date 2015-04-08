@@ -411,12 +411,10 @@ public class Session {
                 }
                 rules[i] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
             }
-            System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
             getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
             numGroups = nextGroup - 1;
             groupKeys = nextGroupKeys;
             currentDepth += 1;
-            System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
             out.accept("success");
         } else if (command instanceof Commands.MetricRegroup) {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
@@ -788,7 +786,6 @@ public class Session {
             final AtomicReference<String> reference = new AtomicReference<>();
             final Object computation = computeAndCreateGroupStatsLookup.computation;
             evaluateCommandInternal(null, reference::set, computation);
-            System.out.println("reference.get() = " + reference.get());
             double[] results;
             if (computation instanceof Commands.GetGroupDistincts) {
                 results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
@@ -856,12 +853,10 @@ public class Session {
             }
             rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
         }
-        System.out.println("Exploding. rules = [" + Arrays.toString(rules) + "], nextGroup = [" + nextGroup + "]");
         getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
         numGroups = nextGroup - 1;
         groupKeys = nextGroupKeys;
         currentDepth += 1;
-        System.out.println("Exploded. numGroups = " + numGroups + ", currentDepth = " + currentDepth);
         out.accept("success");
     }
 
@@ -1079,8 +1074,6 @@ public class Session {
             }
             session.popStat();
         }));
-
-        System.out.println("anyPresent = " + anyPresent);
 
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
@@ -1348,7 +1341,6 @@ public class Session {
     }
 
     public static List<GroupStats> getGroupStats(Commands.GetGroupStats getGroupStats, List<GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
-        System.out.println("getGroupStats = [" + getGroupStats + "], sessions = [" + sessions + "], numGroups = [" + numGroups + "]");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
         getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
