@@ -241,7 +241,14 @@ public interface DocFilter {
         @Override
         public void apply(String name, Session.ImhotepSessionInfo session, int numGroups) throws ImhotepOutOfMemoryException {
             final Pattern pattern = Pattern.compile(regex);
-            final FTGSIterator it = session.session.getFTGSIterator(new String[]{field}, new String[]{field});
+            final FTGSIterator it;
+            if (session.intFields.contains(field)) {
+                it = session.session.getFTGSIterator(new String[]{field}, new String[]{});
+            } else if (session.stringFields.contains(field)) {
+                it = session.session.getFTGSIterator(new String[]{}, new String[]{field});
+            } else {
+                throw new IllegalArgumentException("Unknown field: " + field);
+            }
             final DenseInt2ObjectMap<List<String>> stringGroupTerms = new DenseInt2ObjectMap<>();
             final DenseInt2ObjectMap<List<Long>> intGroupTerms = new DenseInt2ObjectMap<>();
             while (it.nextField()) {
