@@ -947,6 +947,7 @@ public class Session {
             if (opts.topK.isPresent()) {
                 final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
                 for (int i = 1; i <= numGroups; i++) {
+                    // TODO: If this type changes, then a line below with an instanceof check will break.
                     pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
                 }
             } else {
@@ -1033,7 +1034,12 @@ public class Session {
                 while (!pq.isEmpty()) {
                     listTermSelects.add(pq.poll());
                 }
-                groupTermSelects.add(Lists.reverse(listTermSelects));
+                // TODO: This line is very fragile
+                if (pq instanceof BoundedPriorityQueue) {
+                    groupTermSelects.add(Lists.reverse(listTermSelects));
+                } else {
+                    groupTermSelects.add(listTermSelects);
+                }
             }
             allTermSelects.add(groupTermSelects);
         }
