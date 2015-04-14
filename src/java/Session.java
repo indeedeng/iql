@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -195,6 +196,11 @@ public class Session {
                         System.out.println("Evaluated.");
                     }
                 }
+            } catch (Exception e) {
+                final String error = Session.MAPPER.writeValueAsString(ImmutableMap.of("error", "1", "message", ""+e.getMessage(), "cause", ""+e.getCause(), "stackTrace", ""+ Arrays.toString(e.getStackTrace())));
+                System.out.println("error = " + error);
+                out.accept(error);
+                throw e;
             }
         }
     }
