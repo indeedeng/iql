@@ -7,9 +7,9 @@ import java.util.List;
  * @author jwolfe
  */
 public interface DocMetric {
-    public List<String> pushes();
+    List<String> pushes();
 
-    public static DocMetric fromJson(JsonNode node) {
+    static DocMetric fromJson(JsonNode node) {
         switch (node.get("type").textValue()) {
             case "docStats": {
                 final JsonNode pushes = node.get("pushes");
@@ -23,7 +23,7 @@ public interface DocMetric {
         throw new RuntimeException("Oops: " + node);
     }
 
-    static class BaseMetric implements DocMetric {
+    class BaseMetric implements DocMetric {
         private final List<String> push;
 
         public BaseMetric(List<String> push) {

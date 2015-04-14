@@ -13,13 +13,13 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public interface AggregateFilter {
-    public Set<QualifiedPush> requires();
+    Set<QualifiedPush> requires();
 
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys);
-    public boolean allow(String term, long[] stats, int group);
-    public boolean allow(long term, long[] stats, int group);
+    void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys);
+    boolean allow(String term, long[] stats, int group);
+    boolean allow(long term, long[] stats, int group);
 
-    public static AggregateFilter fromJson(JsonNode node, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
+    static AggregateFilter fromJson(JsonNode node, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
         final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"), namedMetricLookup);
         final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"), namedMetricLookup);
         final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);
@@ -47,7 +47,7 @@ public interface AggregateFilter {
         throw new RuntimeException("Oops: " + node);
     }
 
-    public static class TermEquals implements AggregateFilter {
+    class TermEquals implements AggregateFilter {
         private final Term value;
 
         public TermEquals(Term value) {
@@ -74,7 +74,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class Not implements AggregateFilter {
+    class Not implements AggregateFilter {
         private final AggregateFilter f;
 
         public Not(AggregateFilter f) {
@@ -102,7 +102,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class MetricEquals implements AggregateFilter {
+    class MetricEquals implements AggregateFilter {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -133,7 +133,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class GreaterThan implements AggregateFilter {
+    class GreaterThan implements AggregateFilter {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -164,7 +164,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class LessThan implements AggregateFilter {
+    class LessThan implements AggregateFilter {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -195,7 +195,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class And implements AggregateFilter {
+    class And implements AggregateFilter {
         private final AggregateFilter f1;
         private final AggregateFilter f2;
 
@@ -226,7 +226,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class Or implements AggregateFilter {
+    class Or implements AggregateFilter {
         private final AggregateFilter f1;
         private final AggregateFilter f2;
 
@@ -257,7 +257,7 @@ public interface AggregateFilter {
         }
     }
 
-    public static class RegexFilter implements AggregateFilter {
+    class RegexFilter implements AggregateFilter {
         private final String field;
         private final String regex;
 
@@ -289,7 +289,7 @@ public interface AggregateFilter {
         }
     }
 
-    static class Constant implements AggregateFilter {
+    class Constant implements AggregateFilter {
         private final boolean value;
 
         public Constant(boolean value) {

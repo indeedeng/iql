@@ -1212,7 +1212,7 @@ public class Session {
     }
 
     private interface IntIterateCallback {
-        public void term(long term, long[] stats, int group);
+        void term(long term, long[] stats, int group);
     }
 
     public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, IntIterateCallback callback) throws IOException {
@@ -1305,7 +1305,7 @@ public class Session {
     }
 
     private interface StringIterateCallback {
-        public void term(String term, long[] stats, int group);
+        void term(String term, long[] stats, int group);
     }
 
     public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, StringIterateCallback callback) throws IOException {

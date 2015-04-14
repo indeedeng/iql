@@ -17,9 +17,9 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public interface DocFilter {
-    public void apply(String name, Session.ImhotepSessionInfo session, int numGroups) throws ImhotepOutOfMemoryException;
+    void apply(String name, Session.ImhotepSessionInfo session, int numGroups) throws ImhotepOutOfMemoryException;
 
-    public static DocFilter fromJson(JsonNode node) {
+    static DocFilter fromJson(JsonNode node) {
         final Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("arg1"));
         final Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("arg2"));
         final Supplier<DocFilter> f1 = () -> DocFilter.fromJson(node.get("arg1"));
@@ -57,7 +57,7 @@ public interface DocFilter {
         throw new RuntimeException("Oops: " + node);
     }
 
-    public static class FieldEquals implements DocFilter {
+    class FieldEquals implements DocFilter {
         private final String field;
         private final Term value;
 
@@ -89,7 +89,7 @@ public interface DocFilter {
         }
     }
 
-    public static class FieldNotEquals implements DocFilter {
+    class FieldNotEquals implements DocFilter {
         private final String field;
         private final Term value;
 
@@ -122,7 +122,7 @@ public interface DocFilter {
         }
     }
 
-    public static class Not implements DocFilter {
+    class Not implements DocFilter {
         private final DocFilter f;
 
         public Not(DocFilter f) {
@@ -135,7 +135,7 @@ public interface DocFilter {
         }
     }
 
-    public static class MetricEquals implements DocFilter {
+    class MetricEquals implements DocFilter {
         private final DocMetric m1;
         private final DocMetric m2;
 
@@ -154,7 +154,7 @@ public interface DocFilter {
         }
     }
 
-    public static class GreaterThan implements DocFilter {
+    class GreaterThan implements DocFilter {
         private final DocMetric m1;
         private final DocMetric m2;
 
@@ -175,7 +175,7 @@ public interface DocFilter {
         }
     }
 
-    public static class LessThan implements DocFilter {
+    class LessThan implements DocFilter {
         private final DocMetric m1;
         private final DocMetric m2;
 
@@ -196,7 +196,7 @@ public interface DocFilter {
         }
     }
 
-    public static class And implements DocFilter {
+    class And implements DocFilter {
         private final DocFilter f1;
         private final DocFilter f2;
 
@@ -212,7 +212,7 @@ public interface DocFilter {
         }
     }
 
-    public static class Or implements DocFilter {
+    class Or implements DocFilter {
         private final DocFilter f1;
         private final DocFilter f2;
 
@@ -227,7 +227,7 @@ public interface DocFilter {
         }
     }
 
-    public static class RegexFilter implements DocFilter {
+    class RegexFilter implements DocFilter {
         private final String field;
         private final String regex;
         private final boolean negate;
@@ -300,7 +300,7 @@ public interface DocFilter {
         }
     }
 
-    public static class QualifiedFilter implements DocFilter {
+    class QualifiedFilter implements DocFilter {
         private final Collection<String> name;
         private final DocFilter filter;
 
