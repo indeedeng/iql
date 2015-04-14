@@ -314,8 +314,8 @@ public class Session {
         if (command instanceof Commands.Iterate) {
             final List<List<List<TermSelects>>> results = performIterate((Commands.Iterate) command);
             final StringBuilder sb = new StringBuilder();
-            final List<List<TermSelects>> perGroupTerms = results.get(0);
-            for (final List<TermSelects> groupTerms : perGroupTerms) {
+            for (final List<List<TermSelects>> groupFieldTerms : results) {
+                final List<TermSelects> groupTerms = groupFieldTerms.get(0);
                 for (final TermSelects termSelects : groupTerms) {
                     final List<String> keyColumns = termSelects.groupKey.asList();
                     keyColumns.forEach(k -> sb.append(k).append('\t'));
