@@ -1,6 +1,9 @@
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
@@ -8,6 +11,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -40,8 +44,19 @@ public class Commands {
 
                 return new Iterate(fieldsWithOpts, fieldLimits, selecting);
             }
-            case "filterDocs":
-                return new FilterDocs(DocFilter.fromJson(command.get("filter")));
+            case "filterDocs": {
+                final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();
+                final JsonNode filters = command.get("perDatasetFilter");
+                filters.fieldNames().forEachRemaining(filterName -> {
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode filterList = filters.get(filterName);
+                    for (int i = 0; i < filterList.size(); i++) {
+                        pushes.add(filterList.get(i).textValue());
+                    }
+                    perDatasetFilterMetric.put(filterName, pushes);
+                });
+                return new FilterDocs(perDatasetFilterMetric);
+            }
             case "explodeGroups": {
                 final String field = command.get("field").asText();
                 final Optional<String> defaultName = parseExplodeOpts(command.get("opts"));
@@ -119,11 +134,21 @@ public class Commands {
                 return new GetGroupPercentiles(scope, field, percentiles);
             }
             case "metricRegroup": {
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = command.get("perDatasetMetric");
+                metrics.fieldNames().forEachRemaining(filterName -> {
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode metricList = metrics.get(filterName);
+                    for (int i = 0; i < metricList.size(); i++) {
+                        pushes.add(metricList.get(i).textValue());
+                    }
+                    perDatasetMetric.put(filterName, pushes);
+                });
                 return new MetricRegroup(
-                        DocMetric.fromJson(command.get("metric")),
-                        command.get("min").asLong(),
-                        command.get("max").asLong(),
-                        command.get("interval").asLong()
+                        perDatasetMetric,
+                        command.get("min").longValue(),
+                        command.get("max").longValue(),
+                        command.get("interval").longValue()
                 );
             }
             case "timeRegroup": {
@@ -333,17 +358,15 @@ public class Commands {
         }
     }
 
-    /**
-     toJSON (FilterDocs filterDef) = object
-     [ "command" .= text "filterDocs",
-     "filter" .= filterDef
-     ]
-     */
     public static class FilterDocs {
-        public final DocFilter docFilter;
+        public final Map<String, List<String>> perDatasetFilterMetric;
 
-        public FilterDocs(DocFilter docFilter) {
-            this.docFilter = docFilter;
+        public FilterDocs(Map<String, List<String>> perDatasetFilterMetric) {
+            final Map<String, List<String>> copy = Maps.newHashMap();
+            for (final Map.Entry<String, List<String>> entry : perDatasetFilterMetric.entrySet()) {
+                copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
+            }
+            this.perDatasetFilterMetric = copy;
         }
     }
 
@@ -420,13 +443,15 @@ public class Commands {
     }
 
     public static class MetricRegroup {
-        public final DocMetric metric;
+        public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
         public final long min;
         public final long max;
         public final long interval;
 
-        public MetricRegroup(DocMetric metric, long min, long max, long interval) {
-            this.metric = metric;
+        public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval) {
+            final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
+            perDatasetMetric.forEach((k,v) -> copy.put(k, ImmutableList.copyOf(v)));
+            this.perDatasetMetric = copy.build();
             this.min = min;
             this.max = max;
             this.interval = interval;

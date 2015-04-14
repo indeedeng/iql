@@ -33,7 +33,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -368,9 +367,16 @@ public class Session {
             out.accept(MAPPER.writeValueAsString(allTermSelects));
         } else if (command instanceof Commands.FilterDocs) {
             final Commands.FilterDocs filterDocs = (Commands.FilterDocs) command;
-            final int numGroupsTmp = numGroups;
-            // TODO: Pass in the index name so that filters can be index=? filters.
-            getSessionsMap().entrySet().parallelStream().forEach(e -> unchecked(() -> filterDocs.docFilter.apply(e.getKey(), e.getValue(), numGroupsTmp)));
+            // TODO: Do these in parallel?
+            for (final Map.Entry<String,List<String>> entry : filterDocs.perDatasetFilterMetric.entrySet()) {
+                final ImhotepSession session = sessions.get(entry.getKey()).session;
+                final int index = session.pushStats(entry.getValue());
+                if (index != 1) {
+                    throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + entry.getKey() + "\"");
+                }
+                session.metricFilter(0, 1, 1, false);
+                session.popStat();
+            }
             out.accept("{}");
         } else if (command instanceof Commands.ExplodeGroups) {
             final Commands.ExplodeGroups explodeGroups = (Commands.ExplodeGroups) command;
@@ -418,14 +424,21 @@ public class Session {
             out.accept("success");
         } else if (command instanceof Commands.MetricRegroup) {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
-            final int numBuckets = 2 + (int)Math.ceil(((double) metricRegroup.max - metricRegroup.min) / metricRegroup.interval);
-//
-            getSessionsMapRaw().values().forEach(session -> unchecked(() -> {
-                final int numStats = session.pushStats(metricRegroup.metric.pushes());
+            final long max = metricRegroup.max;
+            final long min = metricRegroup.min;
+            final long interval = metricRegroup.interval;
+            final Map<String, ? extends List<String>> perDatasetMetrics = metricRegroup.perDatasetMetric;
+
+            final int numBuckets = 2 + (int) Math.ceil(((double) max - min) / interval);
+
+            // TODO: Do these in parallel?
+            perDatasetMetrics.forEach((name, pushes) -> unchecked(() -> {
+                final ImhotepSession session = sessions.get(name).session;
+                final int numStats = session.pushStats(pushes);
                 if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!:" + metricRegroup.metric.pushes());
+                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
                 }
-                session.metricRegroup(0, metricRegroup.min, metricRegroup.max, metricRegroup.interval);
+                session.metricRegroup(0, min, max, interval);
                 session.popStat();
             }));
 
@@ -434,14 +447,14 @@ public class Session {
                 final int innerGroup = (group - 1) % numBuckets;
                 final String key;
                 if (innerGroup == numBuckets - 1) {
-                    key = "[" + (metricRegroup.min + metricRegroup.interval * (numBuckets - 2)) + ", " + INFINITY_SYMBOL + ")";
+                    key = "[" + (min + interval * (numBuckets - 2)) + ", " + INFINITY_SYMBOL + ")";
                 } else if (innerGroup == numBuckets - 2) {
-                    key = "[-" + INFINITY_SYMBOL + ", " + metricRegroup.min + ")";
-                } else if (metricRegroup.interval == 1) {
-                    key = String.valueOf(metricRegroup.min + innerGroup);
+                    key = "[-" + INFINITY_SYMBOL + ", " + min + ")";
+                } else if (interval == 1) {
+                    key = String.valueOf(min + innerGroup);
                 } else {
-                    final long minInclusive = metricRegroup.min + innerGroup * metricRegroup.interval;
-                    final long maxExclusive = metricRegroup.min + (innerGroup + 1) * metricRegroup.interval;
+                    final long minInclusive = min + innerGroup * interval;
+                    final long maxExclusive = min + (innerGroup + 1) * interval;
                     key = "[" + minInclusive + ", " + maxExclusive + ")";
                 }
                 return Pair.of(key, groupKeys.get(oldGroup));
