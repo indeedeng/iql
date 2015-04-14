@@ -307,12 +307,12 @@ public interface AggregateFilter {
 
         @Override
         public boolean allow(String term, long[] stats, int group) {
-            return true;
+            return value;
         }
 
         @Override
         public boolean allow(long term, long[] stats, int group) {
-            return true;
+            return value;
         }
     }
 }
