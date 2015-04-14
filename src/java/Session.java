@@ -205,7 +205,7 @@ public class Session {
     }
 
     public static void processDescribe(ImhotepClient client, Consumer<String> out, JsonNode sessionRequest) throws JsonProcessingException {
-        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").asText());
+        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").textValue());
         final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo);
         out.accept(MAPPER.writeValueAsString(datasetDescriptor));
     }
@@ -236,10 +236,10 @@ public class Session {
     private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions) {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
-            final String dataset = elem.get("dataset").asText();
-            final String start = elem.get("start").asText();
-            final String end = elem.get("end").asText();
-            final String name = elem.has("name") ? elem.get("name").asText() : dataset;
+            final String dataset = elem.get("dataset").textValue();
+            final String start = elem.get("start").textValue();
+            final String end = elem.get("end").textValue();
+            final String name = elem.has("name") ? elem.get("name").textValue() : dataset;
 
             final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
             final Collection<String> sessionIntFields = datasetInfo.getIntFields();

@@ -24,13 +24,13 @@ public interface AggregateFilter {
         final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"), namedMetricLookup);
         final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);
         final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"), namedMetricLookup);
-        switch (node.get("type").asText()) {
+        switch (node.get("type").textValue()) {
             case "termEquals":
                 return new TermEquals(Term.fromJson(node.get("value")));
             case "not":
                 return new Not(AggregateFilter.fromJson(node.get("value"), namedMetricLookup));
             case "regex":
-                return new RegexFilter(node.get("field").asText(), node.get("value").asText());
+                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue());
             case "metricEquals":
                 return new MetricEquals(m1.get(), m2.get());
             case "greaterThan":

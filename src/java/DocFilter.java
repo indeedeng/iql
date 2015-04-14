@@ -24,17 +24,17 @@ public interface DocFilter {
         final Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("arg2"));
         final Supplier<DocFilter> f1 = () -> DocFilter.fromJson(node.get("arg1"));
         final Supplier<DocFilter> f2 = () -> DocFilter.fromJson(node.get("arg2"));
-        switch (node.get("type").asText()) {
+        switch (node.get("type").textValue()) {
             case "fieldEquals":
-                return new FieldEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
+                return new FieldEquals(node.get("field").textValue(), Term.fromJson(node.get("value")));
             case "fieldNotEquals":
-                return new FieldNotEquals(node.get("field").asText(), Term.fromJson(node.get("value")));
+                return new FieldNotEquals(node.get("field").textValue(), Term.fromJson(node.get("value")));
             case "not":
                 return new Not(DocFilter.fromJson(node.get("value")));
             case "regex":
-                return new RegexFilter(node.get("field").asText(), node.get("value").asText(), false);
+                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue(), false);
             case "notRegex":
-                return new RegexFilter(node.get("field").asText(), node.get("value").asText(), true);
+                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue(), true);
             case "metricEquals":
                 return new MetricEquals(m1.get(), m2.get());
             case "greaterThan":
@@ -49,7 +49,7 @@ public interface DocFilter {
                 final List<String> names = Lists.newArrayList();
                 final JsonNode namesArr = node.get("names");
                 for (int i = 0; i < namesArr.size(); i++) {
-                    names.add(namesArr.get(i).asText());
+                    names.add(namesArr.get(i).textValue());
                 }
                 return new QualifiedFilter(names, fromJson(node.get("filter")));
             }

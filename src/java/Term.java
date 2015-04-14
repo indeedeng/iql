@@ -18,11 +18,11 @@ public class Term {
     }
 
     public static Term fromJson(JsonNode node) {
-        switch (node.get("type").asText()) {
+        switch (node.get("type").textValue()) {
             case "string":
-                return new Term(false, node.get("value").asText(), 0);
+                return new Term(false, node.get("value").textValue(), 0);
             case "int":
-                return new Term(true, null, node.get("value").asLong());
+                return new Term(true, null, node.get("value").longValue());
         }
         throw new RuntimeException("Oops: " + node);
     }

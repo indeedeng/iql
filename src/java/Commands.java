@@ -24,7 +24,7 @@ public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
     public static Object parseCommand(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
-        switch (command.get("command").asText()) {
+        switch (command.get("command").textValue()) {
             case "iterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final Iterate.FieldIterateOpts defaultOpts = new Iterate.FieldIterateOpts();
@@ -33,7 +33,7 @@ public class Commands {
                 final List<Iterate.FieldWithOptions> fieldsWithOpts = Lists.newArrayList();
                 final JsonNode fields = command.get("fields");
                 for (final JsonNode field : fields) {
-                    final String fieldName = field.get(0).asText();
+                    final String fieldName = field.get(0).textValue();
                     final JsonNode optsNode = field.get(1);
 
                     final Iterate.FieldIterateOpts fieldIterateOpts = defaultOpts.copy();
@@ -58,14 +58,14 @@ public class Commands {
                 return new FilterDocs(perDatasetFilterMetric);
             }
             case "explodeGroups": {
-                final String field = command.get("field").asText();
+                final String field = command.get("field").textValue();
                 final Optional<String> defaultName = parseExplodeOpts(command.get("opts"));
                 if (command.has("strings")) {
                     final List<List<String>> allGroupTerms = Lists.newArrayList();
                     for (final JsonNode group : command.get("strings")) {
                         final List<String> groupTerms = Lists.newArrayListWithCapacity(group.size());
                         for (final JsonNode term : group) {
-                            groupTerms.add(term.asText());
+                            groupTerms.add(term.textValue());
                         }
                         allGroupTerms.add(groupTerms);
                     }
@@ -75,7 +75,7 @@ public class Commands {
                     for (final JsonNode group : command.get("ints")) {
                         final LongArrayList groupTerms = new LongArrayList(group.size());
                         for (final JsonNode term : group) {
-                            groupTerms.add(term.asLong());
+                            groupTerms.add(term.longValue());
                         }
                         allGroupTerms.add(groupTerms);
                     }
@@ -91,7 +91,7 @@ public class Commands {
                 }
                 boolean returnGroupKeys = false;
                 for (final JsonNode opt : command.get("opts")) {
-                    switch (opt.get("type").asText()) {
+                    switch (opt.get("type").textValue()) {
                         case "returnGroupKeys": {
                             returnGroupKeys = true;
                             break;
@@ -104,16 +104,16 @@ public class Commands {
                 final JsonNode valuesNode = command.get("values");
                 final double[] stats = new double[valuesNode.size() + 1];
                 for (int i = 0; i < valuesNode.size(); i++) {
-                    stats[i + 1] = valuesNode.get(i).asDouble();
+                    stats[i + 1] = valuesNode.get(i).doubleValue();
                 }
                 final Optional<String> name = getOptionalName(command);
                 return new CreateGroupStatsLookup(stats, name);
             }
             case "getGroupDistincts": {
-                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
-                final String field = command.get("field").asText();
+                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
+                final String field = command.get("field").textValue();
                 final JsonNode filterNode = command.get("filter");
-                final int windowSize = command.get("windowSize").asInt();
+                final int windowSize = command.get("windowSize").intValue();
 
                 final Optional<AggregateFilter> filter;
                 if (filterNode.isNull()) {
@@ -124,12 +124,12 @@ public class Commands {
                 return new GetGroupDistincts(scope, field, filter, windowSize);
             }
             case "getGroupPercentiles": {
-                final String field = command.get("field").asText();
-                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::asText));
+                final String field = command.get("field").textValue();
+                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
                 final JsonNode percentilesNode = command.get("percentiles");
                 final double[] percentiles = new double[percentilesNode.size()];
                 for (int i = 0; i < percentilesNode.size(); i++) {
-                    percentiles[i] = percentilesNode.get(i).asDouble();
+                    percentiles[i] = percentilesNode.get(i).doubleValue();
                 }
                 return new GetGroupPercentiles(scope, field, percentiles);
             }
@@ -159,9 +159,9 @@ public class Commands {
                     timeField = Optional.empty();
                 }
                 return new TimeRegroup(
-                        command.get("value").asLong(),
-                        command.get("unit").asText().charAt(0),
-                        command.get("offsetMinutes").asLong(),
+                        command.get("value").longValue(),
+                        command.get("unit").textValue().charAt(0),
+                        command.get("offsetMinutes").longValue(),
                         timeField);
             }
             case "getNumGroups": {
@@ -177,13 +177,13 @@ public class Commands {
                     final List<Term> terms = Lists.newArrayListWithCapacity(fieldTermsNode.size());
                     for (int j = 0; j < fieldTermsNode.size(); j++) {
                         final JsonNode fieldTermNode = fieldTermsNode.get(j);
-                        final String field = fieldTermNode.get(0).asText();
+                        final String field = fieldTermNode.get(0).textValue();
                         final JsonNode termNode = fieldTermNode.get(1);
                         final Term term;
-                        if (termNode.get("type").asText().equals("string")) {
-                            term = Term.stringTerm(field, termNode.get("value").asText());
+                        if (termNode.get("type").textValue().equals("string")) {
+                            term = Term.stringTerm(field, termNode.get("value").textValue());
                         } else {
-                            term = Term.intTerm(field, termNode.get("value").asLong());
+                            term = Term.intTerm(field, termNode.get("value").longValue());
                         }
                         terms.add(term);
                     }
@@ -244,7 +244,7 @@ public class Commands {
     private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
         Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
         for (final JsonNode globalOpt : globalOpts) {
-            switch (globalOpt.get("type").asText()) {
+            switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
                     for (final JsonNode metric : globalOpt.get("metrics")) {
                         selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
@@ -253,8 +253,8 @@ public class Commands {
                 }
                 case "limitingFields": {
                     fieldLimits = Optional.of(Pair.of(
-                            globalOpt.get("numFields").asInt(),
-                            Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").asText())
+                            globalOpt.get("numFields").intValue(),
+                            Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").textValue())
                     ));
                     break;
                 }
@@ -273,9 +273,9 @@ public class Commands {
         }
         Optional<String> defaultName = Optional.empty();
         for (final JsonNode opt : opts) {
-            switch (opt.get("type").asText()) {
+            switch (opt.get("type").textValue()) {
                 case "addDefault":
-                    defaultName = Optional.of(opt.get("name").asText());
+                    defaultName = Optional.of(opt.get("name").textValue());
                     break;
             }
         }
@@ -329,17 +329,17 @@ public class Commands {
 
             public void parseFrom(JsonNode options, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
                 for (final JsonNode option : options) {
-                    switch (option.get("type").asText()) {
+                    switch (option.get("type").textValue()) {
                         case "filter": {
                             this.filter = Optional.of(AggregateFilter.fromJson(option.get("filter"), namedMetricLookup));
                             break;
                         }
                         case "limit": {
-                            this.limit = OptionalInt.of(option.get("k").asInt());
+                            this.limit = OptionalInt.of(option.get("k").intValue());
                             break;
                         }
                         case "top": {
-                            final int k = option.get("k").asInt();
+                            final int k = option.get("k").intValue();
                             final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"), namedMetricLookup);
                             this.topK = Optional.of(new Iterate.TopK(k, metric));
                             break;

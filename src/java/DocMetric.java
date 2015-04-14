@@ -10,12 +10,12 @@ public interface DocMetric {
     public List<String> pushes();
 
     public static DocMetric fromJson(JsonNode node) {
-        switch (node.get("type").asText()) {
+        switch (node.get("type").textValue()) {
             case "docStats": {
                 final JsonNode pushes = node.get("pushes");
                 final List<String> statPushes = Lists.newArrayList();
                 for (final JsonNode push : pushes) {
-                    statPushes.add(push.asText());
+                    statPushes.add(push.textValue());
                 }
                 return new BaseMetric(statPushes);
             }
