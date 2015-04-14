@@ -82,7 +82,6 @@ public class Session {
 
     private static final Logger log = Logger.getLogger(Session.class);
 
-    public List<String> fields = Lists.newArrayList();
     public List<GroupKey> groupKeys = Lists.newArrayList(null, new GroupKey(null, 1, null));
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
