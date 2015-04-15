@@ -15,6 +15,7 @@
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.LocalImhotepDaemon;
+import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.CORSInterceptor;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -41,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -157,6 +159,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     private Long mbToBytes(Long megabytes) {
         return megabytes <= 0 ? megabytes : megabytes * 1024 * 1024;
+    }
+
+    @Bean
+    public AccessControl accessControl() {
+        @SuppressWarnings("unchecked")
+        final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
+        return new AccessControl(bannedUserList);
     }
 
     @Bean
