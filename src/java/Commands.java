@@ -227,6 +227,12 @@ public class Commands {
                 }
                 return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
             }
+            case "explodeByAggregatePercentile": {
+                final String field = command.get("field").textValue();
+                final AggregateMetric metric = AggregateMetric.fromJson(command.get("metric"), namedMetricLookup);
+                final int numBuckets = command.get("numBuckets").intValue();
+                return new ExplodeByAggregatePercentile(field, metric, numBuckets);
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
@@ -522,6 +528,18 @@ public class Commands {
         public ComputeAndCreateGroupStatsLookup(Object computation, Optional<String> name) {
             this.computation = computation;
             this.name = name;
+        }
+    }
+
+    public static class ExplodeByAggregatePercentile {
+        public final String field;
+        public final AggregateMetric metric;
+        public final int numBuckets;
+
+        public ExplodeByAggregatePercentile(String field, AggregateMetric metric, int numBuckets) {
+            this.field = field;
+            this.metric = metric;
+            this.numBuckets = numBuckets;
         }
     }
 }
