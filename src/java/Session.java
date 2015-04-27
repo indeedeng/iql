@@ -702,6 +702,11 @@ public class Session {
                 }
                 throw new IllegalStateException("Field is neither all int nor all string field: " + field);
             }
+            sessions.values().forEach(s -> {
+                while (s.session.getNumStats() > 0) {
+                    s.session.popStat();
+                }
+            });
             out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof Commands.GetGroupPercentiles) {
             final Commands.GetGroupPercentiles getGroupPercentiles = (Commands.GetGroupPercentiles) command;
