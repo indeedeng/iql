@@ -42,6 +42,7 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -970,16 +971,22 @@ public class Session {
             final List<GroupKey> nextGroupKeys = Lists.newArrayList();
             nextGroupKeys.add(null);
             for (int group = 1; group <= numGroups; group++) {
-                final int[] positiveGroups = new int[numBuckets];
-                final RegroupCondition[] conditions = new RegroupCondition[numBuckets];
+                final IntArrayList positiveGroups = new IntArrayList();
+                final List<RegroupCondition> conditions = Lists.newArrayList();
                 for (int bucket = 0; bucket < numBuckets; bucket++) {
-                    final int newGroup = 1 + (group - 1) * numBuckets + bucket;
-                    positiveGroups[bucket] = newGroup;
-                    conditions[bucket] = new RegroupCondition(field, true, cutoffs[group][bucket], null, true);
-                    final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (bucket + 1) / numBuckets + ")";
+                    if (bucket > 0 && cutoffs[group][bucket] == cutoffs[group][bucket - 1]) {
+                        continue;
+                    }
+                    final int end = ArrayUtils.lastIndexOf(cutoffs[group], cutoffs[group][bucket]);
+                    final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (end + 1) / numBuckets + ")";
+                    final int newGroup = nextGroupKeys.size();
                     nextGroupKeys.add(new GroupKey(keyTerm, nextGroupKeys.size(), groupKeys.get(group)));
+                    positiveGroups.add(newGroup);
+                    conditions.add(new RegroupCondition(field, true, cutoffs[group][bucket], null, true));
                 }
-                rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
+                final int[] positiveGroupsArr = positiveGroups.toIntArray(new int[positiveGroups.size()]);
+                final RegroupCondition[] conditionsArr = conditions.toArray(new RegroupCondition[conditions.size()]);
+                rules.add(new GroupMultiRemapRule(group, 0, positiveGroupsArr, conditionsArr));
             }
 
             final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
