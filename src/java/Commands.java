@@ -233,6 +233,11 @@ public class Commands {
                 final int numBuckets = command.get("numBuckets").intValue();
                 return new ExplodeByAggregatePercentile(field, metric, numBuckets);
             }
+            case "explodePerDocPercentile": {
+                final String field = command.get("field").textValue();
+                final int numBuckets = command.get("numBuckets").intValue();
+                return new ExplodePerDocPercentile(field, numBuckets);
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
@@ -539,6 +544,16 @@ public class Commands {
         public ExplodeByAggregatePercentile(String field, AggregateMetric metric, int numBuckets) {
             this.field = field;
             this.metric = metric;
+            this.numBuckets = numBuckets;
+        }
+    }
+
+    public static class ExplodePerDocPercentile {
+        public final String field;
+        public final int numBuckets;
+
+        public ExplodePerDocPercentile(String field, int numBuckets) {
+            this.field = field;
             this.numBuckets = numBuckets;
         }
     }

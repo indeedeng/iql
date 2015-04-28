@@ -80,6 +80,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 /**
@@ -934,6 +935,68 @@ public class Session {
             currentDepth += 1;
 
             out.accept("ExlodedByAggregatePercentile");
+        } else if (command instanceof Commands.ExplodePerDocPercentile) {
+            final Commands.ExplodePerDocPercentile explodeCommand = (Commands.ExplodePerDocPercentile) command;
+            final String field = explodeCommand.field;
+            final int numBuckets = explodeCommand.numBuckets;
+
+            final long[] counts = new long[numGroups + 1];
+            sessions.values().forEach(s -> unchecked(() -> {
+                s.session.pushStat("count()");
+                final long[] stats = s.session.getGroupStats(0);
+                for (int i = 0; i < stats.length; i++) {
+                    counts[i] += stats[i];
+                }
+            }));
+
+            final long[] runningCounts = new long[numGroups + 1];
+            final long[][] cutoffs = new long[numGroups + 1][numBuckets];
+            final int[] soFar = new int[numGroups + 1];
+            iterateMultiInt(getSessionsMapRaw(), sessions.keySet().stream().collect(Collectors.toMap(k -> k, k -> new IntArrayList(new int[]{0}))), field, new IntIterateCallback() {
+                @Override
+                public void term(long term, long[] stats, int group) {
+                    runningCounts[group] += stats[0];
+                    final int fraction = (int) Math.floor((double) numBuckets * runningCounts[group] / counts[group]);
+                    for (int i = soFar[group] + 1; i < fraction; i++) {
+                        cutoffs[group][i] = term;
+                        soFar[group] = i;
+                    }
+                }
+            });
+
+            for (int group = 1; group <= numGroups; group++) {
+                for (int idx = soFar[group] + 1; idx < numBuckets; idx++) {
+                    cutoffs[group][idx] = Integer.MAX_VALUE;
+                }
+            }
+
+            final List<GroupMultiRemapRule> rules = Lists.newArrayList();
+            final List<GroupKey> nextGroupKeys = Lists.newArrayList();
+            nextGroupKeys.add(null);
+            for (int group = 1; group <= numGroups; group++) {
+                final int[] positiveGroups = new int[numBuckets];
+                final RegroupCondition[] conditions = new RegroupCondition[numBuckets];
+                for (int bucket = 0; bucket < numBuckets; bucket++) {
+                    final int newGroup = 1 + (group - 1) * numBuckets + bucket;
+                    positiveGroups[bucket] = newGroup;
+                    conditions[bucket] = new RegroupCondition(field, true, cutoffs[group][bucket], null, true);
+                    final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (bucket + 1) / numBuckets + ")";
+                    nextGroupKeys.add(new GroupKey(keyTerm, nextGroupKeys.size(), groupKeys.get(group)));
+                }
+                rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
+            }
+
+            final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
+
+            sessions.values().forEach(s -> unchecked(() -> {
+                s.session.regroup(rulesArr);
+                s.session.popStat();
+            }));
+
+            numGroups = nextGroupKeys.size() - 1;
+            groupKeys = nextGroupKeys;
+            currentDepth += 1;
+
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
