@@ -155,11 +155,7 @@ public class Session {
         final int unixSocketPort = Integer.parseInt((String) props.getOrDefault("unix_socket", "28347"));
         log.info("unixSocketPort = " + unixSocketPort);
         try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort))) {
-            new Thread(() -> {
-                while (true) {
-                    wsServer.run();
-                }
-            }).start();
+            new Thread(wsServer::run).start();
 
             final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
             while (true) {
