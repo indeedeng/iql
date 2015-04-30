@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 import java.util.Arrays;
 
 /**
@@ -26,7 +28,7 @@ public class TermSelects {
 
     @Override
     public String toString() {
-        return "TermSelects{" +
+        return "com.indeed.squall.jql.TermSelects{" +
                 "isIntTerm=" + isIntTerm +
                 ", stringTerm='" + stringTerm + '\'' +
                 ", intTerm=" + intTerm +

@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 

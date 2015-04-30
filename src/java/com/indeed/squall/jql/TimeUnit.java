@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 /**
  * @author jwolfe
  */

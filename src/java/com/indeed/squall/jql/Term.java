@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.log4j.Logger;
 

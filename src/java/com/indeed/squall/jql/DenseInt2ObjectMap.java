@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 import it.unimi.dsi.fastutil.ints.AbstractInt2ObjectMap;
 import it.unimi.dsi.fastutil.ints.AbstractIntIterator;
 import it.unimi.dsi.fastutil.ints.AbstractIntSet;
@@ -36,7 +38,7 @@ public class DenseInt2ObjectMap<T> extends AbstractInt2ObjectMap<T> {
     @Override
     public boolean containsKey(Object key) {
         if (!(key instanceof Integer)) {
-            throw new ClassCastException("Keys to DenseInt2ObjectMap must be Integer.");
+            throw new ClassCastException("Keys to com.indeed.squall.jql.DenseInt2ObjectMap must be Integer.");
         } else {
             final int intKey = (Integer)key;
             return elements.size() > intKey && elements.get(intKey) != null;
@@ -56,7 +58,7 @@ public class DenseInt2ObjectMap<T> extends AbstractInt2ObjectMap<T> {
     @Override
     public T get(Object key) {
         if (!(key instanceof Integer)) {
-            throw new ClassCastException("Keys to DenseInt2ObjectMap must be Integer.");
+            throw new ClassCastException("Keys to com.indeed.squall.jql.DenseInt2ObjectMap must be Integer.");
         } else {
             final int intKey = (Integer)key;
             return get(intKey);
@@ -95,7 +97,7 @@ public class DenseInt2ObjectMap<T> extends AbstractInt2ObjectMap<T> {
 
     public T put(int key, T value) {
         if (value == null) {
-            throw new NullPointerException("DenseInt2ObjectMap does not support null values.");
+            throw new NullPointerException("com.indeed.squall.jql.DenseInt2ObjectMap does not support null values.");
         }
         if (elements.size() <= key) {
             while (elements.size() < key) {
@@ -115,7 +117,7 @@ public class DenseInt2ObjectMap<T> extends AbstractInt2ObjectMap<T> {
     @Override
     public T remove(Object key) {
         if (!(key instanceof Integer)) {
-            throw new ClassCastException("Keys to DenseInt2ObjectMap must be Integer.");
+            throw new ClassCastException("Keys to com.indeed.squall.jql.DenseInt2ObjectMap must be Integer.");
         } else {
             final int intKey = (Integer)key;
             if (elements.size() > intKey) {

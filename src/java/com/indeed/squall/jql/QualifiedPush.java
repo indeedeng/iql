@@ -1,3 +1,5 @@
+package com.indeed.squall.jql;
+
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -38,7 +40,7 @@ public class QualifiedPush {
 
     @Override
     public String toString() {
-        return "QualifiedPush{" +
+        return "com.indeed.squall.jql.QualifiedPush{" +
                 "sessionName='" + sessionName + '\'' +
                 ", pushes=" + pushes +
                 '}';
