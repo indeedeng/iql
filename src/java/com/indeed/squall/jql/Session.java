@@ -33,6 +33,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
+import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -547,114 +548,9 @@ public class Session {
             final CreateGroupStatsLookup createGroupStatsLookup = (CreateGroupStatsLookup) command;
             final String lookupName = CreateGroupStatsLookup.createGroupStatsLookup(createGroupStatsLookup, this);
             out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
-        } else if (command instanceof Commands.GetGroupDistincts) {
-            final Commands.GetGroupDistincts getGroupDistincts = (Commands.GetGroupDistincts) command;
-            final String field = getGroupDistincts.field;
-            final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-            getGroupDistincts.scope.forEach(s -> sessionsSubset.put(s, sessions.get(s).session));
-            final List<AggregateFilter> filters = Lists.newArrayList();
-            getGroupDistincts.filter.ifPresent(filters::add);
-            final Set<QualifiedPush> pushes = Sets.newHashSet();
-            filters.forEach(f -> pushes.addAll(f.requires()));
-            final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
-            final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-            pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
-            registerMetrics(metricIndexes, Arrays.asList(), filters);
-            final long[] groupCounts = new long[numGroups];
-            if (isIntField(field)) {
-                final IntIterateCallback callback = new IntIterateCallback() {
-                    private final BitSet groupSeen = new BitSet();
-                    private boolean started = false;
-                    private int lastGroup = 0;
-                    private long currentTerm = 0;
-
-                    @Override
-                    public void term(long term, long[] stats, int group) {
-                        if (started && currentTerm != term) {
-                            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                                groupCounts[lastGroup - 1]++;
-                            }
-                            groupSeen.clear();
-                        }
-                        currentTerm = term;
-                        started = true;
-                        lastGroup = group;
-                        final GroupKey parent = groupKeys.get(group).parent;
-                        if (getGroupDistincts.filter.isPresent()) {
-                            if (getGroupDistincts.filter.get().allow(term, stats, group)) {
-                                for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
-                                    if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
-                                        groupSeen.set(group + offset);
-                                    }
-                                }
-                            }
-                        } else {
-                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
-                                if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
-                                    groupSeen.set(group + offset);
-                                }
-                            }
-                        }
-                        if (groupSeen.get(group)) {
-                            groupCounts[group - 1]++;
-                        }
-                    }
-                };
-                iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, callback);
-            } else if (isStringField(field)) {
-                final StringIterateCallback callback = new StringIterateCallback() {
-                    private final BitSet groupSeen = new BitSet();
-                    private boolean started = false;
-                    private int lastGroup = 0;
-                    private String currentTerm;
-
-                    @Override
-                    public void term(String term, long[] stats, int group) {
-                        if (started && !currentTerm.equals(term)) {
-                            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                                groupCounts[lastGroup - 1]++;
-                            }
-                            groupSeen.clear();
-                        }
-                        currentTerm = term;
-                        started = true;
-                        lastGroup = group;
-                        final GroupKey parent = groupKeys.get(group).parent;
-                        if (getGroupDistincts.filter.isPresent()) {
-                            if (getGroupDistincts.filter.get().allow(term, stats, group)) {
-                                for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
-                                    if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
-                                        groupSeen.set(group + offset);
-                                    }
-                                }
-                            }
-                        } else {
-                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
-                                if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
-                                    groupSeen.set(group + offset);
-                                }
-                            }
-                        }
-                        if (groupSeen.get(group)) {
-                            groupCounts[group - 1]++;
-                        }
-                    }
-                };
-                iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
-            } else {
-                for (final Map.Entry<String, ImhotepSessionInfo> session : sessions.entrySet()) {
-                    final String name = session.getKey();
-                    final boolean isIntField = session.getValue().intFields.contains(field);
-                    final boolean isStringField = session.getValue().stringFields.contains(field);
-                    System.out.println("name = " + name + ", isIntField=" + isIntField + ", isStringField=" + isStringField);
-                }
-                throw new IllegalStateException("Field is neither all int nor all string field: " + field);
-            }
-            sessions.values().forEach(s -> {
-                while (s.session.getNumStats() > 0) {
-                    s.session.popStat();
-                }
-            });
+        } else if (command instanceof GetGroupDistincts) {
+            final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) command;
+            final long[] groupCounts = GetGroupDistincts.getGroupDistincts(getGroupDistincts, this);
             out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof Commands.GetGroupPercentiles) {
             final Commands.GetGroupPercentiles getGroupPercentiles = (Commands.GetGroupPercentiles) command;
@@ -758,7 +654,7 @@ public class Session {
             final Object computation = computeAndCreateGroupStatsLookup.computation;
             evaluateCommandInternal(null, reference::set, computation);
             double[] results;
-            if (computation instanceof Commands.GetGroupDistincts) {
+            if (computation instanceof GetGroupDistincts) {
                 results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
             } else if (computation instanceof Commands.GetGroupPercentiles) {
                 final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});

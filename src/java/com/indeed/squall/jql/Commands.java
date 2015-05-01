@@ -12,6 +12,7 @@ import com.indeed.flamdex.query.Term;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
+import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -297,20 +298,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class GetGroupDistincts {
-        public final Set<String> scope;
-        public final String field;
-        public final Optional<AggregateFilter> filter;
-        public final int windowSize;
-
-        public GetGroupDistincts(Set<String> scope, String field, Optional<AggregateFilter> filter, int windowSize) {
-            this.scope = scope;
-            this.field = field;
-            this.filter = filter;
-            this.windowSize = windowSize;
-        }
     }
 
     public static class GetGroupPercentiles {
