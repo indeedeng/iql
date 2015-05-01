@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
@@ -313,16 +314,6 @@ public class Commands {
         public TermsWithExplodeOpts(List<Term> terms, Optional<String> defaultName) {
             this.terms = terms;
             this.defaultName = defaultName;
-        }
-    }
-
-    public static class ComputeAndCreateGroupStatsLookup {
-        public final Object computation;
-        public final Optional<String> name;
-
-        public ComputeAndCreateGroupStatsLookup(Object computation, Optional<String> name) {
-            this.computation = computation;
-            this.name = name;
         }
     }
 

@@ -29,6 +29,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
@@ -429,9 +430,9 @@ public class Session {
         } else if (command instanceof IterateAndExplode) {
             final IterateAndExplode iterateAndExplode = (IterateAndExplode) command;
             IterateAndExplode.iterateAndExplode(iterateAndExplode, this);
-        } else if (command instanceof Commands.ComputeAndCreateGroupStatsLookup) {
+        } else if (command instanceof ComputeAndCreateGroupStatsLookup) {
             // TODO: Seriously? Serializing to JSON and then back? To the same program?
-            final Commands.ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (Commands.ComputeAndCreateGroupStatsLookup) command;
+            final ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (ComputeAndCreateGroupStatsLookup) command;
             final AtomicReference<String> reference = new AtomicReference<>();
             final Object computation = computeAndCreateGroupStatsLookup.computation;
             evaluateCommandInternal(null, reference::set, computation);
