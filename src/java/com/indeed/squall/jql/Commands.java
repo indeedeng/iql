@@ -11,6 +11,7 @@ import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
+import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
@@ -297,18 +298,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class GetGroupPercentiles {
-        public final Set<String> scope;
-        public final String field;
-        public final double[] percentiles;
-
-        public GetGroupPercentiles(Set<String> scope, String field, double[] percentiles) {
-            this.scope = scope;
-            this.field = field;
-            this.percentiles = percentiles;
-        }
     }
 
     public static class TimeRegroup {

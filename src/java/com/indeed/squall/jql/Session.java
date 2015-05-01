@@ -34,6 +34,7 @@ import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
+import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
@@ -42,7 +43,6 @@ import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -85,7 +85,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 /**
  * @author jwolfe
@@ -518,52 +517,9 @@ public class Session {
             final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) command;
             final long[] groupCounts = GetGroupDistincts.getGroupDistincts(getGroupDistincts, this);
             out.accept(MAPPER.writeValueAsString(groupCounts));
-        } else if (command instanceof Commands.GetGroupPercentiles) {
-            final Commands.GetGroupPercentiles getGroupPercentiles = (Commands.GetGroupPercentiles) command;
-            final String field = getGroupPercentiles.field;
-            final double[] percentiles = getGroupPercentiles.percentiles;
-            final long[] counts = new long[numGroups + 1];
-            final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-            getGroupPercentiles.scope.forEach(s -> sessionsSubset.put(s, sessions.get(s).session));
-            sessionsSubset.values().forEach(s -> unchecked(() -> {
-                s.pushStat("count()");
-                final long[] stats = s.getGroupStats(0);
-                for (int i = 0; i < stats.length; i++) {
-                    counts[i] += stats[i];
-                }
-            }));
-            final Map<String, IntList> metricMapping = Maps.newHashMap();
-            int index = 0;
-            for (final String sessionName : sessionsSubset.keySet()) {
-                metricMapping.put(sessionName, IntLists.singleton(index++));
-            }
-            final double[][] requiredCounts = new double[counts.length][];
-            for (int i = 1; i < counts.length; i++) {
-                requiredCounts[i] = new double[percentiles.length];
-                for (int j = 0; j < percentiles.length; j++) {
-                    requiredCounts[i][j] = (percentiles[j] / 100.0) * (double)counts[i];
-                }
-            }
-            final long[][] results = new long[percentiles.length][counts.length - 1];
-            final long[] runningCounts = new long[counts.length];
-            iterateMultiInt(sessionsSubset, metricMapping, field, (term, stats, group) -> {
-                final long oldCount = runningCounts[group];
-                final long termCount = LongStream.of(stats).sum();
-                final long newCount = oldCount + termCount;
-
-                final double[] groupRequiredCountsArray = requiredCounts[group];
-                for (int i = 0; i < percentiles.length; i++) {
-                    final double minRequired = groupRequiredCountsArray[i];
-                    if (newCount >= minRequired && oldCount < minRequired) {
-                        results[i][group - 1] = term;
-                    }
-                }
-
-                runningCounts[group] = newCount;
-            });
-
-            sessionsSubset.values().forEach(ImhotepSession::popStat);
-
+        } else if (command instanceof GetGroupPercentiles) {
+            final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) command;
+            final long[][] results = GetGroupPercentiles.getGroupPercentiles(getGroupPercentiles, this);
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.GetNumGroups) {
             out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
@@ -622,7 +578,7 @@ public class Session {
             double[] results;
             if (computation instanceof GetGroupDistincts) {
                 results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
-            } else if (computation instanceof Commands.GetGroupPercentiles) {
+            } else if (computation instanceof GetGroupPercentiles) {
                 final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
                 results = intellijDoesntLikeInlining.get(0);
             } else if (computation instanceof GetGroupStats) {
