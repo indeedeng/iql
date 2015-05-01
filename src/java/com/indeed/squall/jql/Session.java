@@ -30,6 +30,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
@@ -381,49 +382,9 @@ public class Session {
             final FilterDocs filterDocs = (FilterDocs) command;
             FilterDocs.filterDocs(filterDocs, this);
             out.accept("{}");
-        } else if (command instanceof Commands.ExplodeGroups) {
-            final Commands.ExplodeGroups explodeGroups = (Commands.ExplodeGroups) command;
-            if ((explodeGroups.intTerms == null) == (explodeGroups.stringTerms == null)) {
-                throw new IllegalArgumentException("Exactly one type of term must be contained in ExplodeGroups.");
-            }
-            final boolean intType = explodeGroups.intTerms != null;
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
-            int nextGroup = 1;
-            final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-            for (int i = 0; i < numGroups; i++) {
-                final int group = i + 1;
-                final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
-                if (intType) {
-                    final LongArrayList terms = explodeGroups.intTerms.get(i);
-                    for (final long term : terms) {
-                        regroupConditionsList.add(new RegroupCondition(explodeGroups.field, true, term, null, false));
-                        nextGroupKeys.add(new GroupKey(String.valueOf(term), nextGroupKeys.size(), groupKeys.get(group)));
-                    }
-                } else {
-                    final List<String> terms = explodeGroups.stringTerms.get(i);
-                    for (final String term : terms) {
-                        regroupConditionsList.add(new RegroupCondition(explodeGroups.field, false, 0, term, false));
-                        nextGroupKeys.add(new GroupKey(term, nextGroupKeys.size(), groupKeys.get(group)));
-                    }
-                }
-                final int[] positiveGroups = new int[regroupConditionsList.size()];
-                for (int j = 0; j < regroupConditionsList.size(); j++) {
-                    positiveGroups[j] = nextGroup++;
-                }
-                final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
-                final int negativeGroup;
-                if (explodeGroups.defaultGroupTerm.isPresent()) {
-                    negativeGroup = nextGroup++;
-                    nextGroupKeys.add(new GroupKey(explodeGroups.defaultGroupTerm.get(), nextGroupKeys.size(), groupKeys.get(group)));
-                } else {
-                    negativeGroup = 0;
-                }
-                rules[i] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
-            }
-            getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
-            numGroups = nextGroup - 1;
-            groupKeys = nextGroupKeys;
-            currentDepth += 1;
+        } else if (command instanceof ExplodeGroups) {
+            final ExplodeGroups explodeGroups = (ExplodeGroups) command;
+            ExplodeGroups.explodeGroups(explodeGroups, this);
             out.accept("success");
         } else if (command instanceof Commands.MetricRegroup) {
             final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
@@ -1399,7 +1360,7 @@ public class Session {
         public final int index;
         public final GroupKey parent;
 
-        private GroupKey(String term, int index, GroupKey parent) {
+        public GroupKey(String term, int index, GroupKey parent) {
             this.term = term;
             this.index = index;
             this.parent = parent;

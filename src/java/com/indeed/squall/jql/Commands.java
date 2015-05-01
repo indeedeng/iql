@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
@@ -295,26 +296,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    /**
-     toJSON (ExplodeGroups terms) = object
-     [ "command" .= text "explodeGroups"
-     , "terms" .= terms
-     ]
-     */
-    public static class ExplodeGroups {
-        public final String field;
-        public final List<List<String>> stringTerms;
-        public final List<LongArrayList> intTerms;
-        public final Optional<String> defaultGroupTerm;
-
-        public ExplodeGroups(String field, List<List<String>> stringTerms, List<LongArrayList> intTerms, Optional<String> defaultName) {
-            this.field = field;
-            this.stringTerms = stringTerms;
-            this.intTerms = intTerms;
-            defaultGroupTerm = defaultName;
-        }
     }
 
     public static class CreateGroupStatsLookup {
