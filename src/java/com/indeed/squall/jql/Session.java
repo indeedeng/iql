@@ -30,6 +30,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -96,7 +97,7 @@ public class Session {
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
 
-    private final Map<String, ImhotepSessionInfo> sessions;
+    public final Map<String, ImhotepSessionInfo> sessions;
     public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
@@ -376,18 +377,9 @@ public class Session {
             final Iterate iterate = (Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = Iterate.performIterate(iterate, this);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
-        } else if (command instanceof Commands.FilterDocs) {
-            final Commands.FilterDocs filterDocs = (Commands.FilterDocs) command;
-            // TODO: Do these in parallel?
-            for (final Map.Entry<String,List<String>> entry : filterDocs.perDatasetFilterMetric.entrySet()) {
-                final ImhotepSession session = sessions.get(entry.getKey()).session;
-                final int index = session.pushStats(entry.getValue());
-                if (index != 1) {
-                    throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + entry.getKey() + "\"");
-                }
-                session.metricFilter(0, 1, 1, false);
-                session.popStat();
-            }
+        } else if (command instanceof FilterDocs) {
+            final FilterDocs filterDocs = (FilterDocs) command;
+            FilterDocs.filterDocs(filterDocs, this);
             out.accept("{}");
         } else if (command instanceof Commands.ExplodeGroups) {
             final Commands.ExplodeGroups explodeGroups = (Commands.ExplodeGroups) command;
@@ -1438,7 +1430,7 @@ public class Session {
         }
     }
 
-    static class ImhotepSessionInfo {
+    public static class ImhotepSessionInfo {
         public final ImhotepSession session;
         public final Collection<String> intFields;
         public final Collection<String> stringFields;

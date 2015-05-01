@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -294,18 +295,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class FilterDocs {
-        public final Map<String, List<String>> perDatasetFilterMetric;
-
-        public FilterDocs(Map<String, List<String>> perDatasetFilterMetric) {
-            final Map<String, List<String>> copy = Maps.newHashMap();
-            for (final Map.Entry<String, List<String>> entry : perDatasetFilterMetric.entrySet()) {
-                copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
-            }
-            this.perDatasetFilterMetric = copy;
-        }
     }
 
     /**
