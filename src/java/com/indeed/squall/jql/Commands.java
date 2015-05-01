@@ -15,6 +15,7 @@ import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.TimeRegroup;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
@@ -298,20 +299,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class TimeRegroup {
-        public final long value;
-        public final char unit;
-        public final long offsetMinutes;
-        public final Optional<String> timeField;
-
-        public TimeRegroup(long value, char unit, long offsetMinutes, Optional<String> timeField) {
-            this.value = value;
-            this.unit = unit;
-            this.offsetMinutes = offsetMinutes;
-            this.timeField = timeField;
-        }
     }
 
     public static class GetNumGroups {

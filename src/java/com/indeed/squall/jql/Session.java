@@ -38,6 +38,7 @@ import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.TimeRegroup;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -52,9 +53,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.Months;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -392,118 +390,9 @@ public class Session {
             final MetricRegroup metricRegroup = (MetricRegroup) command;
             MetricRegroup.metricRegroup(metricRegroup, this);
             out.accept("success");
-        } else if (command instanceof Commands.TimeRegroup) {
-            final Commands.TimeRegroup timeRegroup = (Commands.TimeRegroup) command;
-            // TODO: This whole time thing needs a rethink.
-            final long earliestStart = getEarliestStart();
-            final long latestEnd = getLatestEnd();
-            final TimeUnit timeUnit = TimeUnit.fromChar(timeRegroup.unit);
-
-            final long unitSize;
-            if (timeUnit == TimeUnit.MONTH) {
-//                final DateTime startOfStartMonth = new DateTime(earliestStart).withDayOfMonth(1);
-//                if (startOfStartMonth.getMillis() != earliestStart) {
-//                    throw new IllegalArgumentException("Earliest time not aligned at start of month: " + new DateTime(earliestStart));
-//                }
-//                final DateTime startOfEndMonth = new DateTime(latestEnd).withDayOfMonth(1);
-//                if (startOfEndMonth.getMillis() != latestEnd) {
-//                    throw new IllegalArgumentException("Latest time not aligned with start of month: " + new DateTime(latestEnd));
-//                }
-//                if (!startOfStartMonth.isBefore(startOfEndMonth)) {
-//                    throw new IllegalArgumentException("Start must come before end. start = [" + startOfStartMonth + "], end = [" + startOfEndMonth + "]");
-//                }
-                unitSize = TimeUnit.DAY.millis;
-            } else {
-                unitSize = timeRegroup.value * timeUnit.millis;
-            }
-            final long timeOffsetMinutes = timeRegroup.offsetMinutes - 360;
-            final DateTimeZone zone = DateTimeZone.forOffsetHoursMinutes((int) timeOffsetMinutes / 60, (int) timeOffsetMinutes % 60);
-            final long realStart;
-            switch (timeUnit) {
-                case SECOND:
-                    realStart = new DateTime(earliestStart, zone).withMillisOfSecond(0).getMillis();
-                    break;
-                case MINUTE:
-                    realStart = new DateTime(earliestStart, zone).withSecondOfMinute(0).withMillisOfSecond(0).getMillis();
-                    break;
-                case HOUR:
-                    realStart = new DateTime(earliestStart, zone).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).getMillis();
-                    break;
-                case WEEK:
-                    realStart = new DateTime(earliestStart, zone).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).withDayOfWeek(1).getMillis();
-                    break;
-                case DAY:
-                case MONTH:
-                    realStart = new DateTime(earliestStart, zone).withTimeAtStartOfDay().getMillis();
-                    break;
-                default:
-                    throw new IllegalStateException("Unhandled enum value: " + timeUnit);
-            }
-            final long shardsEnd = new DateTime(latestEnd).getMillis();
-            final long difference = shardsEnd - realStart;
-            final long realEnd;
-            if (difference % timeUnit.millis == 0) {
-                realEnd = shardsEnd;
-            } else {
-                realEnd = shardsEnd + (timeUnit.millis - difference % timeUnit.millis);
-            }
-
-            final int oldNumGroups = this.numGroups;
-            final int numGroups = performTimeRegroup(realStart, realEnd, unitSize, timeRegroup.timeField);
-            final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
-            if (timeUnit == TimeUnit.MONTH) {
-                final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
-                final DateTime startMonth = new DateTime(earliestStart).withDayOfMonth(1).withTimeAtStartOfDay();
-                final DateTime endMonthExclusive = new DateTime(latestEnd).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
-                final int numMonths = Months.monthsBetween(
-                        startMonth,
-                        endMonthExclusive
-                ).getMonths();
-
-                final List<GroupRemapRule> rules = Lists.newArrayList();
-                final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
-                for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
-                    for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
-                        final long start = realStart + innerGroup * unitSize;
-                        final int base = 1 + (outerGroup - 1) * numBuckets + innerGroup;
-                        final int newBase = 1 + (outerGroup - 1) * numMonths;
-
-                        final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
-                        final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
-                        rules.add(new GroupRemapRule(base, fakeCondition, newGroup, newGroup));
-                    }
-                }
-                final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
-                sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-                final Function<Integer, Pair<String, GroupKey>> groupMapper = group -> {
-                    final int originalGroup = 1 + (group - 1) / numMonths;
-                    final int monthOffset = (group - 1) % numMonths;
-                    final String key = formatter.print(startMonth.plusMonths(monthOffset));
-                    return Pair.of(key, groupKeys.get(originalGroup));
-                };
-                if (oldNumGroups == 1) {
-                    assumeDense(groupMapper, oldNumGroups * numMonths);
-                } else {
-                    densify(groupMapper);
-                }
-            } else {
-                final String formatString = TimeUnit.SECOND.formatString; // timeUnit.formatString;
-                final Function<Integer, Pair<String, GroupKey>> groupMapper = group -> {
-                    final int oldGroup = 1 + (group - 1) / numBuckets;
-                    final int timeBucket = (group - 1) % numBuckets;
-                    final long startInclusive = realStart + timeBucket * unitSize;
-                    final long endExclusive = realStart + (timeBucket + 1) * unitSize;
-                    final String startString = new DateTime(startInclusive, zone).toString(formatString);
-                    final String endString = new DateTime(endExclusive, zone).toString(formatString);
-                    return Pair.of("[" + startString + ", " + endString + ")", groupKeys.get(oldGroup));
-                };
-                if (oldNumGroups == 1) {
-                    assumeDense(groupMapper, numGroups);
-                } else {
-                    densify(groupMapper);
-                }
-            }
-            this.currentDepth += 1;
+        } else if (command instanceof TimeRegroup) {
+            final TimeRegroup timeRegroup = (TimeRegroup) command;
+            TimeRegroup.timeRegroup(timeRegroup, this);
             out.accept("success");
         } else if (command instanceof GetGroupStats) {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
@@ -854,15 +743,15 @@ public class Session {
         }
     }
 
-    private long getLatestEnd() {
+    public long getLatestEnd() {
         return sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
     }
 
-    private long getEarliestStart() {
+    public long getEarliestStart() {
         return sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
     }
 
-    private int performTimeRegroup(long start, long end, long unitSize, Optional<String> fieldOverride) {
+    public int performTimeRegroup(long start, long end, long unitSize, Optional<String> fieldOverride) {
         final int oldNumGroups = this.numGroups;
         sessions.values().forEach(sessionInfo -> unchecked(() -> {
             final ImhotepSession session = sessionInfo.session;
@@ -910,7 +799,7 @@ public class Session {
         groupKeys = nextGroupKeys;
     }
 
-    private void assumeDense(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider, int newNumGroups) throws ImhotepOutOfMemoryException {
+    public void assumeDense(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider, int newNumGroups) throws ImhotepOutOfMemoryException {
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         for (int i = 1; i <= newNumGroups; i++) {
