@@ -32,6 +32,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
+import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
@@ -413,8 +414,9 @@ public class Session {
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof GetNumGroups) {
             out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
-        } else if (command instanceof Commands.ExplodePerGroup) {
-            performExplodePerGroup(out, (Commands.ExplodePerGroup) command);
+        } else if (command instanceof ExplodePerGroup) {
+            ExplodePerGroup.performExplodePerGroup((ExplodePerGroup) command, this);
+            out.accept("success");
         } else if (command instanceof Commands.ExplodeDayOfWeek) {
             final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
@@ -458,7 +460,7 @@ public class Session {
                 }
                 explodes.add(new Commands.TermsWithExplodeOpts(terms, iterateAndExplode.explodeDefaultName));
             }
-            performExplodePerGroup(out, new Commands.ExplodePerGroup(explodes));
+            ExplodePerGroup.performExplodePerGroup(new ExplodePerGroup(explodes), this);
         } else if (command instanceof Commands.ComputeAndCreateGroupStatsLookup) {
             // TODO: Seriously? Serializing to JSON and then back? To the same program?
             final Commands.ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (Commands.ComputeAndCreateGroupStatsLookup) command;
@@ -680,52 +682,6 @@ public class Session {
         final double[] out = new double[in.length + 1];
         System.arraycopy(in, 0, out, 1, in.length);
         return out;
-    }
-
-    private void performExplodePerGroup(Consumer<String> out, Commands.ExplodePerGroup explodePerGroup) throws ImhotepOutOfMemoryException {
-        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups];
-        int nextGroup = 1;
-        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-        for (int group = 1; group <= numGroups; group++) {
-            final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
-
-            final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
-
-            final List<Term> terms = termsWithExplodeOpts.terms;
-            if (terms.isEmpty()) {
-                rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
-                continue;
-            }
-
-            for (final Term term : terms) {
-                if (term.isIntField()) {
-                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), true, term.getTermIntVal(), null, false));
-                    nextGroupKeys.add(new GroupKey(String.valueOf(term.getTermIntVal()), nextGroupKeys.size(), groupKeys.get(group)));
-                } else {
-                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), false, 0, term.getTermStringVal(), false));
-                    nextGroupKeys.add(new GroupKey(term.getTermStringVal(), nextGroupKeys.size(), groupKeys.get(group)));
-                }
-            }
-
-            final int[] positiveGroups = new int[regroupConditionsList.size()];
-            for (int j = 0; j < regroupConditionsList.size(); j++) {
-                positiveGroups[j] = nextGroup++;
-            }
-            final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
-            final int negativeGroup;
-            if (termsWithExplodeOpts.defaultName.isPresent()) {
-                negativeGroup = nextGroup++;
-                nextGroupKeys.add(new GroupKey(termsWithExplodeOpts.defaultName.get(), nextGroupKeys.size(), groupKeys.get(group)));
-            } else {
-                negativeGroup = 0;
-            }
-            rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
-        }
-        getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(rules)));
-        numGroups = nextGroup - 1;
-        groupKeys = nextGroupKeys;
-        currentDepth += 1;
-        out.accept("success");
     }
 
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {

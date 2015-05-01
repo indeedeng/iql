@@ -9,6 +9,7 @@ import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
+import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
@@ -309,14 +310,6 @@ public class Commands {
         public TermsWithExplodeOpts(List<Term> terms, Optional<String> defaultName) {
             this.terms = terms;
             this.defaultName = defaultName;
-        }
-    }
-
-    public static class ExplodePerGroup {
-        public final List<TermsWithExplodeOpts> termsWithExplodeOpts;
-
-        public ExplodePerGroup(List<TermsWithExplodeOpts> termsWithExplodeOpts) {
-            this.termsWithExplodeOpts = termsWithExplodeOpts;
         }
     }
 
