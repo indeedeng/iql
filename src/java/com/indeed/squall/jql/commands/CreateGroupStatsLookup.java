@@ -13,13 +13,13 @@ public class CreateGroupStatsLookup {
         this.name = name;
     }
 
-    public static String createGroupStatsLookup(CreateGroupStatsLookup createGroupStatsLookup, Session session) {
+    public String execute(Session session) {
         final int depth = session.currentDepth;
-        final double[] stats = createGroupStatsLookup.stats;
+        final double[] stats = this.stats;
         final Session.SavedGroupStats savedStats = new Session.SavedGroupStats(depth, stats);
         final String lookupName;
-        if (createGroupStatsLookup.name.isPresent()) {
-            lookupName = createGroupStatsLookup.name.get();
+        if (this.name.isPresent()) {
+            lookupName = this.name.get();
             if (session.savedGroupStats.containsKey(lookupName)) {
                 throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
             }

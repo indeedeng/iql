@@ -31,10 +31,10 @@ public class ExplodeByAggregatePercentile {
         this.numBuckets = numBuckets;
     }
 
-    public static void explodeByAggregatePercentile(ExplodeByAggregatePercentile explodeCommand, Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = explodeCommand.field;
-        final AggregateMetric metric = explodeCommand.metric;
-        final int numBuckets = explodeCommand.numBuckets;
+    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+        final String field = this.field;
+        final AggregateMetric metric = this.metric;
+        final int numBuckets = this.numBuckets;
         final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
         session.pushMetrics(metric.requires(), metricIndexes, sessionMetricIndexes);

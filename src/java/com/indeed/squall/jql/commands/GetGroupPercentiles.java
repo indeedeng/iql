@@ -23,12 +23,12 @@ public class GetGroupPercentiles {
         this.percentiles = percentiles;
     }
 
-    public static long[][] getGroupPercentiles(GetGroupPercentiles getGroupPercentiles, Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = getGroupPercentiles.field;
-        final double[] percentiles = getGroupPercentiles.percentiles;
+    public long[][] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+        final String field = this.field;
+        final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
         final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-        getGroupPercentiles.scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
+        this.scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
         sessionsSubset.values().forEach(s -> Session.unchecked(() -> {
             s.pushStat("count()");
             final long[] stats = s.getGroupStats(0);

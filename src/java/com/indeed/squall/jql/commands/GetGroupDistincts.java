@@ -31,12 +31,12 @@ public class GetGroupDistincts {
         this.windowSize = windowSize;
     }
 
-    public static long[] getGroupDistincts(final GetGroupDistincts getGroupDistincts, Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = getGroupDistincts.field;
+    public long[] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+        final String field = this.field;
         final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-        getGroupDistincts.scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
+        this.scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
         final List<AggregateFilter> filters = Lists.newArrayList();
-        getGroupDistincts.filter.ifPresent(filters::add);
+        this.filter.ifPresent(filters::add);
         final Set<QualifiedPush> pushes = Sets.newHashSet();
         filters.forEach(f -> pushes.addAll(f.requires()));
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
@@ -63,16 +63,16 @@ public class GetGroupDistincts {
                     started = true;
                     lastGroup = group;
                     final Session.GroupKey parent = session.groupKeys.get(group).parent;
-                    if (getGroupDistincts.filter.isPresent()) {
-                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
-                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                    if (filter.isPresent()) {
+                        if (filter.get().allow(term, stats, group)) {
+                            for (int offset = 0; offset < windowSize; offset++) {
                                 if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                                     groupSeen.set(group + offset);
                                 }
                             }
                         }
                     } else {
-                        for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                        for (int offset = 0; offset < windowSize; offset++) {
                             if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                                 groupSeen.set(group + offset);
                             }
@@ -103,16 +103,16 @@ public class GetGroupDistincts {
                     started = true;
                     lastGroup = group;
                     final Session.GroupKey parent = session.groupKeys.get(group).parent;
-                    if (getGroupDistincts.filter.isPresent()) {
-                        if (getGroupDistincts.filter.get().allow(term, stats, group)) {
-                            for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                    if (filter.isPresent()) {
+                        if (filter.get().allow(term, stats, group)) {
+                            for (int offset = 0; offset < windowSize; offset++) {
                                 if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                                     groupSeen.set(group + offset);
                                 }
                             }
                         }
                     } else {
-                        for (int offset = 0; offset < getGroupDistincts.windowSize; offset++) {
+                        for (int offset = 0; offset < windowSize; offset++) {
                             if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                                 groupSeen.set(group + offset);
                             }

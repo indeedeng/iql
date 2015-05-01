@@ -24,9 +24,9 @@ public class GetGroupStats {
         this.returnGroupKeys = returnGroupKeys;
     }
 
-    public static List<Session.GroupStats> getGroupStats(GetGroupStats getGroupStats, List<Session.GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
+    public List<Session.GroupStats> execute(List<Session.GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
-        getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
+        this.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         int numStats = 0;
@@ -38,7 +38,7 @@ public class GetGroupStats {
             sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
         }
 
-        getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
+        this.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
 
         final long[][] allStats = new long[numStats][];
         sessionMetricIndexes.forEach((name, positions) -> {
@@ -48,7 +48,7 @@ public class GetGroupStats {
             }
         });
 
-        final List<AggregateMetric> selectedMetrics = getGroupStats.metrics;
+        final List<AggregateMetric> selectedMetrics = this.metrics;
         final double[][] results = new double[numGroups][selectedMetrics.size()];
         final long[] groupStatsBuf = new long[allStats.length];
         for (int group = 1; group <= numGroups; group++) {

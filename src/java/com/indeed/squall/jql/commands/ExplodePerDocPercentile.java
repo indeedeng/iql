@@ -21,9 +21,9 @@ public class ExplodePerDocPercentile {
         this.numBuckets = numBuckets;
     }
 
-    public static void explodePerDocPercentile(ExplodePerDocPercentile explodeCommand, Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = explodeCommand.field;
-        final int numBuckets = explodeCommand.numBuckets;
+    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+        final String field = this.field;
+        final int numBuckets = this.numBuckets;
 
         final long[] counts = new long[session.numGroups + 1];
         session.sessions.values().forEach(s -> Session.unchecked(() -> {

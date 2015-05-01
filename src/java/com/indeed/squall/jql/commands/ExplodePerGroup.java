@@ -17,12 +17,12 @@ public class ExplodePerGroup {
         this.termsWithExplodeOpts = termsWithExplodeOpts;
     }
 
-    public static void performExplodePerGroup(ExplodePerGroup explodePerGroup, Session session) throws ImhotepOutOfMemoryException {
+    public void execute(Session session) throws ImhotepOutOfMemoryException {
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         int nextGroup = 1;
         final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList((Session.GroupKey) null);
         for (int group = 1; group <= session.numGroups; group++) {
-            final Commands.TermsWithExplodeOpts termsWithExplodeOpts = explodePerGroup.termsWithExplodeOpts.get(group);
+            final Commands.TermsWithExplodeOpts termsWithExplodeOpts = this.termsWithExplodeOpts.get(group);
 
             final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
 

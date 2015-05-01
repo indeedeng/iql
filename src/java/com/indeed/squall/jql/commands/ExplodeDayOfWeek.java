@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class ExplodeDayOfWeek {
-    public static void explodeDayOfWeek(Session session) throws ImhotepOutOfMemoryException {
+    public void execute(Session session) throws ImhotepOutOfMemoryException {
         final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();

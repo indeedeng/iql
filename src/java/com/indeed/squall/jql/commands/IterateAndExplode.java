@@ -29,9 +29,9 @@ public class IterateAndExplode {
         this.explodeDefaultName = explodeDefaultName;
     }
 
-    public static void iterateAndExplode(IterateAndExplode iterateAndExplode, Session session) throws ImhotepOutOfMemoryException, IOException {
-        final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(iterateAndExplode.field, iterateAndExplode.fieldOpts));
-        final List<List<List<TermSelects>>> iterationResults = Iterate.performIterate(new Iterate(fieldWithOpts, iterateAndExplode.fieldLimits, iterateAndExplode.selecting), session);
+    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+        final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(this.field, this.fieldOpts));
+        final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).execute(session);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         final List<List<TermSelects>> fieldResults = iterationResults.stream().findFirst().get();
         for (final List<TermSelects> groupResults : fieldResults) {
@@ -39,8 +39,8 @@ public class IterateAndExplode {
             for (final TermSelects result : groupResults) {
                 terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
             }
-            explodes.add(new Commands.TermsWithExplodeOpts(terms, iterateAndExplode.explodeDefaultName));
+            explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }
-        ExplodePerGroup.performExplodePerGroup(new ExplodePerGroup(explodes), session);
+        new ExplodePerGroup(explodes).execute(session);
     }
 }

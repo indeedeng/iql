@@ -20,9 +20,9 @@ public class FilterDocs {
         this.perDatasetFilterMetric = copy;
     }
 
-    public static void filterDocs(FilterDocs filterDocs, Session s) throws ImhotepOutOfMemoryException {
+    public void execute(Session s) throws ImhotepOutOfMemoryException {
         // TODO: Do these in parallel?
-        for (final Map.Entry<String,List<String>> entry : filterDocs.perDatasetFilterMetric.entrySet()) {
+        for (final Map.Entry<String,List<String>> entry : this.perDatasetFilterMetric.entrySet()) {
             final ImhotepSession session = s.sessions.get(entry.getKey()).session;
             final int index = session.pushStats(entry.getValue());
             if (index != 1) {

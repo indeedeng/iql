@@ -25,11 +25,11 @@ public class MetricRegroup {
         this.interval = interval;
     }
 
-    public static void metricRegroup(MetricRegroup metricRegroup, Session session) throws ImhotepOutOfMemoryException {
-        final long max = metricRegroup.max;
-        final long min = metricRegroup.min;
-        final long interval = metricRegroup.interval;
-        final Map<String, ? extends List<String>> perDatasetMetrics = metricRegroup.perDatasetMetric;
+    public void execute(Session session) throws ImhotepOutOfMemoryException {
+        final long max = this.max;
+        final long min = this.min;
+        final long interval = this.interval;
+        final Map<String, ? extends List<String>> perDatasetMetrics = this.perDatasetMetric;
 
         final int numBuckets = 2 + (int) Math.ceil(((double) max - min) / interval);
 

@@ -317,7 +317,7 @@ public class Session {
     public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
         if (command instanceof Iterate) {
-            final List<List<List<TermSelects>>> results = Iterate.performIterate((Iterate) command, this);
+            final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
             final StringBuilder sb = new StringBuilder();
             for (final List<List<TermSelects>> groupFieldTerms : results) {
                 final List<TermSelects> groupTerms = groupFieldTerms.get(0);
@@ -344,7 +344,7 @@ public class Session {
             out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
         } else if (command instanceof GetGroupStats) {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
-            final List<GroupStats> results = GetGroupStats.getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+            final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             final StringBuilder sb = new StringBuilder();
             for (final GroupStats result : results) {
                 final List<String> keyColumns = result.key.asList();
@@ -373,47 +373,47 @@ public class Session {
     private void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
         if (command instanceof Iterate) {
             final Iterate iterate = (Iterate) command;
-            final List<List<List<TermSelects>>> allTermSelects = Iterate.performIterate(iterate, this);
+            final List<List<List<TermSelects>>> allTermSelects = iterate.execute(this);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
         } else if (command instanceof FilterDocs) {
             final FilterDocs filterDocs = (FilterDocs) command;
-            FilterDocs.filterDocs(filterDocs, this);
+            filterDocs.execute(this);
             out.accept("{}");
         } else if (command instanceof ExplodeGroups) {
             final ExplodeGroups explodeGroups = (ExplodeGroups) command;
-            ExplodeGroups.explodeGroups(explodeGroups, this);
+            explodeGroups.execute(this);
             out.accept("success");
         } else if (command instanceof MetricRegroup) {
             final MetricRegroup metricRegroup = (MetricRegroup) command;
-            MetricRegroup.metricRegroup(metricRegroup, this);
+            metricRegroup.execute(this);
             out.accept("success");
         } else if (command instanceof TimeRegroup) {
             final TimeRegroup timeRegroup = (TimeRegroup) command;
-            TimeRegroup.timeRegroup(timeRegroup, this);
+            timeRegroup.execute(this);
             out.accept("success");
         } else if (command instanceof GetGroupStats) {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
-            final List<GroupStats> results = GetGroupStats.getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+            final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof CreateGroupStatsLookup) {
             final CreateGroupStatsLookup createGroupStatsLookup = (CreateGroupStatsLookup) command;
-            final String lookupName = CreateGroupStatsLookup.createGroupStatsLookup(createGroupStatsLookup, this);
+            final String lookupName = createGroupStatsLookup.execute(this);
             out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
         } else if (command instanceof GetGroupDistincts) {
             final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) command;
-            final long[] groupCounts = GetGroupDistincts.getGroupDistincts(getGroupDistincts, this);
+            final long[] groupCounts = getGroupDistincts.execute(this);
             out.accept(MAPPER.writeValueAsString(groupCounts));
         } else if (command instanceof GetGroupPercentiles) {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) command;
-            final long[][] results = GetGroupPercentiles.getGroupPercentiles(getGroupPercentiles, this);
+            final long[][] results = getGroupPercentiles.execute(this);
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof GetNumGroups) {
             out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
         } else if (command instanceof ExplodePerGroup) {
-            ExplodePerGroup.performExplodePerGroup((ExplodePerGroup) command, this);
+            ((ExplodePerGroup) command).execute(this);
             out.accept("success");
         } else if (command instanceof ExplodeDayOfWeek) {
-            ExplodeDayOfWeek.explodeDayOfWeek(this);
+            ((ExplodeDayOfWeek) command).execute(this);
             out.accept("success");
         } else if (command instanceof ExplodeSessionNames) {
             final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
@@ -421,7 +421,7 @@ public class Session {
             throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
         } else if (command instanceof IterateAndExplode) {
             final IterateAndExplode iterateAndExplode = (IterateAndExplode) command;
-            IterateAndExplode.iterateAndExplode(iterateAndExplode, this);
+            iterateAndExplode.execute(this);
         } else if (command instanceof ComputeAndCreateGroupStatsLookup) {
             // TODO: Seriously? Serializing to JSON and then back? To the same program?
             final ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (ComputeAndCreateGroupStatsLookup) command;
@@ -446,11 +446,11 @@ public class Session {
             evaluateCommandInternal(null, out, new CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
         } else if (command instanceof ExplodeByAggregatePercentile) {
             final ExplodeByAggregatePercentile explodeCommand = (ExplodeByAggregatePercentile) command;
-            ExplodeByAggregatePercentile.explodeByAggregatePercentile(explodeCommand, this);
+            explodeCommand.execute(this);
             out.accept("ExlodedByAggregatePercentile");
         } else if (command instanceof ExplodePerDocPercentile) {
             final ExplodePerDocPercentile explodeCommand = (ExplodePerDocPercentile) command;
-            ExplodePerDocPercentile.explodePerDocPercentile(explodeCommand, this);
+            explodeCommand.execute(this);
             out.accept("ExplodedPerDocPercentile");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
