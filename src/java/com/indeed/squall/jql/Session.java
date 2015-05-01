@@ -36,6 +36,7 @@ import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
+import com.indeed.squall.jql.commands.MetricRegroup;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -388,44 +389,9 @@ public class Session {
             final ExplodeGroups explodeGroups = (ExplodeGroups) command;
             ExplodeGroups.explodeGroups(explodeGroups, this);
             out.accept("success");
-        } else if (command instanceof Commands.MetricRegroup) {
-            final Commands.MetricRegroup metricRegroup = (Commands.MetricRegroup) command;
-            final long max = metricRegroup.max;
-            final long min = metricRegroup.min;
-            final long interval = metricRegroup.interval;
-            final Map<String, ? extends List<String>> perDatasetMetrics = metricRegroup.perDatasetMetric;
-
-            final int numBuckets = 2 + (int) Math.ceil(((double) max - min) / interval);
-
-            // TODO: Do these in parallel?
-            perDatasetMetrics.forEach((name, pushes) -> unchecked(() -> {
-                final ImhotepSession session = sessions.get(name).session;
-                final int numStats = session.pushStats(pushes);
-                if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                }
-                session.metricRegroup(0, min, max, interval);
-                session.popStat();
-            }));
-
-            densify(group -> {
-                final int oldGroup = 1 + (group - 1) / numBuckets;
-                final int innerGroup = (group - 1) % numBuckets;
-                final String key;
-                if (innerGroup == numBuckets - 1) {
-                    key = "[" + (min + interval * (numBuckets - 2)) + ", " + INFINITY_SYMBOL + ")";
-                } else if (innerGroup == numBuckets - 2) {
-                    key = "[-" + INFINITY_SYMBOL + ", " + min + ")";
-                } else if (interval == 1) {
-                    key = String.valueOf(min + innerGroup);
-                } else {
-                    final long minInclusive = min + innerGroup * interval;
-                    final long maxExclusive = min + (innerGroup + 1) * interval;
-                    key = "[" + minInclusive + ", " + maxExclusive + ")";
-                }
-                return Pair.of(key, groupKeys.get(oldGroup));
-            });
-
+        } else if (command instanceof MetricRegroup) {
+            final MetricRegroup metricRegroup = (MetricRegroup) command;
+            MetricRegroup.metricRegroup(metricRegroup, this);
             out.accept("success");
         } else if (command instanceof Commands.TimeRegroup) {
             final Commands.TimeRegroup timeRegroup = (Commands.TimeRegroup) command;
@@ -951,7 +917,7 @@ public class Session {
         return (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
     }
 
-    private void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
+    public void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
         final BitSet anyPresent = new BitSet();
         getSessionsMapRaw().values().forEach(session -> unchecked(() -> {
             session.pushStat("count()");

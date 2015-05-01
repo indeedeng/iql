@@ -1,8 +1,6 @@
 package com.indeed.squall.jql;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -15,6 +13,7 @@ import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.Iterate;
+import com.indeed.squall.jql.commands.MetricRegroup;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
@@ -309,22 +308,6 @@ public class Commands {
             this.scope = scope;
             this.field = field;
             this.percentiles = percentiles;
-        }
-    }
-
-    public static class MetricRegroup {
-        public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
-        public final long min;
-        public final long max;
-        public final long interval;
-
-        public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval) {
-            final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-            perDatasetMetric.forEach((k,v) -> copy.put(k, ImmutableList.copyOf(v)));
-            this.perDatasetMetric = copy.build();
-            this.min = min;
-            this.max = max;
-            this.interval = interval;
         }
     }
 
