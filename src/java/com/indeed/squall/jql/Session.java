@@ -30,6 +30,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
@@ -542,21 +543,9 @@ public class Session {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
             final List<GroupStats> results = GetGroupStats.getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             out.accept(MAPPER.writeValueAsString(results));
-        } else if (command instanceof Commands.CreateGroupStatsLookup) {
-            final Commands.CreateGroupStatsLookup createGroupStatsLookup = (Commands.CreateGroupStatsLookup) command;
-            final int depth = currentDepth;
-            final double[] stats = createGroupStatsLookup.stats;
-            final SavedGroupStats savedStats = new SavedGroupStats(depth, stats);
-            final String lookupName;
-            if (createGroupStatsLookup.name.isPresent()) {
-                lookupName = createGroupStatsLookup.name.get();
-                if (savedGroupStats.containsKey(lookupName)) {
-                    throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
-                }
-            } else {
-                lookupName = String.valueOf(savedGroupStats.size());
-            }
-            savedGroupStats.put(lookupName, savedStats);
+        } else if (command instanceof CreateGroupStatsLookup) {
+            final CreateGroupStatsLookup createGroupStatsLookup = (CreateGroupStatsLookup) command;
+            final String lookupName = CreateGroupStatsLookup.createGroupStatsLookup(createGroupStatsLookup, this);
             out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
         } else if (command instanceof Commands.GetGroupDistincts) {
             final Commands.GetGroupDistincts getGroupDistincts = (Commands.GetGroupDistincts) command;
@@ -783,7 +772,7 @@ public class Session {
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
             }
-            evaluateCommandInternal(null, out, new Commands.CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
+            evaluateCommandInternal(null, out, new CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
         } else if (command instanceof Commands.ExplodeByAggregatePercentile) {
             final Commands.ExplodeByAggregatePercentile explodeCommand = (Commands.ExplodeByAggregatePercentile) command;
             final String field = explodeCommand.field;
@@ -1381,11 +1370,11 @@ public class Session {
         void run() throws Throwable;
     }
 
-    private static class SavedGroupStats {
+    public static class SavedGroupStats {
         public final int depth;
         public final double[] stats;
 
-        private SavedGroupStats(int depth, double[] stats) {
+        public SavedGroupStats(int depth, double[] stats) {
             this.depth = depth;
             this.stats = stats;
         }

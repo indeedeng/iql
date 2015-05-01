@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupStats;
@@ -296,16 +297,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class CreateGroupStatsLookup {
-        public final double[] stats;
-        public final Optional<String> name;
-
-        public CreateGroupStatsLookup(double[] stats, Optional<String> name) {
-            this.stats = stats;
-            this.name = name;
-        }
     }
 
     public static class GetGroupDistincts {
