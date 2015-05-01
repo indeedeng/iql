@@ -31,8 +31,10 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
+import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
+import com.indeed.squall.jql.commands.ExplodeSessionNames;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
@@ -417,33 +419,10 @@ public class Session {
         } else if (command instanceof ExplodePerGroup) {
             ExplodePerGroup.performExplodePerGroup((ExplodePerGroup) command, this);
             out.accept("success");
-        } else if (command instanceof Commands.ExplodeDayOfWeek) {
-            final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
-
-            final long start = new DateTime(getEarliestStart()).withTimeAtStartOfDay().getMillis();
-            final long end = new DateTime(getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
-            final int numGroups = performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty());
-            final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
-            final List<GroupRemapRule> rules = Lists.newArrayList();
-            final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
-            for (int group = 1; group <= numGroups; group++) {
-                final int oldGroup = 1 + (group - 1) / numBuckets;
-                final int dayOffset = (group - 1) % numBuckets;
-                final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
-                final int newGroup = 1 + ((oldGroup - 1) * dayKeys.length) + new DateTime(groupStart).getDayOfWeek() - 1;
-                rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
-            }
-            final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
-            final int oldNumGroups = this.numGroups;
-            sessions.values().forEach(sessionInfo -> unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-            assumeDense(group -> {
-                final int originalGroup = 1 + (group - 1) / dayKeys.length;
-                final int dayOfWeek = (group - 1) % dayKeys.length;
-                return Pair.of(dayKeys[dayOfWeek], groupKeys.get(originalGroup));
-            }, oldNumGroups * dayKeys.length);
-            currentDepth += 1;
+        } else if (command instanceof ExplodeDayOfWeek) {
+            ExplodeDayOfWeek.explodeDayOfWeek(this);
             out.accept("success");
-        } else if (command instanceof Commands.ExplodeSessionNames) {
+        } else if (command instanceof ExplodeSessionNames) {
             final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
             // TODO: This
             throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
