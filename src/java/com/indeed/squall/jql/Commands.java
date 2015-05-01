@@ -12,6 +12,7 @@ import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
+import com.indeed.squall.jql.commands.ExplodePerDocPercentile;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.ExplodeSessionNames;
 import com.indeed.squall.jql.commands.FilterDocs;
@@ -318,13 +319,4 @@ public class Commands {
         }
     }
 
-    public static class ExplodePerDocPercentile {
-        public final String field;
-        public final int numBuckets;
-
-        public ExplodePerDocPercentile(String field, int numBuckets) {
-            this.field = field;
-            this.numBuckets = numBuckets;
-        }
-    }
 }
