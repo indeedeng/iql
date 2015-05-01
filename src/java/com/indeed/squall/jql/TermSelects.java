@@ -16,7 +16,7 @@ public class TermSelects {
     public double topMetric;
     public final Session.GroupKey groupKey;
 
-    TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
+    public TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
         this.field = field;
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;

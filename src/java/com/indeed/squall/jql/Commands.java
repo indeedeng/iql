@@ -9,13 +9,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.GetGroupStats;
+import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -295,82 +296,6 @@ public class Commands {
         return defaultName;
     }
 
-    /**
-     toJSON (Iterate field opts) = object
-     [ "command" .= text "iterate"
-     , "field" .= field
-     , "opts" .= opts
-     ]
-     */
-    public static class Iterate {
-        public final List<FieldWithOptions> fields;
-        public final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimitingOpts;
-        public final List<AggregateMetric> selecting;
-
-        public Iterate(List<FieldWithOptions> fields, Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimitingOpts, List<AggregateMetric> selecting) {
-            this.fields = fields;
-            this.fieldLimitingOpts = fieldLimitingOpts;
-            this.selecting = selecting;
-        }
-
-        enum FieldLimitingMechanism {MinimalMin, MaximalMax}
-
-        public static class TopK {
-            public final int limit;
-            public final AggregateMetric metric;
-
-            private TopK(int limit, AggregateMetric metric) {
-                this.limit = limit;
-                this.metric = metric;
-            }
-        }
-
-        public static class FieldWithOptions {
-            public final String field;
-            public final FieldIterateOpts opts;
-
-            public FieldWithOptions(String field, FieldIterateOpts opts) {
-                this.field = field;
-                this.opts = opts;
-            }
-        }
-
-        public static class FieldIterateOpts {
-            OptionalInt limit = OptionalInt.empty();
-            Optional<Iterate.TopK> topK = Optional.empty();
-            Optional<AggregateFilter> filter = Optional.empty();
-
-            public void parseFrom(JsonNode options, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
-                for (final JsonNode option : options) {
-                    switch (option.get("type").textValue()) {
-                        case "filter": {
-                            this.filter = Optional.of(AggregateFilter.fromJson(option.get("filter"), namedMetricLookup));
-                            break;
-                        }
-                        case "limit": {
-                            this.limit = OptionalInt.of(option.get("k").intValue());
-                            break;
-                        }
-                        case "top": {
-                            final int k = option.get("k").intValue();
-                            final AggregateMetric metric = AggregateMetric.fromJson(option.get("metric"), namedMetricLookup);
-                            this.topK = Optional.of(new Iterate.TopK(k, metric));
-                            break;
-                        }
-                    }
-                }
-            }
-
-            public FieldIterateOpts copy() {
-                final FieldIterateOpts result = new FieldIterateOpts();
-                result.limit = this.limit;
-                result.topK = this.topK;
-                result.filter = this.filter;
-                return result;
-            }
-        }
-    }
-
     public static class FilterDocs {
         public final Map<String, List<String>> perDatasetFilterMetric;
 
@@ -400,22 +325,6 @@ public class Commands {
             this.stringTerms = stringTerms;
             this.intTerms = intTerms;
             defaultGroupTerm = defaultName;
-        }
-    }
-
-    /**
-     toJSON (GetGroupStats metrics) = object
-     [ "command" .= text "getGroupStats"
-     , "metrics" .= metrics
-     ]
-     */
-    public static class GetGroupStats {
-        public final List<AggregateMetric> metrics;
-        public final boolean returnGroupKeys;
-
-        public GetGroupStats(List<AggregateMetric> metrics, boolean returnGroupKeys) {
-            this.metrics = metrics;
-            this.returnGroupKeys = returnGroupKeys;
         }
     }
 

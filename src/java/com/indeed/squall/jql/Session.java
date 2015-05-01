@@ -18,10 +18,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
-import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.DatasetInfo;
@@ -32,6 +30,8 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.jql.commands.GetGroupStats;
+import com.indeed.squall.jql.commands.Iterate;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -59,7 +59,6 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -72,7 +71,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -99,7 +97,7 @@ public class Session {
     public int currentDepth = 0;
 
     private final Map<String, ImhotepSessionInfo> sessions;
-    private int numGroups = 1;
+    public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
     static {
@@ -319,8 +317,8 @@ public class Session {
 
     public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
-        if (command instanceof Commands.Iterate) {
-            final List<List<List<TermSelects>>> results = performIterate((Commands.Iterate) command);
+        if (command instanceof Iterate) {
+            final List<List<List<TermSelects>>> results = Iterate.performIterate((Iterate) command, this);
             final StringBuilder sb = new StringBuilder();
             for (final List<List<TermSelects>> groupFieldTerms : results) {
                 final List<TermSelects> groupTerms = groupFieldTerms.get(0);
@@ -345,9 +343,9 @@ public class Session {
             }
             sb.setLength(sb.length() - 1);
             out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
-        } else if (command instanceof Commands.GetGroupStats) {
-            final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+        } else if (command instanceof GetGroupStats) {
+            final GetGroupStats getGroupStats = (GetGroupStats) command;
+            final List<GroupStats> results = GetGroupStats.getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             final StringBuilder sb = new StringBuilder();
             for (final GroupStats result : results) {
                 final List<String> keyColumns = result.key.asList();
@@ -374,9 +372,9 @@ public class Session {
     }
 
     private void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
-        if (command instanceof Commands.Iterate) {
-            final Commands.Iterate iterate = (Commands.Iterate) command;
-            final List<List<List<TermSelects>>> allTermSelects = performIterate(iterate);
+        if (command instanceof Iterate) {
+            final Iterate iterate = (Iterate) command;
+            final List<List<List<TermSelects>>> allTermSelects = Iterate.performIterate(iterate, this);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
         } else if (command instanceof Commands.FilterDocs) {
             final Commands.FilterDocs filterDocs = (Commands.FilterDocs) command;
@@ -587,9 +585,9 @@ public class Session {
             }
             this.currentDepth += 1;
             out.accept("success");
-        } else if (command instanceof Commands.GetGroupStats) {
-            final Commands.GetGroupStats getGroupStats = (Commands.GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+        } else if (command instanceof GetGroupStats) {
+            final GetGroupStats getGroupStats = (GetGroupStats) command;
+            final List<GroupStats> results = GetGroupStats.getGroupStats(getGroupStats, groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof Commands.CreateGroupStatsLookup) {
             final Commands.CreateGroupStatsLookup createGroupStatsLookup = (Commands.CreateGroupStatsLookup) command;
@@ -799,8 +797,8 @@ public class Session {
             throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
         } else if (command instanceof Commands.IterateAndExplode) {
             final Commands.IterateAndExplode iterateAndExplode = (Commands.IterateAndExplode) command;
-            final List<Commands.Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Commands.Iterate.FieldWithOptions(iterateAndExplode.field, iterateAndExplode.fieldOpts));
-            final List<List<List<TermSelects>>> iterationResults = performIterate(new Commands.Iterate(fieldWithOpts, iterateAndExplode.fieldLimits, iterateAndExplode.selecting));
+            final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(iterateAndExplode.field, iterateAndExplode.fieldOpts));
+            final List<List<List<TermSelects>>> iterationResults = Iterate.performIterate(new Iterate(fieldWithOpts, iterateAndExplode.fieldLimits, iterateAndExplode.selecting), this);
             final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
             final List<List<TermSelects>> fieldResults = iterationResults.stream().findFirst().get();
             for (final List<TermSelects> groupResults : fieldResults) {
@@ -823,7 +821,7 @@ public class Session {
             } else if (computation instanceof Commands.GetGroupPercentiles) {
                 final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
                 results = intellijDoesntLikeInlining.get(0);
-            } else if (computation instanceof Commands.GetGroupStats) {
+            } else if (computation instanceof GetGroupStats) {
                 final List<GroupStats> groupStats = MAPPER.readValue(reference.get(), new TypeReference<List<GroupStats>>(){});
                 results = new double[groupStats.size()];
                 for (int i = 0; i < groupStats.size(); i++) {
@@ -1080,185 +1078,12 @@ public class Session {
         out.accept("success");
     }
 
-    private List<List<List<TermSelects>>> performIterate(final Commands.Iterate iterate) throws ImhotepOutOfMemoryException, IOException {
-        final Set<QualifiedPush> allPushes = Sets.newHashSet();
-        final List<AggregateMetric> metrics = Lists.newArrayList();
-        iterate.fields.forEach(field -> field.opts.topK.ifPresent(topK -> metrics.add(topK.metric)));
-        metrics.addAll(iterate.selecting);
-        for (final AggregateMetric metric : metrics) {
-            allPushes.addAll(metric.requires());
-        }
-        iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> allPushes.addAll(filter.requires())));
-        final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
-        final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-        pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
-        registerMetrics(metricIndexes, metrics, Arrays.asList());
-        iterate.fields.forEach(field -> field.opts.filter.ifPresent(filter -> filter.register(metricIndexes, groupKeys)));
-
-        final DenseInt2ObjectMap<Queue<Queue<TermSelects>>> qqs = new DenseInt2ObjectMap<>();
-        if (iterate.fieldLimitingOpts.isPresent()) {
-            final Pair<Integer, Commands.Iterate.FieldLimitingMechanism> p = iterate.fieldLimitingOpts.get();
-            final int fieldLimitCount = p.getFirst();
-            final Commands.Iterate.FieldLimitingMechanism mechanism = p.getSecond();
-            final Comparator<Queue<TermSelects>> queueComparator;
-            switch (mechanism) {
-                case MinimalMin:
-                    queueComparator = new Comparator<Queue<TermSelects>>() {
-                        @Override
-                        public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
-                            double o1Min = Double.POSITIVE_INFINITY;
-                            for (final TermSelects termSelects : o1) {
-                                o1Min = Math.min(termSelects.topMetric, o1Min);
-                            }
-                            double o2Min = Double.POSITIVE_INFINITY;
-                            for (final TermSelects termSelects : o2) {
-                                o2Min = Math.min(termSelects.topMetric, o2Min);
-                            }
-                            return Doubles.compare(o1Min, o2Min);
-                        }
-                    };
-                    break;
-                case MaximalMax:
-                    queueComparator = new Comparator<Queue<TermSelects>>() {
-                        @Override
-                        public int compare(Queue<TermSelects> o1, Queue<TermSelects> o2) {
-                            double o1Max = Double.POSITIVE_INFINITY;
-                            for (final TermSelects termSelects : o1) {
-                                o1Max = Math.max(termSelects.topMetric, o1Max);
-                            }
-                            double o2Max = Double.POSITIVE_INFINITY;
-                            for (final TermSelects termSelects : o2) {
-                                o2Max = Math.max(termSelects.topMetric, o2Max);
-                            }
-                            return Doubles.compare(o2Max, o1Max);
-                        }
-                    };
-                    break;
-                default:
-                    throw new IllegalStateException();
-            }
-            for (int i = 1; i <= numGroups; i++) {
-                qqs.put(i, BoundedPriorityQueue.newInstance(fieldLimitCount, queueComparator));
-            }
-        } else {
-            for (int i = 1; i <= numGroups; i++) {
-                qqs.put(i, new ArrayDeque<>());
-            }
-        }
-
-        for (final Commands.Iterate.FieldWithOptions fieldWithOpts : iterate.fields) {
-            final String field = fieldWithOpts.field;
-            final Commands.Iterate.FieldIterateOpts opts = fieldWithOpts.opts;
-
-            final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
-            if (opts.topK.isPresent()) {
-                final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
-                for (int i = 1; i <= numGroups; i++) {
-                    // TODO: If this type changes, then a line below with an instanceof check will break.
-                    pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
-                }
-            } else {
-                for (int i = 1; i <= numGroups; i++) {
-                    pqs.put(i, new ArrayDeque<>());
-                }
-            }
-            final AggregateMetric topKMetricOrNull;
-            if (opts.topK.isPresent()) {
-                topKMetricOrNull = opts.topK.get().metric;
-                topKMetricOrNull.register(metricIndexes, groupKeys);
-            } else {
-                topKMetricOrNull = null;
-            }
-            final AggregateFilter filterOrNull = opts.filter.orElse(null);
-
-            if (isIntField(field)) {
-                iterateMultiInt(getSessionsMapRaw(), sessionMetricIndexes, field, new IntIterateCallback() {
-                    @Override
-                    public void term(long term, long[] stats, int group) {
-                        if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                            return;
-                        }
-                        final double[] selectBuffer = new double[iterate.selecting.size()];
-                        final double value;
-                        if (topKMetricOrNull != null) {
-                            value = topKMetricOrNull.apply(term, stats, group);
-                        } else {
-                            value = 0.0;
-                        }
-                        final List<AggregateMetric> selecting = iterate.selecting;
-                        for (int i = 0; i < selecting.size(); i++) {
-                            selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                        }
-                        pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, groupKeys.get(group)));
-                    }
-                });
-            } else if (isStringField(field)) {
-                iterateMultiString(getSessionsMapRaw(), sessionMetricIndexes, field, new StringIterateCallback() {
-                    @Override
-                    public void term(String term, long[] stats, int group) {
-                        if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                            return;
-                        }
-                        final double[] selectBuffer = new double[iterate.selecting.size()];
-                        final double value;
-                        if (topKMetricOrNull != null) {
-                            value = topKMetricOrNull.apply(term, stats, group);
-                        } else {
-                            value = 0.0;
-                        }
-                        final List<AggregateMetric> selecting = iterate.selecting;
-                        for (int i = 0; i < selecting.size(); i++) {
-                            selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                        }
-                        pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, groupKeys.get(group)));
-                    }
-                });
-            } else {
-                throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
-            }
-
-            for (int i = 1; i <= numGroups; i++) {
-                final Queue<TermSelects> pq = pqs.get(i);
-                if (!pq.isEmpty()) {
-                    qqs.get(i).offer(pq);
-                }
-            }
-        }
-
-        getSessionsMapRaw().values().forEach(session -> {
-            while (session.getNumStats() != 0) {
-                session.popStat();
-            }
-        });
-
-        final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
-        for (int group = 1; group <= numGroups; group++) {
-            final Queue<Queue<TermSelects>> qq = qqs.get(group);
-            final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
-            while (!qq.isEmpty()) {
-                final Queue<TermSelects> pq = qq.poll();
-                final List<TermSelects> listTermSelects = Lists.newArrayList();
-                while (!pq.isEmpty()) {
-                    listTermSelects.add(pq.poll());
-                }
-                // TODO: This line is very fragile
-                if (pq instanceof BoundedPriorityQueue) {
-                    groupTermSelects.add(Lists.reverse(listTermSelects));
-                } else {
-                    groupTermSelects.add(listTermSelects);
-                }
-            }
-            allTermSelects.add(groupTermSelects);
-        }
-        return allTermSelects;
-    }
-
-    private void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
+    public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         metrics.forEach(m -> m.register(metricIndexes, groupKeys));
         filters.forEach(f -> f.register(metricIndexes, groupKeys));
     }
 
-    private void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
+    public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
         int numStats = 0;
         for (final QualifiedPush push : allPushes) {
             final int index = numStats++;
@@ -1339,7 +1164,7 @@ public class Session {
         groupKeys = nextGroupKeys;
     }
 
-    private Map<String, ImhotepSession> getSessionsMapRaw() {
+    public Map<String, ImhotepSession> getSessionsMapRaw() {
         final Map<String, ImhotepSession> sessionMap = Maps.newHashMap();
         sessions.forEach((k,v) -> sessionMap.put(k, v.session));
         return sessionMap;
@@ -1349,11 +1174,11 @@ public class Session {
         return Maps.newHashMap(sessions);
     }
 
-    private boolean isIntField(String field) {
+    public boolean isIntField(String field) {
         return sessions.values().stream().allMatch(x -> x.intFields.contains(field));
     }
 
-    private boolean isStringField(String field) {
+    public boolean isStringField(String field) {
         return sessions.values().stream().allMatch(x -> x.stringFields.contains(field));
     }
 
@@ -1413,7 +1238,7 @@ public class Session {
         }
     }
 
-    private interface IntIterateCallback {
+    public interface IntIterateCallback {
         void term(long term, long[] stats, int group);
     }
 
@@ -1506,7 +1331,7 @@ public class Session {
         }
     }
 
-    private interface StringIterateCallback {
+    public interface StringIterateCallback {
         void term(String term, long[] stats, int group);
     }
 
@@ -1564,62 +1389,6 @@ public class Session {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
             dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];
         }
-    }
-
-    public static List<GroupStats> getGroupStats(Commands.GetGroupStats getGroupStats, List<GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
-        final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
-        getGroupStats.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
-        final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
-        final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-        int numStats = 0;
-        for (final QualifiedPush push : pushesRequired) {
-            final int index = numStats++;
-            metricIndexes.put(push, index);
-            final String sessionName = push.sessionName;
-            sessions.get(sessionName).pushStats(push.pushes);
-            sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
-        }
-
-        getGroupStats.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
-
-        final long[][] allStats = new long[numStats][];
-        sessionMetricIndexes.forEach((name, positions) -> {
-            final ImhotepSession session = sessions.get(name);
-            for (int i = 0; i < positions.size(); i++) {
-                allStats[positions.get(i)] = session.getGroupStats(i);
-            }
-        });
-
-        final List<AggregateMetric> selectedMetrics = getGroupStats.metrics;
-        final double[][] results = new double[numGroups][selectedMetrics.size()];
-        final long[] groupStatsBuf = new long[allStats.length];
-        for (int group = 1; group <= numGroups; group++) {
-            for (int j = 0; j < allStats.length; j++) {
-                groupStatsBuf[j] = allStats[j].length > group ? allStats[j][group] : 0L;
-            }
-            for (int j = 0; j < selectedMetrics.size(); j++) {
-                results[group - 1][j] = selectedMetrics.get(j).apply(0, groupStatsBuf, group);
-            }
-        }
-
-        final List<GroupStats> groupStats = Lists.newArrayList();
-        for (int i = 0; i < numGroups; i++) {
-            final GroupKey groupKey;
-            if (returnGroupKeys) {
-                groupKey = groupKeys.get(i + 1);
-            } else {
-                groupKey = null;
-            }
-            groupStats.add(new GroupStats(groupKey, results[i]));
-        }
-
-        sessions.values().forEach(session -> {
-            while (session.getNumStats() > 0) {
-                session.popStat();
-            }
-        });
-
-        return groupStats;
     }
 
     public static class GroupStats {
