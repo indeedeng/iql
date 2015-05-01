@@ -18,6 +18,7 @@ import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
+import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -312,22 +313,6 @@ public class Commands {
         public TermsWithExplodeOpts(List<Term> terms, Optional<String> defaultName) {
             this.terms = terms;
             this.defaultName = defaultName;
-        }
-    }
-
-    public static class IterateAndExplode {
-        public final String field;
-        public final List<AggregateMetric> selecting;
-        public final Iterate.FieldIterateOpts fieldOpts;
-        public final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits;
-        public final Optional<String> explodeDefaultName;
-
-        public IterateAndExplode(String field, List<AggregateMetric> selecting, Iterate.FieldIterateOpts fieldOpts, Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
-            this.field = field;
-            this.selecting = selecting;
-            this.fieldOpts = fieldOpts;
-            this.fieldLimits = fieldLimits;
-            this.explodeDefaultName = explodeDefaultName;
         }
     }
 

@@ -21,7 +21,6 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.util.Pair;
-import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
@@ -41,6 +40,7 @@ import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
+import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -426,20 +426,9 @@ public class Session {
             final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
             // TODO: This
             throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
-        } else if (command instanceof Commands.IterateAndExplode) {
-            final Commands.IterateAndExplode iterateAndExplode = (Commands.IterateAndExplode) command;
-            final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(iterateAndExplode.field, iterateAndExplode.fieldOpts));
-            final List<List<List<TermSelects>>> iterationResults = Iterate.performIterate(new Iterate(fieldWithOpts, iterateAndExplode.fieldLimits, iterateAndExplode.selecting), this);
-            final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
-            final List<List<TermSelects>> fieldResults = iterationResults.stream().findFirst().get();
-            for (final List<TermSelects> groupResults : fieldResults) {
-                final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
-                for (final TermSelects result : groupResults) {
-                    terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
-                }
-                explodes.add(new Commands.TermsWithExplodeOpts(terms, iterateAndExplode.explodeDefaultName));
-            }
-            ExplodePerGroup.performExplodePerGroup(new ExplodePerGroup(explodes), this);
+        } else if (command instanceof IterateAndExplode) {
+            final IterateAndExplode iterateAndExplode = (IterateAndExplode) command;
+            IterateAndExplode.iterateAndExplode(iterateAndExplode, this);
         } else if (command instanceof Commands.ComputeAndCreateGroupStatsLookup) {
             // TODO: Seriously? Serializing to JSON and then back? To the same program?
             final Commands.ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (Commands.ComputeAndCreateGroupStatsLookup) command;
