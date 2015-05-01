@@ -16,10 +16,7 @@ import java.util.regex.Pattern;
 /**
  * @author jwolfe
  */
-public interface AggregateFilter {
-    Set<QualifiedPush> requires();
-
-    void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys);
+public interface AggregateFilter extends Pushable{
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
 

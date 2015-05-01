@@ -2,6 +2,7 @@ package com.indeed.squall.jql.metrics.aggregate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
+import com.indeed.squall.jql.Pushable;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 
@@ -14,10 +15,7 @@ import java.util.function.Supplier;
 /**
  * @author jwolfe
  */
-public interface AggregateMetric {
-    Set<QualifiedPush> requires();
-
-    void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys);
+public interface AggregateMetric extends Pushable {
     double apply(String term, long[] stats, int group);
     double apply(long term, long[] stats, int group);
 
