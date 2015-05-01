@@ -9,6 +9,7 @@ import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
+import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
@@ -314,18 +315,6 @@ public class Commands {
         public TermsWithExplodeOpts(List<Term> terms, Optional<String> defaultName) {
             this.terms = terms;
             this.defaultName = defaultName;
-        }
-    }
-
-    public static class ExplodeByAggregatePercentile {
-        public final String field;
-        public final AggregateMetric metric;
-        public final int numBuckets;
-
-        public ExplodeByAggregatePercentile(String field, AggregateMetric metric, int numBuckets) {
-            this.field = field;
-            this.metric = metric;
-            this.numBuckets = numBuckets;
         }
     }
 

@@ -31,6 +31,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
+import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
@@ -46,13 +47,8 @@ import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -67,13 +63,11 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -452,104 +446,9 @@ public class Session {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
             }
             evaluateCommandInternal(null, out, new CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
-        } else if (command instanceof Commands.ExplodeByAggregatePercentile) {
-            final Commands.ExplodeByAggregatePercentile explodeCommand = (Commands.ExplodeByAggregatePercentile) command;
-            final String field = explodeCommand.field;
-            final AggregateMetric metric = explodeCommand.metric;
-            final int numBuckets = explodeCommand.numBuckets;
-            final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
-            final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
-            pushMetrics(metric.requires(), metricIndexes, sessionMetricIndexes);
-            metric.register(metricIndexes, groupKeys);
-
-            final List<GroupKey> nextGroupKeys = Lists.newArrayListWithCapacity(1 + numGroups * numBuckets);
-            nextGroupKeys.add(null);
-
-            if (isIntField(field)) {
-                final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-                iterateMultiInt(getSessionsMapRaw(), sessionMetricIndexes, field,
-                        (term, stats, group) -> perGroupTermToValue.computeIfAbsent(group, g -> new Long2DoubleOpenHashMap()).put(term, metric.apply(term, stats, group))
-                );
-                final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(numGroups);
-                for (int group = 1; group <= numGroups; group++) {
-                    final int groupBase = 1 + (group - 1) * numBuckets;
-                    final Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
-                    final double[] percentiles = getPercentiles(termToValue.values(), numBuckets);
-                    final Int2ObjectOpenHashMap<LongArrayList> groupOffsetToTerms = new Int2ObjectOpenHashMap<>();
-                    for (final Long2DoubleMap.Entry entry : termToValue.long2DoubleEntrySet()) {
-                        final int groupOffset = findPercentile(entry.getDoubleValue(), percentiles);
-                        groupOffsetToTerms.computeIfAbsent(groupOffset, k -> new LongArrayList()).add(entry.getLongKey());
-                    }
-
-                    final int arraySize = groupOffsetToTerms.values().stream().mapToInt(LongArrayList::size).sum();
-                    final int[] positiveGroups = new int[arraySize];
-                    final RegroupCondition[] conditions = new RegroupCondition[arraySize];
-                    int arrayIndex = 0;
-                    for (int i = 0; i < numBuckets; i++) {
-                        final LongArrayList terms = groupOffsetToTerms.get(i);
-                        if (terms != null) {
-                            for (final long term : terms) {
-                                positiveGroups[arrayIndex] = groupBase + i;
-                                conditions[arrayIndex] = new RegroupCondition(field, true, term, null, false);
-                                arrayIndex++;
-                            }
-                        }
-                        final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                        nextGroupKeys.add(new GroupKey(keyTerm, nextGroupKeys.size(), groupKeys.get(group)));
-                    }
-                    rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
-                }
-                final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-                sessions.values().forEach(s -> unchecked(() -> s.session.regroup(rulesArr)));
-            } else if (isStringField(field)) {
-                final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-                iterateMultiString(getSessionsMapRaw(), sessionMetricIndexes, field,
-                        (term, stats, group) -> perGroupTermToValue.computeIfAbsent(group, g -> new Object2DoubleOpenHashMap<>()).put(term, metric.apply(term, stats, group))
-                );
-                final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(numGroups);
-                for (int group = 1; group <= numGroups; group++) {
-                    final int groupBase = 1 + (group - 1) * numBuckets;
-                    final Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);
-                    final double[] percentiles = getPercentiles(termToValue.values(), numBuckets);
-                    final Int2ObjectOpenHashMap<ArrayList<String>> groupOffsetToTerms = new Int2ObjectOpenHashMap<>();
-                    for (final Map.Entry<String, Double> entry : termToValue.entrySet()) {
-                        final int groupOffset = findPercentile(entry.getValue(), percentiles);
-                        groupOffsetToTerms.computeIfAbsent(groupOffset, k -> new ArrayList<>()).add(entry.getKey());
-                    }
-
-                    final int arraySize = groupOffsetToTerms.values().stream().mapToInt(ArrayList::size).sum();
-                    final int[] positiveGroups = new int[arraySize];
-                    final RegroupCondition[] conditions = new RegroupCondition[arraySize];
-                    int arrayIndex = 0;
-                    for (int i = 0; i < numBuckets; i++) {
-                        final ArrayList<String> terms = groupOffsetToTerms.get(i);
-                        if (terms != null) {
-                            for (final String term : terms) {
-                                positiveGroups[arrayIndex] = groupBase + i;
-                                conditions[arrayIndex] = new RegroupCondition(field, false, 0, term, false);
-                                arrayIndex++;
-                            }
-                        }
-                        final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                        nextGroupKeys.add(new GroupKey(keyTerm, nextGroupKeys.size(), groupKeys.get(group)));
-                    }
-                    rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
-                }
-                final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-                sessions.values().forEach(s -> unchecked(() -> s.session.regroup(rulesArr)));
-            } else {
-                throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
-            }
-            sessions.values().forEach(v -> unchecked(() -> {
-                while (v.session.getNumStats() > 0) {
-                    v.session.popStat();
-                }
-            }));
-
-            numGroups = nextGroupKeys.size() - 1;
-            groupKeys = nextGroupKeys;
-            currentDepth += 1;
-
+        } else if (command instanceof ExplodeByAggregatePercentile) {
+            final ExplodeByAggregatePercentile explodeCommand = (ExplodeByAggregatePercentile) command;
+            ExplodeByAggregatePercentile.explodeByAggregatePercentile(explodeCommand, this);
             out.accept("ExlodedByAggregatePercentile");
         } else if (command instanceof Commands.ExplodePerDocPercentile) {
             final Commands.ExplodePerDocPercentile explodeCommand = (Commands.ExplodePerDocPercentile) command;
@@ -624,7 +523,7 @@ public class Session {
         }
     }
 
-    private int findPercentile(double v, double[] percentiles) {
+    public int findPercentile(double v, double[] percentiles) {
         for (int i = 0; i < percentiles.length - 1; i++) {
             if (v <= percentiles[i + 1]) {
                 return i;
@@ -636,7 +535,7 @@ public class Session {
     // Returns the start of the bucket.
     // result[0] will always be 0
     // result[1] will be the minimum value required to be greater than 1/k values.
-    private static double[] getPercentiles(DoubleCollection values, int k) {
+    public static double[] getPercentiles(DoubleCollection values, int k) {
         final DoubleArrayList list = new DoubleArrayList(values);
         list.sort(Double::compare);
         final double[] result = new double[k];
