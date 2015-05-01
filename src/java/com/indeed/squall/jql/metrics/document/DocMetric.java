@@ -1,4 +1,4 @@
-package com.indeed.squall.jql;
+package com.indeed.squall.jql.metrics.document;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;

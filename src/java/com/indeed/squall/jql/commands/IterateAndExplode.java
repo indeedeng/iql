@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.jql.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.Commands;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.TermSelects;

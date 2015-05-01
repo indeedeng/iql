@@ -2,6 +2,8 @@ package com.indeed.squall.jql;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +23,7 @@ public interface AggregateFilter {
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
 
-    static AggregateFilter fromJson(JsonNode node, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
+    static AggregateFilter fromJson(JsonNode node, Function<String, PerGroupConstant> namedMetricLookup) {
         final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"), namedMetricLookup);
         final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"), namedMetricLookup);
         final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);

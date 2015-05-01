@@ -1,0 +1,51 @@
+package com.indeed.squall.jql.metrics.aggregate;
+
+import com.indeed.squall.jql.QualifiedPush;
+import com.indeed.squall.jql.Session;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class Running implements AggregateMetric {
+    private final AggregateMetric inner;
+    private final int offset;
+    private final Map<Integer, Double> groupSums = new Int2DoubleOpenHashMap();
+    private int[] groupToRealGroup;
+
+    public Running(AggregateMetric inner, int offset) {
+        this.inner = inner;
+        this.offset = offset;
+    }
+
+    @Override
+    public Set<QualifiedPush> requires() {
+        return inner.requires();
+    }
+
+    @Override
+    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        inner.register(metricIndexes, groupKeys);
+        this.groupToRealGroup = new int[groupKeys.size()];
+        for (int group = 1; group < groupKeys.size(); group++) {
+            Session.GroupKey groupKey = groupKeys.get(group);
+            for (int i = 0; i < offset; i++) {
+                groupKey = groupKey.parent;
+            }
+            groupToRealGroup[group] = groupKey.index;
+        }
+    }
+
+    @Override
+    public double apply(String term, long[] stats, int group) {
+        final double val = inner.apply(term, stats, group);
+        return groupSums.compute(groupToRealGroup[group], (k, v) -> v == null ? val : v + val);
+    }
+
+    @Override
+    public double apply(long term, long[] stats, int group) {
+        final double val = inner.apply(term, stats, group);
+        return groupSums.compute(groupToRealGroup[group], (k, v) -> v == null ? val : v + val);
+    }
+}

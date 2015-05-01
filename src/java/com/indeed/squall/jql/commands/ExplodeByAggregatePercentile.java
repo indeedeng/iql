@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.jql.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;

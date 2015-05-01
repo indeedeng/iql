@@ -45,6 +45,8 @@ import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -590,7 +592,7 @@ public class Session {
         return sessions.values().stream().allMatch(x -> x.stringFields.contains(field));
     }
 
-    private AggregateMetric.PerGroupConstant namedMetricLookup(String name) {
+    private PerGroupConstant namedMetricLookup(String name) {
         final SavedGroupStats savedStat = savedGroupStats.get(name);
         final int depthChange = currentDepth - savedStat.depth;
         final double[] stats = new double[numGroups + 1];
@@ -601,7 +603,7 @@ public class Session {
             }
             stats[group] = savedStat.stats[key.index];
         }
-        return new AggregateMetric.PerGroupConstant(stats);
+        return new PerGroupConstant(stats);
     }
 
     public static void unchecked(RunnableWithException runnable) {

@@ -24,6 +24,8 @@ import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
@@ -39,7 +41,7 @@ import java.util.function.Function;
 public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
-    public static Object parseCommand(JsonNode command, Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup) {
+    public static Object parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup) {
         switch (command.get("command").textValue()) {
             case "iterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
@@ -268,7 +270,7 @@ public class Commands {
         return name;
     }
 
-    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, AggregateMetric.PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
+    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
         Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").textValue()) {

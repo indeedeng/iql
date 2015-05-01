@@ -7,6 +7,7 @@ import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.squall.jql.metrics.document.DocMetric;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.Arrays;
