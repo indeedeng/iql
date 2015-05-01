@@ -46,6 +46,9 @@ import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
+import com.indeed.squall.jql.dimensions.DatasetDimensions;
+import com.indeed.squall.jql.dimensions.DimensionsLoader;
+import com.indeed.squall.jql.dimensions.DimensionsTranslator;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -58,6 +61,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -77,6 +81,8 @@ import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -155,7 +161,12 @@ public class Session {
         log.info("wsSocketPort = " + wsSocketPort);
         final int unixSocketPort = Integer.parseInt((String) props.getOrDefault("unix_socket", "28347"));
         log.info("unixSocketPort = " + unixSocketPort);
-        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort))) {
+
+        final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+        final DimensionsLoader dimensionsLoader = new DimensionsLoader("dataset-dimensions", new File("/var/lucene/__/ramses-meta"));
+        executor.scheduleAtFixedRate(dimensionsLoader, 0, 5, TimeUnit.MINUTES);
+
+        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort), dimensionsLoader)) {
             new Thread(wsServer::run).start();
 
             final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
@@ -176,7 +187,7 @@ public class Session {
 
                         final Consumer<String> resultConsumer = out::println;
 
-                        processConnection(client, nodeSupplier, resultConsumer);
+                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions());
                     } catch (Throwable e) {
                         log.error("wat", e);
                         System.out.println("e = " + e);
@@ -186,13 +197,13 @@ public class Session {
         }
     }
 
-    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out) throws IOException, ImhotepOutOfMemoryException {
+    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out, Map<String, DatasetDimensions> dimensions) throws IOException, ImhotepOutOfMemoryException {
         final JsonNode sessionRequest = in.get();
         if (sessionRequest.has("describe")) {
             processDescribe(client, out, sessionRequest);
         } else {
             try (final Closer closer = Closer.create()) {
-                final Optional<Session> session = createSession(client, sessionRequest, closer, out);
+                final Optional<Session> session = createSession(client, sessionRequest, closer, out, dimensions);
                 if (session.isPresent()) {
                     // Not using ifPresent because of exceptions
                     final Session session1 = session.get();
@@ -218,10 +229,10 @@ public class Session {
         out.accept(MAPPER.writeValueAsString(datasetDescriptor));
     }
 
-    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out, Map<String, DatasetDimensions> dimensions) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
         if (sessionRequest.has("commands")) {
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions);
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions);
             final Session session = new Session(sessions);
             final JsonNode commands = sessionRequest.get("commands");
             for (int i = 0; i < commands.size(); i++) {
@@ -235,13 +246,13 @@ public class Session {
             }
             return Optional.empty();
         } else {
-            createSubSessions(client, sessionRequest, closer, sessions);
+            createSubSessions(client, sessionRequest, closer, sessions, dimensions);
             out.accept("opened");
             return Optional.of(new Session(sessions));
         }
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions) {
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions) {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String dataset = elem.get("dataset").textValue();
@@ -254,7 +265,7 @@ public class Session {
             final Collection<String> sessionStringFields = datasetInfo.getStringFields();
             final DateTime startDateTime = parseDateTime(start);
             final DateTime endDateTime = parseDateTime(end);
-            final ImhotepSession session = closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build());
+            final ImhotepSession session = new DimensionsTranslator(closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build()), dimensions.get(dataset));
 
             final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
 
