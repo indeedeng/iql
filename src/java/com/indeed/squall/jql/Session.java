@@ -36,6 +36,7 @@ import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
+import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -410,7 +411,7 @@ public class Session {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) command;
             final long[][] results = GetGroupPercentiles.getGroupPercentiles(getGroupPercentiles, this);
             out.accept(MAPPER.writeValueAsString(results));
-        } else if (command instanceof Commands.GetNumGroups) {
+        } else if (command instanceof GetNumGroups) {
             out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
         } else if (command instanceof Commands.ExplodePerGroup) {
             performExplodePerGroup(out, (Commands.ExplodePerGroup) command);

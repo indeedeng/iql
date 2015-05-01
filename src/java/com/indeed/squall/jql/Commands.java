@@ -13,6 +13,7 @@ import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
+import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -299,9 +300,6 @@ public class Commands {
             }
         }
         return defaultName;
-    }
-
-    public static class GetNumGroups {
     }
 
     public static class TermsWithExplodeOpts {
