@@ -44,6 +44,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
@@ -429,15 +430,17 @@ public class Session {
             final ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (ComputeAndCreateGroupStatsLookup) command;
             final AtomicReference<String> reference = new AtomicReference<>();
             final Object computation = computeAndCreateGroupStatsLookup.computation;
+            System.out.println("computation = " + computation);
             evaluateCommandInternal(null, reference::set, computation);
             double[] results;
-            if (computation instanceof GetGroupDistincts) {
+            if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
                 results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
             } else if (computation instanceof GetGroupPercentiles) {
                 final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
                 results = intellijDoesntLikeInlining.get(0);
             } else if (computation instanceof GetGroupStats) {
-                final List<GroupStats> groupStats = MAPPER.readValue(reference.get(), new TypeReference<List<GroupStats>>(){});
+                final List<GroupStats> groupStats = MAPPER.readValue(reference.get(), new TypeReference<List<GroupStats>>() {
+                });
                 results = new double[groupStats.size()];
                 for (int i = 0; i < groupStats.size(); i++) {
                     results[i] = groupStats.get(i).stats[0];
@@ -454,6 +457,10 @@ public class Session {
             final ExplodePerDocPercentile explodeCommand = (ExplodePerDocPercentile) command;
             explodeCommand.execute(this);
             out.accept("ExplodedPerDocPercentile");
+        } else if (command instanceof SumAcross) {
+            final SumAcross sumAcross = (SumAcross) command;
+            final double[] results = sumAcross.execute(this);
+            out.accept(MAPPER.writeValueAsString(results));
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }

@@ -23,6 +23,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
@@ -229,7 +230,7 @@ public class Commands {
             }
             case "computeAndCreateGroupStatsLookup": {
                 final Object computation = parseCommand(command.get("computation"), namedMetricLookup);
-                if (computation instanceof GetGroupDistincts) {
+                if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
                 } else if (computation instanceof GetGroupPercentiles) {
                     final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
                     if (getGroupPercentiles.percentiles.length != 1) {
@@ -255,6 +256,18 @@ public class Commands {
                 final String field = command.get("field").textValue();
                 final int numBuckets = command.get("numBuckets").intValue();
                 return new ExplodePerDocPercentile(field, numBuckets);
+            }
+            case "sumAcross": {
+                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
+                final String field = command.get("field").textValue();
+                final AggregateMetric metric = AggregateMetric.fromJson(command.get("metric"), namedMetricLookup);
+                final Optional<AggregateFilter> filter;
+                if (command.get("filter").isNull()) {
+                    filter = Optional.empty();
+                } else {
+                    filter = Optional.of(AggregateFilter.fromJson(command.get("filter"), namedMetricLookup));
+                }
+                return new SumAcross(scope, field, metric, filter);
             }
         }
         throw new RuntimeException("oops:" + command);
