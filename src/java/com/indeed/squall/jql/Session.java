@@ -592,11 +592,11 @@ public class Session {
     }
 
     public boolean isIntField(String field) {
-        return sessions.values().stream().allMatch(x -> x.intFields.contains(field));
+        return sessions.values().stream().anyMatch(x -> x.intFields.contains(field));
     }
 
     public boolean isStringField(String field) {
-        return sessions.values().stream().allMatch(x -> x.stringFields.contains(field));
+        return !isIntField(field) && sessions.values().stream().anyMatch(x -> x.stringFields.contains(field));
     }
 
     private PerGroupConstant namedMetricLookup(String name) {
