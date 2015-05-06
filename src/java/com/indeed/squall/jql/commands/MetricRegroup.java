@@ -61,5 +61,7 @@ public class MetricRegroup {
             }
             return Pair.of(key, session.groupKeys.get(oldGroup));
         });
+
+        session.currentDepth += 1;
     }
 }
