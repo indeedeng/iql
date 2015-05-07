@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
@@ -230,21 +231,18 @@ public class Commands {
             }
             case "computeAndCreateGroupStatsLookup": {
                 final Object computation = parseCommand(command.get("computation"), namedMetricLookup);
-                if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
-                } else if (computation instanceof GetGroupPercentiles) {
-                    final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
-                    if (getGroupPercentiles.percentiles.length != 1) {
-                        throw new IllegalArgumentException("Cannot handle multi-percentile GetGroupPercentiles in ComputeAndCreateGroupStatsLookup");
-                    }
-                } else if (computation instanceof GetGroupStats) {
-                    final GetGroupStats getGroupStats = (GetGroupStats) computation;
-                    if (getGroupStats.metrics.size() != 1) {
-                        throw new IllegalArgumentException("Cannot handle multiple metrics in ComputeAndCreateGroupStatsLookup");
-                    }
-                } else {
-                    throw new IllegalArgumentException("Can only do group distincts, group percentiles, or group stats!");
-                }
+                validatePrecomputedCommand(computation);
                 return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
+            }
+            case "computeAndCreateGroupStatsLookups": {
+                final List<Pair<Object, String>> namedComputations = Lists.newArrayList();
+                for (final JsonNode namedComputation : command.get("computations")) {
+                    final Object computation = parseCommand(namedComputation.get(0), namedMetricLookup);
+                    validatePrecomputedCommand(computation);
+                    final String name = namedComputation.get(1).textValue();
+                    namedComputations.add(Pair.of(computation, name));
+                }
+                return new ComputeAndCreateGroupStatsLookups(namedComputations);
             }
             case "explodeByAggregatePercentile": {
                 final String field = command.get("field").textValue();
@@ -271,6 +269,23 @@ public class Commands {
             }
         }
         throw new RuntimeException("oops:" + command);
+    }
+
+    private static void validatePrecomputedCommand(Object computation) {
+        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
+        } else if (computation instanceof GetGroupPercentiles) {
+            final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
+            if (getGroupPercentiles.percentiles.length != 1) {
+                throw new IllegalArgumentException("Cannot handle multi-percentile GetGroupPercentiles in ComputeAndCreateGroupStatsLookup");
+            }
+        } else if (computation instanceof GetGroupStats) {
+            final GetGroupStats getGroupStats = (GetGroupStats) computation;
+            if (getGroupStats.metrics.size() != 1) {
+                throw new IllegalArgumentException("Cannot handle multiple metrics in ComputeAndCreateGroupStatsLookup");
+            }
+        } else {
+            throw new IllegalArgumentException("Can only do group distincts, sum across, group percentiles, or group stats!");
+        }
     }
 
     private static Optional<String> getOptionalName(JsonNode command) {

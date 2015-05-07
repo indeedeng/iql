@@ -1,18 +1,20 @@
 package com.indeed.squall.jql.commands;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.LongStream;
 
-public class GetGroupPercentiles {
+public class GetGroupPercentiles implements IterateHandlerable<long[][]> {
     public final Set<String> scope;
     public final String field;
     public final double[] percentiles;
@@ -24,22 +26,21 @@ public class GetGroupPercentiles {
     }
 
     public long[][] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = this.field;
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
+    }
+
+    @Override
+    public IterateHandler<long[][]> iterateHandler(Session session) throws ImhotepOutOfMemoryException {
         final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
-        final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-        this.scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
-        sessionsSubset.values().forEach(s -> Session.unchecked(() -> {
+        for (final String sessionName : scope) {
+            final ImhotepSession s = session.sessions.get(sessionName).session;
             s.pushStat("count()");
             final long[] stats = s.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
             }
-        }));
-        final Map<String, IntList> metricMapping = Maps.newHashMap();
-        int index = 0;
-        for (final String sessionName : sessionsSubset.keySet()) {
-            metricMapping.put(sessionName, IntLists.singleton(index++));
+            s.popStat();
         }
         final double[][] requiredCounts = new double[counts.length][];
         for (int i = 1; i < counts.length; i++) {
@@ -48,25 +49,73 @@ public class GetGroupPercentiles {
                 requiredCounts[i][j] = (percentiles[j] / 100.0) * (double)counts[i];
             }
         }
-        final long[][] results = new long[percentiles.length][counts.length - 1];
-        final long[] runningCounts = new long[counts.length];
-        Session.iterateMultiInt(sessionsSubset, metricMapping, field, (term, stats, group) -> {
-            final long oldCount = runningCounts[group];
-            final long termCount = LongStream.of(stats).sum();
-            final long newCount = oldCount + termCount;
+        return new IterateHandlerImpl(session.numGroups, requiredCounts);
+    }
 
-            final double[] groupRequiredCountsArray = requiredCounts[group];
-            for (int i = 0; i < percentiles.length; i++) {
-                final double minRequired = groupRequiredCountsArray[i];
-                if (newCount >= minRequired && oldCount < minRequired) {
-                    results[i][group - 1] = term;
+    private class IterateHandlerImpl implements IterateHandler<long[][]> {
+        private final IntSet relevantIndexes = new IntArraySet();
+        private final long[][] results;
+        private final long[] runningCounts;
+        private final double[][] requiredCounts;
+
+        public IterateHandlerImpl(int numGroups, double[][] requiredCounts) {
+            this.requiredCounts = requiredCounts;
+            this.results = new long[percentiles.length][numGroups];
+            this.runningCounts = new long[numGroups + 1];
+        }
+
+        @Override
+        public Set<String> scope() {
+            return scope;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            final Set<QualifiedPush> pushes = Sets.newHashSetWithExpectedSize(scope.size());
+            scope.forEach(name -> pushes.add(new QualifiedPush(name, Collections.singletonList("count()"))));
+            return pushes;
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+            scope.forEach(name -> relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()")))));
+        }
+
+        @Override
+        public Session.IntIterateCallback intIterateCallback() {
+            return new IntIterateCallback();
+        }
+
+        @Override
+        public Session.StringIterateCallback stringIterateCallback() {
+            throw new IllegalArgumentException("Cannot do GetGroupPercentiles over a string field");
+        }
+
+        @Override
+        public long[][] finish() throws ImhotepOutOfMemoryException {
+            return results;
+        }
+
+        private class IntIterateCallback implements Session.IntIterateCallback {
+            @Override
+            public void term(long term, long[] stats, int group) {
+                final long oldCount = runningCounts[group];
+                long termCount = 0L;
+                for (final int index : relevantIndexes) {
+                    termCount += stats[index];
                 }
+                final long newCount = oldCount + termCount;
+
+                final double[] groupRequiredCountsArray = requiredCounts[group];
+                for (int i = 0; i < percentiles.length; i++) {
+                    final double minRequired = groupRequiredCountsArray[i];
+                    if (newCount >= minRequired && oldCount < minRequired) {
+                        results[i][group - 1] = term;
+                    }
+                }
+
+                runningCounts[group] = newCount;
             }
-
-            runningCounts[group] = newCount;
-        });
-
-        sessionsSubset.values().forEach(ImhotepSession::popStat);
-        return results;
+        }
     }
 }

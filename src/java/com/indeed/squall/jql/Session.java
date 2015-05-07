@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +28,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
+import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
@@ -83,7 +83,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -384,7 +383,7 @@ public class Session {
         }
     }
 
-    private void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
+    public void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
         if (command instanceof Iterate) {
             final Iterate iterate = (Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = iterate.execute(this);
@@ -437,33 +436,15 @@ public class Session {
             final IterateAndExplode iterateAndExplode = (IterateAndExplode) command;
             iterateAndExplode.execute(this);
         } else if (command instanceof ComputeAndCreateGroupStatsLookup) {
-            // TODO: Seriously? Serializing to JSON and then back? To the same program?
             final ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (ComputeAndCreateGroupStatsLookup) command;
-            final AtomicReference<String> reference = new AtomicReference<>();
-            final Object computation = computeAndCreateGroupStatsLookup.computation;
-            System.out.println("computation = " + computation);
-            evaluateCommandInternal(null, reference::set, computation);
-            double[] results;
-            if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
-                results = MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
-            } else if (computation instanceof GetGroupPercentiles) {
-                final List<double[]> intellijDoesntLikeInlining = MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
-                results = intellijDoesntLikeInlining.get(0);
-            } else if (computation instanceof GetGroupStats) {
-                final List<GroupStats> groupStats = MAPPER.readValue(reference.get(), new TypeReference<List<GroupStats>>() {
-                });
-                results = new double[groupStats.size()];
-                for (int i = 0; i < groupStats.size(); i++) {
-                    results[i] = groupStats.get(i).stats[0];
-                }
-            } else {
-                throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
-            }
-            evaluateCommandInternal(null, out, new CreateGroupStatsLookup(prependZero(results), computeAndCreateGroupStatsLookup.name));
+            computeAndCreateGroupStatsLookup.execute(this, out);
+        } else if (command instanceof ComputeAndCreateGroupStatsLookups) {
+            final ComputeAndCreateGroupStatsLookups computeAndCreateGroupStatsLookups = (ComputeAndCreateGroupStatsLookups) command;
+            computeAndCreateGroupStatsLookups.execute(this);
         } else if (command instanceof ExplodeByAggregatePercentile) {
             final ExplodeByAggregatePercentile explodeCommand = (ExplodeByAggregatePercentile) command;
             explodeCommand.execute(this);
-            out.accept("ExlodedByAggregatePercentile");
+            out.accept("ExplodedByAggregatePercentile");
         } else if (command instanceof ExplodePerDocPercentile) {
             final ExplodePerDocPercentile explodeCommand = (ExplodePerDocPercentile) command;
             explodeCommand.execute(this);
@@ -500,7 +481,7 @@ public class Session {
     }
 
     // TODO: Any call sites of this could be optimized.
-    private static double[] prependZero(double[] in) {
+    public static double[] prependZero(double[] in) {
         final double[] out = new double[in.length + 1];
         System.arraycopy(in, 0, out, 1, in.length);
         return out;
