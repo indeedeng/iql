@@ -520,7 +520,21 @@ public final class IQLQuery implements Closeable {
             if(!csv) { // TSV
                 GroupKey current = entry.groupKey;
                 while (!current.isEmpty()) {
-                    out.print(current.head());
+                    final Object group = current.head();
+                    if(group instanceof String) {
+                        final String groupString = (String) group;
+                        // have to strip out reserved characters: tabs and new lines
+                        for(int i = 0; i < groupString.length(); i++) {
+                            final char groupChar = groupString.charAt(i);
+                            if(groupChar != '\t' && groupChar != '\r' && groupChar != '\n') {
+                                out.print(groupChar);
+                            } else {
+                                out.print('\ufffd'); // The replacement character
+                            }
+                        }
+                    } else {
+                        out.print(group);
+                    }
                     current = current.tail();
                     if (!current.isEmpty()) {
                         out.print(tsvDelimiter);
