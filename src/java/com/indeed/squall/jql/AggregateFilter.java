@@ -34,10 +34,16 @@ public interface AggregateFilter extends Pushable{
                 return new RegexFilter(node.get("field").textValue(), node.get("value").textValue());
             case "metricEquals":
                 return new MetricEquals(m1.get(), m2.get());
+            case "metricNotEquals":
+                return new MetricNotEquals(m1.get(), m2.get());
             case "greaterThan":
                 return new GreaterThan(m1.get(), m2.get());
+            case "greaterThanOrEquals":
+                return new GreaterThanOrEquals(m1.get(), m2.get());
             case "lessThan":
                 return new LessThan(m1.get(), m2.get());
+            case "lessThanOrEquals":
+                return new LessThanOrEquals(m1.get(), m2.get());
             case "and":
                 return new And(f1.get(), f2.get());
             case "or":
@@ -134,6 +140,37 @@ public interface AggregateFilter extends Pushable{
         }
     }
 
+    class MetricNotEquals implements AggregateFilter {
+        private final AggregateMetric m1;
+        private final AggregateMetric m2;
+
+        public MetricNotEquals(AggregateMetric m1, AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+            m1.register(metricIndexes, groupKeys);
+            m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) != m2.apply(term, stats, group);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) != m2.apply(term, stats, group);
+        }
+    }
+
     class GreaterThan implements AggregateFilter {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
@@ -165,6 +202,37 @@ public interface AggregateFilter extends Pushable{
         }
     }
 
+    class GreaterThanOrEquals implements AggregateFilter {
+        private final AggregateMetric m1;
+        private final AggregateMetric m2;
+
+        public GreaterThanOrEquals(AggregateMetric m1, AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+            m1.register(metricIndexes, groupKeys);
+            m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) >= m2.apply(term, stats, group);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) >= m2.apply(term, stats, group);
+        }
+    }
+
     class LessThan implements AggregateFilter {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
@@ -193,6 +261,37 @@ public interface AggregateFilter extends Pushable{
         @Override
         public boolean allow(long term, long[] stats, int group) {
             return m1.apply(term, stats, group) < m2.apply(term, stats, group);
+        }
+    }
+
+    class LessThanOrEquals implements AggregateFilter {
+        private final AggregateMetric m1;
+        private final AggregateMetric m2;
+
+        public LessThanOrEquals(AggregateMetric m1, AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Sets.union(m1.requires(), m2.requires());
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+            m1.register(metricIndexes, groupKeys);
+            m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return m1.apply(term, stats, group) <= m2.apply(term, stats, group);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return m1.apply(term, stats, group) <= m2.apply(term, stats, group);
         }
     }
 
