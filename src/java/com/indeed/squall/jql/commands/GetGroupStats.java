@@ -50,13 +50,11 @@ public class GetGroupStats {
 
         final List<AggregateMetric> selectedMetrics = this.metrics;
         final double[][] results = new double[numGroups][selectedMetrics.size()];
-        final long[] groupStatsBuf = new long[allStats.length];
-        for (int group = 1; group <= numGroups; group++) {
-            for (int j = 0; j < allStats.length; j++) {
-                groupStatsBuf[j] = allStats[j].length > group ? allStats[j][group] : 0L;
-            }
-            for (int j = 0; j < selectedMetrics.size(); j++) {
-                results[group - 1][j] = selectedMetrics.get(j).apply(0, groupStatsBuf, group);
+
+        for (int i = 0; i < selectedMetrics.size(); i++) {
+            final double[] statGroups = selectedMetrics.get(i).getGroupStats(allStats, numGroups);
+            for (int j = 1; j <= numGroups; j++) {
+                results[j - 1][i] = statGroups[j];
             }
         }
 

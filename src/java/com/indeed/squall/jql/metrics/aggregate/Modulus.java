@@ -29,6 +29,16 @@ public class Modulus implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] lhs = x.getGroupStats(stats, numGroups);
+        final double[] rhs = y.getGroupStats(stats, numGroups);
+        for (int i = 0; i < rhs.length; i++) {
+            lhs[i] %= rhs[i];
+        }
+        return lhs;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         return x.apply(term, stats, group) % y.apply(term, stats, group);
     }

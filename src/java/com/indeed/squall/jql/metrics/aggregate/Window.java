@@ -38,6 +38,30 @@ public class Window implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] innerResult = inner.getGroupStats(stats, numGroups);
+        final double[] result = new double[numGroups + 1];
+        double sum = 0;
+        Session.GroupKey currentParent = null;
+        int count = 0;
+        for (int i = 1; i <= numGroups; i++) {
+            final Session.GroupKey parent = groupKeys.get(i).parent;
+            if (parent != currentParent) {
+                currentParent = parent;
+                sum = 0;
+                count = 0;
+            }
+            sum += innerResult[i];
+            count += 1;
+            if (count > size) {
+                sum -= innerResult[i - size];
+            }
+            result[i] = sum;
+        }
+        return result;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         if (iterationStarted && !term.equals(currentStringTerm)) {
             clear();

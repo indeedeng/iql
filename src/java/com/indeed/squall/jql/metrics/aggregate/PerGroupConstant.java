@@ -3,6 +3,7 @@ package com.indeed.squall.jql.metrics.aggregate;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,11 @@ public class PerGroupConstant implements AggregateMetric {
 
     @Override
     public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+    }
+
+    @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        return Arrays.copyOf(values, numGroups + 1);
     }
 
     @Override

@@ -3,12 +3,8 @@ package com.indeed.squall.jql.metrics.aggregate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.indeed.squall.jql.Pushable;
-import com.indeed.squall.jql.QualifiedPush;
-import com.indeed.squall.jql.Session;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -16,6 +12,8 @@ import java.util.function.Supplier;
  * @author jwolfe
  */
 public interface AggregateMetric extends Pushable {
+    double[] getGroupStats(long[][] stats, int numGroups);
+
     double apply(String term, long[] stats, int group);
     double apply(long term, long[] stats, int group);
 

@@ -25,6 +25,15 @@ public class Log implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] result = value.getGroupStats(stats, numGroups);
+        for (int i = 0; i < result.length; i++) {
+            result[i] = Math.log(result[i]);
+        }
+        return result;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         return Math.log(value.apply(term, stats, group));
     }

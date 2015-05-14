@@ -33,6 +33,11 @@ public class IterateLag implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        throw new UnsupportedOperationException("Shouldn't hit IterateLag in GetGroupStats");
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         final double value = metric.apply(term, stats, group);
         return this.handle(value, group);

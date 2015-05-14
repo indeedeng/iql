@@ -29,6 +29,16 @@ public class Add implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] lhs = m1.getGroupStats(stats, numGroups);
+        final double[] rhs = m2.getGroupStats(stats, numGroups);
+        for (int i = 0; i < rhs.length; i++) {
+            lhs[i] += rhs[i];
+        }
+        return lhs;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         return m1.apply(term, stats, group) + m2.apply(term, stats, group);
     }

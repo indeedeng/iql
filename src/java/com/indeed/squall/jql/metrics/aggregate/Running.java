@@ -38,6 +38,24 @@ public class Running implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] innerResult = inner.getGroupStats(stats, numGroups);
+        double sum = 0;
+        int currentParent = -1;
+        final double[] result = new double[numGroups + 1];
+        for (int i = 1; i <= numGroups; i++) {
+            final int parent = groupToRealGroup[i];
+            if (parent != currentParent) {
+                sum = 0;
+                currentParent = parent;
+            }
+            sum += innerResult[i];
+            result[i] = sum;
+        }
+        return result;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         final double val = inner.apply(term, stats, group);
         return groupSums.compute(groupToRealGroup[group], (k, v) -> v == null ? val : v + val);

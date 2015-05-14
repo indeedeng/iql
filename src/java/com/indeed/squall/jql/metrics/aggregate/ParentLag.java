@@ -40,6 +40,16 @@ public class ParentLag implements AggregateMetric {
     }
 
     @Override
+    public double[] getGroupStats(long[][] stats, int numGroups) {
+        final double[] innerResult = metric.getGroupStats(stats, numGroups);
+        final double[] result = new double[numGroups + 1];
+        for (int i = 1; i <= numGroups; i++) {
+            result[i] = handle(i, innerResult[i]);
+        }
+        return result;
+    }
+
+    @Override
     public double apply(String term, long[] stats, int group) {
         return handle(group, metric.apply(term, stats, group));
     }
