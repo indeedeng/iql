@@ -73,6 +73,9 @@ public interface AggregateMetric extends Pushable {
             case "window": {
                 return new Window(node.get("size").intValue(), value.get());
             }
+            case "sumChildren": {
+                return new SumChildren(value.get());
+            }
         }
         throw new RuntimeException("Oops: " + node);
     }
