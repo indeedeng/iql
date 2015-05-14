@@ -44,6 +44,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
@@ -453,6 +454,10 @@ public class Session {
             final SumAcross sumAcross = (SumAcross) command;
             final double[] results = sumAcross.execute(this);
             out.accept(MAPPER.writeValueAsString(results));
+        } else if (command instanceof RegroupIntoParent) {
+            final RegroupIntoParent regroupIntoParent = (RegroupIntoParent) command;
+            regroupIntoParent.execute(this);
+            out.accept("RegroupedIntoParent");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }

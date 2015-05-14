@@ -24,6 +24,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
@@ -266,6 +267,9 @@ public class Commands {
                     filter = Optional.of(AggregateFilter.fromJson(command.get("filter"), namedMetricLookup));
                 }
                 return new SumAcross(scope, field, metric, filter);
+            }
+            case "regroupIntoParent": {
+                return new RegroupIntoParent(GroupLookupMergeType.parseJson(command.get("mergeType")));
             }
         }
         throw new RuntimeException("oops:" + command);
