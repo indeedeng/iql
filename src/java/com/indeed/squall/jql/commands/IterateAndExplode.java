@@ -33,10 +33,10 @@ public class IterateAndExplode {
         final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(this.field, this.fieldOpts));
         final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).execute(session);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
-        final List<List<TermSelects>> fieldResults = iterationResults.stream().findFirst().get();
-        for (final List<TermSelects> groupResults : fieldResults) {
-            final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
-            for (final TermSelects result : groupResults) {
+        for (final List<List<TermSelects>> groupResults : iterationResults) {
+            final List<TermSelects> groupFieldResults = groupResults.get(0);
+            final List<Term> terms = Lists.newArrayListWithCapacity(groupFieldResults.size());
+            for (final TermSelects result : groupFieldResults) {
                 terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
             }
             explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
