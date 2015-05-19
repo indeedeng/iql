@@ -404,7 +404,7 @@ public interface AggregateFilter extends Pushable{
             final boolean[] l = f1.getGroupStats(stats, numGroups);
             final boolean[] r = f2.getGroupStats(stats, numGroups);
             final boolean[] result = new boolean[numGroups + 1];
-            for (int i = 0; i <= numGroups; i++) {
+            for (int i = 1; i <= numGroups; i++) {
                 result[i] = l[i] && r[i];
             }
             return result;
@@ -443,7 +443,13 @@ public interface AggregateFilter extends Pushable{
 
         @Override
         public boolean[] getGroupStats(long[][] stats, int numGroups) {
-            return new boolean[0];
+            final boolean[] l = f1.getGroupStats(stats, numGroups);
+            final boolean[] r = f2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] || r[i];
+            }
+            return result;
         }
 
         @Override
