@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public interface AggregateFilter extends Pushable{
+    boolean[] getGroupStats(long[][] stats, int numGroups);
+
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
 
@@ -71,6 +74,11 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            throw new IllegalArgumentException("Cannot use TermEquals in a getGroupStats");
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return term.equals(value.stringTerm);
         }
@@ -96,6 +104,16 @@ public interface AggregateFilter extends Pushable{
         @Override
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             f.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final boolean[] inner = f.getGroupStats(stats, numGroups);
+            final boolean[] copy = Arrays.copyOf(inner, inner.length);
+            for (int i = 0; i < copy.length; i++) {
+                copy[i] = !copy[i];
+            }
+            return copy;
         }
 
         @Override
@@ -130,6 +148,17 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] == r[i];
+            }
+            return result;
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return m1.apply(term, stats, group) == m2.apply(term, stats, group);
         }
@@ -158,6 +187,17 @@ public interface AggregateFilter extends Pushable{
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             m1.register(metricIndexes, groupKeys);
             m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] != r[i];
+            }
+            return result;
         }
 
         @Override
@@ -192,6 +232,17 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] > r[i];
+            }
+            return result;
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return m1.apply(term, stats, group) > m2.apply(term, stats, group);
         }
@@ -220,6 +271,17 @@ public interface AggregateFilter extends Pushable{
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             m1.register(metricIndexes, groupKeys);
             m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] >= r[i];
+            }
+            return result;
         }
 
         @Override
@@ -254,6 +316,17 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] < r[i];
+            }
+            return result;
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return m1.apply(term, stats, group) < m2.apply(term, stats, group);
         }
@@ -282,6 +355,17 @@ public interface AggregateFilter extends Pushable{
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             m1.register(metricIndexes, groupKeys);
             m2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final double[] l = m1.getGroupStats(stats, numGroups);
+            final double[] r = m2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                result[i] = l[i] <= r[i];
+            }
+            return result;
         }
 
         @Override
@@ -316,6 +400,17 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final boolean[] l = f1.getGroupStats(stats, numGroups);
+            final boolean[] r = f2.getGroupStats(stats, numGroups);
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 0; i <= numGroups; i++) {
+                result[i] = l[i] && r[i];
+            }
+            return result;
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return f1.allow(term, stats, group) && f2.allow(term, stats, group);
         }
@@ -344,6 +439,11 @@ public interface AggregateFilter extends Pushable{
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             f1.register(metricIndexes, groupKeys);
             f2.register(metricIndexes, groupKeys);
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            return new boolean[0];
         }
 
         @Override
@@ -379,6 +479,11 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            throw new UnsupportedOperationException("Cannot use getGroupStats on a RegexFilter");
+        }
+
+        @Override
         public boolean allow(String term, long[] stats, int group) {
             return pattern.matcher(term).matches();
         }
@@ -403,6 +508,13 @@ public interface AggregateFilter extends Pushable{
 
         @Override
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final boolean[] result = new boolean[numGroups + 1];
+            Arrays.fill(result, value);
+            return result;
         }
 
         @Override
