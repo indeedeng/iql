@@ -44,6 +44,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -458,6 +459,10 @@ public class Session {
             final RegroupIntoParent regroupIntoParent = (RegroupIntoParent) command;
             regroupIntoParent.execute(this);
             out.accept("RegroupedIntoParent");
+        } else if (command instanceof RegroupIntoLastSiblingWhere) {
+            final RegroupIntoLastSiblingWhere regroupIntoLastSiblingWhere = (RegroupIntoLastSiblingWhere) command;
+            regroupIntoLastSiblingWhere.execute(this);
+            out.accept("RegroupedIntoLastSiblingWhere");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }

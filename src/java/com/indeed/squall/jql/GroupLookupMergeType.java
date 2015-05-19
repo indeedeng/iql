@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public enum GroupLookupMergeType {
     SumAll,
-    TakeTheOneUniqueValue;
+    TakeTheOneUniqueValue,
+    FailIfPresent;
 
     public static GroupLookupMergeType parseJson(JsonNode jsonNode) {
         if (!jsonNode.isTextual()) {

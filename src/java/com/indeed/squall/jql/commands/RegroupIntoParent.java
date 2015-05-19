@@ -49,6 +49,9 @@ public class RegroupIntoParent {
                             }
                             break;
                         }
+                        case FailIfPresent: {
+                            throw new IllegalStateException("Should not be merging saved group stats with FailIfPresent!");
+                        }
                     }
                 }
                 newSavedGroupStatsEntries.put(k, new Session.SavedGroupStats(v.depth - 1, mergedStats));

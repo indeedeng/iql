@@ -24,6 +24,7 @@ import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
+import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -270,6 +271,11 @@ public class Commands {
             }
             case "regroupIntoParent": {
                 return new RegroupIntoParent(GroupLookupMergeType.parseJson(command.get("mergeType")));
+            }
+            case "regroupIntoLastSiblingWhere": {
+                final AggregateFilter filter = AggregateFilter.fromJson(command.get("filter"), namedMetricLookup);
+                final GroupLookupMergeType mergeType = GroupLookupMergeType.parseJson(command.get("mergeType"));
+                return new RegroupIntoLastSiblingWhere(filter, mergeType);
             }
         }
         throw new RuntimeException("oops:" + command);
