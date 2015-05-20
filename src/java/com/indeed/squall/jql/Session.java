@@ -276,6 +276,7 @@ public class Session {
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
     private static DateTime parseDateTime(String descriptor) {
+        descriptor = descriptor.trim();
         final DateTime startOfToday = DateTime.now().withTimeAtStartOfDay();
         if (descriptor.equals("today")) {
             return startOfToday;
