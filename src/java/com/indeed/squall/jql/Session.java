@@ -462,8 +462,8 @@ public class Session {
             out.accept("RegroupedIntoParent");
         } else if (command instanceof RegroupIntoLastSiblingWhere) {
             final RegroupIntoLastSiblingWhere regroupIntoLastSiblingWhere = (RegroupIntoLastSiblingWhere) command;
-            regroupIntoLastSiblingWhere.execute(this);
-            out.accept("RegroupedIntoLastSiblingWhere");
+            final boolean[] merged = regroupIntoLastSiblingWhere.execute(this);
+            out.accept(MAPPER.writeValueAsString(merged));
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }

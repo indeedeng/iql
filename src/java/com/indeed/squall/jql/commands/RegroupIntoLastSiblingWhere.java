@@ -22,7 +22,8 @@ public class RegroupIntoLastSiblingWhere {
         this.mergeType = mergeType;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    // TODO: Use a bitset?
+    public boolean[] execute(Session session) throws ImhotepOutOfMemoryException {
         // TODO: This could be made way more efficient, but I think this should way.
         final GetGroupStats getGroupStats = new GetGroupStats(Arrays.asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
         final List<Session.GroupStats> theStats = getGroupStats.execute(session.groupKeys, session.getSessionsMapRaw(), session.numGroups, false);
@@ -44,11 +45,15 @@ public class RegroupIntoLastSiblingWhere {
         for (int i = 1; i <= session.numGroups; i++) {
             if (remerge[i]) {
                 final Session.GroupKey groupKey = groupKeys.get(i);
-                while (i < session.numGroups && groupKeys.get(i + 1).parent == groupKey.parent) {
-                    i += 1;
-                    remerge[i] = true;
+                final int end = parentIndexToLastChildIndex.get(groupKey.parent.index);
+                for (int j = i; j < end; j++) {
+                    remerge[j] = true;
                 }
             }
+        }
+
+        for (final int lastChildIndex : parentIndexToLastChildIndex.values()) {
+            remerge[lastChildIndex] = false;
         }
 
         final boolean anyStatsAtDepth = session.savedGroupStats.values().stream().anyMatch(s -> s.depth == session.currentDepth);
@@ -85,5 +90,7 @@ public class RegroupIntoLastSiblingWhere {
                 sessionInfo.session.regroup(rules);
             }
         }
+
+        return Arrays.copyOfRange(remerge, 1, remerge.length);
     }
 }
