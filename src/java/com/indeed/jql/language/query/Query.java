@@ -13,12 +13,12 @@ import java.util.Collections;
 import java.util.List;
 
 public class Query<F, M> {
-    private final List<com.indeed.jql.language.query.Dataset> datasets;
-    private final Optional<DocFilter> filter;
-    private final List<com.indeed.jql.language.query.GroupBy<F, M>> groupBys;
-    private final List<M> selects;
+    public final List<com.indeed.jql.language.query.Dataset> datasets;
+    public final Optional<DocFilter> filter;
+    public final List<com.indeed.jql.language.query.GroupBy> groupBys;
+    public final List<M> selects;
 
-    public Query(List<com.indeed.jql.language.query.Dataset> datasets, Optional<DocFilter> filter, List<com.indeed.jql.language.query.GroupBy<F, M>> groupBys, List<M> selects) {
+    public Query(List<com.indeed.jql.language.query.Dataset> datasets, Optional<DocFilter> filter, List<com.indeed.jql.language.query.GroupBy> groupBys, List<M> selects) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
@@ -39,7 +39,7 @@ public class Query<F, M> {
             whereFilter = Optional.absent();
         }
 
-        final List<com.indeed.jql.language.query.GroupBy<AggregateFilter, AggregateMetric>> groupBys;
+        final List<com.indeed.jql.language.query.GroupBy> groupBys;
         if (queryContext.groupByContents() != null) {
             groupBys = GroupBys.parseGroupBys(queryContext.groupByContents());
         } else {

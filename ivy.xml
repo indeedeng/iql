@@ -39,6 +39,7 @@
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
+        <dependency org="google" name="gag" rev="${gag.version}"/>
         <dependency org="opencsv" name="opencsv" rev="${opencsv.version}"/>
 
         <dependency org="org.eclipse.jgit" name="org.eclipse.jgit" rev="3.3.0.201403021825-r"/>

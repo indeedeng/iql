@@ -10,7 +10,7 @@ public interface AggregateMetric {
     AggregateMetric traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
 
     abstract class Unop implements AggregateMetric {
-        protected final AggregateMetric m1;
+        public final AggregateMetric m1;
 
         public Unop(AggregateMetric m1) {
             this.m1 = m1;
@@ -51,8 +51,8 @@ public interface AggregateMetric {
     }
 
     abstract class Binop implements AggregateMetric {
-        protected final AggregateMetric m1;
-        protected final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public Binop(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
@@ -127,7 +127,7 @@ public interface AggregateMetric {
     }
 
     class Parent implements AggregateMetric {
-        private final AggregateMetric metric;
+        public final AggregateMetric metric;
 
         public Parent(AggregateMetric metric) {
             this.metric = metric;
@@ -140,8 +140,8 @@ public interface AggregateMetric {
     }
 
     class Lag implements AggregateMetric {
-        private final int lag;
-        private final AggregateMetric metric;
+        public final int lag;
+        public final AggregateMetric metric;
 
         public Lag(int lag, AggregateMetric metric) {
             this.lag = lag;
@@ -155,8 +155,8 @@ public interface AggregateMetric {
     }
 
     class Window implements AggregateMetric {
-        private final int window;
-        private final AggregateMetric metric;
+        public final int window;
+        public final AggregateMetric metric;
 
         public Window(int window, AggregateMetric metric) {
             this.window = window;
@@ -170,8 +170,8 @@ public interface AggregateMetric {
     }
 
     class Qualified implements AggregateMetric {
-        private final List<String> scope;
-        private final AggregateMetric metric;
+        public final List<String> scope;
+        public final AggregateMetric metric;
 
         public Qualified(List<String> scope, AggregateMetric metric) {
             this.scope = scope;
@@ -185,7 +185,7 @@ public interface AggregateMetric {
     }
 
     class DocStats implements AggregateMetric {
-        private final DocMetric metric;
+        public final DocMetric metric;
 
         public DocStats(DocMetric metric) {
             this.metric = metric;
@@ -201,7 +201,7 @@ public interface AggregateMetric {
      * DocStats in which there is no explicit sum, but a single atomic token. Could be a boolean on DocStats but whatever.
      */
     class ImplicitDocStats implements AggregateMetric {
-        private final DocMetric metric;
+        public final DocMetric metric;
 
         public ImplicitDocStats(DocMetric metric) {
             this.metric = metric;
@@ -214,7 +214,7 @@ public interface AggregateMetric {
     }
 
     class Constant implements AggregateMetric {
-        private final double value;
+        public final double value;
 
         public Constant(double value) {
             this.value = value;
@@ -227,8 +227,8 @@ public interface AggregateMetric {
     }
 
     class Percentile implements AggregateMetric {
-        private final String field;
-        private final double percentile;
+        public final String field;
+        public final double percentile;
 
         public Percentile(String field, double percentile) {
             this.field = field;
@@ -242,7 +242,7 @@ public interface AggregateMetric {
     }
 
     class Running implements AggregateMetric {
-        private final AggregateMetric metric;
+        public final AggregateMetric metric;
 
         public Running(AggregateMetric metric) {
             this.metric = metric;
@@ -255,9 +255,9 @@ public interface AggregateMetric {
     }
 
     class Distinct implements AggregateMetric {
-        private final String field;
-        private final Optional<AggregateFilter> filter;
-        private final Optional<Integer> windowSize;
+        public final String field;
+        public final Optional<AggregateFilter> filter;
+        public final Optional<Integer> windowSize;
 
         public Distinct(String field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
@@ -276,8 +276,8 @@ public interface AggregateMetric {
     }
 
     class Named implements AggregateMetric {
-        private final AggregateMetric metric;
-        private final String name;
+        public final AggregateMetric metric;
+        public final String name;
 
         public Named(AggregateMetric metric, String name) {
             this.metric = metric;

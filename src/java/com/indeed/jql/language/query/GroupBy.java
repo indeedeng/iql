@@ -1,11 +1,13 @@
 package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
+import com.indeed.jql.language.AggregateFilter;
+import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocMetric;
 
-public interface GroupBy<F,M> {
+public interface GroupBy {
 
-    class GroupByMetric<F,M> implements GroupBy<F,M> {
+    class GroupByMetric implements GroupBy {
         private final DocMetric metric;
         private final long min;
         private final long max;
@@ -21,7 +23,7 @@ public interface GroupBy<F,M> {
         }
     }
 
-    class GroupByTime<F,M> implements GroupBy<F,M> {
+    class GroupByTime implements GroupBy {
         private final long periodMillis;
         private final Optional<String> field;
         private final Optional<String> format;
@@ -33,7 +35,7 @@ public interface GroupBy<F,M> {
         }
     }
 
-    class GroupByTimeBuckets<F,M> implements GroupBy<F,M> {
+    class GroupByTimeBuckets implements GroupBy {
         private final int numBuckets;
         private final Optional<String> field;
         private final Optional<String> format;
@@ -45,7 +47,7 @@ public interface GroupBy<F,M> {
         }
     }
 
-    class GroupByMonth<F,M> implements GroupBy<F,M> {
+    class GroupByMonth implements GroupBy {
         private final Optional<String> field;
         private final Optional<String> format;
 
@@ -55,14 +57,14 @@ public interface GroupBy<F,M> {
         }
     }
 
-    class GroupByField<F,M> implements GroupBy<F,M> {
+    class GroupByField implements GroupBy {
         private final String field;
-        private final Optional<F> filter;
+        private final Optional<AggregateFilter> filter;
         private final Optional<Long> limit;
-        private final Optional<M> metric;
+        private final Optional<AggregateMetric> metric;
         private final boolean withDefault;
 
-        public GroupByField(String field, Optional<F> filter, Optional<Long> limit, Optional<M> metric, boolean withDefault) {
+        public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -71,10 +73,10 @@ public interface GroupBy<F,M> {
         }
     }
 
-    class GroupByDayOfWeek<F,M> implements GroupBy<F,M> {}
-    class GroupBySessionName<F,M> implements GroupBy<F,M> {}
+    class GroupByDayOfWeek implements GroupBy {}
+    class GroupBySessionName implements GroupBy {}
 
-    class GroupByQuantiles<F,M> implements GroupBy<F,M> {
+    class GroupByQuantiles implements GroupBy {
         private final String field;
         private final int numBuckets;
 

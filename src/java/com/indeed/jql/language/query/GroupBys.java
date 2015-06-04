@@ -20,20 +20,20 @@ import java.util.HashSet;
 import java.util.List;
 
 public class GroupBys {
-    public static List<GroupBy<AggregateFilter, AggregateMetric>> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext) {
+    public static List<GroupBy> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext) {
         final List<JQLParser.GroupByElementContext> elements = groupByContentsContext.groupByElement();
-        final List<GroupBy<AggregateFilter, AggregateMetric>> result = new ArrayList<>(elements.size());
+        final List<GroupBy> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByElementContext element : elements) {
             result.add(parseGroupBy(element));
         }
         return result;
     }
 
-    public static GroupBy<AggregateFilter, AggregateMetric> parseGroupBy(JQLParser.GroupByElementContext groupByElementContext) {
-        final GroupBy<AggregateFilter, AggregateMetric>[] ref = new GroupBy[1];
+    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext) {
+        final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
-            private void accept(GroupBy<AggregateFilter, AggregateMetric> value) {
+            private void accept(GroupBy value) {
                 if (ref[0] != null) {
                     throw new IllegalArgumentException("Can't accept multiple times!");
                 }
@@ -105,7 +105,7 @@ public class GroupBys {
                 } else {
                     throw new UnsupportedOperationException("Oh no! Someone changed the parser but not the consumer!");
                 }
-                accept(new GroupBy.GroupByMetric<AggregateFilter, AggregateMetric>(metric, min, max, interval, excludeGutters));
+                accept(new GroupBy.GroupByMetric(metric, min, max, interval, excludeGutters));
             }
 
             @Override
@@ -143,7 +143,7 @@ public class GroupBys {
                     millisSum += coeff * unit.millis;
                 }
 
-                accept(new GroupBy.GroupByTime<AggregateFilter, AggregateMetric>(millisSum, timeField, Optional.<String>absent()));
+                accept(new GroupBy.GroupByTime(millisSum, timeField, Optional.<String>absent()));
             }
 
             @Override
