@@ -1,164 +1,10 @@
 package com.indeed.jql;
 
-import org.antlr.v4.runtime.misc.NotNull;
+import com.google.common.base.Optional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
 
 public interface AggregateMetric {
-    static AggregateMetric parseAggregateMetric(JQLParser.AggregateMetricContext metricContext) {
-        final AggregateMetric[] ref = new AggregateMetric[1];
-        metricContext.enterRule(new JQLBaseListener() {
-            private void accept(AggregateMetric value) {
-                if (ref[0] != null) {
-                    throw new IllegalArgumentException("Can't accept multiple times!");
-                }
-                ref[0] = value;
-            }
-
-            public void enterAggregateParens(@NotNull JQLParser.AggregateParensContext ctx) {
-                accept(parseAggregateMetric(ctx.aggregateMetric()));
-            }
-
-            public void enterAggregateParent(@NotNull JQLParser.AggregateParentContext ctx) {
-                accept(new Parent(parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateRawField(@NotNull JQLParser.AggregateRawFieldContext ctx) {
-                accept(new DocStats(new DocMetric.Field(ctx.identifier().getText())));
-            }
-
-            public void enterAggregateLag(@NotNull JQLParser.AggregateLagContext ctx) {
-                accept(new Lag(Integer.parseInt(ctx.INT().getText()), parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateAvg(@NotNull JQLParser.AggregateAvgContext ctx) {
-                accept(new Divide(parseAggregateMetric(ctx.aggregateMetric()), new DocStats(new DocMetric.Field("count()"))));
-            }
-
-            public void enterAggregateQualified(@NotNull JQLParser.AggregateQualifiedContext ctx) {
-                final List<String> scope = new ArrayList<>();
-                for (final JQLParser.IdentifierContext dataset : ctx.scope().datasets) {
-                    scope.add(dataset.getText());
-                }
-                accept(new Qualified(scope, parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateDiv(@NotNull JQLParser.AggregateDivContext ctx) {
-                accept(new Divide(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregateLog(@NotNull JQLParser.AggregateLogContext ctx) {
-                accept(new Log(parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateStandardDeviation(@NotNull JQLParser.AggregateStandardDeviationContext ctx) {
-                accept(new Power(variance(DocMetric.parseDocMetric(ctx.docMetric())), new Constant(0.5)));
-            }
-
-            public void enterAggregatePower(@NotNull JQLParser.AggregatePowerContext ctx) {
-                accept(new Power(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregateMod(@NotNull JQLParser.AggregateModContext ctx) {
-                accept(new Modulus(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregatePDiff(@NotNull JQLParser.AggregatePDiffContext ctx) {
-                final AggregateMetric actual = parseAggregateMetric(ctx.actual);
-                final AggregateMetric expected = parseAggregateMetric(ctx.expected);
-                // 100 * (actual - expected) / expected
-                accept(new Multiply(new Constant(100), new Divide(new Subtract(actual, expected), expected)));
-            }
-
-            public void enterAggregateSum(@NotNull JQLParser.AggregateSumContext ctx) {
-                accept(new DocStats(DocMetric.parseDocMetric(ctx.docMetric())));
-            }
-
-            public void enterAggregateMinus(@NotNull JQLParser.AggregateMinusContext ctx) {
-                accept(new Subtract(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregateMult(@NotNull JQLParser.AggregateMultContext ctx) {
-                accept(new Multiply(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregateConstant(@NotNull JQLParser.AggregateConstantContext ctx) {
-                accept(new Constant(Double.parseDouble(ctx.number().getText())));
-            }
-
-            public void enterAggregateVariance(@NotNull JQLParser.AggregateVarianceContext ctx) {
-                accept(variance(DocMetric.parseDocMetric(ctx.docMetric())));
-            }
-
-            public void enterAggregateAbs(@NotNull JQLParser.AggregateAbsContext ctx) {
-                accept(new Abs(parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateWindow(@NotNull JQLParser.AggregateWindowContext ctx) {
-                accept(new Window(Integer.parseInt(ctx.INT().getText()), parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregatePlus(@NotNull JQLParser.AggregatePlusContext ctx) {
-                accept(new Add(parseAggregateMetric(ctx.aggregateMetric(0)), parseAggregateMetric(ctx.aggregateMetric(1))));
-            }
-
-            public void enterAggregateDistinctWindow(@NotNull JQLParser.AggregateDistinctWindowContext ctx) {
-                final Optional<AggregateFilter> filter;
-                if (ctx.aggregateFilter() == null) {
-                    filter = Optional.empty();
-                } else {
-                    filter = Optional.of(AggregateFilter.parseAggregateFilter(ctx.aggregateFilter()));
-                }
-                accept(new Distinct(ctx.identifier().getText(), filter, OptionalInt.of(Integer.parseInt(ctx.INT().getText()))));
-            }
-
-            public void enterAggregateNegate(@NotNull JQLParser.AggregateNegateContext ctx) {
-                accept(new Negate(parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregatePercentile(@NotNull JQLParser.AggregatePercentileContext ctx) {
-                accept(new Percentile(ctx.identifier().getText(), Double.parseDouble(ctx.DOUBLE().getText())));
-            }
-
-            public void enterAggregateRunning(@NotNull JQLParser.AggregateRunningContext ctx) {
-                accept(new Running(parseAggregateMetric(ctx.aggregateMetric())));
-            }
-
-            public void enterAggregateCounts(@NotNull JQLParser.AggregateCountsContext ctx) {
-                accept(new DocStats(new DocMetric.Field("count()")));
-            }
-
-            public void enterAggregateDistinct(@NotNull JQLParser.AggregateDistinctContext ctx) {
-                final Optional<AggregateFilter> filter;
-                if (ctx.aggregateFilter() == null) {
-                    filter = Optional.empty();
-                } else {
-                    filter = Optional.of(AggregateFilter.parseAggregateFilter(ctx.aggregateFilter()));
-                }
-                accept(new Distinct(ctx.identifier().getText(), filter, OptionalInt.empty()));
-            }
-        });
-
-        if (ref[0] == null) {
-            throw new UnsupportedOperationException("Unhandled aggregate metric: [" + metricContext.getText() + "]");
-        }
-
-        return ref[0];
-    }
-
-    static AggregateMetric variance(DocMetric docMetric) {
-        // [m * m] / count()
-        final AggregateMetric firstHalf = new Divide(new DocStats(new DocMetric.Multiply(docMetric, docMetric)), new DocStats(new DocMetric.Field("count()")));
-        // [m] / count()
-        final AggregateMetric halfOfSecondHalf = new Divide(new DocStats(docMetric), new DocStats(new DocMetric.Field("count()")));
-        // ([m] / count()) ^ 2
-        final AggregateMetric secondHalf = new Multiply(halfOfSecondHalf, halfOfSecondHalf);
-        // E(m^2) - E(m)^2
-        return new Subtract(firstHalf, secondHalf);
-    }
 
     class Unop implements AggregateMetric {
         private final AggregateMetric m1;
@@ -307,9 +153,9 @@ public interface AggregateMetric {
     class Distinct implements AggregateMetric {
         private final String field;
         private final Optional<AggregateFilter> filter;
-        private final OptionalInt windowSize;
+        private final Optional<Integer> windowSize;
 
-        public Distinct(String field, Optional<AggregateFilter> filter, OptionalInt windowSize) {
+        public Distinct(String field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;

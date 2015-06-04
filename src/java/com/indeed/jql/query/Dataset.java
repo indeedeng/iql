@@ -1,5 +1,6 @@
 package com.indeed.jql.query;
 
+import com.google.common.base.Optional;
 import com.indeed.jql.JQLBaseListener;
 import com.indeed.jql.JQLParser;
 import com.indeed.jql.ParserCommon;
@@ -10,7 +11,6 @@ import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class Dataset {
     public final String dataset;
@@ -43,12 +43,12 @@ public class Dataset {
         if (datasetContext.name != null) {
             name = Optional.of(datasetContext.name.getText());
         } else {
-            name = Optional.empty();
+            name = Optional.absent();
         }
         return new Dataset(dataset, start, end, name);
     }
 
-    public static Dataset parsePartialDataset(DateTime defaultStart, DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext) {
+    public static Dataset parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext) {
         final Dataset[] ref = new Dataset[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -69,7 +69,7 @@ public class Dataset {
                 if (ctx.name != null) {
                     name = Optional.of(ctx.name.getText());
                 } else {
-                    name = Optional.empty();
+                    name = Optional.absent();
                 }
                 accept(new Dataset(dataset, defaultStart, defaultEnd, name));
             }

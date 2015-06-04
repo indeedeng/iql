@@ -1,14 +1,17 @@
 package com.indeed.jql.query;
 
+import com.google.common.base.Optional;
 import com.indeed.jql.AggregateFilter;
 import com.indeed.jql.AggregateMetric;
+import com.indeed.jql.AggregateMetrics;
 import com.indeed.jql.DocFilter;
+import com.indeed.jql.DocFilters;
+import com.indeed.jql.GroupBys;
 import com.indeed.jql.JQLParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class Query<F, M> {
     private final List<Dataset> datasets;
@@ -30,16 +33,16 @@ public class Query<F, M> {
         if (queryContext.docFilter() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : queryContext.docFilter()) {
-                filters.add(DocFilter.parseDocFilter(ctx));
+                filters.add(DocFilters.parseDocFilter(ctx));
             }
-            whereFilter = Optional.of(DocFilter.and(filters));
+            whereFilter = Optional.of(DocFilters.and(filters));
         } else {
-            whereFilter = Optional.empty();
+            whereFilter = Optional.absent();
         }
 
         final List<GroupBy<AggregateFilter, AggregateMetric>> groupBys;
         if (queryContext.groupByContents() != null) {
-            groupBys = GroupBy.parseGroupBys(queryContext.groupByContents());
+            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents());
         } else {
             groupBys = Collections.emptyList();
         }
@@ -53,7 +56,7 @@ public class Query<F, M> {
                 final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
                 selects = new ArrayList<>();
                 for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selects.add(AggregateMetric.parseAggregateMetric(metric));
+                    selects.add(AggregateMetrics.parseAggregateMetric(metric));
                 }
             } else {
                 throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());
