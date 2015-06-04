@@ -42,12 +42,12 @@ public class GroupBys {
 
             @Override
             public void enterDayOfWeekGroupBy(@NotNull JQLParser.DayOfWeekGroupByContext ctx) {
-                accept(new GroupBy.GroupByDayOfWeek<AggregateFilter, AggregateMetric>());
+                accept(new GroupBy.GroupByDayOfWeek());
             }
 
             @Override
             public void enterQuantilesGroupBy(@NotNull JQLParser.QuantilesGroupByContext ctx) {
-                accept(new GroupBy.GroupByQuantiles<AggregateFilter, AggregateMetric>(ctx.field.getText(), Integer.parseInt(ctx.INT().getText())));
+                accept(new GroupBy.GroupByQuantiles(ctx.field.getText(), Integer.parseInt(ctx.INT().getText())));
             }
 
             @Override
@@ -72,13 +72,13 @@ public class GroupBys {
                         metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
-                accept(new GroupBy.GroupByField<>(field, Optional.<AggregateFilter>absent(), limit, metric, false));
+                accept(new GroupBy.GroupByField(field, Optional.<AggregateFilter>absent(), limit, metric, false));
             }
 
             @Override
             public void enterGroupByFieldIn(@NotNull JQLParser.GroupByFieldInContext ctx) {
                 final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, ctx.not != null);
-                accept(new GroupBy.GroupByField<>(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null));
+                accept(new GroupBy.GroupByField(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null));
             }
 
             @Override
@@ -132,11 +132,11 @@ public class GroupBys {
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
-                        accept(new GroupBy.GroupByTimeBuckets<AggregateFilter, AggregateMetric>(coeff, timeField, Optional.<String>absent()));
+                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, Optional.<String>absent()));
                         return;
                     }
                     if (unit == TimeUnit.MONTH) {
-                        accept(new GroupBy.GroupByMonth<AggregateFilter, AggregateMetric>(timeField, Optional.<String>absent()));
+                        accept(new GroupBy.GroupByMonth(timeField, Optional.<String>absent()));
                         return;
                     }
 
@@ -179,7 +179,7 @@ public class GroupBys {
                     filter = Optional.absent();
                 }
                 final boolean withDefault = ctx2.withDefault != null;
-                accept(new GroupBy.GroupByField<>(field, filter, limit, metric, withDefault));
+                accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault));
             }
         });
 
