@@ -193,7 +193,7 @@ public interface AggregateMetric {
 
         @Override
         public AggregateMetric traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return f.apply(new DocStats(metric.traverse(f, g, h, i)));
+            return f.apply(new DocStats(metric.traverse(g, i)));
         }
     }
 
