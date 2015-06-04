@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class RemoveNames {
     public static Query removeNames(Query query) {
-        return query.traverse(
+        return query.transform(
                 Functions.<GroupBy>identity(),
                 removeNames(),
                 Functions.<DocMetric>identity(),

@@ -70,7 +70,7 @@ public class Query {
         return new Query(datasets, whereFilter, groupBys, selects);
     }
 
-    public Query traverse(
+    public Query transform(
             Function<GroupBy, GroupBy> groupBy,
             Function<AggregateMetric, AggregateMetric> f,
             Function<DocMetric, DocMetric> g,
@@ -79,17 +79,17 @@ public class Query {
     ) {
         final Optional<DocFilter> filter;
         if (this.filter.isPresent()) {
-            filter = Optional.of(this.filter.get().traverse(g, i));
+            filter = Optional.of(this.filter.get().transform(g, i));
         } else {
             filter = Optional.absent();
         }
         final List<GroupBy> groupBys = Lists.newArrayList();
         for (final GroupBy gb : this.groupBys) {
-            groupBys.add(gb.traverse(groupBy, f, g, h, i));
+            groupBys.add(gb.transform(groupBy, f, g, h, i));
         }
         final List<AggregateMetric> selects = Lists.newArrayList();
         for (final AggregateMetric select : this.selects) {
-            selects.add(select.traverse(f, g, h, i));
+            selects.add(select.transform(f, g, h, i));
         }
         return new Query(datasets, filter, groupBys, selects);
     }

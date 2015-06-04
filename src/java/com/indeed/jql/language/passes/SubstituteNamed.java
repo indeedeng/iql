@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class SubstituteNamed {
     public static Query substituteNamedMetrics(Query query, Map<String, AggregateMetric> namedMetrics) {
-        return query.traverse(
+        return query.transform(
                 Functions.<GroupBy>identity(),
                 replaceNamed(namedMetrics),
                 Functions.<DocMetric>identity(),

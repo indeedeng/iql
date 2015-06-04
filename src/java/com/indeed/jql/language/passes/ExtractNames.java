@@ -26,7 +26,7 @@ public class ExtractNames {
     )
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
-        query.traverse(
+        query.transform(
                 Functions.<GroupBy>identity(),
                 handleAggregateMetric(result),
                 Functions.<DocMetric>identity(),
