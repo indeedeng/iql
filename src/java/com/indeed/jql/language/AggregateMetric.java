@@ -201,15 +201,15 @@ public interface AggregateMetric {
      * DocStats in which there is no explicit sum, but a single atomic token. Could be a boolean on DocStats but whatever.
      */
     class ImplicitDocStats implements AggregateMetric {
-        public final DocMetric metric;
+        public final String field;
 
-        public ImplicitDocStats(DocMetric metric) {
-            this.metric = metric;
+        public ImplicitDocStats(String field) {
+            this.field = field;
         }
 
         @Override
         public AggregateMetric traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return f.apply(new ImplicitDocStats(metric.traverse(g, i)));
+            return f.apply(this);
         }
     }
 

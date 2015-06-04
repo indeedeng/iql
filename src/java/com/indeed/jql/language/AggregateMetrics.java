@@ -26,7 +26,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateRawField(@NotNull JQLParser.AggregateRawFieldContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(new DocMetric.Field(ctx.identifier().getText())));
+                accept(new AggregateMetric.ImplicitDocStats(ctx.identifier().getText()));
             }
 
             public void enterAggregateLag(@NotNull JQLParser.AggregateLagContext ctx) {
