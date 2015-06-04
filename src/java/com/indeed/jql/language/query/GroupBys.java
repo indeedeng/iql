@@ -11,7 +11,6 @@ import com.indeed.jql.language.JQLBaseListener;
 import com.indeed.jql.language.JQLParser;
 import com.indeed.jql.language.ParserCommon;
 import com.indeed.jql.language.TimeUnit;
-import com.indeed.jql.language.query.GroupBy;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
 

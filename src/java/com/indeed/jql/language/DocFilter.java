@@ -1,8 +1,12 @@
 package com.indeed.jql.language;
 
+import com.google.common.base.Function;
+
 import java.util.List;
 
 public interface DocFilter {
+
+    DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
 
     class FieldIs implements DocFilter {
         private final String field;
@@ -11,6 +15,11 @@ public interface DocFilter {
         public FieldIs(String field, Term term) {
             this.field = field;
             this.term = term;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
         }
     }
 
@@ -21,6 +30,11 @@ public interface DocFilter {
         public FieldIsnt(String field, Term term) {
             this.field = field;
             this.term = term;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
         }
     }
 
@@ -34,6 +48,11 @@ public interface DocFilter {
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
     }
 
     class MetricEqual implements DocFilter {
@@ -43,6 +62,11 @@ public interface DocFilter {
         public MetricEqual(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricEqual(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
         }
     }
 
@@ -54,6 +78,11 @@ public interface DocFilter {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricNotEqual(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
+        }
     }
 
     class MetricGt implements DocFilter {
@@ -63,6 +92,11 @@ public interface DocFilter {
         public MetricGt(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricGt(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
         }
     }
 
@@ -74,6 +108,11 @@ public interface DocFilter {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricGte(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
+        }
     }
 
     class MetricLt implements DocFilter {
@@ -83,6 +122,11 @@ public interface DocFilter {
         public MetricLt(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricLt(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
         }
     }
 
@@ -94,6 +138,11 @@ public interface DocFilter {
             this.m1 = m1;
             this.m2 = m2;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new MetricLte(m1.traverse(f, g, h, i), m2.traverse(f, g, h, i)));
+        }
     }
 
     class And implements DocFilter {
@@ -103,6 +152,11 @@ public interface DocFilter {
         public And(DocFilter f1, DocFilter f2) {
             this.f1 = f1;
             this.f2 = f2;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new And(f1.traverse(f, g, h, i), f2.traverse(f, g, h, i)));
         }
     }
 
@@ -114,13 +168,23 @@ public interface DocFilter {
             this.f1 = f1;
             this.f2 = f2;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new Or(f1.traverse(f, g, h, i), f2.traverse(f, g, h, i)));
+        }
     }
 
     class Not implements DocFilter {
-        private final DocFilter f;
+        private final DocFilter filter;
 
-        public Not(DocFilter f) {
-            this.f = f;
+        public Not(DocFilter filter) {
+            this.filter = filter;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new Not(filter.traverse(f, g, h, i)));
         }
     }
 
@@ -132,6 +196,11 @@ public interface DocFilter {
             this.field = field;
             this.regex = regex;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
     }
 
     class NotRegex implements DocFilter {
@@ -141,6 +210,11 @@ public interface DocFilter {
         public NotRegex(String field, String regex) {
             this.field = field;
             this.regex = regex;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
         }
     }
 
@@ -152,6 +226,11 @@ public interface DocFilter {
             this.scope = scope;
             this.filter = filter;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(new Qualified(scope, filter.traverse(f, g, h, i)));
+        }
     }
 
     class Lucene implements DocFilter {
@@ -159,6 +238,11 @@ public interface DocFilter {
 
         public Lucene(String query) {
             this.query = query;
+        }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
         }
     }
 
@@ -174,8 +258,24 @@ public interface DocFilter {
             this.denominator = denominator;
             this.seed = seed;
         }
+
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
     }
 
-    class Always implements DocFilter {}
-    class Never implements DocFilter {}
+    class Always implements DocFilter {
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+    }
+
+    class Never implements DocFilter {
+        @Override
+        public DocFilter traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+    }
 }

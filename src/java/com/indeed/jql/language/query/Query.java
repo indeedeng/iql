@@ -1,11 +1,11 @@
 package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
-import com.indeed.jql.language.AggregateMetrics;
-import com.indeed.jql.language.DocFilters;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
+import com.indeed.jql.language.AggregateMetrics;
 import com.indeed.jql.language.DocFilter;
+import com.indeed.jql.language.DocFilters;
 import com.indeed.jql.language.JQLParser;
 
 import java.util.ArrayList;
