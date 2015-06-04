@@ -139,6 +139,13 @@ public class AggregateMetrics {
                 }
                 accept(new AggregateMetric.Distinct(ctx.identifier().getText(), filter, Optional.<Integer>absent()));
             }
+
+            @Override
+            public void enterAggregateNamed(@NotNull JQLParser.AggregateNamedContext ctx) {
+                final AggregateMetric metric = parseAggregateMetric(ctx.aggregateMetric());
+                final String name = ctx.name.getText();
+                accept(new AggregateMetric.Named(metric, name));
+            }
         });
 
         if (ref[0] == null) {

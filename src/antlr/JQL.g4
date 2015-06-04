@@ -69,6 +69,7 @@ aggregateMetric
     | aggregateMetric '-' aggregateMetric # AggregateMinus
     | '(' aggregateMetric ')' # AggregateParens
     | number # AggregateConstant
+    | aggregateMetric 'as' name=ID # AggregateNamed
     ;
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;

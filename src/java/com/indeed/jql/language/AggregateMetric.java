@@ -258,4 +258,19 @@ public interface AggregateMetric {
             }
         }
     }
+
+    class Named implements AggregateMetric {
+        private final AggregateMetric metric;
+        private final String name;
+
+        public Named(AggregateMetric metric, String name) {
+            this.metric = metric;
+            this.name = name;
+        }
+
+        @Override
+        public AggregateMetric traverse(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return f.apply(new Named(metric.traverse(f, g, h, i), name));
+        }
+    }
 }
