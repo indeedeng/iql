@@ -1,5 +1,7 @@
 package com.indeed.jql;
 
+import org.antlr.v4.runtime.misc.NotNull;
+
 public class Term {
     public final String stringTerm;
     public final long intTerm;
@@ -17,5 +19,36 @@ public class Term {
 
     public static Term term(long term) {
         return new Term(null, term, true);
+    }
+
+    public static Term parseTerm(JQLParser.TermValContext termValContext) {
+        final Term[] ref = new Term[1];
+
+        termValContext.enterRule(new JQLBaseListener() {
+            private void accept(Term value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            public void enterIntTerm(@NotNull JQLParser.IntTermContext ctx) {
+                accept(term(Long.parseLong(ctx.INT().getText())));
+            }
+
+            public void enterStringTerm(@NotNull JQLParser.StringTermContext ctx) {
+                if (ctx.STRING_LITERAL() != null) {
+                    accept(Term.term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                } else if (ctx.identifier() != null) {
+                    accept(term(ctx.identifier().getText()));
+                }
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled term value: [" + termValContext.getText() + "]");
+        }
+
+        return ref[0];
     }
 }

@@ -23,7 +23,7 @@ public interface DocMetric {
             }
 
             public void enterDocHasIntQuoted(@NotNull JQLParser.DocHasIntQuotedContext ctx) {
-                final Main.HasTermQuote hasTermQuote = new Main.HasTermQuote(ctx.STRING_LITERAL().getText());
+                final HasTermQuote hasTermQuote = new HasTermQuote(ctx.STRING_LITERAL().getText());
                 final long termInt = Long.parseLong(hasTermQuote.getTerm());
                 accept(new HasInt(hasTermQuote.getField(), termInt));
             }
@@ -41,7 +41,7 @@ public interface DocMetric {
             }
 
             public void enterDocHasStringQuoted(@NotNull JQLParser.DocHasStringQuotedContext ctx) {
-                final Main.HasTermQuote hasTermQuote = new Main.HasTermQuote(ctx.STRING_LITERAL().getText()).invoke();
+                final HasTermQuote hasTermQuote = new HasTermQuote(ctx.STRING_LITERAL().getText()).invoke();
                 accept(new HasString(hasTermQuote.getField(), hasTermQuote.getTerm()));
             }
 
@@ -305,6 +305,33 @@ public interface DocMetric {
             this.condition = condition;
             this.trueCase = trueCase;
             this.falseCase = falseCase;
+        }
+    }
+
+    // TODO: Man IDEA's generated methods suck with multiple returns....
+    class HasTermQuote {
+        private final String s;
+        private String field;
+        private String term;
+
+        public HasTermQuote(String s) {
+            this.s = s;
+        }
+
+        public String getField() {
+            return field;
+        }
+
+        public String getTerm() {
+            return term;
+        }
+
+        public HasTermQuote invoke() {
+            final String unquoted = ParserCommon.unquote(s);
+            final int colon = unquoted.indexOf(':');
+            field = unquoted.substring(0, colon);
+            term = unquoted.substring(colon + 1);
+            return this;
         }
     }
 }

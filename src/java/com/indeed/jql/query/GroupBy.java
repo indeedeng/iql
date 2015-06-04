@@ -5,7 +5,7 @@ import com.indeed.jql.AggregateMetric;
 import com.indeed.jql.DocMetric;
 import com.indeed.jql.JQLBaseListener;
 import com.indeed.jql.JQLParser;
-import com.indeed.jql.Main;
+import com.indeed.jql.ParserCommon;
 import com.indeed.jql.TimeUnit;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
@@ -115,7 +115,7 @@ public interface GroupBy<F,M> {
                     timeField = Optional.empty();
                 }
 
-                final List<Pair<Integer, TimeUnit>> pairs = Main.parseTimePeriod(ctx.groupByTime().timePeriod());
+                final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(ctx.groupByTime().timePeriod());
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
                     final int coeff = pair.getFirst();

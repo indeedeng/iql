@@ -10,9 +10,9 @@ public interface AggregateFilter {
         AggregateFilter filter = null;
         for (final JQLParser.TermValContext term : terms) {
             if (filter == null) {
-                filter = new TermIs(Main.parseTerm(term));
+                filter = new TermIs(Term.parseTerm(term));
             } else {
-                filter = new Or(new TermIs(Main.parseTerm(term)), filter);
+                filter = new Or(new TermIs(Term.parseTerm(term)), filter);
             }
         }
         if (filter == null) {
@@ -37,7 +37,7 @@ public interface AggregateFilter {
             }
 
             public void enterAggregateRegex(@NotNull JQLParser.AggregateRegexContext ctx) {
-                accept(new Regex(ctx.field.getText(), Main.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             public void enterAggregateFalse(@NotNull JQLParser.AggregateFalseContext ctx) {
@@ -45,11 +45,11 @@ public interface AggregateFilter {
             }
 
             public void enterAggregateTermIs(@NotNull JQLParser.AggregateTermIsContext ctx) {
-                accept(new TermIs(Main.parseTerm(ctx.termVal())));
+                accept(new TermIs(Term.parseTerm(ctx.termVal())));
             }
 
             public void enterAggregateNotRegex(@NotNull JQLParser.AggregateNotRegexContext ctx) {
-                accept(new Not(new Regex(ctx.field.getText(), Main.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new Not(new Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             public void enterAggregateTrue(@NotNull JQLParser.AggregateTrueContext ctx) {

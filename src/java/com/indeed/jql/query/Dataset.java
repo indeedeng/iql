@@ -2,7 +2,7 @@ package com.indeed.jql.query;
 
 import com.indeed.jql.JQLBaseListener;
 import com.indeed.jql.JQLParser;
-import com.indeed.jql.Main;
+import com.indeed.jql.ParserCommon;
 import com.indeed.jql.TimeUnit;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
@@ -88,9 +88,9 @@ public class Dataset {
         } else if (dateTimeContext.DATE_TOKEN() != null) {
             return new DateTime(dateTimeContext.DATE_TOKEN().getText());
         } else if (dateTimeContext.STRING_LITERAL() != null) {
-            return new DateTime(Main.unquote(dateTimeContext.STRING_LITERAL().getText()));
+            return new DateTime(ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText()));
         } else if (dateTimeContext.timePeriod() != null) {
-            final List<Pair<Integer, TimeUnit>> pairs = Main.parseTimePeriod(dateTimeContext.timePeriod());
+            final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(dateTimeContext.timePeriod());
             DateTime dt = DateTime.now().withTimeAtStartOfDay();
             for (final Pair<Integer, TimeUnit> pair : pairs) {
                 dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());

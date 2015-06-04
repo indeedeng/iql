@@ -49,7 +49,7 @@ public interface DocFilter {
 
             @Override
             public void enterDocFieldIsnt(@NotNull JQLParser.DocFieldIsntContext ctx) {
-                new FieldIsnt(ctx.field.getText(), Main.parseTerm(ctx.termVal()));
+                new FieldIsnt(ctx.field.getText(), Term.parseTerm(ctx.termVal()));
             }
 
             @Override
@@ -68,12 +68,12 @@ public interface DocFilter {
 
             @Override
             public void enterDocRegex(@NotNull JQLParser.DocRegexContext ctx) {
-                accept(new Regex(ctx.field.getText(), Main.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
             public void enterDocFieldIs(@NotNull JQLParser.DocFieldIsContext ctx) {
-                accept(new FieldIs(ctx.field.getText(), Main.parseTerm(ctx.termVal())));
+                accept(new FieldIs(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
@@ -128,12 +128,12 @@ public interface DocFilter {
 
             @Override
             public void enterLucene(@NotNull JQLParser.LuceneContext ctx) {
-                accept(new Lucene(Main.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
             public void enterDocNotRegex(@NotNull JQLParser.DocNotRegexContext ctx) {
-                accept(new NotRegex(ctx.field.getText(), Main.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new NotRegex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
@@ -157,9 +157,9 @@ public interface DocFilter {
         DocFilter filter = null;
         for (final JQLParser.TermValContext term : terms) {
             if (filter == null) {
-                filter = new FieldIs(field, Main.parseTerm(term));
+                filter = new FieldIs(field, Term.parseTerm(term));
             } else {
-                filter = new Or(new FieldIs(field, Main.parseTerm(term)), filter);
+                filter = new Or(new FieldIs(field, Term.parseTerm(term)), filter);
             }
         }
         if (filter == null) {
