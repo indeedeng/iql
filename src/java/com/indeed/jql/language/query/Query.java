@@ -1,25 +1,24 @@
-package com.indeed.jql.query;
+package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
-import com.indeed.jql.AggregateFilter;
-import com.indeed.jql.AggregateMetric;
-import com.indeed.jql.AggregateMetrics;
-import com.indeed.jql.DocFilter;
-import com.indeed.jql.DocFilters;
-import com.indeed.jql.GroupBys;
-import com.indeed.jql.JQLParser;
+import com.indeed.jql.language.AggregateMetrics;
+import com.indeed.jql.language.DocFilters;
+import com.indeed.jql.language.AggregateFilter;
+import com.indeed.jql.language.AggregateMetric;
+import com.indeed.jql.language.DocFilter;
+import com.indeed.jql.language.JQLParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Query<F, M> {
-    private final List<Dataset> datasets;
+    private final List<com.indeed.jql.language.query.Dataset> datasets;
     private final Optional<DocFilter> filter;
-    private final List<GroupBy<F, M>> groupBys;
+    private final List<com.indeed.jql.language.query.GroupBy<F, M>> groupBys;
     private final List<M> selects;
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupBy<F, M>> groupBys, List<M> selects) {
+    public Query(List<com.indeed.jql.language.query.Dataset> datasets, Optional<DocFilter> filter, List<com.indeed.jql.language.query.GroupBy<F, M>> groupBys, List<M> selects) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
@@ -27,7 +26,7 @@ public class Query<F, M> {
     }
 
     public static Query<AggregateFilter, AggregateMetric> parseQuery(JQLParser.QueryContext queryContext) {
-        final List<Dataset> datasets = Dataset.parseDatasets(queryContext.fromContents());
+        final List<com.indeed.jql.language.query.Dataset> datasets = com.indeed.jql.language.query.Dataset.parseDatasets(queryContext.fromContents());
 
         final Optional<DocFilter> whereFilter;
         if (queryContext.docFilter() != null) {
@@ -40,7 +39,7 @@ public class Query<F, M> {
             whereFilter = Optional.absent();
         }
 
-        final List<GroupBy<AggregateFilter, AggregateMetric>> groupBys;
+        final List<com.indeed.jql.language.query.GroupBy<AggregateFilter, AggregateMetric>> groupBys;
         if (queryContext.groupByContents() != null) {
             groupBys = GroupBys.parseGroupBys(queryContext.groupByContents());
         } else {

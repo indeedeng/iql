@@ -1,4 +1,4 @@
-package com.indeed.jql;
+package com.indeed.jql.language;
 
 public interface DocMetric {
 

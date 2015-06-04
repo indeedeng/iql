@@ -1,10 +1,10 @@
-package com.indeed.jql.query;
+package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
-import com.indeed.jql.JQLBaseListener;
-import com.indeed.jql.JQLParser;
-import com.indeed.jql.ParserCommon;
-import com.indeed.jql.TimeUnit;
+import com.indeed.jql.language.JQLBaseListener;
+import com.indeed.jql.language.JQLParser;
+import com.indeed.jql.language.ParserCommon;
+import com.indeed.jql.language.TimeUnit;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.joda.time.DateTime;

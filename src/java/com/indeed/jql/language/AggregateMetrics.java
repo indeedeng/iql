@@ -1,4 +1,4 @@
-package com.indeed.jql;
+package com.indeed.jql.language;
 
 import com.google.common.base.Optional;
 import org.antlr.v4.runtime.misc.NotNull;

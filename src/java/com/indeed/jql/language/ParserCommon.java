@@ -1,4 +1,4 @@
-package com.indeed.jql;
+package com.indeed.jql.language;
 
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;

@@ -1,4 +1,4 @@
-package com.indeed.jql;
+package com.indeed.jql.language;
 
 import org.antlr.v4.runtime.misc.NotNull;
 
@@ -38,7 +38,7 @@ public class Term {
 
             public void enterStringTerm(@NotNull JQLParser.StringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
-                    accept(Term.term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                    accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
                 } else if (ctx.identifier() != null) {
                     accept(term(ctx.identifier().getText()));
                 }

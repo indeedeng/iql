@@ -1,7 +1,7 @@
-package com.indeed.jql.query;
+package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
-import com.indeed.jql.DocMetric;
+import com.indeed.jql.language.DocMetric;
 
 public interface GroupBy<F,M> {
 
