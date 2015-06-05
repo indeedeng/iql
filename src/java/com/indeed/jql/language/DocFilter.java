@@ -47,6 +47,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(field, term);
         }
+
+        @Override
+        public String toString() {
+            return "FieldIs{" +
+                    "field='" + field + '\'' +
+                    ", term=" + term +
+                    '}';
+        }
     }
 
     class FieldIsnt implements DocFilter {
@@ -80,6 +88,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(field, term);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldIsnt{" +
+                    "field='" + field + '\'' +
+                    ", term=" + term +
+                    '}';
         }
     }
 
@@ -121,6 +137,15 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(field, lowerBound, upperBound);
         }
+
+        @Override
+        public String toString() {
+            return "Between{" +
+                    "field='" + field + '\'' +
+                    ", lowerBound=" + lowerBound +
+                    ", upperBound=" + upperBound +
+                    '}';
+        }
     }
 
     class MetricEqual implements DocFilter {
@@ -154,6 +179,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "MetricEqual{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -189,6 +222,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "MetricNotEqual{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class MetricGt implements DocFilter {
@@ -222,6 +263,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "MetricGt{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -257,6 +306,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "MetricGte{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class MetricLt implements DocFilter {
@@ -290,6 +347,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "MetricLt{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -325,6 +390,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "MetricLte{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class And implements DocFilter {
@@ -358,6 +431,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(f1, f2);
+        }
+
+        @Override
+        public String toString() {
+            return "And{" +
+                    "f1=" + f1 +
+                    ", f2=" + f2 +
+                    '}';
         }
     }
 
@@ -393,6 +474,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(f1, f2);
         }
+
+        @Override
+        public String toString() {
+            return "Or{" +
+                    "f1=" + f1 +
+                    ", f2=" + f2 +
+                    '}';
+        }
     }
 
     class Not implements DocFilter {
@@ -423,6 +512,13 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(filter);
+        }
+
+        @Override
+        public String toString() {
+            return "Not{" +
+                    "filter=" + filter +
+                    '}';
         }
     }
 
@@ -458,6 +554,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(field, regex);
         }
+
+        @Override
+        public String toString() {
+            return "Regex{" +
+                    "field='" + field + '\'' +
+                    ", regex='" + regex + '\'' +
+                    '}';
+        }
     }
 
     class NotRegex implements DocFilter {
@@ -491,6 +595,14 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(field, regex);
+        }
+
+        @Override
+        public String toString() {
+            return "NotRegex{" +
+                    "field='" + field + '\'' +
+                    ", regex='" + regex + '\'' +
+                    '}';
         }
     }
 
@@ -531,6 +643,14 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(scope, filter);
         }
+
+        @Override
+        public String toString() {
+            return "Qualified{" +
+                    "scope=" + scope +
+                    ", filter=" + filter +
+                    '}';
+        }
     }
 
     class Lucene implements DocFilter {
@@ -561,6 +681,13 @@ public interface DocFilter {
         @Override
         public int hashCode() {
             return Objects.hash(query);
+        }
+
+        @Override
+        public String toString() {
+            return "Lucene{" +
+                    "query='" + query + '\'' +
+                    '}';
         }
     }
 
@@ -602,6 +729,16 @@ public interface DocFilter {
         public int hashCode() {
             return Objects.hash(field, numerator, denominator, seed);
         }
+
+        @Override
+        public String toString() {
+            return "Sample{" +
+                    "field='" + field + '\'' +
+                    ", numerator=" + numerator +
+                    ", denominator=" + denominator +
+                    ", seed='" + seed + '\'' +
+                    '}';
+        }
     }
 
     class Always implements DocFilter {
@@ -624,6 +761,11 @@ public interface DocFilter {
         public boolean equals(Object obj) {
             return getClass().equals(obj.getClass());
         }
+
+        @Override
+        public String toString() {
+            return "Always{}";
+        }
     }
 
     class Never implements DocFilter {
@@ -645,6 +787,11 @@ public interface DocFilter {
         @Override
         public boolean equals(Object obj) {
             return getClass().equals(obj.getClass());
+        }
+
+        @Override
+        public String toString() {
+            return "Never{}";
         }
     }
 }

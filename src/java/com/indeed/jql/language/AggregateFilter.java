@@ -39,6 +39,13 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(term);
         }
+
+        @Override
+        public String toString() {
+            return "TermIs{" +
+                    "term=" + term +
+                    '}';
+        }
     }
 
     class MetricIs implements AggregateFilter {
@@ -72,6 +79,14 @@ public interface AggregateFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "MetricIs{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -107,6 +122,14 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "MetricIsnt{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class Gt implements AggregateFilter {
@@ -140,6 +163,14 @@ public interface AggregateFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "Gt{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -175,6 +206,14 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "Gte{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class Lt implements AggregateFilter {
@@ -208,6 +247,14 @@ public interface AggregateFilter {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return "Lt{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -243,6 +290,14 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+        @Override
+        public String toString() {
+            return "Lte{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class And implements AggregateFilter {
@@ -276,6 +331,14 @@ public interface AggregateFilter {
         @Override
         public int hashCode() {
             return Objects.hash(f1, f2);
+        }
+
+        @Override
+        public String toString() {
+            return "And{" +
+                    "f1=" + f1 +
+                    ", f2=" + f2 +
+                    '}';
         }
     }
 
@@ -311,6 +374,14 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(f1, f2);
         }
+
+        @Override
+        public String toString() {
+            return "Or{" +
+                    "f1=" + f1 +
+                    ", f2=" + f2 +
+                    '}';
+        }
     }
 
     class Not implements AggregateFilter {
@@ -341,6 +412,13 @@ public interface AggregateFilter {
         @Override
         public int hashCode() {
             return Objects.hash(filter);
+        }
+
+        @Override
+        public String toString() {
+            return "Not{" +
+                    "filter=" + filter +
+                    '}';
         }
     }
 
@@ -376,6 +454,14 @@ public interface AggregateFilter {
         public int hashCode() {
             return Objects.hash(field, regex);
         }
+
+        @Override
+        public String toString() {
+            return "Regex{" +
+                    "field='" + field + '\'' +
+                    ", regex='" + regex + '\'' +
+                    '}';
+        }
     }
 
     class Always implements AggregateFilter {
@@ -398,6 +484,11 @@ public interface AggregateFilter {
         public boolean equals(Object obj) {
             return getClass().equals(obj.getClass());
         }
+
+        @Override
+        public String toString() {
+            return "Always{}";
+        }
     }
 
     class Never implements AggregateFilter {
@@ -419,6 +510,10 @@ public interface AggregateFilter {
         @Override
         public boolean equals(Object obj) {
             return getClass().equals(obj.getClass());
+        }
+
+        public String toString() {
+            return "Never{}";
         }
     }
 }

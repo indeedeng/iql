@@ -30,6 +30,14 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(m1);
         }
+
+
+        @Override
+        public String toString() {
+            return this.getClass().getName() + "{" +
+                    "m1=" + m1 +
+                    '}';
+        }
     }
 
     class Log extends Unop {
@@ -102,6 +110,15 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
+
+
+        @Override
+        public String toString() {
+            return this.getClass().getName() + "{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
+        }
     }
 
     class Add extends Binop {
@@ -118,7 +135,7 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Add(f.apply(m1), f.apply(m2));
         }
-    }
+   }
 
     class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
@@ -229,6 +246,13 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(metric);
         }
+
+        @Override
+        public String toString() {
+            return "Parent{" +
+                    "metric=" + metric +
+                    '}';
+        }
     }
 
     class Lag implements AggregateMetric {
@@ -262,6 +286,14 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(lag, metric);
+        }
+
+        @Override
+        public String toString() {
+            return "Lag{" +
+                    "lag=" + lag +
+                    ", metric=" + metric +
+                    '}';
         }
     }
 
@@ -297,6 +329,14 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(window, metric);
         }
+
+        @Override
+        public String toString() {
+            return "Window{" +
+                    "window=" + window +
+                    ", metric=" + metric +
+                    '}';
+        }
     }
 
     class Qualified implements AggregateMetric {
@@ -330,6 +370,14 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(scope, metric);
+        }
+
+        @Override
+        public String toString() {
+            return "Qualified{" +
+                    "scope=" + scope +
+                    ", metric=" + metric +
+                    '}';
         }
     }
 
@@ -365,6 +413,14 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(dataset, pushes);
         }
+
+        @Override
+        public String toString() {
+            return "DocStatsPushes{" +
+                    "dataset='" + dataset + '\'' +
+                    ", pushes=" + pushes +
+                    '}';
+        }
     }
 
     class DocStats implements AggregateMetric {
@@ -395,6 +451,13 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(metric);
+        }
+
+        @Override
+        public String toString() {
+            return "DocStats{" +
+                    "metric=" + metric +
+                    '}';
         }
     }
 
@@ -429,6 +492,13 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "ImplicitDocStats{" +
+                    "field='" + field + '\'' +
+                    '}';
         }
     }
 
@@ -495,6 +565,14 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(field, percentile);
         }
+
+        @Override
+        public String toString() {
+            return "Percentile{" +
+                    "field='" + field + '\'' +
+                    ", percentile=" + percentile +
+                    '}';
+        }
     }
 
     class Running implements AggregateMetric {
@@ -525,6 +603,13 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(metric);
+        }
+
+        @Override
+        public String toString() {
+            return "Running{" +
+                    "metric=" + metric +
+                    '}';
         }
     }
 
@@ -571,6 +656,15 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(field, filter, windowSize);
         }
+
+        @Override
+        public String toString() {
+            return "Distinct{" +
+                    "field='" + field + '\'' +
+                    ", filter=" + filter +
+                    ", windowSize=" + windowSize +
+                    '}';
+        }
     }
 
     class Named implements AggregateMetric {
@@ -605,6 +699,14 @@ public interface AggregateMetric {
         public int hashCode() {
             return Objects.hash(metric, name);
         }
+
+        @Override
+        public String toString() {
+            return "Named{" +
+                    "metric=" + metric +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
     }
 
     class GroupStatsLookup implements AggregateMetric {
@@ -635,6 +737,13 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(name);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupStatsLookup{" +
+                    "name='" + name + '\'' +
+                    '}';
         }
     }
 }

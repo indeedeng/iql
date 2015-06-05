@@ -32,6 +32,15 @@ public interface Precomputed {
         public int hashCode() {
             return Objects.hash(field, filter, windowSize);
         }
+
+        @Override
+        public String toString() {
+            return "PrecomputedDistinct{" +
+                    "field='" + field + '\'' +
+                    ", filter=" + filter +
+                    ", windowSize=" + windowSize +
+                    '}';
+        }
     }
 
     class PrecomputedPercentile implements Precomputed {
@@ -56,6 +65,14 @@ public interface Precomputed {
         public int hashCode() {
             return Objects.hash(field, percentile);
         }
+
+        @Override
+        public String toString() {
+            return "PrecomputedPercentile{" +
+                    "field='" + field + '\'' +
+                    ", percentile=" + percentile +
+                    '}';
+        }
     }
 
     class PrecomputedRawStats implements Precomputed {
@@ -76,6 +93,13 @@ public interface Precomputed {
         @Override
         public int hashCode() {
             return Objects.hash(docMetric);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedRawStats{" +
+                    "docMetric=" + docMetric +
+                    '}';
         }
     }
 }

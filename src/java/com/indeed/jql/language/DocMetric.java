@@ -43,6 +43,13 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(field);
         }
+
+        @Override
+        public String toString() {
+            return "Field{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
     }
 
     abstract class Unop implements DocMetric {
@@ -70,6 +77,13 @@ public interface DocMetric {
         @Override
         public int hashCode() {
             return Objects.hash(m1);
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().getName() + "{" +
+                    "m1=" + m1 +
+                    '}';
         }
     }
 
@@ -171,6 +185,14 @@ public interface DocMetric {
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().toString() + "{" +
+                    "m1=" + m1 +
+                    ", m2=" + m2 +
+                    '}';
         }
     }
 
@@ -414,6 +436,14 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(field, regex);
         }
+
+        @Override
+        public String toString() {
+            return "RegexMetric{" +
+                    "field='" + field + '\'' +
+                    ", regex='" + regex + '\'' +
+                    '}';
+        }
     }
 
     class FloatScale implements DocMetric {
@@ -451,6 +481,15 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(field, mult, add);
         }
+
+        @Override
+        public String toString() {
+            return "FloatScale{" +
+                    "field='" + field + '\'' +
+                    ", mult=" + mult +
+                    ", add=" + add +
+                    '}';
+        }
     }
 
     class Constant implements DocMetric {
@@ -487,6 +526,13 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(value);
         }
+
+        @Override
+        public String toString() {
+            return "Constant{" +
+                    "value=" + value +
+                    '}';
+        }
     }
 
     class HasInt implements DocMetric {
@@ -521,6 +567,14 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(field, term);
         }
+
+        @Override
+        public String toString() {
+            return "HasInt{" +
+                    "field='" + field + '\'' +
+                    ", term=" + term +
+                    '}';
+        }
     }
 
     class HasString implements DocMetric {
@@ -554,6 +608,14 @@ public interface DocMetric {
         @Override
         public int hashCode() {
             return Objects.hash(field, term);
+        }
+
+        @Override
+        public String toString() {
+            return "HasString{" +
+                    "field='" + field + '\'' +
+                    ", term='" + term + '\'' +
+                    '}';
         }
     }
 
@@ -593,6 +655,14 @@ public interface DocMetric {
         public int hashCode() {
             return Objects.hash(condition, trueCase, falseCase);
         }
-    }
 
+        @Override
+        public String toString() {
+            return "IfThenElse{" +
+                    "condition=" + condition +
+                    ", trueCase=" + trueCase +
+                    ", falseCase=" + falseCase +
+                    '}';
+        }
+    }
 }
