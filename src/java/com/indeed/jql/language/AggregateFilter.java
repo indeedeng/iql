@@ -2,6 +2,8 @@ package com.indeed.jql.language;
 
 import com.google.common.base.Function;
 
+import java.util.Objects;
+
 public interface AggregateFilter {
 
     AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
@@ -24,6 +26,19 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TermIs termIs = (TermIs) o;
+            return Objects.equals(term, termIs.term);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(term);
+        }
     }
 
     class MetricIs implements AggregateFilter {
@@ -43,6 +58,20 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new MetricIs(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricIs metricIs = (MetricIs) o;
+            return Objects.equals(m1, metricIs.m1) &&
+                    Objects.equals(m2, metricIs.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -64,6 +93,20 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new MetricIs(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricIsnt that = (MetricIsnt) o;
+            return Objects.equals(m1, that.m1) &&
+                    Objects.equals(m2, that.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class Gt implements AggregateFilter {
@@ -83,6 +126,20 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Gt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Gt gt = (Gt) o;
+            return Objects.equals(m1, gt.m1) &&
+                    Objects.equals(m2, gt.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -104,6 +161,20 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Gte(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Gte gte = (Gte) o;
+            return Objects.equals(m1, gte.m1) &&
+                    Objects.equals(m2, gte.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class Lt implements AggregateFilter {
@@ -123,6 +194,20 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Lt lt = (Lt) o;
+            return Objects.equals(m1, lt.m1) &&
+                    Objects.equals(m2, lt.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -144,6 +229,20 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lte(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Lte lte = (Lte) o;
+            return Objects.equals(m1, lte.m1) &&
+                    Objects.equals(m2, lte.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class And implements AggregateFilter {
@@ -163,6 +262,20 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new And(f1.traverse1(f), f2.traverse1(f));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            And and = (And) o;
+            return Objects.equals(f1, and.f1) &&
+                    Objects.equals(f2, and.f2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(f1, f2);
         }
     }
 
@@ -184,6 +297,20 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Or(f1.traverse1(f), f2.traverse1(f));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Or or = (Or) o;
+            return Objects.equals(f1, or.f1) &&
+                    Objects.equals(f2, or.f2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(f1, f2);
+        }
     }
 
     class Not implements AggregateFilter {
@@ -201,6 +328,19 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Not(filter.traverse1(f));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Not not = (Not) o;
+            return Objects.equals(filter, not.filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(filter);
         }
     }
 
@@ -222,6 +362,20 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Regex regex1 = (Regex) o;
+            return Objects.equals(field, regex1.field) &&
+                    Objects.equals(regex, regex1.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, regex);
+        }
     }
 
     class Always implements AggregateFilter {
@@ -234,6 +388,16 @@ public interface AggregateFilter {
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public int hashCode() {
+            return 1;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return getClass().equals(obj.getClass());
+        }
     }
 
     class Never implements AggregateFilter {
@@ -245,6 +409,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public int hashCode() {
+            return 2;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return getClass().equals(obj.getClass());
         }
     }
 }

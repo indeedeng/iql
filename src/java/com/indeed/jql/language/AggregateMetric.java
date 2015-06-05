@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Objects;
 
 public interface AggregateMetric {
 
@@ -15,6 +16,19 @@ public interface AggregateMetric {
 
         public Unop(AggregateMetric m1) {
             this.m1 = m1;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Unop unop = (Unop) o;
+            return Objects.equals(m1, unop.m1);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1);
         }
     }
 
@@ -73,6 +87,20 @@ public interface AggregateMetric {
         public Binop(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Binop binop = (Binop) o;
+            return Objects.equals(m1, binop.m1) &&
+                    Objects.equals(m2, binop.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -188,6 +216,19 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Parent(f.apply(metric));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Parent parent = (Parent) o;
+            return Objects.equals(metric, parent.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric);
+        }
     }
 
     class Lag implements AggregateMetric {
@@ -207,6 +248,20 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lag(lag, f.apply(metric));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Lag lag1 = (Lag) o;
+            return Objects.equals(lag, lag1.lag) &&
+                    Objects.equals(metric, lag1.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(lag, metric);
         }
     }
 
@@ -228,6 +283,20 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Window(window, f.apply(metric));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Window window1 = (Window) o;
+            return Objects.equals(window, window1.window) &&
+                    Objects.equals(metric, window1.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(window, metric);
+        }
     }
 
     class Qualified implements AggregateMetric {
@@ -247,6 +316,20 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Qualified(scope, f.apply(metric));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Qualified qualified = (Qualified) o;
+            return Objects.equals(scope, qualified.scope) &&
+                    Objects.equals(metric, qualified.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(scope, metric);
         }
     }
 
@@ -268,6 +351,20 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DocStatsPushes that = (DocStatsPushes) o;
+            return Objects.equals(dataset, that.dataset) &&
+                    Objects.equals(pushes, that.pushes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dataset, pushes);
+        }
     }
 
     class DocStats implements AggregateMetric {
@@ -285,6 +382,19 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DocStats docStats = (DocStats) o;
+            return Objects.equals(metric, docStats.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric);
         }
     }
 
@@ -307,6 +417,19 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ImplicitDocStats that = (ImplicitDocStats) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
     }
 
     class Constant implements AggregateMetric {
@@ -324,6 +447,19 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Constant constant = (Constant) o;
+            return Objects.equals(value, constant.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
         }
     }
 
@@ -345,6 +481,20 @@ public interface AggregateMetric {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Percentile that = (Percentile) o;
+            return Objects.equals(percentile, that.percentile) &&
+                    Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, percentile);
+        }
     }
 
     class Running implements AggregateMetric {
@@ -362,6 +512,19 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Running(f.apply(metric));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Running running = (Running) o;
+            return Objects.equals(metric, running.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric);
         }
     }
 
@@ -393,6 +556,21 @@ public interface AggregateMetric {
                 return this;
             }
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Distinct distinct = (Distinct) o;
+            return Objects.equals(field, distinct.field) &&
+                    Objects.equals(filter, distinct.filter) &&
+                    Objects.equals(windowSize, distinct.windowSize);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, filter, windowSize);
+        }
     }
 
     class Named implements AggregateMetric {
@@ -412,6 +590,20 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Named(f.apply(metric), name);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Named named = (Named) o;
+            return Objects.equals(metric, named.metric) &&
+                    Objects.equals(name, named.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric, name);
         }
     }
 }

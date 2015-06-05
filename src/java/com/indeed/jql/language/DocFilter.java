@@ -3,6 +3,7 @@ package com.indeed.jql.language;
 import com.google.common.base.Function;
 
 import java.util.List;
+import java.util.Objects;
 
 public interface DocFilter {
 
@@ -32,6 +33,20 @@ public interface DocFilter {
                 return new DocMetric.HasString(field, term.stringTerm);
             }
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldIs fieldIs = (FieldIs) o;
+            return Objects.equals(field, fieldIs.field) &&
+                    Objects.equals(term, fieldIs.term);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, term);
+        }
     }
 
     class FieldIsnt implements DocFilter {
@@ -51,6 +66,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new Not(new FieldIs(field, term)).asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldIsnt fieldIsnt = (FieldIsnt) o;
+            return Objects.equals(field, fieldIsnt.field) &&
+                    Objects.equals(term, fieldIsnt.term);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, term);
         }
     }
 
@@ -77,6 +106,21 @@ public interface DocFilter {
                 new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
             ).asZeroOneMetric(dataset);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Between between = (Between) o;
+            return Objects.equals(lowerBound, between.lowerBound) &&
+                    Objects.equals(upperBound, between.upperBound) &&
+                    Objects.equals(field, between.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, lowerBound, upperBound);
+        }
     }
 
     class MetricEqual implements DocFilter {
@@ -96,6 +140,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricEqual(m1, m2);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricEqual that = (MetricEqual) o;
+            return Objects.equals(m1, that.m1) &&
+                    Objects.equals(m2, that.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -117,6 +175,20 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricNotEqual(m1, m2);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricNotEqual that = (MetricNotEqual) o;
+            return Objects.equals(m1, that.m1) &&
+                    Objects.equals(m2, that.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class MetricGt implements DocFilter {
@@ -136,6 +208,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricGt(m1, m2);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricGt metricGt = (MetricGt) o;
+            return Objects.equals(m1, metricGt.m1) &&
+                    Objects.equals(m2, metricGt.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -157,6 +243,20 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricGte(m1, m2);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricGte metricGte = (MetricGte) o;
+            return Objects.equals(m1, metricGte.m1) &&
+                    Objects.equals(m2, metricGte.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class MetricLt implements DocFilter {
@@ -176,6 +276,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricLt(m1, m2);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricLt metricLt = (MetricLt) o;
+            return Objects.equals(m1, metricLt.m1) &&
+                    Objects.equals(m2, metricLt.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -197,6 +311,20 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricLte(m1, m2);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricLte metricLte = (MetricLte) o;
+            return Objects.equals(m1, metricLte.m1) &&
+                    Objects.equals(m2, metricLte.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
+        }
     }
 
     class And implements DocFilter {
@@ -216,6 +344,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricEqual(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(2));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            And and = (And) o;
+            return Objects.equals(f1, and.f1) &&
+                    Objects.equals(f2, and.f2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(f1, f2);
         }
     }
 
@@ -237,6 +379,20 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricGt(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(0));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Or or = (Or) o;
+            return Objects.equals(f1, or.f1) &&
+                    Objects.equals(f2, or.f2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(f1, f2);
+        }
     }
 
     class Not implements DocFilter {
@@ -254,6 +410,19 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.Subtract(new DocMetric.Constant(1), filter.asZeroOneMetric(dataset));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Not not = (Not) o;
+            return Objects.equals(filter, not.filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(filter);
         }
     }
 
@@ -275,6 +444,20 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.RegexMetric(field, regex);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Regex regex1 = (Regex) o;
+            return Objects.equals(field, regex1.field) &&
+                    Objects.equals(regex, regex1.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, regex);
+        }
     }
 
     class NotRegex implements DocFilter {
@@ -294,6 +477,20 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new Not(new Regex(field, regex)).asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            NotRegex notRegex = (NotRegex) o;
+            return Objects.equals(field, notRegex.field) &&
+                    Objects.equals(regex, notRegex.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, regex);
         }
     }
 
@@ -320,6 +517,20 @@ public interface DocFilter {
                 return new DocMetric.Constant(1);
             }
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Qualified qualified = (Qualified) o;
+            return Objects.equals(scope, qualified.scope) &&
+                    Objects.equals(filter, qualified.filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(scope, filter);
+        }
     }
 
     class Lucene implements DocFilter {
@@ -337,6 +548,19 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             throw new UnsupportedOperationException("Haven't implemented Lucene queries yet");
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Lucene lucene = (Lucene) o;
+            return Objects.equals(query, lucene.query);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(query);
         }
     }
 
@@ -362,6 +586,22 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             throw new UnsupportedOperationException("Haven't implemented Sample yet");
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Sample sample = (Sample) o;
+            return Objects.equals(numerator, sample.numerator) &&
+                    Objects.equals(denominator, sample.denominator) &&
+                    Objects.equals(field, sample.field) &&
+                    Objects.equals(seed, sample.seed);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, numerator, denominator, seed);
+        }
     }
 
     class Always implements DocFilter {
@@ -374,6 +614,16 @@ public interface DocFilter {
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.Constant(1);
         }
+
+        @Override
+        public int hashCode() {
+            return 1;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return getClass().equals(obj.getClass());
+        }
     }
 
     class Never implements DocFilter {
@@ -385,6 +635,16 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.Constant(0);
+        }
+
+        @Override
+        public int hashCode() {
+            return 2;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return getClass().equals(obj.getClass());
         }
     }
 }

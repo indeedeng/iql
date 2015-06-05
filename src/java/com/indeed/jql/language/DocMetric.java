@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public interface DocMetric {
 
@@ -29,6 +30,19 @@ public interface DocMetric {
         public List<String> getPushes(String dataset) {
             return Collections.singletonList(field);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Field field1 = (Field) o;
+            return Objects.equals(field, field1.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
     }
 
     abstract class Unop implements DocMetric {
@@ -43,6 +57,19 @@ public interface DocMetric {
             final ArrayList<String> result = Lists.newArrayList(pushes);
             result.add(operator);
             return result;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Unop unop = (Unop) o;
+            return Objects.equals(m1, unop.m1);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1);
         }
     }
 
@@ -130,6 +157,20 @@ public interface DocMetric {
             result.addAll(m2.getPushes(dataset));
             result.add(operator);
             return result;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Binop binop = (Binop) o;
+            return Objects.equals(m1, binop.m1) &&
+                    Objects.equals(m2, binop.m2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(m1, m2);
         }
     }
 
@@ -359,6 +400,20 @@ public interface DocMetric {
         public List<String> getPushes(String dataset) {
             return Collections.singletonList("regex " + field + ":" + regex);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RegexMetric that = (RegexMetric) o;
+            return Objects.equals(field, that.field) &&
+                    Objects.equals(regex, that.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, regex);
+        }
     }
 
     class FloatScale implements DocMetric {
@@ -380,6 +435,21 @@ public interface DocMetric {
         @Override
         public List<String> getPushes(String dataset) {
             return Collections.singletonList("floatscale " + field + "*" + mult + "+" + add);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FloatScale that = (FloatScale) o;
+            return Objects.equals(mult, that.mult) &&
+                    Objects.equals(add, that.add) &&
+                    Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, mult, add);
         }
     }
 
@@ -404,6 +474,19 @@ public interface DocMetric {
                 return Collections.singletonList(String.valueOf(value));
             }
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Constant constant = (Constant) o;
+            return Objects.equals(value, constant.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
     }
 
     class HasInt implements DocMetric {
@@ -424,6 +507,20 @@ public interface DocMetric {
         public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasint " + field + ":" + term);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            HasInt hasInt = (HasInt) o;
+            return Objects.equals(term, hasInt.term) &&
+                    Objects.equals(field, hasInt.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, term);
+        }
     }
 
     class HasString implements DocMetric {
@@ -443,6 +540,20 @@ public interface DocMetric {
         @Override
         public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasstr " + field + ":" + term);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            HasString hasString = (HasString) o;
+            return Objects.equals(field, hasString.field) &&
+                    Objects.equals(term, hasString.term);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, term);
         }
     }
 
@@ -466,6 +577,21 @@ public interface DocMetric {
         public List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             return new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase)).getPushes(dataset);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            IfThenElse that = (IfThenElse) o;
+            return Objects.equals(condition, that.condition) &&
+                    Objects.equals(trueCase, that.trueCase) &&
+                    Objects.equals(falseCase, that.falseCase);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(condition, trueCase, falseCase);
         }
     }
 
