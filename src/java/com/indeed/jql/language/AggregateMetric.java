@@ -8,6 +8,7 @@ import java.util.List;
 public interface AggregateMetric {
 
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
+    AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     abstract class Unop implements AggregateMetric {
         public final AggregateMetric m1;
@@ -26,6 +27,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Log(m1.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Log(f.apply(m1));
+        }
     }
 
     class Negate extends Unop {
@@ -37,6 +43,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Negate(m1.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Negate(f.apply(m1));
+        }
     }
 
     class Abs extends Unop {
@@ -47,6 +58,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Abs(m1.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Abs(f.apply(m1));
         }
     }
 
@@ -69,6 +85,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Add(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Add(f.apply(m1), f.apply(m2));
+        }
     }
 
     class Subtract extends Binop {
@@ -79,6 +100,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Subtract(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Subtract(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -91,6 +117,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Multiply(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Multiply(f.apply(m1), f.apply(m2));
+        }
     }
 
     class Divide extends Binop {
@@ -101,6 +132,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Divide(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Divide(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -113,6 +149,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Modulus(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Modulus(f.apply(m1), f.apply(m2));
+        }
     }
 
     class Power extends Binop {
@@ -123,6 +164,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Power(m1.transform(f, g, h, i), m2.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Power(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -136,6 +182,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Parent(metric.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Parent(f.apply(metric));
         }
     }
 
@@ -152,6 +203,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Lag(lag, metric.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Lag(lag, f.apply(metric));
+        }
     }
 
     class Window implements AggregateMetric {
@@ -166,6 +222,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Window(window, metric.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Window(window, f.apply(metric));
         }
     }
 
@@ -182,6 +243,31 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Qualified(scope, metric.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Qualified(scope, f.apply(metric));
+        }
+    }
+
+    class DocStatsPushes implements AggregateMetric {
+        public final String dataset;
+        public final List<String> pushes;
+
+        public DocStatsPushes(String dataset, List<String> pushes) {
+            this.dataset = dataset;
+            this.pushes = pushes;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class DocStats implements AggregateMetric {
@@ -194,6 +280,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new DocStats(metric.transform(g, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -211,6 +302,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(this);
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class Constant implements AggregateMetric {
@@ -223,6 +319,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -239,6 +340,11 @@ public interface AggregateMetric {
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(this);
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class Running implements AggregateMetric {
@@ -251,6 +357,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Running(metric.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Running(f.apply(metric));
         }
     }
 
@@ -273,6 +384,15 @@ public interface AggregateMetric {
                 return f.apply(this);
             }
         }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            if (filter.isPresent()) {
+                return new Distinct(field, Optional.of(filter.get().traverse1(f)), windowSize);
+            } else {
+                return this;
+            }
+        }
     }
 
     class Named implements AggregateMetric {
@@ -287,6 +407,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return f.apply(new Named(metric.transform(f, g, h, i), name));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Named(f.apply(metric), name);
         }
     }
 }

@@ -1,10 +1,17 @@
 package com.indeed.jql.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public interface DocMetric {
 
     DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
+
+    List<String> getPushes(String dataset);
 
     class Field implements DocMetric {
         private final String field;
@@ -17,6 +24,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return Collections.singletonList(field);
+        }
     }
 
     abstract class Unop implements DocMetric {
@@ -24,6 +36,13 @@ public interface DocMetric {
 
         public Unop(DocMetric m1) {
             this.m1 = m1;
+        }
+
+        protected List<String> unop(String dataset, String operator) {
+            final List<String> pushes = m1.getPushes(dataset);
+            final ArrayList<String> result = Lists.newArrayList(pushes);
+            result.add(operator);
+            return result;
         }
     }
 
@@ -36,6 +55,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Log(m1.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return unop(dataset, "log");
+        }
     }
 
     class Negate extends Unop {
@@ -46,6 +70,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Negate(m1.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return new Subtract(new Constant(0), m1).getPushes(dataset);
         }
     }
 
@@ -58,6 +87,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Abs(m1.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return unop(dataset, "abs()");
+        }
     }
 
     class Signum extends Unop {
@@ -69,6 +103,16 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Signum(m1.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return new IfThenElse(new DocFilter.MetricGt(m1, new Constant(0)),
+                                  new Constant(1),
+                                  new IfThenElse(new DocFilter.MetricLt(m1, new Constant(0)),
+                                                 new Constant(-1),
+                                                 new Constant(0))
+                                 ).getPushes(dataset);
+        }
     }
 
     abstract class Binop implements DocMetric {
@@ -78,6 +122,14 @@ public interface DocMetric {
         public Binop(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        protected List<String> binop(String dataset, String operator) {
+            final List<String> result = new ArrayList<>();
+            result.addAll(m1.getPushes(dataset));
+            result.addAll(m2.getPushes(dataset));
+            result.add(operator);
+            return result;
         }
     }
 
@@ -90,6 +142,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Add(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "+");
+        }
     }
 
     class Subtract extends Binop {
@@ -100,6 +157,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Subtract(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "-");
         }
     }
 
@@ -112,6 +174,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Multiply(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "*");
+        }
     }
 
     class Divide extends Binop {
@@ -122,6 +189,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Divide(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "/");
         }
     }
 
@@ -134,6 +206,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Modulus(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "%");
+        }
     }
 
     class Min extends Binop {
@@ -144,6 +221,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Min(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "min()");
         }
     }
 
@@ -156,6 +238,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new Max(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "max()");
+        }
     }
 
     class MetricEqual extends Binop {
@@ -166,6 +253,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "=");
         }
     }
 
@@ -178,6 +270,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "!=");
+        }
     }
 
     class MetricLt extends Binop {
@@ -188,6 +285,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "<");
         }
     }
 
@@ -200,6 +302,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, "<=");
+        }
     }
 
     class MetricGt extends Binop {
@@ -211,6 +318,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, ">");
+        }
     }
 
     class MetricGte extends Binop {
@@ -221,6 +333,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return binop(dataset, ">=");
         }
     }
 
@@ -236,6 +353,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return Collections.singletonList("regex " + field + ":" + regex);
         }
     }
 
@@ -254,6 +376,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return Collections.singletonList("floatscale " + field + "*" + mult + "+" + add);
+        }
     }
 
     class Constant implements DocMetric {
@@ -266,6 +393,16 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            if (value < 0) {
+                // TODO: Is this still necessary?
+                return new Negate(new Constant(value)).getPushes(dataset);
+            } else {
+                return Collections.singletonList(String.valueOf(value));
+            }
         }
     }
 
@@ -282,6 +419,11 @@ public interface DocMetric {
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
         }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return Collections.singletonList("hasint " + field + ":" + term);
+        }
     }
 
     class HasString implements DocMetric {
@@ -296,6 +438,11 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            return Collections.singletonList("hasstr " + field + ":" + term);
         }
     }
 
@@ -313,6 +460,12 @@ public interface DocMetric {
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(new IfThenElse(condition.transform(g, i), trueCase.transform(g, i), falseCase.transform(g, i)));
+        }
+
+        @Override
+        public List<String> getPushes(String dataset) {
+            final DocMetric truth = condition.asZeroOneMetric(dataset);
+            return new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase)).getPushes(dataset);
         }
     }
 

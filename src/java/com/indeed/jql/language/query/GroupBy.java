@@ -17,6 +17,8 @@ public interface GroupBy {
             Function<DocFilter, DocFilter> i
     );
 
+    GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f);
+
     class GroupByMetric implements GroupBy {
         private final DocMetric metric;
         private final long min;
@@ -36,6 +38,11 @@ public interface GroupBy {
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(new GroupByMetric(metric.transform(g, i), min, max, interval, excludeGutters));
         }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class GroupByTime implements GroupBy {
@@ -52,6 +59,11 @@ public interface GroupBy {
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -70,6 +82,11 @@ public interface GroupBy {
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
         }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class GroupByMonth implements GroupBy {
@@ -84,6 +101,11 @@ public interface GroupBy {
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -106,17 +128,34 @@ public interface GroupBy {
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             final Optional<AggregateFilter> filter;
             if (this.filter.isPresent()) {
-                filter = Optional.of(this.filter.get().transform(f,g,h,i));
+                filter = Optional.of(this.filter.get().transform(f, g, h, i));
             } else {
                 filter = Optional.absent();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
-                metric = Optional.of(this.metric.get().transform(f,g,h,i));
+                metric = Optional.of(this.metric.get().transform(f, g, h, i));
             } else {
                 metric = Optional.absent();
             }
             return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault));
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final Optional<AggregateFilter> filter;
+            if (this.filter.isPresent()) {
+                filter = Optional.of(this.filter.get().traverse1(f));
+            } else {
+                filter = Optional.absent();
+            }
+            final Optional<AggregateMetric> metric;
+            if (this.metric.isPresent()) {
+                metric = Optional.of(this.metric.get().traverse1(f));
+            } else {
+                metric = Optional.absent();
+            }
+            return new GroupByField(field, filter, limit, metric, withDefault);
         }
     }
 
@@ -125,12 +164,22 @@ public interface GroupBy {
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
         }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class GroupBySessionName implements GroupBy {
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -146,6 +195,11 @@ public interface GroupBy {
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 }

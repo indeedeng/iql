@@ -6,6 +6,8 @@ public interface AggregateFilter {
 
     AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
 
+    AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
+
     class TermIs implements AggregateFilter {
         private final Term term;
 
@@ -16,6 +18,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 
@@ -32,6 +39,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new MetricIs(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new MetricIs(f.apply(m1), f.apply(m2));
+        }
     }
 
     class MetricIsnt implements AggregateFilter {
@@ -46,6 +58,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new MetricIsnt(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new MetricIs(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -62,6 +79,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Gt(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Gt(f.apply(m1), f.apply(m2));
+        }
     }
 
     class Gte implements AggregateFilter {
@@ -76,6 +98,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Gte(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Gte(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -92,6 +119,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Lt(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Lt(f.apply(m1), f.apply(m2));
+        }
     }
 
     class Lte implements AggregateFilter {
@@ -106,6 +138,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Lte(m1.transform(f,g,h,i), m2.transform(f,g,h,i)));
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Lte(f.apply(m1), f.apply(m2));
         }
     }
 
@@ -122,6 +159,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new And(f1.transform(f,g,h,i), f2.transform(f,g,h,i)));
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new And(f1.traverse1(f), f2.traverse1(f));
+        }
     }
 
     class Or implements AggregateFilter {
@@ -137,6 +179,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Or(f1.transform(f, g, h, i), f2.transform(f, g, h, i)));
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Or(f1.traverse1(f), f2.traverse1(f));
+        }
     }
 
     class Not implements AggregateFilter {
@@ -149,6 +196,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(new Not(filter.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Not(filter.traverse1(f));
         }
     }
 
@@ -165,6 +217,11 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class Always implements AggregateFilter {
@@ -172,12 +229,22 @@ public interface AggregateFilter {
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
         }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
     }
 
     class Never implements AggregateFilter {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
     }
 }

@@ -8,6 +8,8 @@ public interface DocFilter {
 
     DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
+    DocMetric asZeroOneMetric(String dataset);
+
     class FieldIs implements DocFilter {
         private final String field;
         private final Term term;
@@ -20,6 +22,15 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            if (term.isIntTerm) {
+                return new DocMetric.HasInt(field, term.intTerm);
+            } else {
+                return new DocMetric.HasString(field, term.stringTerm);
+            }
         }
     }
 
@@ -35,6 +46,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new Not(new FieldIs(field, term)).asZeroOneMetric(dataset);
         }
     }
 
@@ -53,6 +69,14 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new And(
+                new MetricGte(new DocMetric.Field(field), new DocMetric.Constant(lowerBound)),
+                new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
+            ).asZeroOneMetric(dataset);
+        }
     }
 
     class MetricEqual implements DocFilter {
@@ -67,6 +91,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricEqual(m1, m2);
         }
     }
 
@@ -83,6 +112,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricNotEqual(m1, m2);
+        }
     }
 
     class MetricGt implements DocFilter {
@@ -97,6 +131,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricGt(m1, m2);
         }
     }
 
@@ -113,6 +152,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricGte(m1, m2);
+        }
     }
 
     class MetricLt implements DocFilter {
@@ -127,6 +171,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricLt(m1, m2);
         }
     }
 
@@ -143,6 +192,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)));
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricLte(m1, m2);
+        }
     }
 
     class And implements DocFilter {
@@ -157,6 +211,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new And(f1.transform(g, i), f2.transform(g, i)));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricEqual(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(2));
         }
     }
 
@@ -173,6 +232,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new Or(f1.transform(g, i), f2.transform(g, i)));
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.MetricGt(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(0));
+        }
     }
 
     class Not implements DocFilter {
@@ -185,6 +249,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new Not(filter.transform(g, i)));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.Subtract(new DocMetric.Constant(1), filter.asZeroOneMetric(dataset));
         }
     }
 
@@ -201,6 +270,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.RegexMetric(field, regex);
+        }
     }
 
     class NotRegex implements DocFilter {
@@ -215,6 +289,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new Not(new Regex(field, regex)).asZeroOneMetric(dataset);
         }
     }
 
@@ -231,6 +310,16 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(new Qualified(scope, filter.transform(g, i)));
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            if (scope.contains(dataset)) {
+                return filter.asZeroOneMetric(dataset);
+            } else {
+                // TODO: Is this what we want to be doing?
+                return new DocMetric.Constant(1);
+            }
+        }
     }
 
     class Lucene implements DocFilter {
@@ -243,6 +332,11 @@ public interface DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            throw new UnsupportedOperationException("Haven't implemented Lucene queries yet");
         }
     }
 
@@ -263,6 +357,11 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            throw new UnsupportedOperationException("Haven't implemented Sample yet");
+        }
     }
 
     class Always implements DocFilter {
@@ -270,12 +369,22 @@ public interface DocFilter {
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
         }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.Constant(1);
+        }
     }
 
     class Never implements DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.Constant(0);
         }
     }
 }

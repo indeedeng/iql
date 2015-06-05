@@ -13,7 +13,9 @@ import com.indeed.jql.language.JQLParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Query {
     public final List<com.indeed.jql.language.query.Dataset> datasets;
@@ -92,5 +94,34 @@ public class Query {
             selects.add(select.transform(f, g, h, i));
         }
         return new Query(datasets, filter, groupBys, selects);
+    }
+
+    public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
+        final List<GroupBy> groupBys = Lists.newArrayList();
+        for (final GroupBy gb : this.groupBys) {
+            groupBys.add(gb.traverse1(f));
+        }
+        final List<AggregateMetric> selects = Lists.newArrayList();
+        for (final AggregateMetric select : this.selects) {
+            selects.add(select.traverse1(f));
+        }
+        return new Query(datasets, filter, groupBys, selects);
+    }
+
+    public Set<String> extractDatasetNames() {
+        final Set<String> names = new HashSet<>();
+        for (final Dataset dataset : datasets) {
+            final String name;
+            if (dataset.alias.isPresent()) {
+                name = dataset.alias.get();
+            } else {
+                name = dataset.dataset;
+            }
+            if (names.contains(name)) {
+                throw new IllegalArgumentException("Duplicate name encountered: " + name);
+            }
+            names.add(name);
+        }
+        return names;
     }
 }
