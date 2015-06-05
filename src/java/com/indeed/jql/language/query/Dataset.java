@@ -108,4 +108,14 @@ public class Dataset {
         }
         throw new UnsupportedOperationException("Don't know how to handle dateTime: " + dateTimeContext.getText());
     }
+
+    @Override
+    public String toString() {
+        return "Dataset{" +
+                "dataset='" + dataset + '\'' +
+                ", startInclusive=" + startInclusive +
+                ", endExclusive=" + endExclusive +
+                ", alias=" + alias +
+                '}';
+    }
 }

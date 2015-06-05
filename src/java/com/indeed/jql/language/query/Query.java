@@ -124,4 +124,15 @@ public class Query {
         }
         return names;
     }
+
+
+    @Override
+    public String toString() {
+        return "Query{" +
+                "datasets=" + datasets +
+                ", filter=" + filter +
+                ", groupBys=" + groupBys +
+                ", selects=" + selects +
+                '}';
+    }
 }

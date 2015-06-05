@@ -51,4 +51,13 @@ public class Term {
 
         return ref[0];
     }
+
+    @Override
+    public String toString() {
+        return "Term{" +
+                "stringTerm='" + stringTerm + '\'' +
+                ", intTerm=" + intTerm +
+                ", isIntTerm=" + isIntTerm +
+                '}';
+    }
 }

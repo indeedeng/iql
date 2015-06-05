@@ -43,6 +43,17 @@ public interface GroupBy {
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public String toString() {
+            return "GroupByMetric{" +
+                    "metric=" + metric +
+                    ", min=" + min +
+                    ", max=" + max +
+                    ", interval=" + interval +
+                    ", excludeGutters=" + excludeGutters +
+                    '}';
+        }
     }
 
     class GroupByTime implements GroupBy {
@@ -64,6 +75,15 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByTime{" +
+                    "periodMillis=" + periodMillis +
+                    ", field=" + field +
+                    ", format=" + format +
+                    '}';
         }
     }
 
@@ -87,6 +107,15 @@ public interface GroupBy {
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public String toString() {
+            return "GroupByTimeBuckets{" +
+                    "numBuckets=" + numBuckets +
+                    ", field=" + field +
+                    ", format=" + format +
+                    '}';
+        }
     }
 
     class GroupByMonth implements GroupBy {
@@ -106,6 +135,14 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByMonth{" +
+                    "field=" + field +
+                    ", format=" + format +
+                    '}';
         }
     }
 
@@ -157,6 +194,17 @@ public interface GroupBy {
             }
             return new GroupByField(field, filter, limit, metric, withDefault);
         }
+
+        @Override
+        public String toString() {
+            return "GroupByField{" +
+                    "field='" + field + '\'' +
+                    ", filter=" + filter +
+                    ", limit=" + limit +
+                    ", metric=" + metric +
+                    ", withDefault=" + withDefault +
+                    '}';
+        }
     }
 
     class GroupByDayOfWeek implements GroupBy {
@@ -169,6 +217,11 @@ public interface GroupBy {
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
+
+        @Override
+        public String toString() {
+            return "GroupByDayOfWeek{}";
+        }
     }
 
     class GroupBySessionName implements GroupBy {
@@ -180,6 +233,11 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return "GroupBySessionName{}";
         }
     }
 
@@ -200,6 +258,14 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByQuantiles{" +
+                    "field='" + field + '\'' +
+                    ", numBuckets=" + numBuckets +
+                    '}';
         }
     }
 }

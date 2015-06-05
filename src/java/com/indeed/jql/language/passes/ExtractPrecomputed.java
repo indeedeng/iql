@@ -147,9 +147,19 @@ public class ExtractPrecomputed {
 
     public static class Extracted {
         public final Query query;
+        private final Map<PrecomputedInfo, String> precomputedNames;
 
         private Extracted(Query query, Map<PrecomputedInfo, String> precomputedNames) {
             this.query = query;
+            this.precomputedNames = precomputedNames;
+        }
+
+        @Override
+        public String toString() {
+            return "Extracted{" +
+                    "query=" + query +
+                    ", precomputedNames=" + precomputedNames +
+                    '}';
         }
     }
 
