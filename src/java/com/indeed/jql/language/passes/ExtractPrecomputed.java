@@ -30,6 +30,8 @@ public class ExtractPrecomputed {
         }
         final List<AggregateMetric> selects = new ArrayList<>();
         processor.setDepth(groupBys.size());
+        processor.setStartDepth(groupBys.size());
+        processor.setMaxDepth(groupBys.size() + 1);
         for (int i = 0; i < query.selects.size(); i++) {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
@@ -40,6 +42,7 @@ public class ExtractPrecomputed {
     private static class Processor implements Function<AggregateMetric, AggregateMetric> {
         private int depth;
         private int startDepth;
+        private int maxDepth;
         private Set<String> scope;
         private int nextName = 0;
 
@@ -123,6 +126,14 @@ public class ExtractPrecomputed {
         private AggregateMetric handlePrecomputed(Precomputed precomputed) {
             final int depth = this.depth;
             final Set<String> scope = this.scope;
+
+            if (depth < 0) {
+                throw new IllegalArgumentException("Depth reached negative when processing metric: " + precomputed);
+            }
+            if (depth > maxDepth) {
+                throw new IllegalStateException("Required computation in the future: " + precomputed);
+            }
+
             final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputed, depth, scope);
             final String name;
             if (!precomputedNames.containsKey(precomputedInfo)) {
@@ -142,6 +153,10 @@ public class ExtractPrecomputed {
 
         public void setScope(Set<String> scope) {
             this.scope = scope;
+        }
+
+        public void setMaxDepth(int maxDepth) {
+            this.maxDepth = maxDepth;
         }
     }
 
