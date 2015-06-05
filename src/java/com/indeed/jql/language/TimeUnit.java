@@ -7,20 +7,22 @@ import org.joda.time.DateTime;
  */
 public enum TimeUnit {
 
-    SECOND(1000L, "yyyy-MM-dd HH:mm:ss"),
-    MINUTE(1000L * 60, "yyyy-MM-dd HH:mm"),
-    HOUR(1000L * 60 * 60, "yyyy-MM-dd HH"),
-    DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd"),
-    WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd"),
-    MONTH(TimeUnit.DAY.millis, "MMMM yyyy"),
-    BUCKETS(0L, null);
+    SECOND(1000L, "yyyy-MM-dd HH:mm:ss", 's'),
+    MINUTE(1000L * 60, "yyyy-MM-dd HH:mm", 'm'),
+    HOUR(1000L * 60 * 60, "yyyy-MM-dd HH", 'h'),
+    DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd", 'd'),
+    WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd", 'w'),
+    MONTH(TimeUnit.DAY.millis, "MMMM yyyy", 'M'),
+    BUCKETS(0L, null, 'b');
 
     public final long millis;
     public final String formatString;
+    public final char character;
 
-    TimeUnit(long millis, String formatString) {
+    TimeUnit(long millis, String formatString, char character) {
         this.millis = millis;
         this.formatString = formatString;
+        this.character = character;
     }
 
     public static TimeUnit fromChar(char c) {
