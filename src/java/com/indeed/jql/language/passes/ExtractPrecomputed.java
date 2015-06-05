@@ -12,7 +12,10 @@ import com.indeed.jql.language.query.GroupBy;
 import com.indeed.jql.language.query.Query;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class ExtractPrecomputed {
@@ -31,13 +34,16 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects));
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects), processor.precomputedNames);
     }
 
     private static class Processor implements Function<AggregateMetric, AggregateMetric> {
         private int depth;
         private int startDepth;
         private Set<String> scope;
+        private int nextName = 0;
+
+        private final Map<PrecomputedInfo, String> precomputedNames = new HashMap<>();
 
         public Processor(int depth, int startDepth, Set<String> scope) {
             this.depth = depth;
@@ -115,7 +121,23 @@ public class ExtractPrecomputed {
         }
 
         private AggregateMetric handlePrecomputed(Precomputed precomputed) {
-            throw new UnsupportedOperationException();
+            final int depth = this.depth;
+            final Set<String> scope = this.scope;
+            final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputed, depth, scope);
+            final String name;
+            if (!precomputedNames.containsKey(precomputedInfo)) {
+                name = generateName();
+                precomputedNames.put(precomputedInfo, name);
+            } else {
+                name = precomputedNames.get(precomputedInfo);
+            }
+            return new AggregateMetric.GroupStatsLookup(name);
+        }
+
+        private String generateName() {
+            final String name = "v" + nextName;
+            nextName += 1;
+            return name;
         }
 
         public void setScope(Set<String> scope) {
@@ -126,8 +148,44 @@ public class ExtractPrecomputed {
     public static class Extracted {
         public final Query query;
 
-        private Extracted(Query query) {
+        private Extracted(Query query, Map<PrecomputedInfo, String> precomputedNames) {
             this.query = query;
+        }
+    }
+
+    private static class PrecomputedInfo {
+        private final Precomputed precomputed;
+        private final int depth;
+        private final Set<String> scope;
+
+        private PrecomputedInfo(Precomputed precomputed, int depth, Set<String> scope) {
+            this.precomputed = precomputed;
+            this.depth = depth;
+            this.scope = scope;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedInfo that = (PrecomputedInfo) o;
+            return Objects.equals(depth, that.depth) &&
+                    Objects.equals(precomputed, that.precomputed) &&
+                    Objects.equals(scope, that.scope);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(precomputed, depth, scope);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedInfo{" +
+                    "precomputed=" + precomputed +
+                    ", depth=" + depth +
+                    ", scope=" + scope +
+                    '}';
         }
     }
 }

@@ -606,4 +606,35 @@ public interface AggregateMetric {
             return Objects.hash(metric, name);
         }
     }
+
+    class GroupStatsLookup implements AggregateMetric {
+        private final String name;
+
+        public GroupStatsLookup(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupStatsLookup that = (GroupStatsLookup) o;
+            return Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name);
+        }
+    }
 }
