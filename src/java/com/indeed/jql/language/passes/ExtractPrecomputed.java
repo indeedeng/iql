@@ -10,6 +10,7 @@ import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.precomputed.Precomputed;
 import com.indeed.jql.language.query.GroupBy;
 import com.indeed.jql.language.query.Query;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +38,17 @@ public class ExtractPrecomputed {
             selects.add(processor.apply(select));
         }
         return new Extracted(new Query(query.datasets, query.filter, groupBys, selects), processor.precomputedNames);
+    }
+
+    public static Map<Integer, List<PrecomputedInfo>> computationStages(Map<PrecomputedInfo, String> extracted) {
+        final Map<Integer, List<PrecomputedInfo>> result = new Int2ObjectOpenHashMap<>();
+        for (final PrecomputedInfo info : extracted.keySet()) {
+            if (!result.containsKey(info.depth)) {
+                result.put(info.depth, new ArrayList<PrecomputedInfo>());
+            }
+            result.get(info.depth).add(info);
+        }
+        return result;
     }
 
     private static class Processor implements Function<AggregateMetric, AggregateMetric> {
