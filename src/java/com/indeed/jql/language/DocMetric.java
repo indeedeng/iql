@@ -81,7 +81,7 @@ public interface DocMetric {
 
         @Override
         public String toString() {
-            return this.getClass().getName() + "{" +
+            return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
                     '}';
         }

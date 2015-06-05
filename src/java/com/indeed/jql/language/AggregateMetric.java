@@ -34,7 +34,7 @@ public interface AggregateMetric {
 
         @Override
         public String toString() {
-            return this.getClass().getName() + "{" +
+            return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
                     '}';
         }
@@ -114,7 +114,7 @@ public interface AggregateMetric {
 
         @Override
         public String toString() {
-            return this.getClass().getName() + "{" +
+            return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
                     ", m2=" + m2 +
                     '}';
@@ -530,6 +530,13 @@ public interface AggregateMetric {
         @Override
         public int hashCode() {
             return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return "Constant{" +
+                    "value=" + value +
+                    '}';
         }
     }
 
