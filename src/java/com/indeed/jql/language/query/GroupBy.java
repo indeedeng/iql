@@ -6,6 +6,9 @@ import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
+import com.indeed.jql.language.execution.ExecutionStep;
+
+import java.util.Set;
 
 public interface GroupBy {
     
@@ -18,6 +21,8 @@ public interface GroupBy {
     );
 
     GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f);
+
+    ExecutionStep executionStep(Set<String> scope);
 
     class GroupByMetric implements GroupBy {
         private final DocMetric metric;
@@ -42,6 +47,11 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodeMetric(metric, min, max, interval, scope, excludeGutters);
         }
 
         @Override
@@ -78,6 +88,12 @@ public interface GroupBy {
         }
 
         @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            throw new UnsupportedOperationException("Need to reconcile time regroup data");
+//            return new ExecutionStep.ExplodeTime();
+        }
+
+        @Override
         public String toString() {
             return "GroupByTime{" +
                     "periodMillis=" + periodMillis +
@@ -109,6 +125,11 @@ public interface GroupBy {
         }
 
         @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            throw new UnsupportedOperationException("Implement GroupByTimeBuckets executionStep()");
+        }
+
+        @Override
         public String toString() {
             return "GroupByTimeBuckets{" +
                     "numBuckets=" + numBuckets +
@@ -135,6 +156,11 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -196,6 +222,11 @@ public interface GroupBy {
         }
 
         @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric.or(new AggregateMetric.DocStats(new DocMetric.Field("count()"))), withDefault);
+        }
+
+        @Override
         public String toString() {
             return "GroupByField{" +
                     "field='" + field + '\'' +
@@ -219,6 +250,11 @@ public interface GroupBy {
         }
 
         @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodeDayOfWeek();
+        }
+
+        @Override
         public String toString() {
             return "GroupByDayOfWeek{}";
         }
@@ -233,6 +269,11 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodeSessionNames();
         }
 
         @Override
@@ -258,6 +299,11 @@ public interface GroupBy {
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
         }
 
         @Override
