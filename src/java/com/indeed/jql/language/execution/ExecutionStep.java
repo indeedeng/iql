@@ -44,7 +44,7 @@ public interface ExecutionStep {
             result.addAll(precomputation.beforeCommands);
             result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, Optional.of(name)));
             result.addAll(precomputation.afterCommands);
-            return null;
+            return result;
         }
 
         @Override
