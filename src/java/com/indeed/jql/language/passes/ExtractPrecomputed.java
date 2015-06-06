@@ -3,10 +3,15 @@ package com.indeed.jql.language.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
+import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
+import com.indeed.jql.language.commands.Command;
+import com.indeed.jql.language.execution.ExecutionStep;
 import com.indeed.jql.language.precomputed.Precomputed;
 import com.indeed.jql.language.query.GroupBy;
 import com.indeed.jql.language.query.Query;
@@ -49,6 +54,39 @@ public class ExtractPrecomputed {
             result.get(info.depth).add(info);
         }
         return result;
+    }
+
+    public static List<ExecutionStep> querySteps(Extracted extracted) {
+        final Query query = extracted.query;
+        final Map<PrecomputedInfo, String> precomputedNames = extracted.precomputedNames;
+        final Map<Integer, List<PrecomputedInfo>> depthToPrecomputations = computationStages(precomputedNames);
+        final Map<Integer, ExecutionStep> groupBySteps = new HashMap<>();
+        final List<GroupBy> groupBys = query.groupBys;
+        final Set<String> scope = query.extractDatasetNames();
+        for (int i = 0; i < groupBys.size(); i++) {
+            final ExecutionStep step = groupBys.get(i).executionStep(scope);
+            groupBySteps.put(i, step);
+        }
+        final List<ExecutionStep> resultSteps = new ArrayList<>();
+        if (query.filter.isPresent()) {
+            final DocFilter filter = query.filter.get();
+            resultSteps.add(new ExecutionStep.FilterDocs(filter, scope));
+        }
+        final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(), depthToPrecomputations.keySet()));
+        for (int i = 0; i <= max; i++) {
+            if (depthToPrecomputations.containsKey(i)) {
+                for (final PrecomputedInfo precomputedInfo : depthToPrecomputations.get(i)) {
+                    resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, precomputedNames.get(precomputedInfo)));
+                }
+            }
+            if (groupBySteps.containsKey(i)) {
+                resultSteps.add(groupBySteps.get(i));
+            }
+        }
+        if (!query.selects.isEmpty()) {
+            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects));
+        }
+        return resultSteps;
     }
 
     private static class Processor implements Function<AggregateMetric, AggregateMetric> {
