@@ -1,11 +1,16 @@
 package com.indeed.jql.language.commands;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.jql.language.AggregateFilter;
 
+import java.io.IOException;
 import java.util.Set;
 
-public class GetGroupDistincts implements Command {
+public class GetGroupDistincts implements Command, JsonSerializable {
     public final Set<String> scope;
     public final String field;
     public final Optional<AggregateFilter> filter;
@@ -16,6 +21,22 @@ public class GetGroupDistincts implements Command {
         this.field = field;
         this.filter = filter;
         this.windowSize = windowSize;
+    }
+
+    @Override
+    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        gen.writeStartObject();
+        gen.writeStringField("command", "getGroupDistincts");
+        gen.writeObjectField("scope", scope);
+        gen.writeStringField("field", field);
+        gen.writeObjectField("filter", filter.orNull());
+        gen.writeNumberField("windowSize", windowSize);
+        gen.writeEndObject();
+    }
+
+    @Override
+    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+        this.serialize(gen, serializers);
     }
 
     @Override
