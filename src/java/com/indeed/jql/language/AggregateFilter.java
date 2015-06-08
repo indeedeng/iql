@@ -1,7 +1,13 @@
 package com.indeed.jql.language;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public interface AggregateFilter {
@@ -10,7 +16,7 @@ public interface AggregateFilter {
 
     AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    class TermIs implements AggregateFilter {
+    class TermIs implements AggregateFilter, JsonSerializable {
         private final Term term;
 
         public TermIs(Term term) {
@@ -25,6 +31,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "termEquals", "value", term));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -48,7 +64,7 @@ public interface AggregateFilter {
         }
     }
 
-    class MetricIs implements AggregateFilter {
+    class MetricIs implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -65,6 +81,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new MetricIs(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "metricEquals", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -90,7 +116,7 @@ public interface AggregateFilter {
         }
     }
 
-    class MetricIsnt implements AggregateFilter {
+    class MetricIsnt implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -107,6 +133,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new MetricIs(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "metricNotEquals", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -132,7 +168,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Gt implements AggregateFilter {
+    class Gt implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -149,6 +185,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Gt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "greaterThan", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -174,7 +220,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Gte implements AggregateFilter {
+    class Gte implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -191,6 +237,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Gte(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "greaterThanOrEquals", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -216,7 +272,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Lt implements AggregateFilter {
+    class Lt implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -233,6 +289,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "lessThan", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -258,7 +324,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Lte implements AggregateFilter {
+    class Lte implements AggregateFilter, JsonSerializable {
         private final AggregateMetric m1;
         private final AggregateMetric m2;
 
@@ -275,6 +341,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lte(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "lessThanOrEquals", "arg1", m1, "arg2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -300,7 +376,7 @@ public interface AggregateFilter {
         }
     }
 
-    class And implements AggregateFilter {
+    class And implements AggregateFilter, JsonSerializable {
         private final AggregateFilter f1;
         private final AggregateFilter f2;
 
@@ -317,6 +393,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new And(f1.traverse1(f), f2.traverse1(f));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "and", "arg1", f1, "arg2", f2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -342,7 +428,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Or implements AggregateFilter {
+    class Or implements AggregateFilter, JsonSerializable {
         private final AggregateFilter f1;
         private final AggregateFilter f2;
 
@@ -359,6 +445,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Or(f1.traverse1(f), f2.traverse1(f));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "or", "arg1", f1, "arg2", f2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -384,7 +480,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Not implements AggregateFilter {
+    class Not implements AggregateFilter, JsonSerializable {
         private final AggregateFilter filter;
 
         public Not(AggregateFilter filter) {
@@ -399,6 +495,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Not(filter.traverse1(f));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "not", "value", filter));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -422,7 +528,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Regex implements AggregateFilter {
+    class Regex implements AggregateFilter, JsonSerializable {
         private final String field;
         private final String regex;
 
@@ -439,6 +545,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "regex", "field", field, "value", regex));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -464,7 +580,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Always implements AggregateFilter {
+    class Always implements AggregateFilter, JsonSerializable {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
@@ -473,6 +589,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "always"));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -491,7 +617,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Never implements AggregateFilter {
+    class Never implements AggregateFilter, JsonSerializable {
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return h.apply(this);
@@ -500,6 +626,16 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "never"));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
