@@ -39,7 +39,11 @@ public class Query {
             for (final JQLParser.DocFilterContext ctx : queryContext.docFilter()) {
                 filters.add(DocFilters.parseDocFilter(ctx));
             }
-            whereFilter = Optional.of(DocFilters.and(filters));
+            if (filters.isEmpty()) {
+                whereFilter = Optional.absent();
+            } else {
+                whereFilter = Optional.of(DocFilters.and(filters));
+            }
         } else {
             whereFilter = Optional.absent();
         }

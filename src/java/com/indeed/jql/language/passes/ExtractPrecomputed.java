@@ -72,15 +72,17 @@ public class ExtractPrecomputed {
             final DocFilter filter = query.filter.get();
             resultSteps.add(new ExecutionStep.FilterDocs(filter, scope));
         }
-        final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(), depthToPrecomputations.keySet()));
-        for (int i = 0; i <= max; i++) {
-            if (depthToPrecomputations.containsKey(i)) {
-                for (final PrecomputedInfo precomputedInfo : depthToPrecomputations.get(i)) {
-                    resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, precomputedNames.get(precomputedInfo)));
+        if (!groupBySteps.isEmpty() || !depthToPrecomputations.isEmpty()) {
+            final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(), depthToPrecomputations.keySet()));
+            for (int i = 0; i <= max; i++) {
+                if (depthToPrecomputations.containsKey(i)) {
+                    for (final PrecomputedInfo precomputedInfo : depthToPrecomputations.get(i)) {
+                        resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, precomputedNames.get(precomputedInfo)));
+                    }
                 }
-            }
-            if (groupBySteps.containsKey(i)) {
-                resultSteps.add(groupBySteps.get(i));
+                if (groupBySteps.containsKey(i)) {
+                    resultSteps.add(groupBySteps.get(i));
+                }
             }
         }
         if (!query.selects.isEmpty()) {

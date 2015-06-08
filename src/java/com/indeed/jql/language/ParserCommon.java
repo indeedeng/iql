@@ -2,11 +2,15 @@ package com.indeed.jql.language;
 
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
+import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ParserCommon {
+    static {
+        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+    }
     public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext) {
         final List<Token> coeffs = timePeriodContext.coeffs;
         final List<Token> units = timePeriodContext.units;
