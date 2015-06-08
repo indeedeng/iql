@@ -1,8 +1,15 @@
 package com.indeed.jql.language;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.collect.ImmutableMap;
 import org.antlr.v4.runtime.misc.NotNull;
 
-public class Term {
+import java.io.IOException;
+
+public class Term implements JsonSerializable {
     public final String stringTerm;
     public final long intTerm;
     public final boolean isIntTerm;
@@ -50,6 +57,20 @@ public class Term {
         }
 
         return ref[0];
+    }
+
+    @Override
+    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        if (isIntTerm) {
+            gen.writeObject(ImmutableMap.of("type", "int", "value", intTerm));
+        } else {
+            gen.writeObject(ImmutableMap.of("type", "string", "value", stringTerm));
+        }
+    }
+
+    @Override
+    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+        this.serialize(gen, serializers);
     }
 
     @Override
