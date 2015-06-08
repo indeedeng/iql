@@ -1,21 +1,40 @@
 package com.indeed.jql.language;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+// TODO: PerGroupConstants, SumChildren, IfThenElse ????
 public interface AggregateMetric {
 
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
     AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    abstract class Unop implements AggregateMetric {
+    abstract class Unop implements AggregateMetric, JsonSerializable {
         public final AggregateMetric m1;
+        private final String jsonType;
 
-        public Unop(AggregateMetric m1) {
+        public Unop(AggregateMetric m1, String jsonType) {
             this.m1 = m1;
+            this.jsonType = jsonType;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", jsonType, "value", m1));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -42,7 +61,7 @@ public interface AggregateMetric {
 
     class Log extends Unop {
         public Log(AggregateMetric m1) {
-            super(m1);
+            super(m1, "log");
         }
 
         @Override
@@ -58,7 +77,7 @@ public interface AggregateMetric {
 
     class Negate extends Unop {
         public Negate(AggregateMetric m1) {
-            super(m1);
+            super(m1, "negate");
         }
 
         @Override
@@ -74,7 +93,7 @@ public interface AggregateMetric {
 
     class Abs extends Unop {
         public Abs(AggregateMetric m1) {
-            super(m1);
+            super(m1, "abs");
         }
 
         @Override
@@ -88,13 +107,25 @@ public interface AggregateMetric {
         }
     }
 
-    abstract class Binop implements AggregateMetric {
+    abstract class Binop implements AggregateMetric, JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+        private final String jsonType;
 
-        public Binop(AggregateMetric m1, AggregateMetric m2) {
+        public Binop(AggregateMetric m1, AggregateMetric m2, String jsonType) {
             this.m1 = m1;
             this.m2 = m2;
+            this.jsonType = jsonType;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", jsonType, "m1", m1, "m2", m2));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -123,7 +154,7 @@ public interface AggregateMetric {
 
     class Add extends Binop {
         public Add(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "addition");
         }
 
         @Override
@@ -139,7 +170,7 @@ public interface AggregateMetric {
 
     class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "subtraction");
         }
 
         @Override
@@ -155,7 +186,7 @@ public interface AggregateMetric {
 
     class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "multiplication");
         }
 
         @Override
@@ -171,7 +202,7 @@ public interface AggregateMetric {
 
     class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "division");
         }
 
         @Override
@@ -187,7 +218,7 @@ public interface AggregateMetric {
 
     class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "modulus");
         }
 
         @Override
@@ -203,7 +234,7 @@ public interface AggregateMetric {
 
     class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+            super(m1, m2, "power");
         }
 
         @Override
@@ -217,7 +248,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Parent implements AggregateMetric {
+    class Parent implements AggregateMetric, JsonSerializable {
         public final AggregateMetric metric;
 
         public Parent(AggregateMetric metric) {
@@ -232,6 +263,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Parent(f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new IllegalStateException("Cannot serialize Parent metric");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -255,7 +296,8 @@ public interface AggregateMetric {
         }
     }
 
-    class Lag implements AggregateMetric {
+    // TODO: What about IterateLag?
+    class Lag implements AggregateMetric, JsonSerializable {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -272,6 +314,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lag(lag, f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "lag", "delay", lag, "m", metric));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -297,7 +349,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Window implements AggregateMetric {
+    class Window implements AggregateMetric, JsonSerializable {
         public final int window;
         public final AggregateMetric metric;
 
@@ -314,6 +366,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Window(window, f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "window", "size", window, "value", metric));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -339,7 +401,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Qualified implements AggregateMetric {
+    class Qualified implements AggregateMetric, JsonSerializable {
         public final List<String> scope;
         public final AggregateMetric metric;
 
@@ -356,6 +418,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Qualified(scope, f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot serialize Qualified to JSON");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -381,7 +453,7 @@ public interface AggregateMetric {
         }
     }
 
-    class DocStatsPushes implements AggregateMetric {
+    class DocStatsPushes implements AggregateMetric, JsonSerializable {
         public final String dataset;
         public final List<String> pushes;
 
@@ -398,6 +470,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes, "sessionName", dataset));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -423,7 +505,7 @@ public interface AggregateMetric {
         }
     }
 
-    class DocStats implements AggregateMetric {
+    class DocStats implements AggregateMetric, JsonSerializable {
         public final DocMetric metric;
 
         public DocStats(DocMetric metric) {
@@ -438,6 +520,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -464,7 +556,7 @@ public interface AggregateMetric {
     /**
      * DocStats in which there is no explicit sum, but a single atomic token. Could be a boolean on DocStats but whatever.
      */
-    class ImplicitDocStats implements AggregateMetric {
+    class ImplicitDocStats implements AggregateMetric, JsonSerializable {
         public final String field;
 
         public ImplicitDocStats(String field) {
@@ -479,6 +571,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -502,7 +604,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Constant implements AggregateMetric {
+    class Constant implements AggregateMetric, JsonSerializable {
         public final double value;
 
         public Constant(double value) {
@@ -517,6 +619,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "constant", "value", value));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -540,7 +652,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Percentile implements AggregateMetric {
+    class Percentile implements AggregateMetric, JsonSerializable {
         public final String field;
         public final double percentile;
 
@@ -557,6 +669,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -582,7 +704,8 @@ public interface AggregateMetric {
         }
     }
 
-    class Running implements AggregateMetric {
+    // TODO: Running offset..?
+    class Running implements AggregateMetric, JsonSerializable {
         public final AggregateMetric metric;
 
         public Running(AggregateMetric metric) {
@@ -597,6 +720,17 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Running(f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            // TODO: Running offset?
+            gen.writeObject(ImmutableMap.of("type", "running", "offset", 0, "value", metric));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -620,7 +754,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Distinct implements AggregateMetric {
+    class Distinct implements AggregateMetric, JsonSerializable {
         public final String field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
@@ -650,6 +784,16 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -674,7 +818,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Named implements AggregateMetric {
+    class Named implements AggregateMetric, JsonSerializable {
         public final AggregateMetric metric;
         public final String name;
 
@@ -691,6 +835,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Named(f.apply(metric), name);
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
@@ -716,7 +870,7 @@ public interface AggregateMetric {
         }
     }
 
-    class GroupStatsLookup implements AggregateMetric {
+    class GroupStatsLookup implements AggregateMetric, JsonSerializable {
         private final String name;
 
         public GroupStatsLookup(String name) {
@@ -731,6 +885,16 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "groupStatsLookup", "name", name));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         @Override
