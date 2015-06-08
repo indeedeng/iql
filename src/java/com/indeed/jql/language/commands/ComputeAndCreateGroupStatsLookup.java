@@ -10,4 +10,12 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         this.computation = computation;
         this.name = name;
     }
+
+    @Override
+    public String toString() {
+        return "ComputeAndCreateGroupStatsLookup{" +
+                "computation=" + computation +
+                ", name=" + name +
+                '}';
+    }
 }

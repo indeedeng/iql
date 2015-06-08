@@ -6,4 +6,11 @@ public class RegroupIntoParent implements Command {
     public RegroupIntoParent(GroupLookupMergeType mergeType) {
         this.mergeType = mergeType;
     }
+
+    @Override
+    public String toString() {
+        return "RegroupIntoParent{" +
+                "mergeType=" + mergeType +
+                '}';
+    }
 }

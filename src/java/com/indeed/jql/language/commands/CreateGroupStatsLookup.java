@@ -2,6 +2,8 @@ package com.indeed.jql.language.commands;
 
 import com.google.common.base.Optional;
 
+import java.util.Arrays;
+
 public class CreateGroupStatsLookup implements Command {
     public final double[] stats;
     public final Optional<String> name;
@@ -9,5 +11,13 @@ public class CreateGroupStatsLookup implements Command {
     public CreateGroupStatsLookup(double[] stats, Optional<String> name) {
         this.stats = stats;
         this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "CreateGroupStatsLookup{" +
+                "stats=" + Arrays.toString(stats) +
+                ", name=" + name +
+                '}';
     }
 }

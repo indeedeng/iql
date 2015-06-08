@@ -22,4 +22,14 @@ public class MetricRegroup implements Command {
         this.max = max;
         this.interval = interval;
     }
+
+    @Override
+    public String toString() {
+        return "MetricRegroup{" +
+                "perDatasetMetric=" + perDatasetMetric +
+                ", min=" + min +
+                ", max=" + max +
+                ", interval=" + interval +
+                '}';
+    }
 }

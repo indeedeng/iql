@@ -10,4 +10,12 @@ public class RegroupIntoLastSiblingWhere implements Command {
         this.filter = filter;
         this.mergeType = mergeType;
     }
+
+    @Override
+    public String toString() {
+        return "RegroupIntoLastSiblingWhere{" +
+                "filter=" + filter +
+                ", mergeType=" + mergeType +
+                '}';
+    }
 }

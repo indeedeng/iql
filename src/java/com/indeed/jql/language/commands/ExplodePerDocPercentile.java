@@ -8,4 +8,12 @@ public class ExplodePerDocPercentile implements Command {
         this.field = field;
         this.numBuckets = numBuckets;
     }
+
+    @Override
+    public String toString() {
+        return "ExplodePerDocPercentile{" +
+                "field='" + field + '\'' +
+                ", numBuckets=" + numBuckets +
+                '}';
+    }
 }

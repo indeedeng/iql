@@ -12,4 +12,13 @@ public class ExplodeByAggregatePercentile implements Command {
         this.metric = metric;
         this.numBuckets = numBuckets;
     }
+
+    @Override
+    public String toString() {
+        return "ExplodeByAggregatePercentile{" +
+                "field='" + field + '\'' +
+                ", metric=" + metric +
+                ", numBuckets=" + numBuckets +
+                '}';
+    }
 }

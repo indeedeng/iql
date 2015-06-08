@@ -12,4 +12,12 @@ public class GetGroupStats implements Command {
         this.metrics = metrics;
         this.returnGroupKeys = returnGroupKeys;
     }
+
+    @Override
+    public String toString() {
+        return "GetGroupStats{" +
+                "metrics=" + metrics +
+                ", returnGroupKeys=" + returnGroupKeys +
+                '}';
+    }
 }

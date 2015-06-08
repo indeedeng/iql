@@ -20,4 +20,15 @@ public class IterateAndExplode implements Command {
         this.fieldLimits = fieldLimits;
         this.explodeDefaultName = explodeDefaultName;
     }
+
+    @Override
+    public String toString() {
+        return "IterateAndExplode{" +
+                "field='" + field + '\'' +
+                ", selecting=" + selecting +
+                ", fieldOpts=" + fieldOpts +
+                ", fieldLimits=" + fieldLimits +
+                ", explodeDefaultName=" + explodeDefaultName +
+                '}';
+    }
 }

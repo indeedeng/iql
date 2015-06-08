@@ -17,4 +17,14 @@ public class GetGroupDistincts implements Command {
         this.filter = filter;
         this.windowSize = windowSize;
     }
+
+    @Override
+    public String toString() {
+        return "GetGroupDistincts{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", filter=" + filter +
+                ", windowSize=" + windowSize +
+                '}';
+    }
 }

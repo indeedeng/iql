@@ -18,4 +18,14 @@ public class SumAcross implements Command {
         this.metric = metric;
         this.filter = filter;
     }
+
+    @Override
+    public String toString() {
+        return "SumAcross{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", metric=" + metric +
+                ", filter=" + filter +
+                '}';
+    }
 }

@@ -1,5 +1,6 @@
 package com.indeed.jql.language.commands;
 
+import java.util.Arrays;
 import java.util.Set;
 
 public class GetGroupPercentiles implements Command {
@@ -11,5 +12,14 @@ public class GetGroupPercentiles implements Command {
         this.scope = scope;
         this.field = field;
         this.percentiles = percentiles;
+    }
+
+    @Override
+    public String toString() {
+        return "GetGroupPercentiles{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", percentiles=" + Arrays.toString(percentiles) +
+                '}';
     }
 }

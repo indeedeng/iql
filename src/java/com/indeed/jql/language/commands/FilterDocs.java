@@ -16,4 +16,11 @@ public class FilterDocs implements Command {
         }
         this.perDatasetFilterMetric = copy;
     }
+
+    @Override
+    public String toString() {
+        return "FilterDocs{" +
+                "perDatasetFilterMetric=" + perDatasetFilterMetric +
+                '}';
+    }
 }

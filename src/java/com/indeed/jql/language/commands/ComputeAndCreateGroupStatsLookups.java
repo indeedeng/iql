@@ -10,4 +10,11 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     public ComputeAndCreateGroupStatsLookups(List<Pair<Object, String>> namedComputations) {
         this.namedComputations = namedComputations;
     }
+
+    @Override
+    public String toString() {
+        return "ComputeAndCreateGroupStatsLookups{" +
+                "namedComputations=" + namedComputations +
+                '}';
+    }
 }
