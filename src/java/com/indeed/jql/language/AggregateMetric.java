@@ -296,7 +296,6 @@ public interface AggregateMetric {
         }
     }
 
-    // TODO: What about IterateLag?
     class Lag implements AggregateMetric, JsonSerializable {
         public final int lag;
         public final AggregateMetric metric;
@@ -756,7 +755,6 @@ public interface AggregateMetric {
         }
     }
 
-    // TODO: Running offset..?
     class Running implements AggregateMetric, JsonSerializable {
         public final int offset;
         public final AggregateMetric metric;
@@ -778,7 +776,6 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            // TODO: Running offset?
             gen.writeObject(ImmutableMap.of("type", "running", "offset", offset, "value", metric));
         }
 
