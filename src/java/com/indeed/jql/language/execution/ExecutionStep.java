@@ -1,5 +1,6 @@
 package com.indeed.jql.language.execution;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
@@ -8,7 +9,6 @@ import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookup;
-import com.indeed.jql.language.commands.ExplodeTimeBuckets;
 import com.indeed.jql.language.commands.Iterate;
 import com.indeed.jql.language.commands.IterateAndExplode;
 import com.indeed.jql.language.commands.MetricRegroup;
@@ -27,6 +27,7 @@ import java.util.Set;
 public interface ExecutionStep {
 
     List<Command> commands();
+    ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class ComputePrecomputed implements ExecutionStep {
         private final Set<String> scope;
@@ -50,6 +51,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new ComputePrecomputed(scope, computation.traverse1(f), name);
+        }
+
+        @Override
         public String toString() {
             return "ComputePrecomputed{" +
                     "scope=" + scope +
@@ -61,7 +67,7 @@ public interface ExecutionStep {
 
     class ComputeManyPrecomputed implements ExecutionStep {
         private final Set<String> scope;
-        private final List<Pair<Precomputed, String>>  computations;
+        private final List<Pair<Precomputed, String>> computations;
 
         public ComputeManyPrecomputed(Set<String> scope, List<Pair<Precomputed, String>> computations) {
             this.scope = scope;
@@ -71,6 +77,15 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             throw new UnsupportedOperationException("c'mon man");
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final List<Pair<Precomputed, String>> computations = new ArrayList<>();
+            for (final Pair<Precomputed, String> computation : this.computations) {
+                computations.add(Pair.of(computation.getFirst().traverse1(f), computation.getSecond()));
+            }
+            return new ComputeManyPrecomputed(scope, computations);
         }
 
         @Override
@@ -117,6 +132,17 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final Optional<AggregateFilter> filter;
+            if (this.filter.isPresent()) {
+                filter = Optional.of(this.filter.get().traverse1(f));
+            } else {
+                filter = Optional.absent();
+            }
+            return new ExplodeAndRegroup(field, filter, limit, f.apply(metric), withDefault);
+        }
+
+        @Override
         public String toString() {
             return "ExplodeAndRegroup{" +
                     "field='" + field + '\'' +
@@ -155,6 +181,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "ExplodeMetric{" +
                     "metric=" + metric +
@@ -186,6 +217,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "ExplodeTime{" +
                     "value=" + value +
@@ -210,6 +246,11 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             return Collections.<Command>singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override
@@ -239,6 +280,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "ExplodeTimeBuckets{" +
                     "numBuckets=" + numBuckets +
@@ -255,6 +301,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "ExplodeDayOfWeek{}";
         }
@@ -267,6 +318,11 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "ExplodeMonthOfYear{}";
         }
@@ -276,6 +332,11 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             return Collections.<Command>singletonList(new com.indeed.jql.language.commands.ExplodeSessionNames());
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override
@@ -300,6 +361,11 @@ public interface ExecutionStep {
                 perDatasetPushes.put(dataset, filter.asZeroOneMetric(dataset).getPushes(dataset));
             }
             return Collections.<Command>singletonList(new com.indeed.jql.language.commands.FilterDocs(perDatasetPushes));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override
@@ -338,6 +404,21 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final Optional<AggregateFilter> filter;
+            if (this.filter.isPresent()) {
+                filter = Optional.of(this.filter.get().traverse1(f));
+            } else {
+                filter = Optional.absent();
+            }
+            final List<AggregateMetric> stats = new ArrayList<>();
+            for (final AggregateMetric stat : this.stats) {
+                stats.add(f.apply(stat));
+            }
+            return new IterateStats(field, filter, limit, f.apply(metric), stats);
+        }
+
+        @Override
         public String toString() {
             return "IterateStats{" +
                     "field='" + field + '\'' +
@@ -362,6 +443,15 @@ public interface ExecutionStep {
         }
 
         @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateMetric> stats = new ArrayList<>();
+            for (final AggregateMetric stat : this.stats) {
+                stats.add(f.apply(stat));
+            }
+            return new GetGroupStats(stats);
+        }
+
+        @Override
         public String toString() {
             return "GetGroupStats{" +
                     "stats=" + stats +
@@ -381,6 +471,11 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             return Collections.<Command>singletonList(new com.indeed.jql.language.commands.ExplodePerDocPercentile(field, numBuckets));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override

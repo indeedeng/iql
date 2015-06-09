@@ -1,5 +1,6 @@
 package com.indeed.jql.language.precomputed;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
@@ -16,6 +17,7 @@ import java.util.Set;
 
 public interface Precomputed {
     Precomputation commands(Set<String> scope);
+    Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class PrecomputedDistinct implements Precomputed {
         private final String field;
@@ -31,6 +33,17 @@ public interface Precomputed {
         @Override
         public Precomputation commands(Set<String> scope) {
             return Precomputation.noContext(new GetGroupDistincts(scope, field, filter, windowSize.or(1)));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final Optional<AggregateFilter> filter;
+            if (this.filter.isPresent()) {
+                filter = Optional.of(this.filter.get().traverse1(f));
+            } else {
+                filter = Optional.absent();
+            }
+            return new PrecomputedDistinct(field, filter, windowSize);
         }
 
         @Override
@@ -70,6 +83,11 @@ public interface Precomputed {
         @Override
         public Precomputation commands(Set<String> scope) {
             return Precomputation.noContext(new GetGroupPercentiles(scope, field, new double[]{percentile}));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override
@@ -114,6 +132,11 @@ public interface Precomputed {
                 }
             }
             return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), false));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
         }
 
         @Override

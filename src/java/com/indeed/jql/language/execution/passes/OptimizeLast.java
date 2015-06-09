@@ -8,7 +8,6 @@ import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.execution.ExecutionStep;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,7 +52,6 @@ public class OptimizeLast {
     }
 
     private static final Function<AggregateMetric,AggregateMetric> PROCESS_METRIC = new Function<AggregateMetric, AggregateMetric>() {
-        @Nullable
         @Override
         public AggregateMetric apply(AggregateMetric input) {
             if (input instanceof AggregateMetric.Running) {
