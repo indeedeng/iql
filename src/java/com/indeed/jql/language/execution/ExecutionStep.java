@@ -99,7 +99,6 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final List<Iterate.FieldIterateOpts> fieldIterateOpts = new ArrayList<>();
             final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
