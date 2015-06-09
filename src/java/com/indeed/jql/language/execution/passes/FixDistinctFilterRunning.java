@@ -26,7 +26,7 @@ public class FixDistinctFilterRunning {
     public static List<ExecutionStep> apply(List<ExecutionStep> steps) {
         final List<ExecutionStep> results = new ArrayList<>();
         for (final ExecutionStep step : steps) {
-            step.traverse1(new Function<AggregateMetric, AggregateMetric>() {
+            results.add(step.traverse1(new Function<AggregateMetric, AggregateMetric>() {
                 @Override
                 public AggregateMetric apply(AggregateMetric input) {
                     if (input instanceof AggregateMetric.Distinct) {
@@ -42,7 +42,7 @@ public class FixDistinctFilterRunning {
                         return input.traverse1(this);
                     }
                 }
-            });
+            }));
         }
         return results;
     }

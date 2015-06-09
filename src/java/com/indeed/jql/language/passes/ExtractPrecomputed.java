@@ -10,7 +10,6 @@ import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
-import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.execution.ExecutionStep;
 import com.indeed.jql.language.precomputed.Precomputed;
 import com.indeed.jql.language.query.GroupBy;

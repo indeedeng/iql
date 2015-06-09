@@ -9,6 +9,7 @@ import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookup;
+import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.jql.language.commands.Iterate;
 import com.indeed.jql.language.commands.IterateAndExplode;
 import com.indeed.jql.language.commands.MetricRegroup;
@@ -76,7 +77,25 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            throw new UnsupportedOperationException("c'mon man");
+            final List<Pair<Command, String>> precomputeds = new ArrayList<>();
+
+            for (final Pair<Precomputed, String> computation : computations) {
+                final Precomputed.Precomputation precomputation = computation.getFirst().commands(scope);
+                if (!precomputation.afterCommands.isEmpty() || !precomputation.beforeCommands.isEmpty()) {
+                    return naiveExecutionCommands();
+                }
+                precomputeds.add(Pair.of(precomputation.computationCommand, computation.getSecond()));
+            }
+
+            return Collections.<Command>singletonList(new ComputeAndCreateGroupStatsLookups(precomputeds));
+        }
+
+        private List<Command> naiveExecutionCommands() {
+            final List<Command> commands = new ArrayList<>();
+            for (final Pair<Precomputed, String> computation : computations) {
+                commands.addAll(new ComputePrecomputed(scope, computation.getFirst(), computation.getSecond()).commands());
+            }
+            return commands;
         }
 
         @Override

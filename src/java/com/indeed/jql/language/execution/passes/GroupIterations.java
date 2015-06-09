@@ -3,6 +3,9 @@ package com.indeed.jql.language.execution.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
@@ -16,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class GroupIterations {
@@ -100,7 +104,12 @@ public class GroupIterations {
                 final Set<String> depsAdded = grouping.names();
                 soFar.add(grouping);
                 handledDeps.addAll(depsAdded);
-                recursivleyConsiderAllOrders(soFar, handledDeps, precomputeds, resultStore);
+                recursivleyConsiderAllOrders(soFar, handledDeps, Lists.newArrayList(Iterables.filter(precomputeds, new Predicate<ExecutionStep.ComputePrecomputed>() {
+                    @Override
+                    public boolean apply(ExecutionStep.ComputePrecomputed input) {
+                        return !entry.getValue().contains(input);
+                    }
+                })), resultStore);
                 handledDeps.removeAll(depsAdded);
                 soFar.remove(soFar.size() - 1);
             }
@@ -151,6 +160,20 @@ public class GroupIterations {
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedContext that = (PrecomputedContext) o;
+            return Objects.equals(scope, that.scope) &&
+                    Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(scope, field);
         }
     }
 

@@ -5,16 +5,16 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.Lists;
-import com.indeed.common.util.Pair;
+import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializable {
-    private final List<Pair<Object, String>> namedComputations;
+    private final List<Pair<Command, String>> namedComputations;
 
-    public ComputeAndCreateGroupStatsLookups(List<Pair<Object, String>> namedComputations) {
+    public ComputeAndCreateGroupStatsLookups(List<Pair<Command, String>> namedComputations) {
         this.namedComputations = namedComputations;
     }
 
@@ -23,7 +23,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializa
         gen.writeStartObject();
         gen.writeStringField("command", "computeAndCreateGroupStatsLookups");
         final List<List<Object>> computations = new ArrayList<>();
-        for (final Pair<Object, String> pair : namedComputations) {
+        for (final Pair<Command, String> pair : namedComputations) {
             computations.add(Lists.newArrayList(pair.getFirst(), pair.getSecond()));
         }
         gen.writeObjectField("computations", computations);

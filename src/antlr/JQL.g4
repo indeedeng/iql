@@ -9,6 +9,10 @@ identifier : TIME_UNIT | ID ;
 
 timePeriod : (coeffs+=INT units+=TIME_UNIT)+ 'ago'?;
 
+FOUR_DIGIT_NUMBER: DIGIT DIGIT DIGIT DIGIT ;
+INT : [0-9]+ ;
+DOUBLE: [0-9]+ ('.' [0-9]*)? ;
+
 fragment DIGIT : [0-9] ;
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
@@ -27,10 +31,8 @@ DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 
 WS : [ \t\r\n]+ -> skip ;
 
-INT : [0-9]+ ;
-DOUBLE: [0-9]+ ('.' [0-9]*)? ;
+number : INT | DOUBLE | FOUR_DIGIT_NUMBER;
 
-number : INT | DOUBLE ;
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
 fragment SINGLE_QUOTED_CONTENTS : ( ESCAPED_SINGLE_QUOTE | ~('\n'|'\r') )*? ;
@@ -182,6 +184,7 @@ dateTime
     : DATETIME_TOKEN
     | DATE_TOKEN
     | STRING_LITERAL
+    | FOUR_DIGIT_NUMBER
     | timePeriod
     // Oh god I hate myself:
     | 'today'
