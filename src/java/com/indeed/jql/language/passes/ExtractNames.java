@@ -42,7 +42,7 @@ public class ExtractNames {
                 if (input instanceof AggregateMetric.Named) {
                     final AggregateMetric.Named named = (AggregateMetric.Named) input;
                     if (resultAggregator.containsKey(named.name)) {
-                        throw new IllegalArgumentException("Trying to name multiple metrics [" + named.name + "]!");
+                        throw new IllegalArgumentException("Trying to name multiple metrics the same name: [" + named.name + "]!");
                     }
                     resultAggregator.put(named.name, named.metric);
                 }

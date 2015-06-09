@@ -422,7 +422,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize Qualified to JSON");
+            throw new UnsupportedOperationException("Cannot / should not serialize Qualified metrics -- ExtractPrecomputed should remove them!");
         }
 
         @Override
@@ -524,7 +524,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Cannot / should not serialize raw DocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
         }
 
         @Override
@@ -575,7 +575,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Cannot / should not serialize raw ImplicitDocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
         }
 
         @Override
@@ -673,7 +673,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Cannot / should not serialize raw Percentile metrics -- ExtractPrecomputed should remove them!");
         }
 
         @Override
@@ -785,7 +785,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Cannot / should not serialize raw Distinct metrics -- ExtractPrecomputed should remove them!");
         }
 
         @Override
@@ -839,7 +839,7 @@ public interface AggregateMetric {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Cannot / should not serialize Named metrics -- RemoveNames should have removed them!");
         }
 
         @Override
