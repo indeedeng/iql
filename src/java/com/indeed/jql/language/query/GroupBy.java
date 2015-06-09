@@ -175,14 +175,14 @@ public interface GroupBy {
         private final String field;
         private final Optional<AggregateFilter> filter;
         private final Optional<Long> limit;
-        private final Optional<AggregateMetric> metric;
+        private final AggregateMetric metric;
         private final boolean withDefault;
 
         public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
-            this.metric = metric;
+            this.metric = metric.or(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
             this.withDefault = withDefault;
         }
 
@@ -194,13 +194,8 @@ public interface GroupBy {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(this.metric.get().transform(f, g, h, i));
-            } else {
-                metric = Optional.absent();
-            }
-            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault));
+            final AggregateMetric metric = this.metric.transform(f, g, h, i);
+            return groupBy.apply(new GroupByField(field, filter, limit, Optional.of(metric), withDefault));
         }
 
         @Override
@@ -211,18 +206,13 @@ public interface GroupBy {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(this.metric.get().traverse1(f));
-            } else {
-                metric = Optional.absent();
-            }
-            return new GroupByField(field, filter, limit, metric, withDefault);
+            final AggregateMetric metric = f.apply(this.metric);
+            return new GroupByField(field, filter, limit, Optional.of(metric), withDefault);
         }
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric.or(new AggregateMetric.DocStats(new DocMetric.Field("count()"))), withDefault);
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
 
         @Override
