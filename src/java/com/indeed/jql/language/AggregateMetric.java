@@ -922,7 +922,7 @@ public interface AggregateMetric {
     }
 
     class GroupStatsLookup implements AggregateMetric, JsonSerializable {
-        private final String name;
+        public final String name;
 
         public GroupStatsLookup(String name) {
             this.name = name;

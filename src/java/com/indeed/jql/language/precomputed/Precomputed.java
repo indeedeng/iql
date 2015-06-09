@@ -4,11 +4,13 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
+import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.GetGroupDistincts;
 import com.indeed.jql.language.commands.GetGroupPercentiles;
 import com.indeed.jql.language.commands.GetGroupStats;
+import com.indeed.jql.language.util.Optionals;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,12 +19,13 @@ import java.util.Set;
 
 public interface Precomputed {
     Precomputation commands(Set<String> scope);
+    Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
     Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class PrecomputedDistinct implements Precomputed {
-        private final String field;
-        private final Optional<AggregateFilter> filter;
-        private final Optional<Integer> windowSize;
+        public final String field;
+        public final Optional<AggregateFilter> filter;
+        public final Optional<Integer> windowSize;
 
         public PrecomputedDistinct(String field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
@@ -33,6 +36,11 @@ public interface Precomputed {
         @Override
         public Precomputation commands(Set<String> scope) {
             return Precomputation.noContext(new GetGroupDistincts(scope, field, filter, windowSize.or(1)));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return precomputed.apply(new PrecomputedDistinct(field, Optionals.transform(filter, f, g, h, i), windowSize));
         }
 
         @Override
@@ -72,8 +80,8 @@ public interface Precomputed {
     }
 
     class PrecomputedPercentile implements Precomputed {
-        private final String field;
-        private final double percentile;
+        public final String field;
+        public final double percentile;
 
         public PrecomputedPercentile(String field, double percentile) {
             this.field = field;
@@ -83,6 +91,11 @@ public interface Precomputed {
         @Override
         public Precomputation commands(Set<String> scope) {
             return Precomputation.noContext(new GetGroupPercentiles(scope, field, new double[]{percentile}));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return precomputed.apply(this);
         }
 
         @Override
@@ -114,7 +127,7 @@ public interface Precomputed {
     }
 
     class PrecomputedRawStats implements Precomputed {
-        private final DocMetric docMetric;
+        public final DocMetric docMetric;
 
         public PrecomputedRawStats(DocMetric docMetric) {
             this.docMetric = docMetric;
@@ -132,6 +145,11 @@ public interface Precomputed {
                 }
             }
             return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), false));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return precomputed.apply(new PrecomputedRawStats(docMetric.transform(g, i)));
         }
 
         @Override

@@ -30,9 +30,9 @@ public interface ExecutionStep {
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class ComputePrecomputed implements ExecutionStep {
-        private final Set<String> scope;
-        private final Precomputed computation;
-        private final String name;
+        public final Set<String> scope;
+        public final Precomputed computation;
+        public final String name;
 
         public ComputePrecomputed(Set<String> scope, Precomputed computation, String name) {
             this.scope = scope;
