@@ -123,7 +123,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateRunning(@NotNull JQLParser.AggregateRunningContext ctx) {
-                accept(new AggregateMetric.Running(parseAggregateMetric(ctx.aggregateMetric())));
+                accept(new AggregateMetric.Running(1, parseAggregateMetric(ctx.aggregateMetric())));
             }
 
             public void enterAggregateCounts(@NotNull JQLParser.AggregateCountsContext ctx) {

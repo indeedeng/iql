@@ -349,6 +349,58 @@ public interface AggregateMetric {
         }
     }
 
+    class IterateLag implements AggregateMetric, JsonSerializable {
+        public final int lag;
+        public final AggregateMetric metric;
+
+        public IterateLag(int lag, AggregateMetric metric) {
+            this.lag = lag;
+            this.metric = metric;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return f.apply(new IterateLag(lag, metric.transform(f, g, h, i)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new IterateLag(lag, f.apply(metric));
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "iterateLag", "delay", lag, "m", metric));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            IterateLag that = (IterateLag) o;
+            return Objects.equals(lag, that.lag) &&
+                    Objects.equals(metric, that.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(lag, metric);
+        }
+
+        @Override
+        public String toString() {
+            return "IterateLag{" +
+                    "lag=" + lag +
+                    ", metric=" + metric +
+                    '}';
+        }
+    }
+
     class Window implements AggregateMetric, JsonSerializable {
         public final int window;
         public final AggregateMetric metric;
@@ -706,26 +758,28 @@ public interface AggregateMetric {
 
     // TODO: Running offset..?
     class Running implements AggregateMetric, JsonSerializable {
+        public final int offset;
         public final AggregateMetric metric;
 
-        public Running(AggregateMetric metric) {
+        public Running(int offset, AggregateMetric metric) {
+            this.offset = offset;
             this.metric = metric;
         }
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return f.apply(new Running(metric.transform(f, g, h, i)));
+            return f.apply(new Running(offset, metric.transform(f, g, h, i)));
         }
 
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Running(f.apply(metric));
+            return new Running(offset, f.apply(metric));
         }
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             // TODO: Running offset?
-            gen.writeObject(ImmutableMap.of("type", "running", "offset", 0, "value", metric));
+            gen.writeObject(ImmutableMap.of("type", "running", "offset", offset, "value", metric));
         }
 
         @Override

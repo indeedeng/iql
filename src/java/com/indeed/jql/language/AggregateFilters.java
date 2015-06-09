@@ -16,6 +16,7 @@ public class AggregateFilters {
         }
         if (filter == null) {
             // TODO (optional): Make this new Always() and don't negate if (ctx.not != null).
+            // TODO cont:       Alternatively, add optimization pass for Not(Always) and Not(Never).
             filter = new AggregateFilter.Never();
         }
         if (negate) {

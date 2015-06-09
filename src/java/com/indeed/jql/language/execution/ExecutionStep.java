@@ -83,11 +83,11 @@ public interface ExecutionStep {
     }
 
     class ExplodeAndRegroup implements ExecutionStep {
-        private final String field;
-        private final Optional<AggregateFilter> filter;
-        private final Optional<Long> limit;
-        private final AggregateMetric metric;
-        private final boolean withDefault;
+        public final String field;
+        public final Optional<AggregateFilter> filter;
+        public final Optional<Long> limit;
+        public final AggregateMetric metric;
+        public final boolean withDefault;
 
         public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, boolean withDefault) {
             this.field = field;
@@ -350,7 +350,7 @@ public interface ExecutionStep {
     }
 
     class GetGroupStats implements ExecutionStep {
-        private final List<AggregateMetric> stats;
+        public final List<AggregateMetric> stats;
 
         public GetGroupStats(List<AggregateMetric> stats) {
             this.stats = stats;
