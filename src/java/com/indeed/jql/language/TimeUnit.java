@@ -33,6 +33,7 @@ public enum TimeUnit {
             case 'd': return DAY;
             case 'w': return WEEK;
             case 'M': return MONTH;
+            case 'b': return BUCKETS;
             default:
                 throw new IllegalArgumentException("Invalid time unit: " + c);
         }

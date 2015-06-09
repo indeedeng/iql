@@ -89,8 +89,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            throw new UnsupportedOperationException("Need to reconcile time regroup data");
-//            return new ExecutionStep.ExplodeTime();
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format);
         }
 
         @Override
@@ -126,7 +125,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            throw new UnsupportedOperationException("Implement GroupByTimeBuckets executionStep()");
+            return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field, format);
         }
 
         @Override
@@ -160,7 +159,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            throw new UnsupportedOperationException();
+            return new ExecutionStep.ExplodeMonthOfYear();
         }
 
         @Override

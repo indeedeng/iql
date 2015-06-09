@@ -8,9 +8,11 @@ import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookup;
+import com.indeed.jql.language.commands.ExplodeTimeBuckets;
 import com.indeed.jql.language.commands.Iterate;
 import com.indeed.jql.language.commands.IterateAndExplode;
 import com.indeed.jql.language.commands.MetricRegroup;
+import com.indeed.jql.language.commands.TimePeriodRegroup;
 import com.indeed.jql.language.commands.TimeRegroup;
 import com.indeed.jql.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
@@ -195,6 +197,58 @@ public interface ExecutionStep {
         }
     }
 
+    class ExplodeTimePeriod implements ExecutionStep {
+        private final long periodMillis;
+        private final Optional<String> timeField;
+        private final Optional<String> timeFormat;
+
+        public ExplodeTimePeriod(long periodMillis, Optional<String> timeField, Optional<String> timeFormat) {
+            this.periodMillis = periodMillis;
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat));
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeTimePeriod{" +
+                    "periodMillis=" + periodMillis +
+                    ", timeField=" + timeField +
+                    ", timeFormat=" + timeFormat +
+                    '}';
+        }
+    }
+
+    class ExplodeTimeBuckets implements ExecutionStep {
+        private final int numBuckets;
+        private final Optional<String> timeField;
+        private final Optional<String> timeFormat;
+
+        public ExplodeTimeBuckets(int numBuckets, Optional<String> timeField, Optional<String> timeFormat) {
+            this.numBuckets = numBuckets;
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new com.indeed.jql.language.commands.ExplodeTimeBuckets(numBuckets, timeField, timeFormat));
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeTimeBuckets{" +
+                    "numBuckets=" + numBuckets +
+                    ", timeField=" + timeField +
+                    ", timeFormat=" + timeFormat +
+                    '}';
+        }
+    }
+
     class ExplodeDayOfWeek implements ExecutionStep {
         @Override
         public List<Command> commands() {
@@ -204,6 +258,18 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ExplodeDayOfWeek{}";
+        }
+    }
+
+    class ExplodeMonthOfYear implements ExecutionStep {
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new com.indeed.jql.language.commands.ExplodeMonthOfYear());
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeMonthOfYear{}";
         }
     }
 
