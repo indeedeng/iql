@@ -13,9 +13,11 @@ import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
+import com.indeed.squall.jql.commands.ExplodeMonthOfYear;
 import com.indeed.squall.jql.commands.ExplodePerDocPercentile;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.ExplodeSessionNames;
+import com.indeed.squall.jql.commands.ExplodeTimeBuckets;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
@@ -27,6 +29,7 @@ import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
+import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
@@ -276,6 +279,24 @@ public class Commands {
                 final AggregateFilter filter = AggregateFilter.fromJson(command.get("filter"), namedMetricLookup);
                 final GroupLookupMergeType mergeType = GroupLookupMergeType.parseJson(command.get("mergeType"));
                 return new RegroupIntoLastSiblingWhere(filter, mergeType);
+            }
+            case "explodeMonthOfYear": {
+                return new ExplodeMonthOfYear();
+            }
+            case "explodeTimeBuckets": {
+                final int numBuckets = command.get("numBuckets").intValue();
+                return new ExplodeTimeBuckets(
+                        numBuckets,
+                        Optional.ofNullable(command.get("timeField").textValue()),
+                        Optional.ofNullable(command.get("timeFormat").textValue())
+                );
+            }
+            case "timePeriodRegroup": {
+                return new TimePeriodRegroup(
+                        command.get("periodMillis").longValue(),
+                        Optional.ofNullable(command.get("timeField").textValue()),
+                        Optional.ofNullable(command.get("timeFormat").textValue())
+                );
             }
         }
         throw new RuntimeException("oops:" + command);

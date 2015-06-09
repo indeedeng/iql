@@ -33,9 +33,11 @@ import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
 import com.indeed.squall.jql.commands.ExplodeGroups;
+import com.indeed.squall.jql.commands.ExplodeMonthOfYear;
 import com.indeed.squall.jql.commands.ExplodePerDocPercentile;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.ExplodeSessionNames;
+import com.indeed.squall.jql.commands.ExplodeTimeBuckets;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
@@ -47,6 +49,7 @@ import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SumAcross;
+import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
 import com.indeed.squall.jql.dimensions.DimensionsLoader;
@@ -179,14 +182,21 @@ public class Session {
 
                         final Supplier<JsonNode> nodeSupplier = () -> {
                             try {
+                                System.out.println("Reading line");
                                 final String line = in.readLine();
+                                System.out.println("line = " + line);
                                 return line == null ? null : MAPPER.readTree(line);
                             } catch (final IOException e) {
                                 throw Throwables.propagate(e);
                             }
                         };
 
-                        final Consumer<String> resultConsumer = out::println;
+                        System.out.println("Found connection");
+
+                        final Consumer<String> resultConsumer = x -> {
+                            System.out.println(x);
+                            out.println(x);
+                        };
 
                         processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions());
                     } catch (Throwable e) {
@@ -464,6 +474,15 @@ public class Session {
             final RegroupIntoLastSiblingWhere regroupIntoLastSiblingWhere = (RegroupIntoLastSiblingWhere) command;
             final boolean[] merged = regroupIntoLastSiblingWhere.execute(this);
             out.accept(MAPPER.writeValueAsString(merged));
+        } else if (command instanceof ExplodeMonthOfYear) {
+            ((ExplodeMonthOfYear) command).execute(this);
+            out.accept("ExplodedMonthOfYear");
+        } else if (command instanceof TimePeriodRegroup) {
+            ((TimePeriodRegroup) command).execute(this);
+            out.accept("TimePeriodRegrouped");
+        } else if (command instanceof ExplodeTimeBuckets) {
+            ((ExplodeTimeBuckets) command).execute(this);
+            out.accept("ExplodedTimeBuckets");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
