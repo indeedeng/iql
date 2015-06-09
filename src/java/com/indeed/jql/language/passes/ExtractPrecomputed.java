@@ -14,6 +14,7 @@ import com.indeed.jql.language.execution.ExecutionStep;
 import com.indeed.jql.language.precomputed.Precomputed;
 import com.indeed.jql.language.query.GroupBy;
 import com.indeed.jql.language.query.Query;
+import com.indeed.jql.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayList;
@@ -160,6 +161,14 @@ public class ExtractPrecomputed {
                     return aggregateMetric;
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
+                }
+            } else if (input instanceof AggregateMetric.SumAcross) {
+                final AggregateMetric.SumAcross sumAcross = (AggregateMetric.SumAcross) input;
+                if (sumAcross.groupBy instanceof GroupBy.GroupByField) {
+                    final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
+                } else {
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 }
             } else {
                 return input.traverse1(this);

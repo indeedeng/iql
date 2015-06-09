@@ -95,7 +95,7 @@ public class Query {
         }
         final List<AggregateMetric> selects = Lists.newArrayList();
         for (final AggregateMetric select : this.selects) {
-            selects.add(select.transform(f, g, h, i));
+            selects.add(select.transform(f, g, h, i, groupBy));
         }
         return new Query(datasets, filter, groupBys, selects);
     }

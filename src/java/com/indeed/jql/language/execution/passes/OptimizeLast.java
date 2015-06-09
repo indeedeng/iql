@@ -7,6 +7,7 @@ import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.execution.ExecutionStep;
+import com.indeed.jql.language.query.GroupBy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +46,8 @@ public class OptimizeLast {
                     PROCESS_METRIC,
                     Functions.<DocMetric>identity(),
                     Functions.<AggregateFilter>identity(),
-                    Functions.<DocFilter>identity()
+                    Functions.<DocFilter>identity(),
+                    Functions.<GroupBy>identity()
             ));
         }
         return result;

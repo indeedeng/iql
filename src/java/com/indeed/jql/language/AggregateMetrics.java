@@ -1,6 +1,8 @@
 package com.indeed.jql.language;
 
 import com.google.common.base.Optional;
+import com.indeed.jql.language.query.GroupBy;
+import com.indeed.jql.language.query.GroupBys;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;
@@ -145,6 +147,26 @@ public class AggregateMetrics {
                 final AggregateMetric metric = parseAggregateMetric(ctx.aggregateMetric());
                 final String name = ctx.name.getText();
                 accept(new AggregateMetric.Named(metric, name));
+            }
+
+            @Override
+            public void enterAggregateSumAcross(@NotNull JQLParser.AggregateSumAcrossContext ctx) {
+                accept(new AggregateMetric.SumAcross(GroupBys.parseGroupBy(ctx.groupByElement()), parseAggregateMetric(ctx.aggregateMetric())));
+            }
+
+            @Override
+            public void enterAggregateAverageAcross(@NotNull JQLParser.AggregateAverageAcrossContext ctx) {
+                final Optional<AggregateFilter> filter;
+                if (ctx.aggregateFilter() != null) {
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.aggregateFilter()));
+                } else {
+                    filter = Optional.absent();
+                }
+                final GroupBy groupBy = new GroupBy.GroupByField(ctx.field.getText(), filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false);
+                accept(new AggregateMetric.Divide(
+                        new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseAggregateMetric(ctx.aggregateMetric())),
+                        new AggregateMetric.Distinct(ctx.field.getText(), filter, Optional.<Integer>absent())
+                ));
             }
         });
 

@@ -59,6 +59,8 @@ aggregateMetric
     | 'stdev' '(' docMetric ')' # AggregateStandardDeviation
     | 'log' '(' aggregateMetric ')' # AggregateLog
     | 'abs' '(' aggregateMetric ')' # AggregateAbs
+    | 'sum_over' '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
+    | 'avg_over' '(' field=ID ('where' aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' aggregateMetric ')' # AggregateQualified
     | identifier # AggregateRawField
     | '[' docMetric ']' # AggregateSum

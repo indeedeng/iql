@@ -12,6 +12,7 @@ import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.execution.ExecutionStep;
 import com.indeed.jql.language.precomputed.Precomputed;
+import com.indeed.jql.language.query.GroupBy;
 import com.indeed.util.core.Pair;
 
 import java.util.ArrayList;
@@ -132,7 +133,8 @@ public class GroupIterations {
                 },
                 Functions.<DocMetric>identity(),
                 Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity()
+                Functions.<DocFilter>identity(),
+                Functions.<GroupBy>identity()
         );
         return dependencies;
     }
@@ -156,6 +158,12 @@ public class GroupIterations {
                 final Precomputed.PrecomputedPercentile precomputedPercentile = (Precomputed.PrecomputedPercentile) computation;
                 return new PrecomputedContext(scope, Optional.of(precomputedPercentile.field));
             } else if (computation instanceof Precomputed.PrecomputedRawStats) {
+                return new PrecomputedContext(scope, Optional.<String>absent());
+            } else if (computation instanceof Precomputed.PrecomputedSumAcross) {
+                final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
+                return new PrecomputedContext(scope, Optional.of(precomputedSumAcross.field));
+            } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
+                final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
                 return new PrecomputedContext(scope, Optional.<String>absent());
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");

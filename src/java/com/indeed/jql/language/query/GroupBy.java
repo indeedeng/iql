@@ -172,11 +172,11 @@ public interface GroupBy {
     }
 
     class GroupByField implements GroupBy {
-        private final String field;
-        private final Optional<AggregateFilter> filter;
-        private final Optional<Long> limit;
-        private final AggregateMetric metric;
-        private final boolean withDefault;
+        public final String field;
+        public final Optional<AggregateFilter> filter;
+        public final Optional<Long> limit;
+        public final AggregateMetric metric;
+        public final boolean withDefault;
 
         public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
@@ -190,11 +190,11 @@ public interface GroupBy {
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             final Optional<AggregateFilter> filter;
             if (this.filter.isPresent()) {
-                filter = Optional.of(this.filter.get().transform(f, g, h, i));
+                filter = Optional.of(this.filter.get().transform(f, g, h, i, groupBy));
             } else {
                 filter = Optional.absent();
             }
-            final AggregateMetric metric = this.metric.transform(f, g, h, i);
+            final AggregateMetric metric = this.metric.transform(f, g, h, i, groupBy);
             return groupBy.apply(new GroupByField(field, filter, limit, Optional.of(metric), withDefault));
         }
 

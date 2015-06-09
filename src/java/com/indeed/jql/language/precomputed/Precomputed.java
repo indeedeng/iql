@@ -10,6 +10,10 @@ import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.GetGroupDistincts;
 import com.indeed.jql.language.commands.GetGroupPercentiles;
 import com.indeed.jql.language.commands.GetGroupStats;
+import com.indeed.jql.language.commands.GroupLookupMergeType;
+import com.indeed.jql.language.commands.RegroupIntoParent;
+import com.indeed.jql.language.commands.SumAcross;
+import com.indeed.jql.language.query.GroupBy;
 import com.indeed.jql.language.util.Optionals;
 
 import java.util.Collections;
@@ -19,7 +23,7 @@ import java.util.Set;
 
 public interface Precomputed {
     Precomputation commands(Set<String> scope);
-    Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i);
+    Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class PrecomputedDistinct implements Precomputed {
@@ -39,8 +43,8 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return precomputed.apply(new PrecomputedDistinct(field, Optionals.transform(filter, f, g, h, i), windowSize));
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(new PrecomputedDistinct(field, Optionals.transform(filter, f, g, h, i, groupByFunction), windowSize));
         }
 
         @Override
@@ -94,7 +98,7 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return precomputed.apply(this);
         }
 
@@ -148,7 +152,7 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return precomputed.apply(new PrecomputedRawStats(docMetric.transform(g, i)));
         }
 
@@ -175,6 +179,62 @@ public interface Precomputed {
             return "PrecomputedRawStats{" +
                     "docMetric=" + docMetric +
                     '}';
+        }
+    }
+
+    class PrecomputedSumAcross implements Precomputed {
+        public final String field;
+        public final AggregateMetric metric;
+        public final Optional<AggregateFilter> filter;
+
+        public PrecomputedSumAcross(String field, AggregateMetric metric, Optional<AggregateFilter> filter) {
+            this.field = field;
+            this.metric = metric;
+            this.filter = filter;
+        }
+
+        @Override
+        public Precomputation commands(Set<String> scope) {
+            return Precomputation.noContext(new SumAcross(scope, field, metric, filter));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(new PrecomputedSumAcross(field, metric.transform(f, g, h, i, groupByFunction), Optionals.transform(filter, f, g, h, i, groupByFunction)));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new PrecomputedSumAcross(field, f.apply(metric), Optionals.traverse1(filter, f));
+        }
+    }
+
+    class PrecomputedSumAcrossGroupBy implements Precomputed {
+        public final GroupBy groupBy;
+        public final AggregateMetric metric;
+
+        public PrecomputedSumAcrossGroupBy(GroupBy groupBy, AggregateMetric metric) {
+            this.groupBy = groupBy;
+            this.metric = metric;
+        }
+
+        @Override
+        public Precomputation commands(Set<String> scope) {
+            return new Precomputation(
+                    groupBy.executionStep(scope).commands(),
+                    new GetGroupStats(Collections.singletonList(metric), false),
+                    Collections.<Command>singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
+            );
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(new PrecomputedSumAcrossGroupBy(groupBy.transform(groupByFunction, f, g, h, i), metric.transform(f, g, h, i, groupByFunction)));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new PrecomputedSumAcrossGroupBy(groupBy.traverse1(f), metric.traverse1(f));
         }
     }
 
