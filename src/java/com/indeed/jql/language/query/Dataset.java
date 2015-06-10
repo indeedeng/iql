@@ -89,8 +89,6 @@ public class Dataset {
             return new DateTime(dateTimeContext.DATE_TOKEN().getText());
         } else if (dateTimeContext.STRING_LITERAL() != null) {
             return new DateTime(ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText()));
-        } else if (dateTimeContext.FOUR_DIGIT_NUMBER() != null) {
-            return new DateTime(dateTimeContext.FOUR_DIGIT_NUMBER().getText());
         } else if (dateTimeContext.timePeriod() != null) {
             final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(dateTimeContext.timePeriod());
             DateTime dt = DateTime.now().withTimeAtStartOfDay();

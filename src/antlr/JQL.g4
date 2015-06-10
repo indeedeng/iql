@@ -9,7 +9,6 @@ identifier : TIME_UNIT | ID ;
 
 timePeriod : (coeffs+=INT units+=TIME_UNIT)+ 'ago'?;
 
-FOUR_DIGIT_NUMBER: DIGIT DIGIT DIGIT DIGIT ;
 INT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
@@ -23,15 +22,15 @@ DATETIME_TOKEN
                     (':' DIGIT DIGIT
                         ('.' DIGIT DIGIT DIGIT)?
                     )?
-                )?
+                )
             )?
         )?
-    )? ;
+    ) ;
 DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 
 WS : [ \t\r\n]+ -> skip ;
 
-number : INT | DOUBLE | FOUR_DIGIT_NUMBER;
+number : INT | DOUBLE ;
 
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
@@ -52,7 +51,7 @@ aggregateMetric
     | 'distinct' '(' identifier ('where' aggregateFilter)? ')' # AggregateDistinct
     | 'distinct_window' '(' INT ',' identifier ('where' aggregateFilter) ')' # AggregateDistinctWindow
     | 'window' '(' INT ',' aggregateMetric ')' # AggregateWindow
-    | 'percentile' '(' identifier ',' DOUBLE ')' # AggregatePercentile
+    | 'percentile' '(' identifier ',' number ')' # AggregatePercentile
     | 'pdiff' '(' expected=aggregateMetric ',' actual=aggregateMetric ')' # AggregatePDiff
     | 'avg' '(' aggregateMetric ')' # AggregateAvg
     | 'variance' '(' docMetric ')' # AggregateVariance
@@ -60,7 +59,7 @@ aggregateMetric
     | 'log' '(' aggregateMetric ')' # AggregateLog
     | 'abs' '(' aggregateMetric ')' # AggregateAbs
     | 'sum_over' '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
-    | 'avg_over' '(' field=ID ('where' aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
+    | 'avg_over' '(' field=identifier ('where' aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' aggregateMetric ')' # AggregateQualified
     | identifier # AggregateRawField
     | '[' docMetric ']' # AggregateSum
@@ -73,7 +72,7 @@ aggregateMetric
     | aggregateMetric '-' aggregateMetric # AggregateMinus
     | '(' aggregateMetric ')' # AggregateParens
     | number # AggregateConstant
-    | aggregateMetric 'as' name=ID # AggregateNamed
+    | aggregateMetric 'as' name=identifier # AggregateNamed
     ;
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
@@ -175,7 +174,7 @@ groupByMetricEnglish
     ;
 
 groupByTime
-    : ('time' | 'timebuckets') '(' timePeriod (',' timeField=identifier)? ')'
+    : ('time' | 'timebuckets') ('(' timePeriod (',' timeField=identifier)? ')')?
     ;
 
 groupByField
@@ -186,7 +185,6 @@ dateTime
     : DATETIME_TOKEN
     | DATE_TOKEN
     | STRING_LITERAL
-    | FOUR_DIGIT_NUMBER
     | timePeriod
     // Oh god I hate myself:
     | 'today'
@@ -223,11 +221,11 @@ fromContents
     ;
 
 groupByContents
-    : groupByElement (',' groupByElement)*
+    : (groupByElement (',' groupByElement)*)?
     ;
 
 selectContents
-    : aggregateMetric (',' aggregateMetric)*
+    : (aggregateMetric (',' aggregateMetric)*)?
     ;
 
 query

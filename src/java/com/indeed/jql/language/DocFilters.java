@@ -48,7 +48,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIsnt(@NotNull JQLParser.DocFieldIsntContext ctx) {
-                new DocFilter.FieldIsnt(ctx.field.getText(), Term.parseTerm(ctx.termVal()));
+                accept(new DocFilter.FieldIsnt(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
@@ -149,7 +149,7 @@ public class DocFilters {
         });
 
         if (ref[0] == null) {
-            throw new UnsupportedOperationException("Unhandled doc filter: [" + docFilterContext.getText() + "]");
+            throw new UnsupportedOperationException("Unhandled doc filter: [" + docFilterContext.getText() + "], " + docFilterContext.toStringTree(new JQLParser(null)));
         }
         return ref[0];
     }

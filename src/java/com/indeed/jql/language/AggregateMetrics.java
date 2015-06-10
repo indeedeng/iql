@@ -121,7 +121,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregatePercentile(@NotNull JQLParser.AggregatePercentileContext ctx) {
-                accept(new AggregateMetric.Percentile(ctx.identifier().getText(), Double.parseDouble(ctx.DOUBLE().getText())));
+                accept(new AggregateMetric.Percentile(ctx.identifier().getText(), Double.parseDouble(ctx.number().getText())));
             }
 
             public void enterAggregateRunning(@NotNull JQLParser.AggregateRunningContext ctx) {
