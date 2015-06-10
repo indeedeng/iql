@@ -1,13 +1,73 @@
 grammar JQL;
 
-r : 'hello' identifier ;
-
 TIME_UNIT : [smhdwMyb]|'second'|'seconds'|'minute'|'minutes'|'hour'|'hours'|'day'|'days'|'week'|'weeks'|'month'|'months'|'year'|'years'|'bucket'|'buckets' ;
+
+LAG : 'lag' ;
+RUNNING : 'running' ;
+PARENT : 'parent' ;
+DISTINCT : 'distinct' ;
+DISTINCT_WINDOW : 'distinct_window' ;
+WINDOW : 'window' ;
+PERCENTILE : 'percentile' ;
+PDIFF : 'pdiff' ;
+AVG : 'avg' ;
+VARIANCE : 'variance' ;
+STDEV : 'stdev' ;
+LOG : 'log' ;
+ABS : 'abs' ;
+SUM_OVER : 'sum_over' ;
+AVG_OVER : 'avg_over' ;
+WHERE : 'where' ;
+HASSTR : 'hasstr' ;
+HASINT : 'hasint' ;
+SELECT : 'select' ;
+FROM : 'from' ;
+GROUP : 'group' ;
+BY : 'by' ;
+AGO : 'ago' ;
+COUNT : 'count' ;
+AS : 'as' ;
+NOT : 'not' ;
+LUCENE : 'lucene' ;
+QUERY : 'query' ;
+TOP : 'top' ;
+BOTTOM : 'bottom' ;
+WITH : 'with' ;
+DEFAULT : 'default' ;
+TIME : 'time' ;
+TIMEBUCKETS : 'timebuckets' ;
+TO : 'to' ;
+BUCKETS : 'buckets' ;
+BUCKET : 'bucket' ;
+IN : 'in' ;
+DESCENDING : 'descending' ;
+DESC : 'desc' ;
+ASCENDING : 'ascending' ;
+ASC : 'asc' ;
+DAYOFWEEK : 'dayofweek' ;
+QUANTILES : 'quantiles' ;
+BETWEEN : 'between' ;
+SAMPLE : 'sample' ;
+AND : 'and' ;
+OR : 'or' ;
+TRUE : 'true' ;
+FALSE : 'false' ;
+IF : 'if' ;
+THEN : 'then' ;
+ELSE : 'else' ;
+FLOATSCALE : 'floatscale' ;
+SIGNUM : 'signum' ;
+
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
-identifier : TIME_UNIT | ID ;
-
-timePeriod : (coeffs+=INT units+=TIME_UNIT)+ 'ago'?;
+identifier
+    : TIME_UNIT | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
+    | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
+    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
+    | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
+    | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM
+    ;
+timePeriod : (coeffs+=INT units+=TIME_UNIT)+ AGO?;
 
 INT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
@@ -29,6 +89,7 @@ DATETIME_TOKEN
 DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 
 WS : [ \t\r\n]+ -> skip ;
+COMMENT : '/*' .* '*/' -> skip ;
 
 number : INT | DOUBLE ;
 
@@ -44,22 +105,22 @@ fragment DOUBLE_QUOTED_STRING : '"' DOUBLE_QUOTED_CONTENTS '"';
 STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 
 aggregateMetric
-    : ('count()' | 'count' '(' ')') # AggregateCounts
-    | 'lag' '(' INT ',' aggregateMetric ')' # AggregateLag
-    | 'running' '(' aggregateMetric ')' # AggregateRunning
-    | 'parent' '(' aggregateMetric ')' # AggregateParent
-    | 'distinct' '(' identifier ('where' aggregateFilter)? ')' # AggregateDistinct
-    | 'distinct_window' '(' INT ',' identifier ('where' aggregateFilter) ')' # AggregateDistinctWindow
-    | 'window' '(' INT ',' aggregateMetric ')' # AggregateWindow
-    | 'percentile' '(' identifier ',' number ')' # AggregatePercentile
-    | 'pdiff' '(' expected=aggregateMetric ',' actual=aggregateMetric ')' # AggregatePDiff
-    | 'avg' '(' aggregateMetric ')' # AggregateAvg
-    | 'variance' '(' docMetric ')' # AggregateVariance
-    | 'stdev' '(' docMetric ')' # AggregateStandardDeviation
-    | 'log' '(' aggregateMetric ')' # AggregateLog
-    | 'abs' '(' aggregateMetric ')' # AggregateAbs
-    | 'sum_over' '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
-    | 'avg_over' '(' field=identifier ('where' aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
+    : (COUNT '(' ')') # AggregateCounts
+    | LAG '(' INT ',' aggregateMetric ')' # AggregateLag
+    | RUNNING '(' aggregateMetric ')' # AggregateRunning
+    | PARENT '(' aggregateMetric ')' # AggregateParent
+    | DISTINCT '(' identifier (WHERE aggregateFilter)? ')' # AggregateDistinct
+    | DISTINCT_WINDOW '(' INT ',' identifier (WHERE aggregateFilter) ')' # AggregateDistinctWindow
+    | WINDOW '(' INT ',' aggregateMetric ')' # AggregateWindow
+    | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
+    | PDIFF '(' expected=aggregateMetric ',' actual=aggregateMetric ')' # AggregatePDiff
+    | AVG '(' aggregateMetric ')' # AggregateAvg
+    | VARIANCE '(' docMetric ')' # AggregateVariance
+    | STDEV '(' docMetric ')' # AggregateStandardDeviation
+    | LOG '(' aggregateMetric ')' # AggregateLog
+    | ABS '(' aggregateMetric ')' # AggregateAbs
+    | SUM_OVER '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
+    | AVG_OVER '(' field=identifier (WHERE aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' aggregateMetric ')' # AggregateQualified
     | identifier # AggregateRawField
     | '[' docMetric ']' # AggregateSum
@@ -72,7 +133,7 @@ aggregateMetric
     | aggregateMetric '-' aggregateMetric # AggregateMinus
     | '(' aggregateMetric ')' # AggregateParens
     | number # AggregateConstant
-    | aggregateMetric 'as' name=identifier # AggregateNamed
+    | aggregateMetric AS name=identifier # AggregateNamed
     ;
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
@@ -82,31 +143,31 @@ aggregateFilter
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
     | 'term()' '=' termVal # AggregateTermIs
     | aggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') aggregateMetric # AggregateMetricInequality
-    | ('not'|'-'|'!') aggregateFilter # AggregateNot
+    | (NOT|'-'|'!') aggregateFilter # AggregateNot
     | aggregateFilter ('and' | '&&') aggregateFilter # AggregateAnd
     | aggregateFilter ('or' | '||') aggregateFilter # AggregateOr
     | '(' aggregateFilter ')' # AggregateFilterParens
-    | 'true' # AggregateTrue
-    | 'false' # AggregateFalse
+    | TRUE # AggregateTrue
+    | FALSE # AggregateFalse
     ;
 
 docMetric
-    : 'count()' # DocCounts
-    | 'abs' '(' docMetric ')' # DocAbs
-    | 'signum' '(' docMetric ')' # DocSignum
+    : COUNT '(' ')' # DocCounts
+    | ABS '(' docMetric ')' # DocAbs
+    | SIGNUM '(' docMetric ')' # DocSignum
     /* TODO: identifier */
     | field=identifier ('='|':') term=(STRING_LITERAL | ID | TIME_UNIT | INT) # DocHasString
     /* TODO: identifier */
-    | 'hasstr' '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT | INT) ')' # DocHasString
-    | 'hasstr' '(' STRING_LITERAL ')' # DocHasStringQuoted
+    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT | INT) ')' # DocHasString
+    | HASSTR '(' STRING_LITERAL ')' # DocHasStringQuoted
     /* TODO: identifier */
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocHasntString
     | field=identifier ('='|':') term=INT # DocHasInt
-    | 'hasint' '(' field=identifier ',' term=INT ')' # DocHasInt
-    | 'hasint' '(' STRING_LITERAL ')' # DocHasIntQuoted
+    | HASINT '(' field=identifier ',' term=INT ')' # DocHasInt
+    | HASINT '(' STRING_LITERAL ')' # DocHasIntQuoted
     | field=identifier '!=' INT # DocHasntInt
-    | 'floatscale' '(' field=identifier ',' mult=INT ',' add=INT ')' # DocFloatScale
-    | 'if' filter=docFilter 'then' trueCase=docMetric 'else' falseCase=docMetric # DocIfThenElse
+    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocFloatScale
+    | IF filter=docFilter THEN trueCase=docMetric ELSE falseCase=docMetric # DocIfThenElse
     | '-' docMetric # DocNegate
     | docMetric '*' docMetric # DocMult
     | docMetric '/' docMetric # DocDiv
@@ -129,24 +190,24 @@ docFilter
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier ('='|':') termVal # DocFieldIs
     | field=identifier '!=' termVal # DocFieldIsnt
-    | field=identifier not='not'? 'in' '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
+    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
     | docMetric op=('='|'!='|'<'|'<='|'>'|'>=') docMetric # DocMetricInequality
-    | ('lucene' | 'query') '(' STRING_LITERAL ')' # Lucene
-    | 'between' '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
-    | 'sample' '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | ('-'|'!'|'not') docFilter # DocNot
-    | docFilter ('and'|'&&') docFilter # DocAnd
-    | docFilter ('or'|'||') docFilter # DocOr
+    | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
+    | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
+    | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
+    | ('-'|'!'|NOT) docFilter # DocNot
+    | docFilter (AND|'&&') docFilter # DocAnd
+    | docFilter (OR|'||') docFilter # DocOr
     | '(' docFilter ')' # DocFilterParens
-    | 'true' # DocTrue
-    | 'false' # DocFalse
+    | TRUE # DocTrue
+    | FALSE # DocFalse
     ;
 
 groupByElement
-    : 'dayofweek' # DayOfWeekGroupBy
-    | 'quantiles' '(' field=identifier ',' INT ')' # QuantilesGroupBy
+    : DAYOFWEEK # DayOfWeekGroupBy
+    | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
     | topTermsGroupByElem # TopTermsGroupBy
-    | field=identifier not='not'? 'in' '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault='with' 'default')? # GroupByFieldIn
+    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | groupByMetric # MetricGroupBy
     | groupByMetricEnglish # MetricGroupBy
     | groupByTime # TimeGroupBy
@@ -159,26 +220,26 @@ topTermsGroupByElem
             field=identifier
             (',' limit=INT
                 (',' metric=aggregateMetric
-                    (',' order=('bottom' | 'descending' | 'desc' | 'top' | 'ascending' | 'asc'))?
+                    (',' order=(BOTTOM | DESCENDING | DESC | TOP | ASCENDING | ASC))?
                 )?
             )?
         ')'
     ;
 
 groupByMetric
-    : ('buckets' | 'bucket') '(' docMetric ',' min=INT ',' max=INT ',' interval=INT ')'
+    : (BUCKETS | BUCKET) '(' docMetric ',' min=INT ',' max=INT ',' interval=INT ')'
     ;
 
 groupByMetricEnglish
-    : docMetric 'from' min=INT 'to' max=INT 'by' interval=INT
+    : docMetric FROM min=INT TO max=INT BY interval=INT
     ;
 
 groupByTime
-    : ('time' | 'timebuckets') ('(' timePeriod (',' timeField=identifier)? ')')?
+    : (TIME | TIMEBUCKETS) ('(' timePeriod (',' timeField=identifier)? ')')?
     ;
 
 groupByField
-    : field=identifier ('[' order=('top' | 'bottom')? limit=INT? ('by' metric=aggregateMetric)? ('where' filter=aggregateFilter)? ']')? (withDefault='with' 'default')?
+    : field=identifier ('[' order=(TOP | BOTTOM)? limit=INT? (BY metric=aggregateMetric)? (WHERE filter=aggregateFilter)? ']')? (withDefault=WITH DEFAULT)?
     ;
 
 dateTime
@@ -208,12 +269,12 @@ dateTime
     ;
 
 dataset
-    : index=identifier start=dateTime end=dateTime ('as' name=identifier)?
+    : index=identifier start=dateTime end=dateTime (AS name=identifier)?
     ;
 
 datasetOptTime
     : dataset # FullDataset
-    | index=identifier ('as' name=identifier)? # PartialDataset
+    | index=identifier (AS name=identifier)? # PartialDataset
     ;
 
 fromContents
@@ -229,9 +290,9 @@ selectContents
     ;
 
 query
-    : ('select' selects+=selectContents)?
-      'from' fromContents
-      ('where' docFilter+)?
-      ('group' 'by' groupByContents)?
-      ('select' selects+=selectContents)?
+    : (SELECT selects+=selectContents)?
+      FROM fromContents
+      (WHERE docFilter+)?
+      (GROUP BY groupByContents)?
+      (SELECT selects+=selectContents)?
     ;
