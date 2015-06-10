@@ -606,18 +606,18 @@ public interface AggregateMetric {
     }
 
     /**
-     * DocStats in which there is no explicit sum, but a single atomic token. Could be a boolean on DocStats but whatever.
+     * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
     class ImplicitDocStats implements AggregateMetric, JsonSerializable {
-        public final String field;
+        public final DocMetric docMetric;
 
-        public ImplicitDocStats(String field) {
-            this.field = field;
+        public ImplicitDocStats(DocMetric docMetric) {
+            this.docMetric = docMetric;
         }
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this);
+            return f.apply(new ImplicitDocStats(g.apply(docMetric)));
         }
 
         @Override
@@ -640,18 +640,18 @@ public interface AggregateMetric {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ImplicitDocStats that = (ImplicitDocStats) o;
-            return Objects.equals(field, that.field);
+            return Objects.equals(docMetric, that.docMetric);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field);
+            return Objects.hash(docMetric);
         }
 
         @Override
         public String toString() {
             return "ImplicitDocStats{" +
-                    "field='" + field + '\'' +
+                    "docMetric=" + docMetric +
                     '}';
         }
     }

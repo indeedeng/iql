@@ -146,7 +146,7 @@ public class ExtractPrecomputed {
                     docMetric = stats.metric;
                 } else {
                     final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                    docMetric = new DocMetric.Field(implicitDocStats.field);
+                    docMetric = implicitDocStats.docMetric;
                 }
                 if (startDepth == depth) {
                     AggregateMetric aggregateMetric = null;

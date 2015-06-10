@@ -29,14 +29,14 @@ public class SubstituteNamed {
             public AggregateMetric apply(AggregateMetric input) {
                 if (input instanceof AggregateMetric.ImplicitDocStats) {
                     final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                    if (namedMetrics.containsKey(implicitDocStats.field)) {
-                        return namedMetrics.get(implicitDocStats.field);
-                    } else {
-                        return input;
+                    if (implicitDocStats.docMetric instanceof DocMetric.Field) {
+                        final DocMetric.Field docMetric = (DocMetric.Field) implicitDocStats.docMetric;
+                        if (namedMetrics.containsKey(docMetric.field)) {
+                            return namedMetrics.get(docMetric.field);
+                        }
                     }
-                } else {
-                    return input;
                 }
+                return input;
             }
         };
     }

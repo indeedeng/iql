@@ -15,7 +15,7 @@ public interface DocMetric {
     List<String> getPushes(String dataset);
 
     class Field implements DocMetric {
-        private final String field;
+        public final String field;
 
         public Field(String field) {
             this.field = field;

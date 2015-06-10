@@ -27,10 +27,6 @@ public class AggregateMetrics {
                 accept(new AggregateMetric.Parent(parseAggregateMetric(ctx.aggregateMetric())));
             }
 
-            public void enterAggregateRawField(@NotNull JQLParser.AggregateRawFieldContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(ctx.identifier().getText()));
-            }
-
             public void enterAggregateLag(@NotNull JQLParser.AggregateLagContext ctx) {
                 accept(new AggregateMetric.Lag(Integer.parseInt(ctx.INT().getText()), parseAggregateMetric(ctx.aggregateMetric())));
             }
@@ -167,6 +163,11 @@ public class AggregateMetrics {
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseAggregateMetric(ctx.aggregateMetric())),
                         new AggregateMetric.Distinct(ctx.field.getText(), filter, Optional.<Integer>absent())
                 ));
+            }
+
+            @Override
+            public void enterAggregateDocMetricAtom(@NotNull JQLParser.AggregateDocMetricAtomContext ctx) {
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseDocMetricAtom(ctx.docMetricAtom())));
             }
         });
 

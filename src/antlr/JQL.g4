@@ -125,7 +125,7 @@ aggregateMetric
     | SUM_OVER '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
     | AVG_OVER '(' field=identifier (WHERE aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' aggregateMetric ')' # AggregateQualified
-    | identifier # AggregateRawField
+    | docMetricAtom # AggregateDocMetricAtom
     | '[' docMetric ']' # AggregateSum
     | '-' aggregateMetric # AggregateNegate
     | <assoc=right> aggregateMetric '^' aggregateMetric # AggregatePower
@@ -154,22 +154,26 @@ aggregateFilter
     | FALSE # AggregateFalse
     ;
 
+docMetricAtom
+    /* TODO: identifier */
+    : field=identifier ('='|':') term=(STRING_LITERAL | ID | TIME_UNIT | INT) # DocMetricAtomHasString
+    /* TODO: identifier */
+    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT | INT) ')' # DocMetricAtomHasString
+    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
+    /* TODO: identifier */
+    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasntString
+    | field=identifier ('='|':') term=INT # DocMetricAtomHasInt
+    | HASINT '(' field=identifier ',' term=INT ')' # DocMetricAtomHasInt
+    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
+    | field=identifier '!=' INT # DocMetricAtomHasntInt
+    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
+    | identifier # DocMetricAtomRawField
+    ;
+
 docMetric
     : COUNT '(' ')' # DocCounts
     | ABS '(' docMetric ')' # DocAbs
     | SIGNUM '(' docMetric ')' # DocSignum
-    /* TODO: identifier */
-    | field=identifier ('='|':') term=(STRING_LITERAL | ID | TIME_UNIT | INT) # DocHasString
-    /* TODO: identifier */
-    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT | INT) ')' # DocHasString
-    | HASSTR '(' STRING_LITERAL ')' # DocHasStringQuoted
-    /* TODO: identifier */
-    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocHasntString
-    | field=identifier ('='|':') term=INT # DocHasInt
-    | HASINT '(' field=identifier ',' term=INT ')' # DocHasInt
-    | HASINT '(' STRING_LITERAL ')' # DocHasIntQuoted
-    | field=identifier '!=' INT # DocHasntInt
-    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocFloatScale
     | IF filter=docFilter THEN trueCase=docMetric ELSE falseCase=docMetric # DocIfThenElse
     | '-' docMetric # DocNegate
     | docMetric '*' docMetric # DocMult
@@ -178,7 +182,7 @@ docMetric
     | docMetric '+' docMetric # DocPlus
     | docMetric '-' docMetric # DocMinus
     | '(' docMetric ')' # DocMetricParens
-    | identifier # DocRawField
+    | docMetricAtom # DocAtom
     | INT # DocInt
     ;
 
