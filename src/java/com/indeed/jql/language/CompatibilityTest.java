@@ -1,6 +1,5 @@
 package com.indeed.jql.language;
 
-import com.indeed.jql.language.query.Query;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -24,14 +23,16 @@ public class CompatibilityTest {
             for (String line = r.readLine(); line != null; line = r.readLine()) {
                 final String[] split = line.split("\t");
                 final String q = split[0];
+                if (q.startsWith("desc")) {
+                    continue;
+                }
                 successes++;
                 try {
-                    final Query query = Main.parseQuery(q);
+                    Main.parseQuery(q);
                 } catch (Exception e) {
                     successes--;
                     failures++;
                     log.error("q = " + q, e);
-                    Thread.sleep(100);
                 }
             }
         }

@@ -1,13 +1,12 @@
 package com.indeed.jql.language;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 
-public class LowerCaseInputStream implements CharStream {
+public class UpperCaseInputStream implements CharStream {
     private final CharStream charStream;
 
-    public LowerCaseInputStream(CharStream charStream) {
+    public UpperCaseInputStream(CharStream charStream) {
         this.charStream = charStream;
     }
 
@@ -27,7 +26,7 @@ public class LowerCaseInputStream implements CharStream {
         if (la <= 0) {
             return la;
         } else {
-            return Character.toLowerCase(la);
+            return Character.toUpperCase(la);
         }
     }
 

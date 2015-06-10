@@ -1,73 +1,63 @@
 grammar JQL;
 
-TIME_UNIT : [smhdwMyb]|'second'|'seconds'|'minute'|'minutes'|'hour'|'hours'|'day'|'days'|'week'|'weeks'|'month'|'months'|'year'|'years'|'bucket'|'buckets' ;
+LAG : 'LAG' ;
+RUNNING : 'RUNNING' ;
+PARENT : 'PARENT' ;
+DISTINCT : 'DISTINCT' ;
+DISTINCT_WINDOW : 'DISTINCT_WINDOW' ;
+WINDOW : 'WINDOW' ;
+PERCENTILE : 'PERCENTILE' ;
+PDIFF : 'PDIFF' ;
+AVG : 'AVG' ;
+VARIANCE : 'VARIANCE' ;
+STDEV : 'STDEV' ;
+LOG : 'LOG' ;
+ABS : 'ABS' ;
+SUM_OVER : 'SUM_OVER' ;
+AVG_OVER : 'AVG_OVER' ;
+WHERE : 'WHERE' ;
+HASSTR : 'HASSTR' ;
+HASINT : 'HASINT' ;
+SELECT : 'SELECT' ;
+FROM : 'FROM' ;
+GROUP : 'GROUP' ;
+BY : 'BY' ;
+AGO : 'AGO' ;
+COUNT : 'COUNT' ;
+AS : 'AS' ;
+NOT : 'NOT' ;
+LUCENE : 'LUCENE' ;
+QUERY : 'QUERY' ;
+TOP : 'TOP' ;
+BOTTOM : 'BOTTOM' ;
+WITH : 'WITH' ;
+DEFAULT : 'DEFAULT' ;
+TIME : 'TIME' ;
+TIMEBUCKETS : 'TIMEBUCKETS' ;
+TO : 'TO' ;
+BUCKETS : 'BUCKETS' ;
+BUCKET : 'BUCKET' ;
+IN : 'IN' ;
+DESCENDING : 'DESCENDING' ;
+DESC : 'DESC' ;
+ASCENDING : 'ASCENDING' ;
+ASC : 'ASC' ;
+DAYOFWEEK : 'DAYOFWEEK' ;
+QUANTILES : 'QUANTILES' ;
+BETWEEN : 'BETWEEN' ;
+SAMPLE : 'SAMPLE' ;
+AND : 'AND' ;
+OR : 'OR' ;
+TRUE : 'TRUE' ;
+FALSE : 'FALSE' ;
+IF : 'IF' ;
+THEN : 'THEN' ;
+ELSE : 'ELSE' ;
+FLOATSCALE : 'FLOATSCALE' ;
+SIGNUM : 'SIGNUM' ;
+LIMIT : 'LIMIT';
 
-LAG : 'lag' ;
-RUNNING : 'running' ;
-PARENT : 'parent' ;
-DISTINCT : 'distinct' ;
-DISTINCT_WINDOW : 'distinct_window' ;
-WINDOW : 'window' ;
-PERCENTILE : 'percentile' ;
-PDIFF : 'pdiff' ;
-AVG : 'avg' ;
-VARIANCE : 'variance' ;
-STDEV : 'stdev' ;
-LOG : 'log' ;
-ABS : 'abs' ;
-SUM_OVER : 'sum_over' ;
-AVG_OVER : 'avg_over' ;
-WHERE : 'where' ;
-HASSTR : 'hasstr' ;
-HASINT : 'hasint' ;
-SELECT : 'select' ;
-FROM : 'from' ;
-GROUP : 'group' ;
-BY : 'by' ;
-AGO : 'ago' ;
-COUNT : 'count' ;
-AS : 'as' ;
-NOT : 'not' ;
-LUCENE : 'lucene' ;
-QUERY : 'query' ;
-TOP : 'top' ;
-BOTTOM : 'bottom' ;
-WITH : 'with' ;
-DEFAULT : 'default' ;
-TIME : 'time' ;
-TIMEBUCKETS : 'timebuckets' ;
-TO : 'to' ;
-BUCKETS : 'buckets' ;
-BUCKET : 'bucket' ;
-IN : 'in' ;
-DESCENDING : 'descending' ;
-DESC : 'desc' ;
-ASCENDING : 'ascending' ;
-ASC : 'asc' ;
-DAYOFWEEK : 'dayofweek' ;
-QUANTILES : 'quantiles' ;
-BETWEEN : 'between' ;
-SAMPLE : 'sample' ;
-AND : 'and' ;
-OR : 'or' ;
-TRUE : 'true' ;
-FALSE : 'false' ;
-IF : 'if' ;
-THEN : 'then' ;
-ELSE : 'else' ;
-FLOATSCALE : 'floatscale' ;
-SIGNUM : 'signum' ;
-
-ID : [a-zA-Z_][a-zA-Z0-9_]* ;
-
-identifier
-    : TIME_UNIT | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
-    | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
-    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
-    | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
-    | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM
-    ;
-timePeriod : (coeffs+=INT units+=TIME_UNIT)+ AGO?;
+TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 
 INT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
@@ -80,7 +70,9 @@ DATETIME_TOKEN
             (('T'|' ') DIGIT DIGIT
                 (':' DIGIT DIGIT
                     (':' DIGIT DIGIT
-                        ('.' DIGIT DIGIT DIGIT)?
+                        ('.' DIGIT DIGIT DIGIT
+                            ('+'|'-' DIGIT DIGIT ':' DIGIT DIGIT)?
+                        )?
                     )?
                 )
             )?
@@ -88,8 +80,19 @@ DATETIME_TOKEN
     ) ;
 DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 
+ID : [a-zA-Z_][a-zA-Z0-9_]* ;
+
+identifier
+    : TIME_UNIT | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
+    | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
+    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
+    | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
+    | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT
+    ;
+timePeriod : (coeffs+=INT units+=(TIME_UNIT | BUCKET | BUCKETS))+ AGO?;
+
 WS : [ \t\r\n]+ -> skip ;
-COMMENT : '/*' .* '*/' -> skip ;
+COMMENT : '/*' .*? '*/' -> skip ;
 
 number : INT | DOUBLE ;
 
@@ -141,11 +144,11 @@ scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
 aggregateFilter
     : field=identifier '=~' STRING_LITERAL # AggregateRegex
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
-    | 'term()' '=' termVal # AggregateTermIs
+    | 'TERM()' '=' termVal # AggregateTermIs
     | aggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') aggregateMetric # AggregateMetricInequality
     | (NOT|'-'|'!') aggregateFilter # AggregateNot
-    | aggregateFilter ('and' | '&&') aggregateFilter # AggregateAnd
-    | aggregateFilter ('or' | '||') aggregateFilter # AggregateOr
+    | aggregateFilter (AND | '&&') aggregateFilter # AggregateAnd
+    | aggregateFilter (OR | '||') aggregateFilter # AggregateOr
     | '(' aggregateFilter ')' # AggregateFilterParens
     | TRUE # AggregateTrue
     | FALSE # AggregateFalse
@@ -215,7 +218,7 @@ groupByElement
     ;
 
 topTermsGroupByElem
-    : 'topterms'
+    : 'TOPTERMS'
         '('
             field=identifier
             (',' limit=INT
@@ -248,24 +251,24 @@ dateTime
     | STRING_LITERAL
     | timePeriod
     // Oh god I hate myself:
-    | 'today'
-    | 'toda'
-    | 'tod'
-    | 'tomorrow'
-    | 'tomorro'
-    | 'tomorr'
-    | 'tomor'
-    | 'tomo'
-    | 'tom'
-    | 'yesterday'
-    | 'yesterda'
-    | 'yesterd'
-    | 'yester'
-    | 'yeste'
-    | 'yest'
-    | 'yes'
-    | 'ye'
-    | 'y'
+    | 'TODAY'
+    | 'TODA'
+    | 'TOD'
+    | 'TOMORROW'
+    | 'TOMORRO'
+    | 'TOMORR'
+    | 'TOMOR'
+    | 'TOMO'
+    | 'TOM'
+    | 'YESTERDAY'
+    | 'YESTERDA'
+    | 'YESTERD'
+    | 'YESTER'
+    | 'YESTE'
+    | 'YEST'
+    | 'YES'
+    | 'YE'
+    | 'Y'
     ;
 
 dataset
@@ -295,4 +298,5 @@ query
       (WHERE docFilter+)?
       (GROUP BY groupByContents)?
       (SELECT selects+=selectContents)?
+      (LIMIT limit=INT)?
     ;
