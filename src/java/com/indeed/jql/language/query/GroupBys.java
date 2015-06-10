@@ -12,7 +12,6 @@ import com.indeed.jql.language.JQLParser;
 import com.indeed.jql.language.ParserCommon;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.util.core.Pair;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;

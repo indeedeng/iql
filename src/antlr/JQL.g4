@@ -110,49 +110,68 @@ fragment DOUBLE_QUOTED_STRING : '"' DOUBLE_QUOTED_CONTENTS '"';
 
 STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 
-aggregateMetric
+legacyAggregateMetric
+    : 'oh no'
+    ;
+
+aggregateMetric [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyAggregateMetric
+    | {!$ctx.useLegacy}? jqlAggregateMetric
+    ;
+
+// THIS IS A HACK to work around https://github.com/antlr/antlr4/issues/773
+jqlSumOverMetric : SUM_OVER '(' groupByElement[true] ',' jqlAggregateMetric ')' ;
+
+jqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
-    | LAG '(' INT ',' aggregateMetric ')' # AggregateLag
-    | RUNNING '(' aggregateMetric ')' # AggregateRunning
-    | PARENT '(' aggregateMetric ')' # AggregateParent
-    | DISTINCT '(' identifier (WHERE aggregateFilter)? ')' # AggregateDistinct
-    | DISTINCT_WINDOW '(' INT ',' identifier (WHERE aggregateFilter) ')' # AggregateDistinctWindow
-    | WINDOW '(' INT ',' aggregateMetric ')' # AggregateWindow
+    | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
+    | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
+    | PARENT '(' jqlAggregateMetric ')' # AggregateParent
+    | DISTINCT '(' identifier (WHERE jqlAggregateFilter)? ')' # AggregateDistinct
+    | DISTINCT_WINDOW '(' INT ',' identifier (WHERE jqlAggregateFilter) ')' # AggregateDistinctWindow
+    | WINDOW '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
-    | PDIFF '(' expected=aggregateMetric ',' actual=aggregateMetric ')' # AggregatePDiff
-    | AVG '(' aggregateMetric ')' # AggregateAvg
-    | VARIANCE '(' docMetric ')' # AggregateVariance
-    | STDEV '(' docMetric ')' # AggregateStandardDeviation
-    | LOG '(' aggregateMetric ')' # AggregateLog
-    | ABS '(' aggregateMetric ')' # AggregateAbs
-    | SUM_OVER '(' groupByElement ',' aggregateMetric ')' # AggregateSumAcross
-    | AVG_OVER '(' field=identifier (WHERE aggregateFilter)? ',' aggregateMetric ')' # AggregateAverageAcross
-    | scope ':' '(' aggregateMetric ')' # AggregateQualified
+    | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
+    | AVG '(' jqlAggregateMetric ')' # AggregateAvg
+    | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
+    | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
+    | LOG '(' jqlAggregateMetric ')' # AggregateLog
+    | ABS '(' jqlAggregateMetric ')' # AggregateAbs
+    | jqlSumOverMetric # AggregateSumAcross
+    | AVG_OVER '(' field=identifier (WHERE jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | docMetricAtom # AggregateDocMetricAtom
-    | '[' docMetric ']' # AggregateSum
-    | '-' aggregateMetric # AggregateNegate
-    | <assoc=right> aggregateMetric '^' aggregateMetric # AggregatePower
-    | aggregateMetric '*' aggregateMetric # AggregateMult
-    | aggregateMetric '/' aggregateMetric # AggregateDiv
-    | aggregateMetric '%' aggregateMetric # AggregateMod
-    | aggregateMetric '+' aggregateMetric # AggregatePlus
-    | aggregateMetric '-' aggregateMetric # AggregateMinus
-    | '(' aggregateMetric ')' # AggregateParens
+    | '[' jqlDocMetric ']' # AggregateSum
+    | '-' jqlAggregateMetric # AggregateNegate
+    | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
+    | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
+    | jqlAggregateMetric '/' jqlAggregateMetric # AggregateDiv
+    | jqlAggregateMetric '%' jqlAggregateMetric # AggregateMod
+    | jqlAggregateMetric '+' jqlAggregateMetric # AggregatePlus
+    | jqlAggregateMetric '-' jqlAggregateMetric # AggregateMinus
+    | '(' jqlAggregateMetric ')' # AggregateParens
     | number # AggregateConstant
-    | aggregateMetric AS name=identifier # AggregateNamed
+    | jqlAggregateMetric AS name=identifier # AggregateNamed
     ;
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
 
-aggregateFilter
+legacyAggregateFilter : 'oh no' ;
+
+aggregateFilter [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyAggregateFilter
+    | {!$ctx.useLegacy}? jqlAggregateFilter
+    ;
+
+jqlAggregateFilter
     : field=identifier '=~' STRING_LITERAL # AggregateRegex
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
     | 'TERM()' '=' termVal # AggregateTermIs
-    | aggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') aggregateMetric # AggregateMetricInequality
-    | (NOT|'-'|'!') aggregateFilter # AggregateNot
-    | aggregateFilter (AND | '&&') aggregateFilter # AggregateAnd
-    | aggregateFilter (OR | '||') aggregateFilter # AggregateOr
-    | '(' aggregateFilter ')' # AggregateFilterParens
+    | jqlAggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlAggregateMetric # AggregateMetricInequality
+    | (NOT|'-'|'!') jqlAggregateFilter # AggregateNot
+    | jqlAggregateFilter (AND | '&&') jqlAggregateFilter # AggregateAnd
+    | jqlAggregateFilter (OR | '||') jqlAggregateFilter # AggregateOr
+    | '(' jqlAggregateFilter ')' # AggregateFilterParens
     | TRUE # AggregateTrue
     | FALSE # AggregateFalse
     ;
@@ -173,18 +192,25 @@ docMetricAtom
     | identifier # DocMetricAtomRawField
     ;
 
-docMetric
+legacyDocMetric : 'oh no' ;
+
+docMetric [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyDocMetric
+    | {!$ctx.useLegacy}? jqlDocMetric
+    ;
+
+jqlDocMetric
     : COUNT '(' ')' # DocCounts
-    | ABS '(' docMetric ')' # DocAbs
-    | SIGNUM '(' docMetric ')' # DocSignum
-    | IF filter=docFilter THEN trueCase=docMetric ELSE falseCase=docMetric # DocIfThenElse
-    | '-' docMetric # DocNegate
-    | docMetric '*' docMetric # DocMult
-    | docMetric '/' docMetric # DocDiv
-    | docMetric '%' docMetric # DocMod
-    | docMetric '+' docMetric # DocPlus
-    | docMetric '-' docMetric # DocMinus
-    | '(' docMetric ')' # DocMetricParens
+    | ABS '(' jqlDocMetric ')' # DocAbs
+    | SIGNUM '(' jqlDocMetric ')' # DocSignum
+    | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
+    | '-' jqlDocMetric # DocNegate
+    | jqlDocMetric '*' jqlDocMetric # DocMult
+    | jqlDocMetric '/' jqlDocMetric # DocDiv
+    | jqlDocMetric '%' jqlDocMetric # DocMod
+    | jqlDocMetric '+' jqlDocMetric # DocPlus
+    | jqlDocMetric '-' jqlDocMetric # DocMinus
+    | '(' jqlDocMetric ')' # DocMetricParens
     | docMetricAtom # DocAtom
     | INT # DocInt
     ;
@@ -195,61 +221,68 @@ termVal
     | identifier # StringTerm
     ;
 
-docFilter
+legacyDocFilter : 'oh no' ;
+
+docFilter [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyDocFilter
+    | {!$ctx.useLegacy}? jqlDocFilter
+    ;
+
+jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier ('='|':') termVal # DocFieldIs
     | field=identifier '!=' termVal # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
-    | docMetric op=('='|'!='|'<'|'<='|'>'|'>=') docMetric # DocMetricInequality
+    | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
     | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | ('-'|'!'|NOT) docFilter # DocNot
-    | docFilter (AND|'&&') docFilter # DocAnd
-    | docFilter (OR|'||') docFilter # DocOr
-    | '(' docFilter ')' # DocFilterParens
+    | ('-'|'!'|NOT) jqlDocFilter # DocNot
+    | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
+    | jqlDocFilter (OR|'||') jqlDocFilter # DocOr
+    | '(' jqlDocFilter ')' # DocFilterParens
     | TRUE # DocTrue
     | FALSE # DocFalse
     ;
 
-groupByElement
+groupByElement [boolean useLegacy]
     : DAYOFWEEK # DayOfWeekGroupBy
     | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
-    | topTermsGroupByElem # TopTermsGroupBy
+    | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    | groupByMetric # MetricGroupBy
-    | groupByMetricEnglish # MetricGroupBy
+    | groupByMetric[$ctx.useLegacy] # MetricGroupBy
+    | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime # TimeGroupBy
-    | groupByField # FieldGroupBy
+    | groupByField[$ctx.useLegacy] # FieldGroupBy
     ;
 
-topTermsGroupByElem
+topTermsGroupByElem [boolean useLegacy]
     : 'TOPTERMS'
         '('
             field=identifier
             (',' limit=INT
-                (',' metric=aggregateMetric
+                (',' metric=aggregateMetric[$ctx.useLegacy]
                     (',' order=(BOTTOM | DESCENDING | DESC | TOP | ASCENDING | ASC))?
                 )?
             )?
         ')'
     ;
 
-groupByMetric
-    : (BUCKETS | BUCKET) '(' docMetric ',' min=INT ',' max=INT ',' interval=INT ')'
+groupByMetric [boolean useLegacy]
+    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT ')'
     ;
 
-groupByMetricEnglish
-    : docMetric FROM min=INT TO max=INT BY interval=INT
+groupByMetricEnglish [boolean useLegacy]
+    : docMetric[$ctx.useLegacy] FROM min=INT TO max=INT BY interval=INT
     ;
 
 groupByTime
     : (TIME | TIMEBUCKETS) ('(' timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)? ')')?
     ;
 
-groupByField
-    : field=identifier ('[' order=(TOP | BOTTOM)? limit=INT? (BY metric=aggregateMetric)? (WHERE filter=aggregateFilter)? ']')? (withDefault=WITH DEFAULT)?
+groupByField [boolean useLegacy]
+    : field=identifier ('[' order=(TOP | BOTTOM)? limit=INT? (BY metric=aggregateMetric[$ctx.useLegacy])? (WHERE filter=aggregateFilter[$ctx.useLegacy])? ']')? (withDefault=WITH DEFAULT)?
     ;
 
 dateTime
@@ -292,19 +325,19 @@ fromContents
     : dataset (',' datasetOptTime)*
     ;
 
-groupByContents
-    : (groupByElement (',' groupByElement)*)?
+groupByContents [boolean useLegacy]
+    : (groupByElement[$ctx.useLegacy] (',' groupByElement[$ctx.useLegacy])*)?
     ;
 
-selectContents
-    : (aggregateMetric (',' aggregateMetric)*)?
+selectContents [boolean useLegacy]
+    : (aggregateMetric[$ctx.useLegacy] (',' aggregateMetric[$ctx.useLegacy])*)?
     ;
 
-query
-    : (SELECT selects+=selectContents)?
+query [boolean useLegacy]
+    : (SELECT selects+=selectContents[$ctx.useLegacy])?
       FROM fromContents
-      (WHERE docFilter+)?
-      (GROUP BY groupByContents)?
-      (SELECT selects+=selectContents)?
+      (WHERE docFilter[$ctx.useLegacy]+)?
+      (GROUP BY groupByContents[$ctx.useLegacy])?
+      (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?
     ;

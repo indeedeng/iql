@@ -26,6 +26,10 @@ public class AggregateFilters {
     }
 
     public static AggregateFilter parseAggregateFilter(JQLParser.AggregateFilterContext aggregateFilterContext) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static AggregateFilter parseJQLAggregateFilter(JQLParser.JqlAggregateFilterContext aggregateFilterContext) {
         final AggregateFilter[] ref = new AggregateFilter[1];
 
         aggregateFilterContext.enterRule(new JQLBaseListener() {
@@ -57,17 +61,17 @@ public class AggregateFilters {
             }
 
             public void enterAggregateFilterParens(@NotNull JQLParser.AggregateFilterParensContext ctx) {
-                accept(parseAggregateFilter(ctx.aggregateFilter()));
+                accept(parseJQLAggregateFilter(ctx.jqlAggregateFilter()));
             }
 
             public void enterAggregateAnd(@NotNull JQLParser.AggregateAndContext ctx) {
-                accept(new AggregateFilter.And(parseAggregateFilter(ctx.aggregateFilter(0)), parseAggregateFilter(ctx.aggregateFilter(1))));
+                accept(new AggregateFilter.And(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0)), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1))));
             }
 
             public void enterAggregateMetricInequality(@NotNull JQLParser.AggregateMetricInequalityContext ctx) {
                 final String operation = ctx.op.getText();
-                final AggregateMetric arg1 = AggregateMetrics.parseAggregateMetric(ctx.aggregateMetric(0));
-                final AggregateMetric arg2 = AggregateMetrics.parseAggregateMetric(ctx.aggregateMetric(1));
+                final AggregateMetric arg1 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(0));
+                final AggregateMetric arg2 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(1));
                 final AggregateFilter result;
                 switch (operation) {
                     case "=": {
@@ -101,11 +105,11 @@ public class AggregateFilters {
             }
 
             public void enterAggregateNot(@NotNull JQLParser.AggregateNotContext ctx) {
-                accept(new AggregateFilter.Not(parseAggregateFilter(ctx.aggregateFilter())));
+                accept(new AggregateFilter.Not(parseJQLAggregateFilter(ctx.jqlAggregateFilter())));
             }
 
             public void enterAggregateOr(@NotNull JQLParser.AggregateOrContext ctx) {
-                accept(new AggregateFilter.Or(parseAggregateFilter(ctx.aggregateFilter(0)), parseAggregateFilter(ctx.aggregateFilter(1))));
+                accept(new AggregateFilter.Or(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0)), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1))));
             }
         });
 
