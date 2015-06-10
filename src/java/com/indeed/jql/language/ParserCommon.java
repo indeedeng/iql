@@ -12,18 +12,32 @@ public class ParserCommon {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
     public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext) {
-        final List<Token> coeffs = timePeriodContext.coeffs;
-        final List<Token> units = timePeriodContext.units;
-        if (coeffs.size() != units.size()) {
-            throw new IllegalArgumentException("How did I get here?");
+        if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
+            final JQLParser.TimePeriodParseableContext periodContext = (JQLParser.TimePeriodParseableContext) timePeriodContext;
+            final List<Token> coeffs = periodContext.coeffs;
+            final List<Token> units = periodContext.units;
+            if (coeffs.size() != units.size()) {
+                throw new IllegalArgumentException("How did I get here?");
+            }
+            final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
+            for (int i = 0; i < coeffs.size(); i++) {
+                final int coeff = Integer.parseInt(coeffs.get(i).getText());
+                final TimeUnit unit = TimeUnit.fromString(units.get(i).getText());
+                result.add(Pair.of(coeff, unit));
+            }
+            return result;
+        } else if (timePeriodContext instanceof JQLParser.TimePeriodStringLiteralContext) {
+            final String unquoted = ParserCommon.unquote(((JQLParser.TimePeriodStringLiteralContext) timePeriodContext).STRING_LITERAL().getText());
+            final JQLParser parser = Main.parserForString(unquoted);
+            final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod());
+            if (parser.getNumberOfSyntaxErrors() > 0) {
+                throw new IllegalArgumentException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");
+            }
+            return result;
+        } else {
+            throw new IllegalArgumentException("Failed to handle time period context: [" + timePeriodContext.getText() + "]");
         }
-        final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
-        for (int i = 0; i < coeffs.size(); i++) {
-            final int coeff = Integer.parseInt(coeffs.get(i).getText());
-            final TimeUnit unit = TimeUnit.fromString(units.get(i).getText());
-            result.add(Pair.of(coeff, unit));
-        }
-        return result;
+
     }
 
     public static String unquote(String text) {

@@ -13,6 +13,7 @@ public enum TimeUnit {
     DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd", 'd'),
     WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd", 'w'),
     MONTH(TimeUnit.DAY.millis, "MMMM yyyy", 'M'),
+    YEAR(0L, "yyyy", 'y'),
     BUCKETS(0L, null, 'b');
 
     public final long millis;
@@ -34,6 +35,7 @@ public enum TimeUnit {
             case 'w': return WEEK;
             case 'M': return MONTH;
             case 'b': return BUCKETS;
+            case 'y': return YEAR;
             default:
                 throw new IllegalArgumentException("Invalid time unit: " + c);
         }
@@ -57,6 +59,8 @@ public enum TimeUnit {
                 return MONTH;
             } else if ("buckets".startsWith(s)) {
                 return BUCKETS;
+            } else if ("years".startsWith(s)) {
+                return YEAR;
             }
         }
         throw new IllegalArgumentException("Don't know how to turn into TimeUnit: " + s);
@@ -76,6 +80,8 @@ public enum TimeUnit {
                 return start.minusWeeks(value);
             case MONTH:
                 return start.minusMonths(value);
+            case YEAR:
+                return start.minusYears(value);
             default:
                 throw new IllegalArgumentException("Unknown time unit: " + unit);
         }

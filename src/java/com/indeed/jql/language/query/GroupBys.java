@@ -12,6 +12,7 @@ import com.indeed.jql.language.JQLParser;
 import com.indeed.jql.language.ParserCommon;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.util.core.Pair;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;
@@ -117,6 +118,20 @@ public class GroupBys {
                     timeField = Optional.absent();
                 }
 
+                final Optional<String> timeFormat;
+                if (ctx.groupByTime().timeFormat != null) {
+                    final String format = ctx.groupByTime().timeFormat.getText();
+                    if (format.startsWith("\'") && format.endsWith("\'")) {
+                        timeFormat = Optional.of(ParserCommon.unquote(format));
+                    } else if (format.startsWith("\"") && format.endsWith("\"")) {
+                        timeFormat = Optional.of(ParserCommon.unquote(format));
+                    } else {
+                        timeFormat = Optional.of(format);
+                    }
+                } else {
+                    timeFormat = Optional.absent();
+                }
+
                 final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(ctx.groupByTime().timePeriod());
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
@@ -132,18 +147,18 @@ public class GroupBys {
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
-                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, Optional.<String>absent()));
+                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat));
                         return;
                     }
                     if (unit == TimeUnit.MONTH) {
-                        accept(new GroupBy.GroupByMonth(timeField, Optional.<String>absent()));
+                        accept(new GroupBy.GroupByMonth(timeField, timeFormat));
                         return;
                     }
 
                     millisSum += coeff * unit.millis;
                 }
 
-                accept(new GroupBy.GroupByTime(millisSum, timeField, Optional.<String>absent()));
+                accept(new GroupBy.GroupByTime(millisSum, timeField, timeFormat));
             }
 
             @Override

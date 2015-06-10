@@ -3,6 +3,7 @@ package com.indeed.jql.language.query;
 import com.google.common.base.Optional;
 import com.indeed.jql.language.JQLBaseListener;
 import com.indeed.jql.language.JQLParser;
+import com.indeed.jql.language.Main;
 import com.indeed.jql.language.ParserCommon;
 import com.indeed.jql.language.TimeUnit;
 import com.indeed.util.core.Pair;
@@ -88,14 +89,21 @@ public class Dataset {
         } else if (dateTimeContext.DATE_TOKEN() != null) {
             return new DateTime(dateTimeContext.DATE_TOKEN().getText());
         } else if (dateTimeContext.STRING_LITERAL() != null) {
-            return new DateTime(ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText()));
-        } else if (dateTimeContext.timePeriod() != null) {
-            final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(dateTimeContext.timePeriod());
-            DateTime dt = DateTime.now().withTimeAtStartOfDay();
-            for (final Pair<Integer, TimeUnit> pair : pairs) {
-                dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
+            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+            try {
+                return new DateTime(unquoted.replaceAll(" ", "T"));
+            } catch (IllegalArgumentException e) {
+                final JQLParser jqlParser = Main.parserForString(unquoted);
+                final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
+                if (jqlParser.getNumberOfSyntaxErrors() > 0) {
+                    throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
+                }
+                return timePeriodDateTime(timePeriod);
             }
-            return dt;
+        } else if (dateTimeContext.timePeriod() != null) {
+            return timePeriodDateTime(dateTimeContext.timePeriod());
+        } else if (dateTimeContext.INT() != null) {
+            return new DateTime(Long.parseLong(dateTimeContext.INT().getText()));
         } else {
             final String textValue = dateTimeContext.getText();
             if ("yesterday".startsWith(textValue)) {
@@ -107,6 +115,15 @@ public class Dataset {
             }
         }
         throw new UnsupportedOperationException("Don't know how to handle dateTime: " + dateTimeContext.getText());
+    }
+
+    private static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext) {
+        final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(timePeriodContext);
+        DateTime dt = DateTime.now().withTimeAtStartOfDay();
+        for (final Pair<Integer, TimeUnit> pair : pairs) {
+            dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
+        }
+        return dt;
     }
 
     @Override

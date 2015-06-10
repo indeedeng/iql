@@ -57,7 +57,9 @@ FLOATSCALE : 'FLOATSCALE' ;
 SIGNUM : 'SIGNUM' ;
 LIMIT : 'LIMIT';
 
-TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
+Y : 'Y' ;
+
+TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 
 INT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
@@ -83,13 +85,14 @@ DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
 identifier
-    : TIME_UNIT | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
+    : TIME_UNIT | Y | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
     | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT
     ;
-timePeriod : (coeffs+=INT units+=(TIME_UNIT | BUCKET | BUCKETS))+ AGO?;
+timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
+           | STRING_LITERAL # TimePeriodStringLiteral ;
 
 WS : [ \t\r\n]+ -> skip ;
 COMMENT : '/*' .*? '*/' -> skip ;
@@ -242,7 +245,7 @@ groupByMetricEnglish
     ;
 
 groupByTime
-    : (TIME | TIMEBUCKETS) ('(' timePeriod (',' timeField=identifier)? ')')?
+    : (TIME | TIMEBUCKETS) ('(' timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)? ')')?
     ;
 
 groupByField
@@ -253,6 +256,7 @@ dateTime
     : DATETIME_TOKEN
     | DATE_TOKEN
     | STRING_LITERAL
+    | INT // This is for unix timestamps.
     | timePeriod
     // Oh god I hate myself:
     | 'TODAY'
@@ -272,7 +276,7 @@ dateTime
     | 'YEST'
     | 'YES'
     | 'YE'
-    | 'Y'
+    | Y
     ;
 
 dataset
