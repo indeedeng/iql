@@ -1,6 +1,7 @@
 package com.indeed.jql.language.query;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateFilters;
 import com.indeed.jql.language.AggregateMetric;
@@ -20,6 +21,9 @@ import java.util.HashSet;
 import java.util.List;
 
 public class GroupBys {
+
+    public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
+
     public static List<GroupBy> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext) {
         final List<JQLParser.GroupByElementContext> elements = groupByContentsContext.groupByElement();
         final List<GroupBy> result = new ArrayList<>(elements.size());
@@ -67,8 +71,7 @@ public class GroupBys {
                     metric = Optional.absent();
                 }
                 if (metric.isPresent() && ctx2.order != null) {
-                    // TODO: Hoist this out, and use an ImmutableSet.
-                    if (new HashSet<>(Arrays.asList("bottom", "descending", "desc")).contains(ctx2.order.getText())) {
+                    if (VALID_ORDERINGS.contains(ctx2.order.getText())) {
                         metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
                     }
                 }

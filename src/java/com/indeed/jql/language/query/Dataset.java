@@ -77,7 +77,7 @@ public class Dataset {
         });
 
         if (ref[0] == null) {
-            throw new UnsupportedOperationException("Don't know how to handle partialDataset: " + datasetOptTimeContext.getText());
+            throw new UnsupportedOperationException("Unhandled partialDataset: " + datasetOptTimeContext.getText());
         }
 
         return ref[0];
@@ -114,7 +114,7 @@ public class Dataset {
                 return DateTime.now().withTimeAtStartOfDay().plusDays(1);
             }
         }
-        throw new UnsupportedOperationException("Don't know how to handle dateTime: " + dateTimeContext.getText());
+        throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }
 
     private static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext) {

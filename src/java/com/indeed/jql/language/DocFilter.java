@@ -667,6 +667,7 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
+            // TODO: Support this
             throw new UnsupportedOperationException("Haven't implemented Lucene queries yet");
         }
 
@@ -711,6 +712,7 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
+            // TODO: Support this
             throw new UnsupportedOperationException("Haven't implemented Sample yet");
         }
 

@@ -16,7 +16,7 @@ public class AggregateMetrics {
         if (metricContext.legacyAggregateMetric() != null) {
             return parseLegacyAggregateMetric(metricContext.legacyAggregateMetric());
         }
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("This should be unreachable");
     }
 
     public static AggregateMetric parseLegacyAggregateMetric(JQLParser.LegacyAggregateMetricContext metricContext) {

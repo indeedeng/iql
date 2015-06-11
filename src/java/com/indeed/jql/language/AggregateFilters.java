@@ -26,7 +26,10 @@ public class AggregateFilters {
     }
 
     public static AggregateFilter parseAggregateFilter(JQLParser.AggregateFilterContext aggregateFilterContext) {
-        throw new UnsupportedOperationException();
+        if (aggregateFilterContext.jqlAggregateFilter() != null) {
+            return parseJQLAggregateFilter(aggregateFilterContext.jqlAggregateFilter());
+        }
+        throw new UnsupportedOperationException("Non-JQL aggregate filters don't exist. What did you do?!?!?!");
     }
 
     public static AggregateFilter parseJQLAggregateFilter(JQLParser.JqlAggregateFilterContext aggregateFilterContext) {
