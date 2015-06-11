@@ -12,8 +12,8 @@ public interface DocFilter {
     DocMetric asZeroOneMetric(String dataset);
 
     class FieldIs implements DocFilter {
-        private final String field;
-        private final Term term;
+        public final String field;
+        public final Term term;
 
         public FieldIs(String field, Term term) {
             this.field = field;
@@ -58,8 +58,8 @@ public interface DocFilter {
     }
 
     class FieldIsnt implements DocFilter {
-        private final String field;
-        private final Term term;
+        public final String field;
+        public final Term term;
 
         public FieldIsnt(String field, Term term) {
             this.field = field;
@@ -100,9 +100,9 @@ public interface DocFilter {
     }
 
     class Between implements DocFilter {
-        private final String field;
-        private final long lowerBound;
-        private final long upperBound;
+        public final String field;
+        public final long lowerBound;
+        public final long upperBound;
 
         public Between(String field, long lowerBound, long upperBound) {
             this.field = field;
@@ -149,8 +149,8 @@ public interface DocFilter {
     }
 
     class MetricEqual implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricEqual(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -191,8 +191,8 @@ public interface DocFilter {
     }
 
     class MetricNotEqual implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricNotEqual(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -233,8 +233,8 @@ public interface DocFilter {
     }
 
     class MetricGt implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricGt(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -275,8 +275,8 @@ public interface DocFilter {
     }
 
     class MetricGte implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricGte(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -317,8 +317,8 @@ public interface DocFilter {
     }
 
     class MetricLt implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricLt(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -359,8 +359,8 @@ public interface DocFilter {
     }
 
     class MetricLte implements DocFilter {
-        private final DocMetric m1;
-        private final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public MetricLte(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -401,8 +401,8 @@ public interface DocFilter {
     }
 
     class And implements DocFilter {
-        private final DocFilter f1;
-        private final DocFilter f2;
+        public final DocFilter f1;
+        public final DocFilter f2;
 
         public And(DocFilter f1, DocFilter f2) {
             this.f1 = f1;
@@ -443,8 +443,8 @@ public interface DocFilter {
     }
 
     class Or implements DocFilter {
-        private final DocFilter f1;
-        private final DocFilter f2;
+        public final DocFilter f1;
+        public final DocFilter f2;
 
         public Or(DocFilter f1, DocFilter f2) {
             this.f1 = f1;
@@ -485,7 +485,7 @@ public interface DocFilter {
     }
 
     class Not implements DocFilter {
-        private final DocFilter filter;
+        public final DocFilter filter;
 
         public Not(DocFilter filter) {
             this.filter = filter;
@@ -523,8 +523,8 @@ public interface DocFilter {
     }
 
     class Regex implements DocFilter {
-        private final String field;
-        private final String regex;
+        public final String field;
+        public final String regex;
 
         public Regex(String field, String regex) {
             this.field = field;
@@ -565,8 +565,8 @@ public interface DocFilter {
     }
 
     class NotRegex implements DocFilter {
-        private final String field;
-        private final String regex;
+        public final String field;
+        public final String regex;
 
         public NotRegex(String field, String regex) {
             this.field = field;
@@ -607,8 +607,8 @@ public interface DocFilter {
     }
 
     class Qualified implements DocFilter {
-        private final List<String> scope;
-        private final DocFilter filter;
+        public final List<String> scope;
+        public final DocFilter filter;
 
         public Qualified(List<String> scope, DocFilter filter) {
             this.scope = scope;
@@ -654,7 +654,7 @@ public interface DocFilter {
     }
 
     class Lucene implements DocFilter {
-        private final String query;
+        public final String query;
 
         public Lucene(String query) {
             this.query = query;
@@ -693,10 +693,10 @@ public interface DocFilter {
     }
 
     class Sample implements DocFilter {
-        private final String field;
-        private final long numerator;
-        private final long denominator;
-        private final String seed;
+        public final String field;
+        public final long numerator;
+        public final long denominator;
+        public final String seed;
 
         public Sample(String field, long numerator, long denominator, String seed) {
             this.field = field;

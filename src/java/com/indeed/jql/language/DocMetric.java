@@ -53,7 +53,7 @@ public interface DocMetric {
     }
 
     abstract class Unop implements DocMetric {
-        protected final DocMetric m1;
+        public final DocMetric m1;
 
         public Unop(DocMetric m1) {
             this.m1 = m1;
@@ -620,9 +620,9 @@ public interface DocMetric {
     }
 
     class IfThenElse implements DocMetric {
-        private final DocFilter condition;
-        private final DocMetric trueCase;
-        private final DocMetric falseCase;
+        public final DocFilter condition;
+        public final DocMetric trueCase;
+        public final DocMetric falseCase;
 
         public IfThenElse(DocFilter condition, DocMetric trueCase, DocMetric falseCase) {
             this.condition = condition;
