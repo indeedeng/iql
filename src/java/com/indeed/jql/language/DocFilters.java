@@ -64,10 +64,19 @@ public class DocFilters {
             @Override
             public void enterLegacyDocSample(@NotNull JQLParser.LegacyDocSampleContext ctx) {
                 final String field = ctx.field.getText();
-                // TODO: Handle optional fields
                 final long numerator = Long.parseLong(ctx.numerator.getText());
-                final long denominator = Long.parseLong(ctx.denominator.getText());
-                final String seed = ParserCommon.unquote(ctx.seed.getText());
+                final long denominator;
+                if (ctx.denominator != null) {
+                    denominator = Long.parseLong(ctx.denominator.getText());
+                } else {
+                    denominator = 100;
+                }
+                final String seed;
+                if (ctx.seed != null) {
+                    seed = ParserCommon.unquote(ctx.seed.getText());
+                } else {
+                    seed = String.valueOf(Math.random());
+                }
                 accept(new DocFilter.Sample(field, numerator, denominator, seed));
             }
 
@@ -200,10 +209,19 @@ public class DocFilters {
             @Override
             public void enterDocSample(@NotNull JQLParser.DocSampleContext ctx) {
                 final String field = ctx.field.getText();
-                // TODO: Handle optional fields
                 final long numerator = Long.parseLong(ctx.numerator.getText());
-                final long denominator = Long.parseLong(ctx.denominator.getText());
-                final String seed = ParserCommon.unquote(ctx.seed.getText());
+                final long denominator;
+                if (ctx.denominator != null) {
+                    denominator = Long.parseLong(ctx.denominator.getText());
+                } else {
+                    denominator = 100;
+                }
+                final String seed;
+                if (ctx.seed != null) {
+                    seed = ParserCommon.unquote(ctx.seed.getText());
+                } else {
+                    seed = String.valueOf(Math.random());
+                }
                 accept(new DocFilter.Sample(field, numerator, denominator, seed));
             }
 
