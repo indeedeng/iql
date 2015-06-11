@@ -13,6 +13,7 @@ import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.jql.language.commands.Iterate;
 import com.indeed.jql.language.commands.IterateAndExplode;
 import com.indeed.jql.language.commands.MetricRegroup;
+import com.indeed.jql.language.commands.SampleFields;
 import com.indeed.jql.language.commands.TimePeriodRegroup;
 import com.indeed.jql.language.commands.TimeRegroup;
 import com.indeed.jql.language.precomputed.Precomputed;
@@ -502,6 +503,33 @@ public interface ExecutionStep {
             return "ExplodePerDocPercentile{" +
                     "field='" + field + '\'' +
                     ", numBuckets=" + numBuckets +
+                    '}';
+        }
+    }
+
+    class SampleFields implements ExecutionStep {
+        private final Map<String, List<DocFilter.Sample>> perDatasetSamples;
+
+        public SampleFields(Map<String, List<DocFilter.Sample>> perDatasetSamples) {
+            this.perDatasetSamples = perDatasetSamples;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new com.indeed.jql.language.commands.SampleFields(perDatasetSamples));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            // TODO: Is this the right thing to do?
+            return this;
+        }
+
+
+        @Override
+        public String toString() {
+            return "SampleFields{" +
+                    "perDatasetSamples=" + perDatasetSamples +
                     '}';
         }
     }

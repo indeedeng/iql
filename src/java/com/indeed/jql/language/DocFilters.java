@@ -64,9 +64,10 @@ public class DocFilters {
             @Override
             public void enterLegacyDocSample(@NotNull JQLParser.LegacyDocSampleContext ctx) {
                 final String field = ctx.field.getText();
+                // TODO: Handle optional fields
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator = Long.parseLong(ctx.denominator.getText());
-                final String seed = ctx.seed.getText();
+                final String seed = ParserCommon.unquote(ctx.seed.getText());
                 accept(new DocFilter.Sample(field, numerator, denominator, seed));
             }
 
@@ -199,9 +200,10 @@ public class DocFilters {
             @Override
             public void enterDocSample(@NotNull JQLParser.DocSampleContext ctx) {
                 final String field = ctx.field.getText();
+                // TODO: Handle optional fields
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator = Long.parseLong(ctx.denominator.getText());
-                final String seed = ctx.seed.getText();
+                final String seed = ParserCommon.unquote(ctx.seed.getText());
                 accept(new DocFilter.Sample(field, numerator, denominator, seed));
             }
 

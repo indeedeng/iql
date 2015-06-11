@@ -2,10 +2,17 @@ package com.indeed.jql.language.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.indeed.jql.language.AggregateFilter;
+import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
+import com.indeed.jql.language.execution.ExecutionStep;
+import com.indeed.jql.language.query.GroupBy;
+import com.indeed.jql.language.query.Query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +32,21 @@ public class ExtractSamples {
         }
     }
 
-    public Result apply(DocFilter docFilter, final Set<String> globalScope) {
+    public static QueryResult extractSamples(Query query) {
+        if (query.filter.isPresent()) {
+            final Set<String> globalScope = query.extractDatasetNames();
+            final Result result = extractSamples(query.filter.get(), globalScope);
+            final Query newQuery = new Query(query.datasets, Optional.of(result.sampleFree), query.groupBys, query.selects);
+            if (containsSamples(newQuery)) {
+                throw new IllegalArgumentException("Query contains SAMPLE() filter outside of top spine of WHERE filter! [" + query + "]");
+            }
+            return new QueryResult(newQuery, Collections.<ExecutionStep>singletonList(new ExecutionStep.SampleFields(result.perDatasetSamples)));
+        } else {
+            return new QueryResult(query, Collections.<ExecutionStep>emptyList());
+        }
+    }
+
+    public static Result extractSamples(DocFilter docFilter, final Set<String> globalScope) {
         final Map<String, List<DocFilter.Sample>> datasetSamples = new HashMap<>();
         final Function<DocFilter, DocFilter> processLevel = new Function<DocFilter, DocFilter>() {
             Set<String> scope = new HashSet<>(globalScope);
@@ -69,6 +90,18 @@ public class ExtractSamples {
         return findSample.sampleFound;
     }
 
+    public static boolean containsSamples(Query query) {
+        final FindSample findSample = new FindSample();
+        query.transform(
+                Functions.<GroupBy>identity(),
+                Functions.<AggregateMetric>identity(),
+                Functions.<DocMetric>identity(),
+                Functions.<AggregateFilter>identity(),
+                findSample
+        );
+        return findSample.sampleFound;
+    }
+
     public static class Result {
         public final DocFilter sampleFree; // Not the same as freeSamples
         public final Map<String, List<DocFilter.Sample>> perDatasetSamples;
@@ -76,6 +109,24 @@ public class ExtractSamples {
         private Result(DocFilter sampleFree, Map<String, List<DocFilter.Sample>> perDatasetSamples) {
             this.sampleFree = sampleFree;
             this.perDatasetSamples = perDatasetSamples;
+        }
+    }
+
+    public static class QueryResult {
+        public final Query query;
+        public final List<ExecutionStep> executionSteps;
+
+        public QueryResult(Query query, List<ExecutionStep> executionSteps) {
+            this.query = query;
+            this.executionSteps = executionSteps;
+        }
+
+        @Override
+        public String toString() {
+            return "QueryResult{" +
+                    "query=" + query +
+                    ", executionSteps=" + executionSteps +
+                    '}';
         }
     }
 }
