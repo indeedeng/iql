@@ -183,9 +183,7 @@ public class Session {
 
                         final Supplier<JsonNode> nodeSupplier = () -> {
                             try {
-                                System.out.println("Reading line");
                                 final String line = in.readLine();
-                                System.out.println("line = " + line);
                                 return line == null ? null : MAPPER.readTree(line);
                             } catch (final IOException e) {
                                 throw Throwables.propagate(e);
@@ -194,10 +192,7 @@ public class Session {
 
                         System.out.println("Found connection");
 
-                        final Consumer<String> resultConsumer = x -> {
-                            System.out.println(x);
-                            out.println(x);
-                        };
+                        final Consumer<String> resultConsumer = out::println;
 
                         processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions());
                     } catch (Throwable e) {
