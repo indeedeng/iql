@@ -194,7 +194,7 @@ public interface ExecutionStep {
         public List<Command> commands() {
             final Map<String, List<String>> datasetToPushes = new HashMap<>();
             for (final String s : scope) {
-                datasetToPushes.put(s, metric.getPushes(s));
+                datasetToPushes.put(s, new DocMetric.PushableDocMetric(metric).getPushes(s));
             }
             return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval));
         }
@@ -377,7 +377,7 @@ public interface ExecutionStep {
         public List<Command> commands() {
             final Map<String, List<String>> perDatasetPushes = new HashMap<>();
             for (final String dataset : scope) {
-                perDatasetPushes.put(dataset, filter.asZeroOneMetric(dataset).getPushes(dataset));
+                perDatasetPushes.put(dataset, new DocMetric.PushableDocMetric(filter.asZeroOneMetric(dataset)).getPushes(dataset));
             }
             return Collections.<Command>singletonList(new com.indeed.jql.language.commands.FilterDocs(perDatasetPushes));
         }

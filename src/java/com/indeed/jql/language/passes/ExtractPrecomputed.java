@@ -151,7 +151,7 @@ public class ExtractPrecomputed {
                 if (startDepth == depth) {
                     AggregateMetric aggregateMetric = null;
                     for (final String dataset : scope) {
-                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, docMetric.getPushes(dataset));
+                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric).getPushes(dataset));
                         if (aggregateMetric == null) {
                             aggregateMetric = metric;
                         } else {
