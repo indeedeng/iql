@@ -111,7 +111,12 @@ fragment DOUBLE_QUOTED_STRING : '"' DOUBLE_QUOTED_CONTENTS '"';
 STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 
 legacyAggregateMetric
-    : 'oh no'
+    : DISTINCT '(' identifier ')' # LegacyAggregateDistinct
+    | PERCENTILE '(' identifier ',' number ')' # LegacyAggregatePercentile
+    | docMetric '/' docMetric # LegacyAggregateDiv
+    | legacyAggregateMetric '/' number # LegacyAggregateDivByConstant
+    | '(' legacyAggregateMetric ')' # LegacyAggregateParens
+    | docMetric # LegacyImplicitSum
     ;
 
 aggregateMetric [boolean useLegacy]
@@ -133,15 +138,15 @@ jqlAggregateMetric
     | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
-    | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
-    | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
+    | VARIANCE '(' docMetric ')' # AggregateVariance
+    | STDEV '(' docMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | jqlSumOverMetric # AggregateSumAcross
     | AVG_OVER '(' field=identifier (WHERE jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | docMetricAtom # AggregateDocMetricAtom
-    | '[' jqlDocMetric ']' # AggregateSum
+    | '[' docMetric ']' # AggregateSum
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
     | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
@@ -156,10 +161,8 @@ jqlAggregateMetric
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
 
-legacyAggregateFilter : 'oh no' ;
-
 aggregateFilter [boolean useLegacy]
-    : {$ctx.useLegacy}? legacyAggregateFilter
+    : {$ctx.useLegacy}? {false}? // No such thing
     | {!$ctx.useLegacy}? jqlAggregateFilter
     ;
 
@@ -192,25 +195,24 @@ docMetricAtom
     | identifier # DocMetricAtomRawField
     ;
 
-legacyDocMetric : 'oh no' ;
-
-docMetric [boolean useLegacy]
-    : {$ctx.useLegacy}? legacyDocMetric
-    | {!$ctx.useLegacy}? jqlDocMetric
-    ;
-
-jqlDocMetric
+docMetric
     : COUNT '(' ')' # DocCounts
-    | ABS '(' jqlDocMetric ')' # DocAbs
-    | SIGNUM '(' jqlDocMetric ')' # DocSignum
-    | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
-    | '-' jqlDocMetric # DocNegate
-    | jqlDocMetric '*' jqlDocMetric # DocMult
-    | jqlDocMetric '/' jqlDocMetric # DocDiv
-    | jqlDocMetric '%' jqlDocMetric # DocMod
-    | jqlDocMetric '+' jqlDocMetric # DocPlus
-    | jqlDocMetric '-' jqlDocMetric # DocMinus
-    | '(' jqlDocMetric ')' # DocMetricParens
+    | ABS '(' docMetric ')' # DocAbs
+    | SIGNUM '(' docMetric ')' # DocSignum
+    | IF filter=docFilter THEN trueCase=docMetric ELSE falseCase=docMetric # DocIfThenElse
+    | '-' docMetric # DocNegate
+    | docMetric '*' docMetric # DocMult
+    | docMetric '\\' docMetric # DocDiv
+    | docMetric '%' docMetric # DocMod
+    | docMetric '+' docMetric # DocPlus
+    | docMetric '-' docMetric # DocMinus
+    | docMetric '>=' docMetric # DocGTE
+    | docMetric '>' docMetric # DocGT
+    | docMetric '<=' docMetric # DocLTE
+    | docMetric '<' docMetric # DocLT
+    | docMetric '=' docMetric # DocEQ
+    | docMetric '!=' docMetric # DocNEQ
+    | '(' docMetric ')' # DocMetricParens
     | docMetricAtom # DocAtom
     | INT # DocInt
     ;
@@ -221,27 +223,20 @@ termVal
     | identifier # StringTerm
     ;
 
-legacyDocFilter : 'oh no' ;
-
-docFilter [boolean useLegacy]
-    : {$ctx.useLegacy}? legacyDocFilter
-    | {!$ctx.useLegacy}? jqlDocFilter
-    ;
-
-jqlDocFilter
+docFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier ('='|':') termVal # DocFieldIs
     | field=identifier '!=' termVal # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
-    | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
+    | docMetric op=('='|'!='|'<'|'<='|'>'|'>=') docMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
     | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | ('-'|'!'|NOT) jqlDocFilter # DocNot
-    | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
-    | jqlDocFilter (OR|'||') jqlDocFilter # DocOr
-    | '(' jqlDocFilter ')' # DocFilterParens
+    | ('-'|'!'|NOT) docFilter # DocNot
+    | docFilter (AND|'&&') docFilter # DocAnd
+    | docFilter (OR|'||') docFilter # DocOr
+    | '(' docFilter ')' # DocFilterParens
     | TRUE # DocTrue
     | FALSE # DocFalse
     ;
@@ -251,8 +246,8 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    | groupByMetric[$ctx.useLegacy] # MetricGroupBy
-    | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
+    | groupByMetric # MetricGroupBy
+    | groupByMetricEnglish # MetricGroupBy
     | groupByTime # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     ;
@@ -269,12 +264,12 @@ topTermsGroupByElem [boolean useLegacy]
         ')'
     ;
 
-groupByMetric [boolean useLegacy]
-    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT ')'
+groupByMetric
+    : (BUCKETS | BUCKET) '(' docMetric ',' min=INT ',' max=INT ',' interval=INT ')'
     ;
 
-groupByMetricEnglish [boolean useLegacy]
-    : docMetric[$ctx.useLegacy] FROM min=INT TO max=INT BY interval=INT
+groupByMetricEnglish
+    : docMetric FROM min=INT TO max=INT BY interval=INT
     ;
 
 groupByTime
@@ -336,7 +331,7 @@ selectContents [boolean useLegacy]
 query [boolean useLegacy]
     : (SELECT selects+=selectContents[$ctx.useLegacy])?
       FROM fromContents
-      (WHERE docFilter[$ctx.useLegacy]+)?
+      (WHERE docFilter+)?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?

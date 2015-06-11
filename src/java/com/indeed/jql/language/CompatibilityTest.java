@@ -28,7 +28,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Main.parseQuery(q);
+                    Main.parseQuery(q, true);
                 } catch (Exception e) {
                     successes--;
                     failures++;

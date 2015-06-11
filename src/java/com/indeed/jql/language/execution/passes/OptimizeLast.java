@@ -24,8 +24,8 @@ public class OptimizeLast {
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) steps.get(steps.size() - 2);
                 final List<ExecutionStep> newSteps = new ArrayList<>();
                 newSteps.addAll(steps);
-                newSteps.remove(steps.size() - 1);
-                newSteps.remove(steps.size() - 1);
+                newSteps.remove(newSteps.size() - 1);
+                newSteps.remove(newSteps.size() - 1);
                 newSteps.add(new ExecutionStep.IterateStats(
                         explodeAndRegroup.field,
                         explodeAndRegroup.filter,

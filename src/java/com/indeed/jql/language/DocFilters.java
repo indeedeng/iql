@@ -20,10 +20,6 @@ public class DocFilters {
     }
 
     public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    public static DocFilter parseJqlDocFilter(JQLParser.JqlDocFilterContext docFilterContext) {
         final DocFilter[] ref = new DocFilter[1];
 
         docFilterContext.enterRule(new JQLBaseListener() {
@@ -66,7 +62,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(@NotNull JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJqlDocFilter(ctx.jqlDocFilter())));
+                accept(new DocFilter.Not(parseDocFilter(ctx.docFilter())));
             }
 
             @Override
@@ -81,7 +77,7 @@ public class DocFilters {
 
             @Override
             public void enterDocOr(@NotNull JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJqlDocFilter(ctx.jqlDocFilter(0)), parseJqlDocFilter(ctx.jqlDocFilter(1))));
+                accept(new DocFilter.Or(parseDocFilter(ctx.docFilter(0)), parseDocFilter(ctx.docFilter(1))));
             }
 
             @Override
@@ -92,8 +88,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(@NotNull JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJqlDocMetric(ctx.jqlDocMetric(0));
-                final DocMetric arg2 = DocMetrics.parseJqlDocMetric(ctx.jqlDocMetric(1));
+                final DocMetric arg1 = DocMetrics.parseDocMetric(ctx.docMetric(0));
+                final DocMetric arg2 = DocMetrics.parseDocMetric(ctx.docMetric(1));
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -128,7 +124,7 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(@NotNull JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJqlDocFilter(ctx.jqlDocFilter(0)), parseJqlDocFilter(ctx.jqlDocFilter(1))));
+                accept(new DocFilter.And(parseDocFilter(ctx.docFilter(0)), parseDocFilter(ctx.docFilter(1))));
             }
 
             @Override
@@ -143,7 +139,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(@NotNull JQLParser.DocFilterParensContext ctx) {
-                accept(parseJqlDocFilter(ctx.jqlDocFilter()));
+                accept(parseDocFilter(ctx.docFilter()));
             }
 
             @Override

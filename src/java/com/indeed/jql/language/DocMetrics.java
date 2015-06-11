@@ -4,10 +4,6 @@ import org.antlr.v4.runtime.misc.NotNull;
 
 public class DocMetrics {
     public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext) {
-        throw new UnsupportedOperationException();
-    }
-
-    public static DocMetric parseJqlDocMetric(JQLParser.JqlDocMetricContext metricContext) {
         final DocMetric[] ref = new DocMetric[1];
 
         metricContext.enterRule(new JQLBaseListener() {
@@ -23,41 +19,41 @@ public class DocMetrics {
             }
 
             public void enterDocSignum(@NotNull JQLParser.DocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseJqlDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Signum(parseDocMetric(ctx.docMetric())));
             }
 
             public void enterDocMinus(@NotNull JQLParser.DocMinusContext ctx) {
-                accept(new DocMetric.Subtract(parseJqlDocMetric(ctx.jqlDocMetric(0)), parseJqlDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Subtract(parseDocMetric(ctx.docMetric(0)), parseDocMetric(ctx.docMetric(1))));
             }
 
             public void enterDocMod(@NotNull JQLParser.DocModContext ctx) {
-                accept(new DocMetric.Modulus(parseJqlDocMetric(ctx.jqlDocMetric(0)), parseJqlDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Modulus(parseDocMetric(ctx.docMetric(0)), parseDocMetric(ctx.docMetric(1))));
             }
 
             public void enterDocPlus(@NotNull JQLParser.DocPlusContext ctx) {
-                accept(new DocMetric.Add(parseJqlDocMetric(ctx.jqlDocMetric(0)), parseJqlDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Add(parseDocMetric(ctx.docMetric(0)), parseDocMetric(ctx.docMetric(1))));
             }
 
             public void enterDocMetricParens(@NotNull JQLParser.DocMetricParensContext ctx) {
-                accept(parseJqlDocMetric(ctx.jqlDocMetric()));
+                accept(parseDocMetric(ctx.docMetric()));
             }
 
             public void enterDocDiv(@NotNull JQLParser.DocDivContext ctx) {
-                accept(new DocMetric.Divide(parseJqlDocMetric(ctx.jqlDocMetric(0)), parseJqlDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Divide(parseDocMetric(ctx.docMetric(0)), parseDocMetric(ctx.docMetric(1))));
             }
 
             public void enterDocAbs(@NotNull JQLParser.DocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseJqlDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Abs(parseDocMetric(ctx.docMetric())));
             }
 
             public void enterDocNegate(@NotNull JQLParser.DocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseJqlDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Negate(parseDocMetric(ctx.docMetric())));
             }
 
             public void enterDocIfThenElse(@NotNull JQLParser.DocIfThenElseContext ctx) {
-                final DocFilter condition = DocFilters.parseJqlDocFilter(ctx.jqlDocFilter());
-                final DocMetric trueCase = parseJqlDocMetric(ctx.trueCase);
-                final DocMetric falseCase = parseJqlDocMetric(ctx.falseCase);
+                final DocFilter condition = DocFilters.parseDocFilter(ctx.docFilter());
+                final DocMetric trueCase = parseDocMetric(ctx.trueCase);
+                final DocMetric falseCase = parseDocMetric(ctx.falseCase);
                 accept(new DocMetric.IfThenElse(condition, trueCase, falseCase));
             }
 
@@ -66,7 +62,7 @@ public class DocMetrics {
             }
 
             public void enterDocMult(@NotNull JQLParser.DocMultContext ctx) {
-                accept(new DocMetric.Multiply(parseJqlDocMetric(ctx.jqlDocMetric(0)), parseJqlDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Multiply(parseDocMetric(ctx.docMetric(0)), parseDocMetric(ctx.docMetric(1))));
             }
 
             @Override
