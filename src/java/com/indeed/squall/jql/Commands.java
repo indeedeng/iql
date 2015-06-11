@@ -28,6 +28,7 @@ import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
+import com.indeed.squall.jql.commands.SampleFields;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -36,6 +37,7 @@ import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -297,6 +299,25 @@ public class Commands {
                         Optional.ofNullable(command.get("timeField").textValue()),
                         Optional.ofNullable(command.get("timeFormat").textValue())
                 );
+            }
+            case "sampleFields": {
+                final JsonNode perDatasetSamples = command.get("perDatasetSamples");
+                final Iterator<String> it = perDatasetSamples.fieldNames();
+                final Map<String, List<SampleFields.SampleDefinition>> perDatasetDefinitions = Maps.newHashMap();
+                while (it.hasNext()) {
+                    final String dataset = it.next();
+                    final JsonNode list = perDatasetSamples.get(dataset);
+                    final List<SampleFields.SampleDefinition> definitions = Lists.newArrayListWithCapacity(list.size());
+                    for (int i = 0; i < list.size(); i++) {
+                        final JsonNode elem = list.get(i);
+                        final String field = elem.get("field").textValue();
+                        final double fraction = elem.get("fraction").doubleValue();
+                        final String seed = elem.get("seed").textValue();
+                        definitions.add(new SampleFields.SampleDefinition(field, fraction, seed));
+                    }
+                    perDatasetDefinitions.put(dataset, definitions);
+                }
+                return new SampleFields(perDatasetDefinitions);
             }
         }
         throw new RuntimeException("oops:" + command);

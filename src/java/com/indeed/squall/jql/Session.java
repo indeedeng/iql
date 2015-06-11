@@ -48,6 +48,7 @@ import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
+import com.indeed.squall.jql.commands.SampleFields;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -483,6 +484,9 @@ public class Session {
         } else if (command instanceof ExplodeTimeBuckets) {
             ((ExplodeTimeBuckets) command).execute(this);
             out.accept("ExplodedTimeBuckets");
+        } else if (command instanceof SampleFields) {
+            ((SampleFields) command).execute(this);
+            out.accept("SampledFields");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
