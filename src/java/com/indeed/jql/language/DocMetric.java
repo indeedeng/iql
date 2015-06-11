@@ -157,8 +157,8 @@ public interface DocMetric {
     }
 
     abstract class Binop implements DocMetric {
-        protected final DocMetric m1;
-        protected final DocMetric m2;
+        public final DocMetric m1;
+        public final DocMetric m2;
 
         public Binop(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
@@ -493,7 +493,7 @@ public interface DocMetric {
     }
 
     class Constant implements DocMetric {
-        private final long value;
+        public final long value;
 
         public Constant(long value) {
             this.value = value;

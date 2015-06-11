@@ -42,8 +42,8 @@ public class AggregateMetrics {
             @Override
             public void enterLegacyAggregateDiv(@NotNull JQLParser.LegacyAggregateDivContext ctx) {
                 accept(new AggregateMetric.Divide(
-                        new AggregateMetric.DocStats(DocMetrics.parseDocMetric(ctx.docMetric(0))),
-                        new AggregateMetric.DocStats(DocMetrics.parseDocMetric(ctx.docMetric(1)))
+                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0))),
+                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1)))
                 ));
             }
 
@@ -54,7 +54,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyImplicitSum(@NotNull JQLParser.LegacyImplicitSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseDocMetric(ctx.docMetric())));
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric())));
             }
 
             @Override
@@ -113,7 +113,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateStandardDeviation(@NotNull JQLParser.AggregateStandardDeviationContext ctx) {
-                accept(new AggregateMetric.Power(variance(DocMetrics.parseDocMetric(ctx.docMetric())), new AggregateMetric.Constant(0.5)));
+                accept(new AggregateMetric.Power(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric())), new AggregateMetric.Constant(0.5)));
             }
 
             public void enterAggregatePower(@NotNull JQLParser.AggregatePowerContext ctx) {
@@ -132,7 +132,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateSum(@NotNull JQLParser.AggregateSumContext ctx) {
-                accept(new AggregateMetric.DocStats(DocMetrics.parseDocMetric(ctx.docMetric())));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric())));
             }
 
             public void enterAggregateMinus(@NotNull JQLParser.AggregateMinusContext ctx) {
@@ -148,7 +148,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateVariance(@NotNull JQLParser.AggregateVarianceContext ctx) {
-                accept(variance(DocMetrics.parseDocMetric(ctx.docMetric())));
+                accept(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric())));
             }
 
             public void enterAggregateAbs(@NotNull JQLParser.AggregateAbsContext ctx) {

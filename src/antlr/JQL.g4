@@ -113,10 +113,10 @@ STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 legacyAggregateMetric
     : DISTINCT '(' identifier ')' # LegacyAggregateDistinct
     | PERCENTILE '(' identifier ',' number ')' # LegacyAggregatePercentile
-    | docMetric '/' docMetric # LegacyAggregateDiv
+    | legacyDocMetric '/' legacyDocMetric # LegacyAggregateDiv
     | legacyAggregateMetric '/' number # LegacyAggregateDivByConstant
     | '(' legacyAggregateMetric ')' # LegacyAggregateParens
-    | docMetric # LegacyImplicitSum
+    | legacyDocMetric # LegacyImplicitSum
     ;
 
 aggregateMetric [boolean useLegacy]
@@ -138,15 +138,15 @@ jqlAggregateMetric
     | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
-    | VARIANCE '(' docMetric ')' # AggregateVariance
-    | STDEV '(' docMetric ')' # AggregateStandardDeviation
+    | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
+    | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | jqlSumOverMetric # AggregateSumAcross
     | AVG_OVER '(' field=identifier (WHERE jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | docMetricAtom # AggregateDocMetricAtom
-    | '[' docMetric ']' # AggregateSum
+    | '[' jqlDocMetric ']' # AggregateSum
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
     | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
@@ -195,24 +195,50 @@ docMetricAtom
     | identifier # DocMetricAtomRawField
     ;
 
-docMetric
+docMetric [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyDocMetric
+    | {!$ctx.useLegacy}? jqlDocMetric
+    ;
+
+legacyDocMetric
+    : COUNT '(' ')' # LegacyDocCounts
+    | ABS '(' legacyDocMetric ')' # LegacyDocAbs
+    | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
+    | '-' legacyDocMetric # LegacyDocNegate
+    | legacyDocMetric '*' legacyDocMetric # LegacyDocMult
+    | legacyDocMetric '\\' legacyDocMetric # LegacyDocDiv
+    | legacyDocMetric '%' legacyDocMetric # LegacyDocMod
+    | legacyDocMetric '+' legacyDocMetric # LegacyDocPlus
+    | legacyDocMetric '-' legacyDocMetric # LegacyDocMinus
+    | legacyDocMetric '>=' legacyDocMetric # LegacyDocGTE
+    | legacyDocMetric '>' legacyDocMetric # LegacyDocGT
+    | legacyDocMetric '<=' legacyDocMetric # LegacyDocLTE
+    | legacyDocMetric '<' legacyDocMetric # LegacyDocLT
+    | legacyDocMetric '=' legacyDocMetric # LegacyDocEQ
+    | legacyDocMetric '!=' legacyDocMetric # LegacyDocNEQ
+    | '(' legacyDocMetric ')' # LegacyDocMetricParens
+    | docMetricAtom # LegacyDocAtom
+    | INT # LegacyDocInt
+    ;
+
+jqlDocMetric
     : COUNT '(' ')' # DocCounts
-    | ABS '(' docMetric ')' # DocAbs
-    | SIGNUM '(' docMetric ')' # DocSignum
-    | IF filter=docFilter THEN trueCase=docMetric ELSE falseCase=docMetric # DocIfThenElse
-    | '-' docMetric # DocNegate
-    | docMetric '*' docMetric # DocMult
-    | docMetric '\\' docMetric # DocDiv
-    | docMetric '%' docMetric # DocMod
-    | docMetric '+' docMetric # DocPlus
-    | docMetric '-' docMetric # DocMinus
-    | docMetric '>=' docMetric # DocGTE
-    | docMetric '>' docMetric # DocGT
-    | docMetric '<=' docMetric # DocLTE
-    | docMetric '<' docMetric # DocLT
-    | docMetric '=' docMetric # DocEQ
-    | docMetric '!=' docMetric # DocNEQ
-    | '(' docMetric ')' # DocMetricParens
+    | ABS '(' jqlDocMetric ')' # DocAbs
+    | SIGNUM '(' jqlDocMetric ')' # DocSignum
+    | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
+    | '-' jqlDocMetric # DocNegate
+    | jqlDocMetric '*' jqlDocMetric # DocMult
+    | jqlDocMetric '/' jqlDocMetric # DocDiv
+    | jqlDocMetric '%' jqlDocMetric # DocMod
+    | jqlDocMetric '+' jqlDocMetric # DocPlus
+    | jqlDocMetric '-' jqlDocMetric # DocMinus
+    | jqlDocMetric '>=' jqlDocMetric # DocGTE
+    | jqlDocMetric '>' jqlDocMetric # DocGT
+    | jqlDocMetric '<=' jqlDocMetric # DocLTE
+    | jqlDocMetric '<' jqlDocMetric # DocLT
+    | jqlDocMetric '=' jqlDocMetric # DocEQ
+    | jqlDocMetric '!=' jqlDocMetric # DocNEQ
+    | '(' jqlDocMetric ')' # DocMetricParens
     | docMetricAtom # DocAtom
     | INT # DocInt
     ;
@@ -223,20 +249,45 @@ termVal
     | identifier # StringTerm
     ;
 
-docFilter
+// DUPLICATION OF docFilter IS A HACK to work around https://github.com/antlr/antlr4/issues/773 , which does not seem fixed
+// using master as of 2015-06-10
+docFilter [boolean useLegacy]
+    : {$ctx.useLegacy}? legacyDocFilter
+    | {!$ctx.useLegacy}? jqlDocFilter
+    ;
+
+legacyDocFilter
+    : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
+    | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
+    | field=identifier ('='|':') termVal # LegacyDocFieldIs
+    | field=identifier '!=' termVal # LegacyDocFieldIsnt
+    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # LegacyDocFieldIn
+    | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
+    | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
+    | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # LegacyDocBetween
+    | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # LegacyDocSample
+    | ('-'|'!'|NOT) legacyDocFilter # LegacyDocNot
+    | legacyDocFilter (AND|'&&') legacyDocFilter # LegacyDocAnd
+    | legacyDocFilter (OR|'||') legacyDocFilter # LegacyDocOr
+    | '(' legacyDocFilter ')' # LegacyDocFilterParens
+    | TRUE # LegacyDocTrue
+    | FALSE # LegacyDocFalse
+    ;
+
+jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier ('='|':') termVal # DocFieldIs
     | field=identifier '!=' termVal # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
-    | docMetric op=('='|'!='|'<'|'<='|'>'|'>=') docMetric # DocMetricInequality
+    | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
     | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | ('-'|'!'|NOT) docFilter # DocNot
-    | docFilter (AND|'&&') docFilter # DocAnd
-    | docFilter (OR|'||') docFilter # DocOr
-    | '(' docFilter ')' # DocFilterParens
+    | ('-'|'!'|NOT) jqlDocFilter # DocNot
+    | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
+    | jqlDocFilter (OR|'||') jqlDocFilter # DocOr
+    | '(' jqlDocFilter ')' # DocFilterParens
     | TRUE # DocTrue
     | FALSE # DocFalse
     ;
@@ -246,8 +297,8 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    | groupByMetric # MetricGroupBy
-    | groupByMetricEnglish # MetricGroupBy
+    | groupByMetric[$ctx.useLegacy] # MetricGroupBy
+    | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     ;
@@ -264,12 +315,12 @@ topTermsGroupByElem [boolean useLegacy]
         ')'
     ;
 
-groupByMetric
-    : (BUCKETS | BUCKET) '(' docMetric ',' min=INT ',' max=INT ',' interval=INT ')'
+groupByMetric [boolean useLegacy]
+    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT ')'
     ;
 
-groupByMetricEnglish
-    : docMetric FROM min=INT TO max=INT BY interval=INT
+groupByMetricEnglish [boolean useLegacy]
+    : docMetric[$ctx.useLegacy] FROM min=INT TO max=INT BY interval=INT
     ;
 
 groupByTime
@@ -331,7 +382,7 @@ selectContents [boolean useLegacy]
 query [boolean useLegacy]
     : (SELECT selects+=selectContents[$ctx.useLegacy])?
       FROM fromContents
-      (WHERE docFilter+)?
+      (WHERE docFilter[$ctx.useLegacy]+)?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?

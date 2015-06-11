@@ -16,8 +16,6 @@ import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 public class GroupBys {
