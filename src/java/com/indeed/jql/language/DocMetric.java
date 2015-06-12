@@ -30,7 +30,7 @@ public abstract class DocMetric {
         @Override
         public List<String> getPushes(String dataset) {
             // TODO: Apply optimizations here.
-            return metric.getPushes(dataset);
+            return ConstantFolding.apply(metric).getPushes(dataset);
         }
     }
 
@@ -135,7 +135,7 @@ public abstract class DocMetric {
 
         @Override
         protected List<String> getPushes(String dataset) {
-            return new Subtract(new Constant(0), m1).getPushes(dataset);
+            return new PushableDocMetric(new Subtract(new Constant(0), m1)).getPushes(dataset);
         }
     }
 
@@ -167,12 +167,13 @@ public abstract class DocMetric {
 
         @Override
         protected List<String> getPushes(String dataset) {
-            return new IfThenElse(new DocFilter.MetricGt(m1, new Constant(0)),
-                                  new Constant(1),
-                                  new IfThenElse(new DocFilter.MetricLt(m1, new Constant(0)),
-                                                 new Constant(-1),
-                                                 new Constant(0))
-                                 ).getPushes(dataset);
+            final IfThenElse m = new IfThenElse(new DocFilter.MetricGt(m1, new Constant(0)),
+                    new Constant(1),
+                    new IfThenElse(new DocFilter.MetricLt(m1, new Constant(0)),
+                            new Constant(-1),
+                            new Constant(0))
+            );
+            return new PushableDocMetric(m).getPushes(dataset);
         }
     }
 
@@ -528,7 +529,7 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             if (value < 0) {
                 // TODO: Is this still necessary?
-                return new Negate(new Constant(value)).getPushes(dataset);
+                return new PushableDocMetric(new Negate(new Constant(value))).getPushes(dataset);
             } else {
                 return Collections.singletonList(String.valueOf(value));
             }
@@ -658,7 +659,7 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
-            return new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase)).getPushes(dataset);
+            return new PushableDocMetric(new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase))).getPushes(dataset);
         }
 
         @Override
