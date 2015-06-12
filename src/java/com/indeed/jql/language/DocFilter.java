@@ -11,6 +11,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -492,6 +493,56 @@ public interface DocFilter {
             return "Or{" +
                     "f1=" + f1 +
                     ", f2=" + f2 +
+                    '}';
+        }
+    }
+
+    class Ors implements DocFilter {
+        public final List<DocFilter> filters;
+
+        public Ors(List<DocFilter> filters) {
+            if (filters.size() < 2) {
+                throw new IllegalArgumentException("Can't OR a single thing.");
+            }
+            this.filters = filters;
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            final List<DocFilter> transformed = new ArrayList<>();
+            for (final DocFilter filter : filters) {
+                transformed.add(filter.transform(g, i));
+            }
+            return i.apply(new Ors(transformed));
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            DocMetric metric = filters.get(0).asZeroOneMetric(dataset);
+            for (int i = 1; i < filters.size(); i++) {
+                metric = new DocMetric.Add(metric, filters.get(i).asZeroOneMetric(dataset));
+            }
+            return new DocMetric.MetricGt(metric, new DocMetric.Constant(0));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Ors ors = (Ors) o;
+            return Objects.equals(filters, ors.filters);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(filters);
+        }
+
+
+        @Override
+        public String toString() {
+            return "Ors{" +
+                    "filters=" + filters +
                     '}';
         }
     }

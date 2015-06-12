@@ -11,6 +11,7 @@ public class ParserCommon {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
+
     public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext) {
         if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
             final JQLParser.TimePeriodParseableContext periodContext = (JQLParser.TimePeriodParseableContext) timePeriodContext;

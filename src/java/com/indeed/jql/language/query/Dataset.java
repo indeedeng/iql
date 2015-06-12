@@ -9,11 +9,16 @@ import com.indeed.jql.language.TimeUnit;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Dataset {
+    static {
+        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+    }
+
     public final String dataset;
     public final DateTime startInclusive;
     public final DateTime endExclusive;
