@@ -29,6 +29,7 @@ import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SampleFields;
+import com.indeed.squall.jql.commands.SimpleIterate;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -70,6 +71,18 @@ public class Commands {
                 }
 
                 return new Iterate(fieldsWithOpts, fieldLimits, selecting);
+            }
+            case "simpleIterate": {
+                final List<AggregateMetric> selecting = Lists.newArrayList();
+                final JsonNode selects = command.get("selects");
+                for (int i = 0; i < selects.size(); i++) {
+                    selecting.add(AggregateMetric.fromJson(selects.get(i), namedMetricLookup));
+                }
+                final String field = command.get("field").textValue();
+                final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
+                opts.parseFrom(command.get("opts"), namedMetricLookup);
+                final boolean streamResult = command.get("streamResult").booleanValue();
+                return new SimpleIterate(field, opts, selecting, streamResult);
             }
             case "filterDocs": {
                 final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();

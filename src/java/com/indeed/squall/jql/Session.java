@@ -49,6 +49,7 @@ import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.jql.commands.RegroupIntoParent;
 import com.indeed.squall.jql.commands.SampleFields;
+import com.indeed.squall.jql.commands.SimpleIterate;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
@@ -341,29 +342,27 @@ public class Session {
         if (command instanceof Iterate) {
             final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
             final StringBuilder sb = new StringBuilder();
-            for (final List<List<TermSelects>> groupFieldTerms : results) {
-                final List<TermSelects> groupTerms = groupFieldTerms.get(0);
-                for (final TermSelects termSelects : groupTerms) {
-                    final List<String> keyColumns = termSelects.groupKey.asList();
-                    keyColumns.forEach(k -> sb.append(k).append('\t'));
-                    if (termSelects.isIntTerm) {
-                        sb.append(termSelects.intTerm).append('\t');
-                    } else {
-                        sb.append(termSelects.stringTerm).append('\t');
-                    }
-                    for (final double stat : termSelects.selects) {
-                        if (DoubleMath.isMathematicalInteger(stat)) {
-                            sb.append((long)stat).append('\t');
+            writeTermSelectsJson(results, sb);
+            out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+        } else if (command instanceof SimpleIterate) {
+            final SimpleIterate simpleIterate = (SimpleIterate) command;
+            final List<List<List<TermSelects>>> result = simpleIterate.execute(this, out);
+            //noinspection StatementWithEmptyBody
+            if (simpleIterate.streamResult) {
+                // result already sent
+            } else {
+                for (final List<List<TermSelects>> groupFieldTerms : result) {
+                    final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+                    for (final TermSelects termSelect : groupTerms) {
+                        if (termSelect.isIntTerm) {
+                            out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
                         } else {
-                            sb.append(stat).append('\t');
+                            out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
                         }
                     }
-                    sb.setLength(sb.length() - 1);
-                    sb.append('\n');
                 }
+                out.accept("");
             }
-            sb.setLength(sb.length() - 1);
-            out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
         } else if (command instanceof GetGroupStats) {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
             final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
@@ -392,11 +391,46 @@ public class Session {
         }
     }
 
+    private void writeTermSelectsJson(List<List<List<TermSelects>>> results, StringBuilder sb) {
+        for (final List<List<TermSelects>> groupFieldTerms : results) {
+            final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+            for (final TermSelects termSelects : groupTerms) {
+                final List<String> keyColumns = termSelects.groupKey.asList();
+                keyColumns.forEach(k -> sb.append(k).append('\t'));
+                if (termSelects.isIntTerm) {
+                    sb.append(termSelects.intTerm).append('\t');
+                } else {
+                    sb.append(termSelects.stringTerm).append('\t');
+                }
+                for (final double stat : termSelects.selects) {
+                    if (DoubleMath.isMathematicalInteger(stat)) {
+                        sb.append((long) stat).append('\t');
+                    } else {
+                        sb.append(stat).append('\t');
+                    }
+                }
+                sb.setLength(sb.length() - 1);
+                sb.append('\n');
+            }
+        }
+        sb.setLength(sb.length() - 1);
+    }
+
     public void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
         if (command instanceof Iterate) {
             final Iterate iterate = (Iterate) command;
             final List<List<List<TermSelects>>> allTermSelects = iterate.execute(this);
             out.accept(MAPPER.writeValueAsString(allTermSelects));
+        } else if (command instanceof SimpleIterate) {
+            final SimpleIterate simpleIterate = (SimpleIterate) command;
+            if (simpleIterate.streamResult) {
+                throw new IllegalArgumentException("Cannot stream SimpleIterate result except in evaluateToTSV!");
+            } else {
+                final List<List<List<TermSelects>>> result = simpleIterate.execute(this, null);
+                final StringBuilder sb = new StringBuilder();
+                writeTermSelectsJson(result, sb);
+                out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+            }
         } else if (command instanceof FilterDocs) {
             final FilterDocs filterDocs = (FilterDocs) command;
             filterDocs.execute(this);
