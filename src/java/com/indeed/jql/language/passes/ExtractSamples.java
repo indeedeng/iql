@@ -40,7 +40,13 @@ public class ExtractSamples {
             if (containsSamples(newQuery)) {
                 throw new IllegalArgumentException("Query contains SAMPLE() filter outside of top spine of WHERE filter! [" + query + "]");
             }
-            return new QueryResult(newQuery, Collections.<ExecutionStep>singletonList(new ExecutionStep.SampleFields(result.perDatasetSamples)));
+            final List<ExecutionStep> executionSteps;
+            if (result.perDatasetSamples.isEmpty()) {
+                executionSteps = Collections.emptyList();
+            } else {
+                executionSteps = Collections.<ExecutionStep>singletonList(new ExecutionStep.SampleFields(result.perDatasetSamples));
+            }
+            return new QueryResult(newQuery, executionSteps);
         } else {
             return new QueryResult(query, Collections.<ExecutionStep>emptyList());
         }

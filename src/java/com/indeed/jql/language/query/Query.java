@@ -71,7 +71,7 @@ public class Query {
                 throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());
             }
         } else {
-            selects = Collections.emptyList();
+            selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
         }
 
         return new Query(datasets, whereFilter, groupBys, selects);
