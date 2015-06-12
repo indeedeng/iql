@@ -136,7 +136,7 @@ public class Session {
         module.addSerializer(GroupKey.class, new JsonSerializer<GroupKey>() {
             @Override
             public void serialize(GroupKey value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-                jgen.writeObject(value.asList());
+                jgen.writeObject(value.asList(false));
             }
         });
         MAPPER.registerModule(module);
@@ -368,7 +368,7 @@ public class Session {
             final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
             final StringBuilder sb = new StringBuilder();
             for (final GroupStats result : results) {
-                final List<String> keyColumns = result.key.asList();
+                final List<String> keyColumns = result.key.asList(false);
                 keyColumns.forEach(k -> sb.append(k).append('\t'));
                 for (final double stat : result.stats) {
                     if (DoubleMath.isMathematicalInteger(stat)) {
@@ -395,7 +395,7 @@ public class Session {
         for (final List<List<TermSelects>> groupFieldTerms : results) {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
-                final List<String> keyColumns = termSelects.groupKey.asList();
+                final List<String> keyColumns = termSelects.groupKey.asList(true);
                 keyColumns.forEach(k -> sb.append(k).append('\t'));
                 if (termSelects.isIntTerm) {
                     sb.append(termSelects.intTerm).append('\t');
@@ -885,8 +885,8 @@ public class Session {
             this.parent = parent;
         }
 
-        public List<String> asList() {
-            if (term == null) {
+        public List<String> asList(boolean appendingTerm) {
+            if (term == null && !appendingTerm) {
                 return Collections.singletonList("");
             } else {
                 final List<String> keys = Lists.newArrayList();

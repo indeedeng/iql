@@ -1,8 +1,5 @@
 package com.indeed.squall.jql.commands;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -19,7 +16,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -133,7 +129,7 @@ public class SimpleIterate {
 
     public static String createRow(Session.GroupKey groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKey.asList();
+        final List<String> keyColumns = groupKey.asList(true);
         keyColumns.forEach(k -> sb.append(k).append('\t'));
         sb.append(term).append('\t');
         for (final double stat : selectBuffer) {
@@ -151,7 +147,7 @@ public class SimpleIterate {
 
     public static String createRow(Session.GroupKey groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKey.asList();
+        final List<String> keyColumns = groupKey.asList(true);
         keyColumns.forEach(k -> sb.append(k).append('\t'));
         sb.append(term).append('\t');
         for (final double stat : selectBuffer) {
