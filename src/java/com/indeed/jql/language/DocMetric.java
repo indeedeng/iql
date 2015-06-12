@@ -29,7 +29,6 @@ public abstract class DocMetric {
 
         @Override
         public List<String> getPushes(String dataset) {
-            // TODO: Apply optimizations here.
             return ConstantFolding.apply(metric).getPushes(dataset);
         }
     }

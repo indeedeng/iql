@@ -11,7 +11,6 @@ import com.indeed.util.core.Pair;
 import java.util.Collections;
 import java.util.Set;
 
-// TODO: Maybe call this from all of the relevant places.
 public class ConstantFolding {
     public static void main(String[] args) {
         final JQLParser parser = Main.parserForString("if oji=10 then oji else 0");
