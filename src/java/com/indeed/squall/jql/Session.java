@@ -886,13 +886,17 @@ public class Session {
         }
 
         public List<String> asList() {
-            final List<String> keys = Lists.newArrayList();
-            GroupKey node = this;
-            while (node != null && node.term != null) {
-                keys.add(node.term);
-                node = node.parent;
+            if (term == null) {
+                return Collections.singletonList("");
+            } else {
+                final List<String> keys = Lists.newArrayList();
+                GroupKey node = this;
+                while (node != null && node.term != null) {
+                    keys.add(node.term);
+                    node = node.parent;
+                }
+                return Lists.reverse(keys);
             }
-            return Lists.reverse(keys);
         }
     }
 
