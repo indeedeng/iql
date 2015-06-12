@@ -3,6 +3,8 @@ package com.indeed.jql.language;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DocFilters {
     public static DocFilter and(List<DocFilter> filters) {
@@ -19,17 +21,17 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext) {
+    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter());
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields);
         }
         if (docFilterContext.legacyDocFilter() != null) {
-            return parseLegacyDocFilter(docFilterContext.legacyDocFilter());
+            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetToKeywordAnalyzerFields);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocFilter parseLegacyDocFilter(JQLParser.LegacyDocFilterContext legacyDocFilterContext) {
+    public static DocFilter parseLegacyDocFilter(JQLParser.LegacyDocFilterContext legacyDocFilterContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final DocFilter[] ref = new DocFilter[1];
 
         legacyDocFilterContext.enterRule(new JQLBaseListener() {
@@ -82,7 +84,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocNot(@NotNull JQLParser.LegacyDocNotContext ctx) {
-                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter())));
+                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
@@ -97,7 +99,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocOr(@NotNull JQLParser.LegacyDocOrContext ctx) {
-                accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0)), parseLegacyDocFilter(ctx.legacyDocFilter(1))));
+                accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
@@ -108,8 +110,8 @@ public class DocFilters {
             @Override
             public void enterLegacyDocMetricInequality(@NotNull JQLParser.LegacyDocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0));
-                final DocMetric arg2 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1));
+                final DocMetric arg1 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields);
+                final DocMetric arg2 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -144,12 +146,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocAnd(@NotNull JQLParser.LegacyDocAndContext ctx) {
-                accept(new DocFilter.And(parseLegacyDocFilter(ctx.legacyDocFilter(0)), parseLegacyDocFilter(ctx.legacyDocFilter(1))));
+                accept(new DocFilter.And(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
             public void enterLegacyLucene(@NotNull JQLParser.LegacyLuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields));
             }
 
             @Override
@@ -159,7 +161,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFilterParens(@NotNull JQLParser.LegacyDocFilterParensContext ctx) {
-                accept(parseLegacyDocFilter(ctx.legacyDocFilter()));
+                accept(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields));
             }
 
             @Override
@@ -174,7 +176,7 @@ public class DocFilters {
         return ref[0];
     }
 
-    public static DocFilter parseJQLDocFilter(JQLParser.JqlDocFilterContext docFilterContext) {
+    public static DocFilter parseJQLDocFilter(JQLParser.JqlDocFilterContext docFilterContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final DocFilter[] ref = new DocFilter[1];
 
         docFilterContext.enterRule(new JQLBaseListener() {
@@ -227,7 +229,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(@NotNull JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter())));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
@@ -242,7 +244,7 @@ public class DocFilters {
 
             @Override
             public void enterDocOr(@NotNull JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0)), parseJQLDocFilter(ctx.jqlDocFilter(1))));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
@@ -253,8 +255,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(@NotNull JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0));
-                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1));
+                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields);
+                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -289,12 +291,12 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(@NotNull JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0)), parseJQLDocFilter(ctx.jqlDocFilter(1))));
+                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields)));
             }
 
             @Override
             public void enterLucene(@NotNull JQLParser.LuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields));
             }
 
             @Override
@@ -304,7 +306,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(@NotNull JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter()));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields));
             }
 
             @Override

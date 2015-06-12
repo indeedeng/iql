@@ -8,6 +8,8 @@ import org.apache.log4j.SimpleLayout;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
 public class CompatibilityTest {
     private static final Logger log = Logger.getLogger(CompatibilityTest.class);
@@ -28,7 +30,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Main.parseQuery(q, true);
+                    Main.parseQuery(q, true, Collections.<String, Set<String>>emptyMap());
                 } catch (Exception e) {
                     successes--;
                     failures++;

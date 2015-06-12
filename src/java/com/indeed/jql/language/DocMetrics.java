@@ -2,18 +2,21 @@ package com.indeed.jql.language;
 
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.util.Map;
+import java.util.Set;
+
 public class DocMetrics {
-    public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext) {
+    public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         if (metricContext.jqlDocMetric() != null) {
-            return parseJQLDocMetric(metricContext.jqlDocMetric());
+            return parseJQLDocMetric(metricContext.jqlDocMetric(), datasetToKeywordAnalyzerFields);
         }
         if (metricContext.legacyDocMetric() != null) {
-            return parseLegacyDocMetric(metricContext.legacyDocMetric());
+            return parseLegacyDocMetric(metricContext.legacyDocMetric(), datasetToKeywordAnalyzerFields);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocMetric parseLegacyDocMetric(JQLParser.LegacyDocMetricContext legacyDocMetricContext) {
+    public static DocMetric parseLegacyDocMetric(JQLParser.LegacyDocMetricContext legacyDocMetricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final DocMetric[] ref = new DocMetric[1];
 
         legacyDocMetricContext.enterRule(new JQLBaseListener() {
@@ -29,35 +32,35 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocSignum(@NotNull JQLParser.LegacyDocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric())));
+                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocMinus(@NotNull JQLParser.LegacyDocMinusContext ctx) {
-                accept(new DocMetric.Subtract(parseLegacyDocMetric(ctx.legacyDocMetric(0)), parseLegacyDocMetric(ctx.legacyDocMetric(1))));
+                accept(new DocMetric.Subtract(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocMod(@NotNull JQLParser.LegacyDocModContext ctx) {
-                accept(new DocMetric.Modulus(parseLegacyDocMetric(ctx.legacyDocMetric(0)), parseLegacyDocMetric(ctx.legacyDocMetric(1))));
+                accept(new DocMetric.Modulus(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocPlus(@NotNull JQLParser.LegacyDocPlusContext ctx) {
-                accept(new DocMetric.Add(parseLegacyDocMetric(ctx.legacyDocMetric(0)), parseLegacyDocMetric(ctx.legacyDocMetric(1))));
+                accept(new DocMetric.Add(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocMetricParens(@NotNull JQLParser.LegacyDocMetricParensContext ctx) {
-                accept(parseLegacyDocMetric(ctx.legacyDocMetric()));
+                accept(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields));
             }
 
             public void enterLegacyDocDiv(@NotNull JQLParser.LegacyDocDivContext ctx) {
-                accept(new DocMetric.Divide(parseLegacyDocMetric(ctx.legacyDocMetric(0)), parseLegacyDocMetric(ctx.legacyDocMetric(1))));
+                accept(new DocMetric.Divide(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocAbs(@NotNull JQLParser.LegacyDocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric())));
+                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocNegate(@NotNull JQLParser.LegacyDocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric())));
+                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocInt(@NotNull JQLParser.LegacyDocIntContext ctx) {
@@ -65,7 +68,7 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocMult(@NotNull JQLParser.LegacyDocMultContext ctx) {
-                accept(new DocMetric.Multiply(parseLegacyDocMetric(ctx.legacyDocMetric(0)), parseLegacyDocMetric(ctx.legacyDocMetric(1))));
+                accept(new DocMetric.Multiply(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocAtom(@NotNull JQLParser.LegacyDocAtomContext ctx) {
@@ -79,7 +82,7 @@ public class DocMetrics {
         return ref[0];
     }
 
-    public static DocMetric parseJQLDocMetric(JQLParser.JqlDocMetricContext metricContext) {
+    public static DocMetric parseJQLDocMetric(JQLParser.JqlDocMetricContext metricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final DocMetric[] ref = new DocMetric[1];
 
         metricContext.enterRule(new JQLBaseListener() {
@@ -95,41 +98,41 @@ public class DocMetrics {
             }
 
             public void enterDocSignum(@NotNull JQLParser.DocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseJQLDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Signum(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocMinus(@NotNull JQLParser.DocMinusContext ctx) {
-                accept(new DocMetric.Subtract(parseJQLDocMetric(ctx.jqlDocMetric(0)), parseJQLDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Subtract(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocMod(@NotNull JQLParser.DocModContext ctx) {
-                accept(new DocMetric.Modulus(parseJQLDocMetric(ctx.jqlDocMetric(0)), parseJQLDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Modulus(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocPlus(@NotNull JQLParser.DocPlusContext ctx) {
-                accept(new DocMetric.Add(parseJQLDocMetric(ctx.jqlDocMetric(0)), parseJQLDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Add(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocMetricParens(@NotNull JQLParser.DocMetricParensContext ctx) {
-                accept(parseJQLDocMetric(ctx.jqlDocMetric()));
+                accept(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields));
             }
 
             public void enterDocDiv(@NotNull JQLParser.DocDivContext ctx) {
-                accept(new DocMetric.Divide(parseJQLDocMetric(ctx.jqlDocMetric(0)), parseJQLDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Divide(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocAbs(@NotNull JQLParser.DocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseJQLDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Abs(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocNegate(@NotNull JQLParser.DocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseJQLDocMetric(ctx.jqlDocMetric())));
+                accept(new DocMetric.Negate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocIfThenElse(@NotNull JQLParser.DocIfThenElseContext ctx) {
-                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter());
-                final DocMetric trueCase = parseJQLDocMetric(ctx.trueCase);
-                final DocMetric falseCase = parseJQLDocMetric(ctx.falseCase);
+                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields);
+                final DocMetric trueCase = parseJQLDocMetric(ctx.trueCase, datasetToKeywordAnalyzerFields);
+                final DocMetric falseCase = parseJQLDocMetric(ctx.falseCase, datasetToKeywordAnalyzerFields);
                 accept(new DocMetric.IfThenElse(condition, trueCase, falseCase));
             }
 
@@ -138,7 +141,7 @@ public class DocMetrics {
             }
 
             public void enterDocMult(@NotNull JQLParser.DocMultContext ctx) {
-                accept(new DocMetric.Multiply(parseJQLDocMetric(ctx.jqlDocMetric(0)), parseJQLDocMetric(ctx.jqlDocMetric(1))));
+                accept(new DocMetric.Multiply(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
             public void enterDocAtom(@NotNull JQLParser.DocAtomContext ctx) {

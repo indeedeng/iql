@@ -17,21 +17,23 @@ import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupBy> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext) {
+    public static List<GroupBy> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final List<JQLParser.GroupByElementContext> elements = groupByContentsContext.groupByElement();
         final List<GroupBy> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByElementContext element : elements) {
-            result.add(parseGroupBy(element));
+            result.add(parseGroupBy(element, datasetToKeywordAnalyzerFields));
         }
         return result;
     }
 
-    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext) {
+    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
@@ -64,7 +66,7 @@ public class GroupBys {
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric));
+                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields));
                 } else {
                     metric = Optional.absent();
                 }
@@ -91,14 +93,14 @@ public class GroupBys {
                 final boolean excludeGutters;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric());
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
                     excludeGutters = false;
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric());
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -179,7 +181,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric);
+                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields);
                     if (reverseOrder) {
                         theMetric = new AggregateMetric.Negate(theMetric);
                     }
@@ -189,7 +191,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter));
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields));
                 } else {
                     filter = Optional.absent();
                 }

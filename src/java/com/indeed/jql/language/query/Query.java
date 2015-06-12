@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class Query {
@@ -30,14 +31,14 @@ public class Query {
         this.selects = selects;
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext) {
+    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
         final List<com.indeed.jql.language.query.Dataset> datasets = com.indeed.jql.language.query.Dataset.parseDatasets(queryContext.fromContents());
 
         final Optional<DocFilter> whereFilter;
         if (queryContext.docFilter() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : queryContext.docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields));
             }
             if (filters.isEmpty()) {
                 whereFilter = Optional.absent();
@@ -50,7 +51,7 @@ public class Query {
 
         final List<com.indeed.jql.language.query.GroupBy> groupBys;
         if (queryContext.groupByContents() != null) {
-            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents());
+            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents(), datasetToKeywordAnalyzerFields);
         } else {
             groupBys = Collections.emptyList();
         }
@@ -64,7 +65,7 @@ public class Query {
                 final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
                 selects = new ArrayList<>();
                 for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selects.add(AggregateMetrics.parseAggregateMetric(metric));
+                    selects.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields));
                 }
             } else {
                 throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());

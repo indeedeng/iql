@@ -3,7 +3,9 @@ package com.indeed.jql.language;
 import com.google.common.base.Function;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public interface DocFilter {
 
@@ -655,9 +657,11 @@ public interface DocFilter {
 
     class Lucene implements DocFilter {
         public final String query;
+        private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
 
-        public Lucene(String query) {
+        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
             this.query = query;
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
         }
 
         @Override
