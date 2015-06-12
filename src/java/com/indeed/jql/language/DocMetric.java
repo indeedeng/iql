@@ -2,6 +2,7 @@ package com.indeed.jql.language;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.indeed.jql.language.optimizations.ConstantFolding;
 
 import java.util.ArrayList;
 import java.util.Collections;

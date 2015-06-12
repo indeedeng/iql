@@ -1,7 +1,17 @@
 package com.indeed.jql.language;
 
 import com.google.common.base.Function;
+import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.flamdex.query.BooleanOp;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordAnalyzer;
+import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.Query;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -671,8 +681,35 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            // TODO: Support this
-            throw new UnsupportedOperationException("Haven't implemented Lucene queries yet");
+            final Analyzer analyzer;
+            // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
+            if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
+                final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
+                final Set<String> whitelist = datasetToKeywordAnalyzerFields.get(dataset);
+                if (whitelist.contains("*")) {
+                    analyzer = kwAnalyzer;
+                } else {
+                    final PerFieldAnalyzerWrapper perFieldAnalyzerWrapper = new PerFieldAnalyzerWrapper(new WhitespaceAnalyzer());
+                    for (final String field : whitelist) {
+                        perFieldAnalyzerWrapper.addAnalyzer(field, kwAnalyzer);
+                    }
+                    analyzer = perFieldAnalyzerWrapper;
+                }
+            } else {
+                analyzer = new WhitespaceAnalyzer();
+            }
+            final QueryParser qp = new QueryParser("foo", analyzer);
+            qp.setDefaultOperator(QueryParser.Operator.AND);
+            final Query parsed;
+            try {
+                parsed = qp.parse(query);
+            } catch (ParseException e) {
+                throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
+            }
+            // TODO: Get int fields?
+            final com.indeed.flamdex.query.Query rewritten = LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten);
+            return filter.asZeroOneMetric(dataset);
         }
 
         @Override
