@@ -59,7 +59,7 @@ public class Query {
         final List<AggregateMetric> selects;
         if (queryContext.selects != null) {
             if (queryContext.selects.size() == 0) {
-                selects = Collections.emptyList();
+                selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
             } else if (queryContext.selects.size() == 1) {
                 final JQLParser.SelectContentsContext selectSet = queryContext.selects.get(0);
                 final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();

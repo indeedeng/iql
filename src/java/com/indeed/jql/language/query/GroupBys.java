@@ -75,13 +75,13 @@ public class GroupBys {
                         metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
-                accept(new GroupBy.GroupByField(field, Optional.<AggregateFilter>absent(), limit, metric, false));
+                accept(new GroupBy.GroupByField(field, Optional.<AggregateFilter>absent(), limit, metric, false, false));
             }
 
             @Override
             public void enterGroupByFieldIn(@NotNull JQLParser.GroupByFieldInContext ctx) {
                 final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, ctx.not != null);
-                accept(new GroupBy.GroupByField(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null));
+                accept(new GroupBy.GroupByField(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
             }
 
             @Override
@@ -196,7 +196,8 @@ public class GroupBys {
                     filter = Optional.absent();
                 }
                 final boolean withDefault = ctx2.withDefault != null;
-                accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault));
+                final boolean forceNonStreaming = ctx2.forceNonStreaming != null;
+                accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming));
             }
         });
 

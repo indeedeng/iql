@@ -13,7 +13,7 @@ import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.jql.language.commands.Iterate;
 import com.indeed.jql.language.commands.IterateAndExplode;
 import com.indeed.jql.language.commands.MetricRegroup;
-import com.indeed.jql.language.commands.SampleFields;
+import com.indeed.jql.language.commands.SimpleIterate;
 import com.indeed.jql.language.commands.TimePeriodRegroup;
 import com.indeed.jql.language.commands.TimeRegroup;
 import com.indeed.jql.language.precomputed.Precomputed;
@@ -123,13 +123,15 @@ public interface ExecutionStep {
         public final Optional<Long> limit;
         public final AggregateMetric metric;
         public final boolean withDefault;
+        public final boolean forceNonStreaming;
 
-        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, boolean withDefault) {
+        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, boolean withDefault, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.metric = metric;
             this.withDefault = withDefault;
+            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -159,7 +161,7 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            return new ExplodeAndRegroup(field, filter, limit, f.apply(metric), withDefault);
+            return new ExplodeAndRegroup(field, filter, limit, f.apply(metric), withDefault, forceNonStreaming);
         }
 
         @Override
@@ -403,13 +405,15 @@ public interface ExecutionStep {
         private final Optional<Long> limit;
         private final AggregateMetric metric;
         private final List<AggregateMetric> stats;
+        private final boolean forceNonStreaming;
 
-        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, List<AggregateMetric> stats) {
+        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, List<AggregateMetric> stats, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.metric = metric;
             this.stats = stats;
+            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -419,8 +423,8 @@ public interface ExecutionStep {
                 opts.topK = Optional.of(new Iterate.TopK((int) (long) limit.get(), metric));
             }
             opts.filter = filter;
-            final Iterate iterate = new Iterate(Collections.singletonList(new Iterate.FieldWithOptions(field, opts)), Optional.<Pair<Integer, Iterate.FieldLimitingMechanism>>absent(), stats);
-            return Collections.<Command>singletonList(iterate);
+            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, !limit.isPresent() && !forceNonStreaming);
+            return Collections.<Command>singletonList(simpleIterate);
         }
 
         @Override
@@ -435,7 +439,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, f.apply(metric), stats);
+            return new IterateStats(field, filter, limit, f.apply(metric), stats, forceNonStreaming);
         }
 
         @Override

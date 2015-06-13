@@ -328,7 +328,18 @@ groupByTime
     ;
 
 groupByField [boolean useLegacy]
-    : field=identifier ('[' order=(TOP | BOTTOM)? limit=INT? (BY metric=aggregateMetric[$ctx.useLegacy])? (WHERE filter=aggregateFilter[$ctx.useLegacy])? ']')? (withDefault=WITH DEFAULT)?
+    : field=identifier
+        (   ('['
+                order=(TOP | BOTTOM)?
+                limit=INT?
+                (BY metric=aggregateMetric[$ctx.useLegacy])?
+                (WHERE filter=aggregateFilter[$ctx.useLegacy])?
+             ']'
+             (withDefault=WITH DEFAULT)?
+            )
+          |
+            (forceNonStreaming='*')
+        )?
     ;
 
 dateTime

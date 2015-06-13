@@ -222,7 +222,7 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.absent();
                 }
-                final GroupBy groupBy = new GroupBy.GroupByField(ctx.field.getText(), filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false);
+                final GroupBy groupBy = new GroupBy.GroupByField(ctx.field.getText(), filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
                 accept(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields)),
                         new AggregateMetric.Distinct(ctx.field.getText(), filter, Optional.<Integer>absent())

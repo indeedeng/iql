@@ -177,11 +177,13 @@ public interface GroupBy {
         public final Optional<Long> limit;
         public final AggregateMetric metric;
         public final boolean withDefault;
+        public final boolean forceNonStreaming;
 
-        public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
+        public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
+            this.forceNonStreaming = forceNonStreaming;
             this.metric = metric.or(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
             this.withDefault = withDefault;
         }
@@ -195,7 +197,7 @@ public interface GroupBy {
                 filter = Optional.absent();
             }
             final AggregateMetric metric = this.metric.transform(f, g, h, i, groupBy);
-            return groupBy.apply(new GroupByField(field, filter, limit, Optional.of(metric), withDefault));
+            return groupBy.apply(new GroupByField(field, filter, limit, Optional.of(metric), withDefault, forceNonStreaming));
         }
 
         @Override
@@ -207,12 +209,12 @@ public interface GroupBy {
                 filter = Optional.absent();
             }
             final AggregateMetric metric = f.apply(this.metric);
-            return new GroupByField(field, filter, limit, Optional.of(metric), withDefault);
+            return new GroupByField(field, filter, limit, Optional.of(metric), withDefault, forceNonStreaming);
         }
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault);
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
         }
 
         @Override

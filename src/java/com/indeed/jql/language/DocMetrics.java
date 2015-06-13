@@ -199,7 +199,12 @@ public class DocMetrics {
             }
 
             public void enterDocMetricAtomRawField(@NotNull JQLParser.DocMetricAtomRawFieldContext ctx) {
-                accept(new DocMetric.Field(ctx.identifier().getText()));
+                final String field = ctx.identifier().getText();
+                if (field.equals("counts")) {
+                    accept(new DocMetric.Field("count()"));
+                } else {
+                    accept(new DocMetric.Field(field));
+                }
             }
 
             public void enterDocMetricAtomHasIntQuoted(@NotNull JQLParser.DocMetricAtomHasIntQuotedContext ctx) {

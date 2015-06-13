@@ -31,7 +31,8 @@ public class OptimizeLast {
                         explodeAndRegroup.filter,
                         explodeAndRegroup.limit,
                         explodeAndRegroup.metric,
-                        fixForIteration(getGroupStats.stats)
+                        fixForIteration(getGroupStats.stats),
+                        explodeAndRegroup.forceNonStreaming
                 ));
                 return newSteps;
             }
