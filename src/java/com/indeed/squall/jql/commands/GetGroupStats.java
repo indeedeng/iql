@@ -24,11 +24,18 @@ public class GetGroupStats {
         this.returnGroupKeys = returnGroupKeys;
     }
 
-    public List<Session.GroupStats> execute(List<Session.GroupKey> groupKeys, Map<String, ImhotepSession> sessions, int numGroups, boolean returnGroupKeys) throws ImhotepOutOfMemoryException {
+    public List<Session.GroupStats> execute(Session session) throws ImhotepOutOfMemoryException {
+        final List<Session.GroupKey> groupKeys = session.groupKeys;
+        final Map<String, ImhotepSession> sessions = session.getSessionsMapRaw();
+        final int numGroups = session.numGroups;
+
+        session.timer.push("determining pushes");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
         this.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
+        session.timer.pop();
+        session.timer.push("pushing stats");
         int numStats = 0;
         for (final QualifiedPush push : pushesRequired) {
             final int index = numStats++;
@@ -37,17 +44,22 @@ public class GetGroupStats {
             sessions.get(sessionName).pushStats(push.pushes);
             sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
         }
-
+        session.timer.pop();
+        session.timer.push("registering stats");
         this.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
+        session.timer.pop();
 
+        session.timer.push("getGroupStats");
         final long[][] allStats = new long[numStats][];
         sessionMetricIndexes.forEach((name, positions) -> {
-            final ImhotepSession session = sessions.get(name);
+            final ImhotepSession s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
-                allStats[positions.get(i)] = session.getGroupStats(i);
+                allStats[positions.get(i)] = s.getGroupStats(i);
             }
         });
+        session.timer.pop();
 
+        session.timer.push("computing aggregated stats");
         final List<AggregateMetric> selectedMetrics = this.metrics;
         final double[][] results = new double[numGroups][selectedMetrics.size()];
 
@@ -57,7 +69,9 @@ public class GetGroupStats {
                 results[j - 1][i] = statGroups[j];
             }
         }
+        session.timer.pop();
 
+        session.timer.push("creating result");
         final List<Session.GroupStats> groupStats = Lists.newArrayList();
         for (int i = 0; i < numGroups; i++) {
             final Session.GroupKey groupKey;
@@ -68,12 +82,15 @@ public class GetGroupStats {
             }
             groupStats.add(new Session.GroupStats(groupKey, results[i]));
         }
+        session.timer.pop();
 
-        sessions.values().forEach(session -> {
-            while (session.getNumStats() > 0) {
-                session.popStat();
+        session.timer.push("popStat");
+        sessions.values().forEach(s -> {
+            while (s.getNumStats() > 0) {
+                s.popStat();
             }
         });
+        session.timer.pop();
 
         return groupStats;
     }

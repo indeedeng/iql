@@ -26,7 +26,7 @@ public class RegroupIntoLastSiblingWhere {
     public boolean[] execute(Session session) throws ImhotepOutOfMemoryException {
         // TODO: This could be made way more efficient, but I think this should way.
         final GetGroupStats getGroupStats = new GetGroupStats(Arrays.asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
-        final List<Session.GroupStats> theStats = getGroupStats.execute(session.groupKeys, session.getSessionsMapRaw(), session.numGroups, false);
+        final List<Session.GroupStats> theStats = getGroupStats.execute(session);
         final boolean[] remerge = new boolean[session.numGroups + 1];
         for (int i = 0; i < session.numGroups; i++) {
             remerge[i + 1] = theStats.get(i).stats[0] > 0.5;

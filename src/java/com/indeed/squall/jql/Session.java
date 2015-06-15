@@ -27,9 +27,11 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
+import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
@@ -63,6 +65,7 @@ import com.indeed.squall.jql.dimensions.DimensionsLoader;
 import com.indeed.squall.jql.dimensions.DimensionsTranslator;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
+import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -86,6 +89,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -116,6 +120,7 @@ public class Session {
     public int currentDepth = 0;
 
     public final Map<String, ImhotepSessionInfo> sessions;
+    public final TreeTimer timer;
     public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
@@ -150,8 +155,9 @@ public class Session {
 
     public static final String INFINITY_SYMBOL = "∞";
 
-    public Session(Map<String, ImhotepSessionInfo> sessions) {
+    public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer) {
         this.sessions = sessions;
+        this.timer = timer;
     }
 
     public static void main(String[] args) throws Exception {
@@ -183,6 +189,8 @@ public class Session {
             final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
+                final TreeTimer treeTimer = new TreeTimer();
+                treeTimer.push("request");
                 new Thread(() -> {
                     try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                          final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
@@ -197,26 +205,34 @@ public class Session {
                         };
 
                         System.out.println("Found connection");
-
                         final Consumer<String> resultConsumer = out::println;
-
-                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions());
+                        treeTimer.push("processConnection");
+                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
+                        treeTimer.pop();
                     } catch (Throwable e) {
                         log.error("wat", e);
                         System.out.println("e = " + e);
+                    } finally {
+                        treeTimer.pop();
+                        System.out.println(treeTimer.toString());
                     }
                 }).start();
             }
         }
     }
 
-    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out, Map<String, DatasetDimensions> dimensions) throws IOException, ImhotepOutOfMemoryException {
+    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws IOException, ImhotepOutOfMemoryException {
+        treeTimer.push("firstLine");
         final JsonNode sessionRequest = in.get();
+        treeTimer.pop();
         if (sessionRequest.has("describe")) {
             processDescribe(client, out, sessionRequest);
         } else {
             try (final Closer closer = Closer.create()) {
-                final Optional<Session> session = createSession(client, sessionRequest, closer, out, dimensions);
+                treeTimer.push("createSession");
+                final Optional<Session> session = createSession(client, sessionRequest, closer, out, dimensions, treeTimer);
+                treeTimer.pop();
+                treeTimer.push("commands");
                 if (session.isPresent()) {
                     // Not using ifPresent because of exceptions
                     final Session session1 = session.get();
@@ -227,6 +243,7 @@ public class Session {
                         System.out.println("Evaluated.");
                     }
                 }
+                treeTimer.pop();
             } catch (Exception e) {
                 final String error = Session.MAPPER.writeValueAsString(ImmutableMap.of("error", "1", "message", ""+e.getMessage(), "cause", ""+e.getCause(), "stackTrace", ""+ Arrays.toString(e.getStackTrace())));
                 System.out.println("error = " + error);
@@ -242,14 +259,19 @@ public class Session {
         out.accept(MAPPER.writeValueAsString(datasetDescriptor));
     }
 
-    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out, Map<String, DatasetDimensions> dimensions) throws ImhotepOutOfMemoryException, IOException {
+    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
         if (sessionRequest.has("commands")) {
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions);
-            final Session session = new Session(sessions);
+            treeTimer.push("createSubSessions");
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer);
+            treeTimer.pop();
+            final Session session = new Session(sessions, treeTimer);
+            treeTimer.push("readCommands");
             final JsonNode commands = sessionRequest.get("commands");
+            treeTimer.pop();
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
+                System.out.println("Evaluating command: " + command);
                 final boolean isLast = i == commands.size() - 1;
                 if (isLast) {
                     session.evaluateCommandToTSV(command, out);
@@ -259,13 +281,29 @@ public class Session {
             }
             return Optional.empty();
         } else {
-            createSubSessions(client, sessionRequest, closer, sessions, dimensions);
+            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer);
             out.accept("opened");
-            return Optional.of(new Session(sessions));
+            return Optional.of(new Session(sessions, treeTimer));
         }
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions) throws ImhotepOutOfMemoryException {
+    private static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
+        final Map<Host, List<DatasetInfo>> shardListMap = client.getShardList();
+        final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
+        for (final List<DatasetInfo> datasetList : shardListMap.values()) {
+            for (final DatasetInfo d : datasetList) {
+                if (d.getDataset().equals(dataset)) {
+                    ret.getShardList().addAll(d.getShardList());
+                    ret.getIntFields().addAll(d.getIntFields());
+                    ret.getStringFields().addAll(d.getStringFields());
+                    ret.getMetrics().addAll(d.getMetrics());
+                }
+            }
+        }
+        return ret;
+    }
+
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String dataset = elem.get("dataset").textValue();
@@ -273,21 +311,32 @@ public class Session {
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : dataset;
 
-            final DatasetInfo datasetInfo = client.getDatasetToShardList().get(dataset);
+            treeTimer.push("get dataset info");
+            treeTimer.push("getDatasetShardList");
+            final DatasetInfo datasetInfo = getDatasetShardList(client, dataset);
+            treeTimer.pop();
             final Collection<String> sessionIntFields = datasetInfo.getIntFields();
             final Collection<String> sessionStringFields = datasetInfo.getStringFields();
             final DateTime startDateTime = parseDateTime(start);
             final DateTime endDateTime = parseDateTime(end);
+            treeTimer.pop();
+            treeTimer.push("build session");
             final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startDateTime, endDateTime);
             final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
-            final ImhotepSession session = new DimensionsTranslator(closer.register(sessionBuilder.build()), dimensions.get(dataset));
+            final ImhotepSession build = sessionBuilder.build();
+            final ImhotepSession session = closer.register(new DimensionsTranslator(build, dimensions.get(dataset)));
+            treeTimer.pop();
 
+            treeTimer.push("determine time range");
             final DateTime earliestStart = Ordering.natural().min(Iterables.transform(shards, ShardIdWithVersion::getStart));
             final DateTime latestEnd = Ordering.natural().max(Iterables.transform(shards, ShardIdWithVersion::getEnd));
+            treeTimer.pop();
             final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
             final String timeField = isRamsesIndex ? "time" : "unixtime";
-            if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime) || latestEnd.equals(endDateTime)) {
+            if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {
+                treeTimer.push("regroup time range");
                 session.regroup(new QueryRemapRule(1, Query.newRangeQuery(timeField, startDateTime.getMillis() / 1000, endDateTime.getMillis() / 1000, false), 0, 1));
+                treeTimer.pop();
             }
             sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
         }
@@ -345,61 +394,72 @@ public class Session {
     }
 
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
-        evaluateCommandInternal(commandTree, out, command);
+        timer.push("evaluateCommand " + commandTree);
+        try {
+            final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+            evaluateCommandInternal(commandTree, out, command);
+        } finally {
+            timer.pop();
+        }
     }
 
     public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
-        if (command instanceof Iterate) {
-            final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
-            final StringBuilder sb = new StringBuilder();
-            writeTermSelectsJson(results, sb);
-            out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
-        } else if (command instanceof SimpleIterate) {
-            final SimpleIterate simpleIterate = (SimpleIterate) command;
-            final List<List<List<TermSelects>>> result = simpleIterate.execute(this, out);
-            //noinspection StatementWithEmptyBody
-            if (simpleIterate.streamResult) {
-                // result already sent
-            } else {
-                for (final List<List<TermSelects>> groupFieldTerms : result) {
-                    final List<TermSelects> groupTerms = groupFieldTerms.get(0);
-                    for (final TermSelects termSelect : groupTerms) {
-                        if (termSelect.isIntTerm) {
-                            out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
-                        } else {
-                            out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
+        timer.push("evaluateCommandToTSV " + commandTree);
+        try {
+
+            final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+            if (command instanceof Iterate) {
+                final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
+                final StringBuilder sb = new StringBuilder();
+                writeTermSelectsJson(results, sb);
+                out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+            } else if (command instanceof SimpleIterate) {
+                final SimpleIterate simpleIterate = (SimpleIterate) command;
+                final List<List<List<TermSelects>>> result = simpleIterate.execute(this, out);
+                //noinspection StatementWithEmptyBody
+                if (simpleIterate.streamResult) {
+                    // result already sent
+                } else {
+                    for (final List<List<TermSelects>> groupFieldTerms : result) {
+                        final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+                        for (final TermSelects termSelect : groupTerms) {
+                            if (termSelect.isIntTerm) {
+                                out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
+                            } else {
+                                out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
+                            }
                         }
                     }
+                    out.accept("");
                 }
-                out.accept("");
-            }
-        } else if (command instanceof GetGroupStats) {
-            final GetGroupStats getGroupStats = (GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
-            final StringBuilder sb = new StringBuilder();
-            for (final GroupStats result : results) {
-                final List<String> keyColumns = result.key.asList(false);
-                keyColumns.forEach(k -> sb.append(k).append('\t'));
-                for (final double stat : result.stats) {
-                    if (DoubleMath.isMathematicalInteger(stat)) {
-                        sb.append((long)stat).append('\t');
-                    } else {
-                        sb.append(stat).append('\t');
+            } else if (command instanceof GetGroupStats) {
+                final GetGroupStats getGroupStats = (GetGroupStats) command;
+                final List<GroupStats> results = getGroupStats.execute(this);
+                final StringBuilder sb = new StringBuilder();
+                for (final GroupStats result : results) {
+                    final List<String> keyColumns = result.key.asList(false);
+                    keyColumns.forEach(k -> sb.append(k).append('\t'));
+                    for (final double stat : result.stats) {
+                        if (DoubleMath.isMathematicalInteger(stat)) {
+                            sb.append((long) stat).append('\t');
+                        } else {
+                            sb.append(stat).append('\t');
+                        }
                     }
+                    if (keyColumns.size() + result.stats.length > 0) {
+                        sb.setLength(sb.length() - 1);
+                    }
+                    sb.append('\n');
                 }
-                if (keyColumns.size() + result.stats.length > 0) {
+                if (results.size() > 0) {
                     sb.setLength(sb.length() - 1);
                 }
-                sb.append('\n');
+                out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
+            } else {
+                throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
             }
-            if (results.size() > 0) {
-                sb.setLength(sb.length() - 1);
-            }
-            out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
-        } else {
-            throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
+        } finally {
+            timer.pop();
         }
     }
 
@@ -461,7 +521,7 @@ public class Session {
             out.accept("success");
         } else if (command instanceof GetGroupStats) {
             final GetGroupStats getGroupStats = (GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats.execute(groupKeys, getSessionsMapRaw(), numGroups, getGroupStats.returnGroupKeys);
+            final List<GroupStats> results = getGroupStats.execute(this);
             out.accept(MAPPER.writeValueAsString(results));
         } else if (command instanceof CreateGroupStatsLookup) {
             final CreateGroupStatsLookup createGroupStatsLookup = (CreateGroupStatsLookup) command;

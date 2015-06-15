@@ -24,11 +24,15 @@ public class FilterDocs {
         // TODO: Do these in parallel?
         for (final Map.Entry<String,List<String>> entry : this.perDatasetFilterMetric.entrySet()) {
             final ImhotepSession session = s.sessions.get(entry.getKey()).session;
+            s.timer.push("pushStats");
             final int index = session.pushStats(entry.getValue());
+            s.timer.pop();
             if (index != 1) {
                 throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + entry.getKey() + "\"");
             }
+            s.timer.push("metricFilter");
             session.metricFilter(0, 1, 1, false);
+            s.timer.pop();
             session.popStat();
         }
     }
