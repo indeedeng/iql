@@ -35,4 +35,14 @@ public class SimpleIterate implements Command, JsonSerializable {
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
     }
+
+    @Override
+    public String toString() {
+        return "SimpleIterate{" +
+                "field='" + field + '\'' +
+                ", opts=" + opts +
+                ", selecting=" + selecting +
+                ", streamResult=" + streamResult +
+                '}';
+    }
 }
