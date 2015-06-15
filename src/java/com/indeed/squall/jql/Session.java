@@ -12,21 +12,26 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.util.Pair;
+import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupRemapRule;
+import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
@@ -118,7 +123,7 @@ public class Session {
         final SimpleModule module = new SimpleModule();
         module.addSerializer(TermSelects.class, new JsonSerializer<TermSelects>() {
             @Override
-            public void serialize(TermSelects value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+            public void serialize(TermSelects value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
                 jgen.writeStartObject();
                 jgen.writeObjectField("field", value.field);
                 if (value.isIntTerm) {
@@ -135,7 +140,7 @@ public class Session {
         });
         module.addSerializer(GroupKey.class, new JsonSerializer<GroupKey>() {
             @Override
-            public void serialize(GroupKey value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+            public void serialize(GroupKey value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
                 jgen.writeObject(value.asList(false));
             }
         });
@@ -260,7 +265,7 @@ public class Session {
         }
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions) {
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions) throws ImhotepOutOfMemoryException {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String dataset = elem.get("dataset").textValue();
@@ -273,11 +278,18 @@ public class Session {
             final Collection<String> sessionStringFields = datasetInfo.getStringFields();
             final DateTime startDateTime = parseDateTime(start);
             final DateTime endDateTime = parseDateTime(end);
-            final ImhotepSession session = new DimensionsTranslator(closer.register(client.sessionBuilder(dataset, startDateTime, endDateTime).build()), dimensions.get(dataset));
+            final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startDateTime, endDateTime);
+            final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
+            final ImhotepSession session = new DimensionsTranslator(closer.register(sessionBuilder.build()), dimensions.get(dataset));
 
+            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(shards, ShardIdWithVersion::getStart));
+            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(shards, ShardIdWithVersion::getEnd));
             final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
-
-            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, isRamsesIndex ? "time" : "unixtime"));
+            final String timeField = isRamsesIndex ? "time" : "unixtime";
+            if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime) || latestEnd.equals(endDateTime)) {
+                session.regroup(new QueryRemapRule(1, Query.newRangeQuery(timeField, startDateTime.getMillis() / 1000, endDateTime.getMillis() / 1000, false), 0, 1));
+            }
+            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
         }
     }
 
