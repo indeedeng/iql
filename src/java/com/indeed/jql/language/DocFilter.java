@@ -1,8 +1,9 @@
 package com.indeed.jql.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
-import com.indeed.flamdex.query.BooleanOp;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
@@ -886,6 +887,112 @@ public interface DocFilter {
         @Override
         public String toString() {
             return "Never{}";
+        }
+    }
+
+    class StringFieldIn implements DocFilter {
+        public final String field;
+        public final Set<String> terms;
+
+        public StringFieldIn(String field, Set<String> terms) {
+            if (terms.isEmpty()) {
+                throw new IllegalArgumentException("Cannot have empty set of terms!");
+            }
+            this.field = field;
+            this.terms = ImmutableSet.copyOf(terms);
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            DocFilter filter = null;
+            for (final String term : terms) {
+                if (filter == null) {
+                    filter = new FieldIs(field, Term.term(term));
+                } else {
+                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
+                }
+            }
+            return filter.asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            StringFieldIn that = (StringFieldIn) o;
+            return Objects.equals(field, that.field) &&
+                    Objects.equals(terms, that.terms);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, terms);
+        }
+
+        @Override
+        public String toString() {
+            return "StringFieldIn{" +
+                    "field='" + field + '\'' +
+                    ", terms=" + terms +
+                    '}';
+        }
+    }
+
+    class IntFieldIn implements DocFilter {
+        public final String field;
+        public final Set<Integer> terms;
+
+        public IntFieldIn(String field, Set<Integer> terms) {
+            if (terms.isEmpty()) {
+                throw new IllegalArgumentException("Cannot have empty set of terms!");
+            }
+            this.field = field;
+            this.terms = new IntOpenHashSet(terms);
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            DocFilter filter = null;
+            for (final int term : terms) {
+                if (filter == null) {
+                    filter = new FieldIs(field, Term.term(term));
+                } else {
+                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
+                }
+            }
+            return filter.asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            IntFieldIn that = (IntFieldIn) o;
+            return Objects.equals(field, that.field) &&
+                    Objects.equals(terms, that.terms);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, terms);
+        }
+
+        @Override
+        public String toString() {
+            return "IntFieldIn{" +
+                    "field='" + field + '\'' +
+                    ", terms=" + terms +
+                    '}';
         }
     }
 }
