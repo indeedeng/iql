@@ -3,6 +3,14 @@ package com.indeed.jql.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.jql.language.actions.Action;
+import com.indeed.jql.language.actions.IntOrAction;
+import com.indeed.jql.language.actions.MetricAction;
+import com.indeed.jql.language.actions.QueryAction;
+import com.indeed.jql.language.actions.RegexAction;
+import com.indeed.jql.language.actions.SampleAction;
+import com.indeed.jql.language.actions.StringOrAction;
+import com.indeed.jql.language.actions.UnconditionalAction;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
@@ -14,6 +22,7 @@ import org.apache.lucene.search.Query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +33,8 @@ public interface DocFilter {
     DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     DocMetric asZeroOneMetric(String dataset);
+
+    List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
 
     class FieldIs implements DocFilter {
         public final String field;
@@ -46,6 +57,11 @@ public interface DocFilter {
             } else {
                 return new DocMetric.HasString(field, term.stringTerm);
             }
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new QueryAction(scope, com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field)), target, positive, negative));
         }
 
         @Override
@@ -88,6 +104,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new Not(new FieldIs(field, term)).asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new Not(new FieldIs(field, term)).getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -138,6 +159,12 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, lowerBound, upperBound, false);
+            return Collections.<Action>singletonList(new QueryAction(scope, query, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -179,6 +206,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricEqual(m1, m2);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
         @Override
@@ -224,6 +256,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -263,6 +300,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricGt(m1, m2);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
         @Override
@@ -308,6 +350,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -347,6 +394,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricLt(m1, m2);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
         @Override
@@ -392,6 +444,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -434,6 +491,23 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final List<Action> result = new ArrayList<>();
+            if (target != negative) {
+                result.addAll(f1.getExecutionActions(dataset, scope, target, target, negative, groupSupplier));
+                result.addAll(f2.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier));
+            } else {
+                final int newGroup = groupSupplier.acquire();
+                result.addAll(f1.getExecutionActions(dataset, scope, target, target, newGroup, groupSupplier));
+                result.addAll(f2.getExecutionActions(dataset, scope, target, target, newGroup, groupSupplier));
+                result.add(new UnconditionalAction(scope, target, positive));
+                result.add(new UnconditionalAction(scope, newGroup, target));
+                groupSupplier.release(newGroup);
+            }
+            return result;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -473,6 +547,23 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.MetricGt(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(0));
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final List<Action> result = new ArrayList<>();
+            if (target != negative) {
+                result.addAll(f1.getExecutionActions(dataset, scope, target, positive, target, groupSupplier));
+                result.addAll(f2.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier));
+            } else {
+                final int newGroup = groupSupplier.acquire();
+                result.addAll(f1.getExecutionActions(dataset, scope, target, newGroup, target, groupSupplier));
+                result.addAll(f2.getExecutionActions(dataset, scope, target, newGroup, target, groupSupplier));
+                result.add(new UnconditionalAction(scope, target, negative));
+                result.add(new UnconditionalAction(scope, newGroup, positive));
+                groupSupplier.release(newGroup);
+            }
+            return result;
         }
 
         @Override
@@ -527,6 +618,15 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            DocFilter reOrred = filters.get(0);
+            for (int i = 1; i < filters.size(); i++) {
+                reOrred = new Or(filters.get(i), reOrred);
+            }
+            return reOrred.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -563,6 +663,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.Subtract(new DocMetric.Constant(1), filter.asZeroOneMetric(dataset));
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return filter.getExecutionActions(dataset, scope, target, negative, positive, groupSupplier);
         }
 
         @Override
@@ -606,6 +711,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new RegexAction(scope, field, regex, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -645,6 +755,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new Not(new Regex(field, regex)).asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new Not(new Regex(field, regex)).getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -695,6 +810,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return filter.getExecutionActions(dataset, new HashSet<String>(this.scope), target, positive, negative, groupSupplier);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -733,6 +853,12 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
+            final com.indeed.flamdex.query.Query rewritten = getFlamdexQuery(dataset);
+            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten);
+            return filter.asZeroOneMetric(dataset);
+        }
+
+        private com.indeed.flamdex.query.Query getFlamdexQuery(String dataset) {
             final Analyzer analyzer;
             // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
             if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
@@ -759,9 +885,12 @@ public interface DocFilter {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
             // TODO: Get int fields?
-            final com.indeed.flamdex.query.Query rewritten = LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
-            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten);
-            return filter.asZeroOneMetric(dataset);
+            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new QueryAction(scope, getFlamdexQuery(dataset), target, positive, negative));
         }
 
         @Override
@@ -810,6 +939,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new SampleAction(scope, field, (double) numerator / denominator, seed, target, positive, negative));
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -848,6 +982,11 @@ public interface DocFilter {
         }
 
         @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new UnconditionalAction(scope, target, positive));
+        }
+
+        @Override
         public int hashCode() {
             return 1;
         }
@@ -872,6 +1011,11 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new DocMetric.Constant(0);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new UnconditionalAction(scope, target, negative));
         }
 
         @Override
@@ -918,6 +1062,11 @@ public interface DocFilter {
                 }
             }
             return filter.asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new StringOrAction(scope, field, terms, target, positive, negative));
         }
 
         @Override
@@ -971,6 +1120,11 @@ public interface DocFilter {
                 }
             }
             return filter.asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new IntOrAction(scope, field, terms, target, positive, negative));
         }
 
         @Override

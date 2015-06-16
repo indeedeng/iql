@@ -1,9 +1,11 @@
 package com.indeed.jql.language.actions;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.Set;
 
 public class SampleAction implements Action {
-    public final Set<String> scope;
+    public final ImmutableSet<String> scope;
     public final String field;
     public final double probability;
     public final String seed;
@@ -13,7 +15,7 @@ public class SampleAction implements Action {
     public final int negativeGroup;
 
     public SampleAction(Set<String> scope, String field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = scope;
+        this.scope = ImmutableSet.copyOf(scope);
         this.field = field;
         this.probability = probability;
         this.seed = seed;

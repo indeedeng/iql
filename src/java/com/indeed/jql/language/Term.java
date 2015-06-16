@@ -73,6 +73,10 @@ public class Term implements JsonSerializable {
         this.serialize(gen, serializers);
     }
 
+    public com.indeed.flamdex.query.Term toFlamdex(String field) {
+        return new com.indeed.flamdex.query.Term(field, isIntTerm, intTerm, stringTerm == null ? "" : stringTerm);
+    }
+
     @Override
     public String toString() {
         return "Term{" +
