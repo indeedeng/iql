@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +28,9 @@ public class StringOrAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        final String[] termsArr = scope.toArray(new String[scope.size()]);
+        final String[] termsArr = terms.toArray(new String[terms.size()]);
+        Arrays.sort(termsArr);
+        System.out.println("termsArr = " + Arrays.toString(termsArr));
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();

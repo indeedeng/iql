@@ -5,6 +5,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.Session;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +35,7 @@ public class IntOrAction implements Action {
             terms[i] = term;
             i++;
         }
+        Arrays.sort(terms);
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final ImhotepSession s = entry.getValue().session;

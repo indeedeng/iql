@@ -11,6 +11,7 @@ import com.indeed.squall.jql.TermSelects;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,12 +35,16 @@ public class IterateAndExplode {
         final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).execute(session);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
-            final List<TermSelects> groupFieldResults = groupResults.get(0);
-            final List<Term> terms = Lists.newArrayListWithCapacity(groupFieldResults.size());
-            for (final TermSelects result : groupFieldResults) {
-                terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
+            if (groupResults.size() > 0) {
+                final List<TermSelects> groupFieldResults = groupResults.get(0);
+                final List<Term> terms = Lists.newArrayListWithCapacity(groupFieldResults.size());
+                for (final TermSelects result : groupFieldResults) {
+                    terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
+                }
+                explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
+            } else {
+                explodes.add(new Commands.TermsWithExplodeOpts(Collections.emptyList(), this.explodeDefaultName));
             }
-            explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }
         new ExplodePerGroup(explodes).execute(session);
     }

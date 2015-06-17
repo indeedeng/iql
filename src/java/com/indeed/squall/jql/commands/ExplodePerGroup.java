@@ -27,7 +27,7 @@ public class ExplodePerGroup {
             final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
 
             final List<Term> terms = termsWithExplodeOpts.terms;
-            if (terms.isEmpty()) {
+            if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
                 rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
                 continue;
             }
