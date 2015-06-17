@@ -322,9 +322,15 @@ public class Session {
             final DateTime endDateTime = parseDateTime(end);
             treeTimer.pop();
             treeTimer.push("build session");
+            treeTimer.push("create session builder");
             final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startDateTime, endDateTime);
+            treeTimer.pop();
+            treeTimer.push("get shards");
             final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
+            treeTimer.pop();
+            treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
+            treeTimer.pop();
             final ImhotepSession session = closer.register(new DimensionsTranslator(build, dimensions.get(dataset)));
             treeTimer.pop();
 
