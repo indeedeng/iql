@@ -18,6 +18,7 @@ public class ApplyFilterActions {
         for (final Action action : actions) {
             session.timer.push("action.apply " + action);
             action.apply(session);
+            session.timer.pop();
         }
     }
 }
