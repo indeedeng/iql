@@ -7,6 +7,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.jql.actions.Action;
+import com.indeed.squall.jql.commands.ApplyFilterActions;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
@@ -38,6 +40,7 @@ import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -331,6 +334,13 @@ public class Commands {
                     perDatasetDefinitions.put(dataset, definitions);
                 }
                 return new SampleFields(perDatasetDefinitions);
+            }
+            case "applyFilterActions": {
+                final List<Action> actions = new ArrayList<>();
+                for (final JsonNode action : command.get("actions")) {
+                    actions.add(Action.parseFrom(action));
+                }
+                return new ApplyFilterActions(actions);
             }
         }
         throw new RuntimeException("oops:" + command);

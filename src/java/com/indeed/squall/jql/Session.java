@@ -34,6 +34,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.squall.jql.commands.ApplyFilterActions;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
@@ -588,6 +589,9 @@ public class Session {
         } else if (command instanceof SampleFields) {
             ((SampleFields) command).execute(this);
             out.accept("SampledFields");
+        } else if (command instanceof ApplyFilterActions) {
+            ((ApplyFilterActions) command).execute(this);
+            out.accept("Applied filters");
         } else {
             throw new IllegalArgumentException("Invalid command: " + commandTree);
         }
