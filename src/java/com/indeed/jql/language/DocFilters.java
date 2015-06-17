@@ -1,7 +1,12 @@
 package com.indeed.jql.language;
 
+import com.indeed.jql.language.actions.Action;
+import com.indeed.jql.language.actions.QueryAction;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -322,22 +327,34 @@ public class DocFilters {
     }
 
     public static DocFilter docInHelper(String field, List<JQLParser.TermValContext> terms, boolean negate) {
-        DocFilter filter = null;
+        final List<Term> termsList = new ArrayList<>();
         for (final JQLParser.TermValContext term : terms) {
-            if (filter == null) {
-                filter = new DocFilter.FieldIs(field, Term.parseTerm(term));
-            } else {
-                filter = new DocFilter.Or(new DocFilter.FieldIs(field, Term.parseTerm(term)), filter);
+            termsList.add(Term.parseTerm(term));
+        }
+        final boolean isStringField = anyIsString(termsList);
+        if (isStringField) {
+            final Set<String> termSet = new HashSet<>();
+            for (final Term term : termsList) {
+                if (term.isIntTerm) {
+                    termSet.add(String.valueOf(term.intTerm));
+                } else {
+                    termSet.add(term.stringTerm);
+                }
             }
+            return new DocFilter.StringFieldIn(field, termSet);
+        } else {
+            final Set<Long> termSet = new LongOpenHashSet();
+            for (final Term term : termsList) {
+                termSet.add(term.intTerm);
+            }
+            return new DocFilter.IntFieldIn(field, termSet);
         }
-        if (filter == null) {
-            // TODO (optional): Make this new Always() and don't negate if (ctx.not != null).
-            // TODO cont:       Alternatively, add optimization pass for Not(Always) and Not(Never).
-            filter = new DocFilter.Never();
+    }
+
+    private static boolean anyIsString(List<Term> terms) {
+        for (final Term term : terms) {
+            if (!term.isIntTerm) return true;
         }
-        if (negate) {
-            filter = new DocFilter.Not(filter);
-        }
-        return filter;
+        return false;
     }
 }

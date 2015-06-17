@@ -11,7 +11,7 @@ import com.indeed.jql.language.actions.RegexAction;
 import com.indeed.jql.language.actions.SampleAction;
 import com.indeed.jql.language.actions.StringOrAction;
 import com.indeed.jql.language.actions.UnconditionalAction;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
@@ -22,6 +22,7 @@ import org.apache.lucene.search.Query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public interface DocFilter {
 
     DocMetric asZeroOneMetric(String dataset);
 
-    List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
+    List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
 
     class FieldIs implements DocFilter {
         public final String field;
@@ -60,8 +61,13 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new QueryAction(scope, com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field)), target, positive, negative));
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
+            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field));
+            for (final String dataset : scope) {
+                datasetToQuery.put(dataset, query);
+            }
+            return Collections.<Action>singletonList(new QueryAction(scope, datasetToQuery, target, positive, negative));
         }
 
         @Override
@@ -107,8 +113,8 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new Not(new FieldIs(field, term)).getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new Not(new FieldIs(field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -159,9 +165,13 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, lowerBound, upperBound, false);
-            return Collections.<Action>singletonList(new QueryAction(scope, query, target, positive, negative));
+            final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
+            for (final String s : scope) {
+                datasetToQuery.put(s, query);
+            }
+            return Collections.<Action>singletonList(new QueryAction(scope, datasetToQuery, target, positive, negative));
         }
 
         @Override
@@ -209,7 +219,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -256,7 +266,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -303,7 +313,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -350,7 +360,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -397,7 +407,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -444,7 +454,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
         }
 
@@ -491,15 +501,15 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final List<Action> result = new ArrayList<>();
-            if (target != negative) {
-                result.addAll(f1.getExecutionActions(dataset, scope, target, target, negative, groupSupplier));
-                result.addAll(f2.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier));
+            if (target != negative && positive != negative) {
+                result.addAll(f1.getExecutionActions(scope, target, target, negative, groupSupplier));
+                result.addAll(f2.getExecutionActions(scope, target, positive, negative, groupSupplier));
             } else {
                 final int newGroup = groupSupplier.acquire();
-                result.addAll(f1.getExecutionActions(dataset, scope, target, target, newGroup, groupSupplier));
-                result.addAll(f2.getExecutionActions(dataset, scope, target, target, newGroup, groupSupplier));
+                result.addAll(f1.getExecutionActions(scope, target, target, newGroup, groupSupplier));
+                result.addAll(f2.getExecutionActions(scope, target, target, newGroup, groupSupplier));
                 result.add(new UnconditionalAction(scope, target, positive));
                 result.add(new UnconditionalAction(scope, newGroup, target));
                 groupSupplier.release(newGroup);
@@ -550,15 +560,15 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final List<Action> result = new ArrayList<>();
-            if (target != negative) {
-                result.addAll(f1.getExecutionActions(dataset, scope, target, positive, target, groupSupplier));
-                result.addAll(f2.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier));
+            if (target != positive && positive != negative) {
+                result.addAll(f1.getExecutionActions(scope, target, positive, target, groupSupplier));
+                result.addAll(f2.getExecutionActions(scope, target, positive, negative, groupSupplier));
             } else {
                 final int newGroup = groupSupplier.acquire();
-                result.addAll(f1.getExecutionActions(dataset, scope, target, newGroup, target, groupSupplier));
-                result.addAll(f2.getExecutionActions(dataset, scope, target, newGroup, target, groupSupplier));
+                result.addAll(f1.getExecutionActions(scope, target, newGroup, target, groupSupplier));
+                result.addAll(f2.getExecutionActions(scope, target, newGroup, target, groupSupplier));
                 result.add(new UnconditionalAction(scope, target, negative));
                 result.add(new UnconditionalAction(scope, newGroup, positive));
                 groupSupplier.release(newGroup);
@@ -618,12 +628,12 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             DocFilter reOrred = filters.get(0);
             for (int i = 1; i < filters.size(); i++) {
                 reOrred = new Or(filters.get(i), reOrred);
             }
-            return reOrred.getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
+            return reOrred.getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -666,8 +676,8 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return filter.getExecutionActions(dataset, scope, target, negative, positive, groupSupplier);
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return filter.getExecutionActions(scope, target, negative, positive, groupSupplier);
         }
 
         @Override
@@ -711,7 +721,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new RegexAction(scope, field, regex, target, positive, negative));
         }
 
@@ -758,8 +768,8 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new Not(new Regex(field, regex)).getExecutionActions(dataset, scope, target, positive, negative, groupSupplier);
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new Not(new Regex(field, regex)).getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -810,8 +820,8 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return filter.getExecutionActions(dataset, new HashSet<String>(this.scope), target, positive, negative, groupSupplier);
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return filter.getExecutionActions(new HashSet<String>(this.scope), target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -889,8 +899,12 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new QueryAction(scope, getFlamdexQuery(dataset), target, positive, negative));
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
+            for (final String dataset : scope) {
+                datasetToQuery.put(dataset, getFlamdexQuery(dataset));
+            }
+            return Collections.<Action>singletonList(new QueryAction(scope, datasetToQuery, target, positive, negative));
         }
 
         @Override
@@ -939,7 +953,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new SampleAction(scope, field, (double) numerator / denominator, seed, target, positive, negative));
         }
 
@@ -982,7 +996,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new UnconditionalAction(scope, target, positive));
         }
 
@@ -1014,7 +1028,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new UnconditionalAction(scope, target, negative));
         }
 
@@ -1065,7 +1079,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new StringOrAction(scope, field, terms, target, positive, negative));
         }
 
@@ -1094,14 +1108,14 @@ public interface DocFilter {
 
     class IntFieldIn implements DocFilter {
         public final String field;
-        public final Set<Integer> terms;
+        public final Set<Long> terms;
 
-        public IntFieldIn(String field, Set<Integer> terms) {
+        public IntFieldIn(String field, Set<Long> terms) {
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
             }
             this.field = field;
-            this.terms = new IntOpenHashSet(terms);
+            this.terms = new LongOpenHashSet(terms);
         }
 
         @Override
@@ -1112,7 +1126,7 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             DocFilter filter = null;
-            for (final int term : terms) {
+            for (final long term : terms) {
                 if (filter == null) {
                     filter = new FieldIs(field, Term.term(term));
                 } else {
@@ -1123,7 +1137,7 @@ public interface DocFilter {
         }
 
         @Override
-        public List<Action> getExecutionActions(String dataset, Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new IntOrAction(scope, field, terms, target, positive, negative));
         }
 

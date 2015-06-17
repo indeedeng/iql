@@ -2,11 +2,14 @@ package com.indeed.jql.language.execution;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.indeed.jql.language.AggregateFilter;
 import com.indeed.jql.language.AggregateMetric;
 import com.indeed.jql.language.DocFilter;
 import com.indeed.jql.language.DocMetric;
 import com.indeed.jql.language.TimeUnit;
+import com.indeed.jql.language.actions.Action;
+import com.indeed.jql.language.commands.ApplyFilterActions;
 import com.indeed.jql.language.commands.Command;
 import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.jql.language.commands.ComputeAndCreateGroupStatsLookups;
@@ -534,6 +537,31 @@ public interface ExecutionStep {
         public String toString() {
             return "SampleFields{" +
                     "perDatasetSamples=" + perDatasetSamples +
+                    '}';
+        }
+    }
+
+    class FilterActions implements ExecutionStep {
+        private final ImmutableList<Action> actions;
+
+        public FilterActions(List<Action> actions) {
+            this.actions = ImmutableList.copyOf(actions);
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new ApplyFilterActions(actions));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "FilterActions{" +
+                    "actions=" + actions +
                     '}';
         }
     }
