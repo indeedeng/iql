@@ -23,13 +23,20 @@ public class UnconditionalAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("UnconditionalAction");
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
                 v.session.regroup(new QueryRemapRule(targetGroup, Query.newTermQuery(new Term("fakeField123", true, 0L, "")), newGroup, newGroup));
             }
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "UnconditionalAction{" +
+                "scope=" + scope +
+                ", targetGroup=" + targetGroup +
+                ", newGroup=" + newGroup +
+                '}';
     }
 }

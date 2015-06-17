@@ -28,7 +28,6 @@ public class IntOrAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("IntOrAction");
         final long[] terms = new long[this.terms.size()];
         int i = 0;
         for (final long term : this.terms) {
@@ -41,6 +40,17 @@ public class IntOrAction implements Action {
                 s.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
             }
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "IntOrAction{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", terms=" + terms +
+                ", targetGroup=" + targetGroup +
+                ", positiveGroup=" + positiveGroup +
+                ", negativeGroup=" + negativeGroup +
+                '}';
     }
 }

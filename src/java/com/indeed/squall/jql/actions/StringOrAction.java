@@ -27,7 +27,6 @@ public class StringOrAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("StringOrAction");
         final String[] termsArr = scope.toArray(new String[scope.size()]);
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
@@ -35,6 +34,17 @@ public class StringOrAction implements Action {
                 v.session.stringOrRegroup(field, termsArr, targetGroup, negativeGroup, positiveGroup);
             }
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "StringOrAction{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", terms=" + terms +
+                ", targetGroup=" + targetGroup +
+                ", positiveGroup=" + positiveGroup +
+                ", negativeGroup=" + negativeGroup +
+                '}';
     }
 }

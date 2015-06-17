@@ -27,13 +27,23 @@ public class RegexAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("RegexAction");
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
                 v.session.regexRegroup(field, regex, targetGroup, negativeGroup, positiveGroup);
             }
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "RegexAction{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", regex='" + regex + '\'' +
+                ", targetGroup=" + targetGroup +
+                ", positiveGroup=" + positiveGroup +
+                ", negativeGroup=" + negativeGroup +
+                '}';
     }
 }

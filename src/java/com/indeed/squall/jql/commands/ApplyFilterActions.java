@@ -16,6 +16,7 @@ public class ApplyFilterActions {
 
     public void execute(Session session) throws ImhotepOutOfMemoryException {
         for (final Action action : actions) {
+            session.timer.push("action.apply " + action);
             action.apply(session);
         }
     }

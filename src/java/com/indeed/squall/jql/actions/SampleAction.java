@@ -29,7 +29,6 @@ public class SampleAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("SampleAction");
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
@@ -37,6 +36,18 @@ public class SampleAction implements Action {
                 v.session.randomRegroup(field, isIntField, seed, probability, targetGroup, negativeGroup, positiveGroup);
             }
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "SampleAction{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", probability=" + probability +
+                ", seed='" + seed + '\'' +
+                ", targetGroup=" + targetGroup +
+                ", positiveGroup=" + positiveGroup +
+                ", negativeGroup=" + negativeGroup +
+                '}';
     }
 }

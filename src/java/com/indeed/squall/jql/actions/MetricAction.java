@@ -28,7 +28,6 @@ public class MetricAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("MetricAction");
         if (targetGroup == 1 && positiveGroup == 1 && negativeGroup == 0 && session.numGroups == 1) {
             for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
                 if (scope.contains(entry.getKey())) {
@@ -42,6 +41,16 @@ public class MetricAction implements Action {
         } else {
             throw new UnsupportedOperationException("Can only do MetricAction filters when targetGroup=positiveGroup=1 and negativeGroup=0 and numGroups=1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
         }
-        session.timer.pop();
+    }
+
+    @Override
+    public String toString() {
+        return "MetricAction{" +
+                "scope=" + scope +
+                ", perDatasetPushes=" + perDatasetPushes +
+                ", targetGroup=" + targetGroup +
+                ", positiveGroup=" + positiveGroup +
+                ", negativeGroup=" + negativeGroup +
+                '}';
     }
 }
