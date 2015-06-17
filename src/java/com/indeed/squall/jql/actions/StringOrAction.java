@@ -30,7 +30,6 @@ public class StringOrAction implements Action {
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         final String[] termsArr = terms.toArray(new String[terms.size()]);
         Arrays.sort(termsArr);
-        System.out.println("termsArr = " + Arrays.toString(termsArr));
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
