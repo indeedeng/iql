@@ -42,6 +42,9 @@ public class ParserCommon {
     }
 
     public static String unquote(String text) {
+        if (!((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("\'") && text.endsWith("\'")))) {
+            return text;
+        }
         final StringBuilder sb = new StringBuilder();
         boolean isEscaping = false;
         for (int i = 1; i < text.length() - 1; i++) {

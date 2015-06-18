@@ -173,7 +173,7 @@ public class DocMetrics {
             }
 
             public void enterDocMetricAtomHasntString(@NotNull JQLParser.DocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(ctx.field.getText(), ctx.term.getText())));
+                accept(negateMetric(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText()))));
             }
 
             public void enterDocMetricAtomFloatScale(@NotNull JQLParser.DocMetricAtomFloatScaleContext ctx) {
@@ -184,7 +184,7 @@ public class DocMetrics {
             }
 
             public void enterDocMetricAtomHasString(@NotNull JQLParser.DocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText(), ctx.term.getText()));
+                accept(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText())));
             }
 
             public void enterDocMetricAtomHasStringQuoted(@NotNull JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
