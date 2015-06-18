@@ -330,6 +330,7 @@ public class DocFilters {
             termsList.add(Term.parseTerm(term));
         }
         final boolean isStringField = anyIsString(termsList);
+        final DocFilter filter;
         if (isStringField) {
             final Set<String> termSet = new HashSet<>();
             for (final Term term : termsList) {
@@ -339,13 +340,18 @@ public class DocFilters {
                     termSet.add(term.stringTerm);
                 }
             }
-            return new DocFilter.StringFieldIn(field, termSet);
+            filter = new DocFilter.StringFieldIn(field, termSet);
         } else {
             final Set<Long> termSet = new LongOpenHashSet();
             for (final Term term : termsList) {
                 termSet.add(term.intTerm);
             }
-            return new DocFilter.IntFieldIn(field, termSet);
+            filter = new DocFilter.IntFieldIn(field, termSet);
+        }
+        if (negate) {
+            return new DocFilter.Not(filter);
+        } else {
+            return filter;
         }
     }
 
