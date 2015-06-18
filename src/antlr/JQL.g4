@@ -56,6 +56,7 @@ ELSE : 'ELSE' ;
 FLOATSCALE : 'FLOATSCALE' ;
 SIGNUM : 'SIGNUM' ;
 LIMIT : 'LIMIT';
+HAVING : 'HAVING';
 
 Y : 'Y' ;
 
@@ -89,7 +90,7 @@ identifier
     | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
-    | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT
+    | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     ;
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -132,8 +133,8 @@ jqlAggregateMetric
     | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
-    | DISTINCT '(' identifier (WHERE jqlAggregateFilter)? ')' # AggregateDistinct
-    | DISTINCT_WINDOW '(' INT ',' identifier (WHERE jqlAggregateFilter) ')' # AggregateDistinctWindow
+    | DISTINCT '(' identifier (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
+    | DISTINCT_WINDOW '(' INT ',' identifier (HAVING jqlAggregateFilter) ')' # AggregateDistinctWindow
     | WINDOW '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
@@ -143,7 +144,7 @@ jqlAggregateMetric
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | jqlSumOverMetric # AggregateSumAcross
-    | AVG_OVER '(' field=identifier (WHERE jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | AVG_OVER '(' field=identifier (HAVING jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | docMetricAtom # AggregateDocMetricAtom
     | '[' jqlDocMetric ']' # AggregateSum
@@ -333,7 +334,7 @@ groupByField [boolean useLegacy]
                 order=(TOP | BOTTOM)?
                 limit=INT?
                 (BY metric=aggregateMetric[$ctx.useLegacy])?
-                (WHERE filter=aggregateFilter[$ctx.useLegacy])?
+                (HAVING filter=aggregateFilter[$ctx.useLegacy])?
              ']'
              (withDefault=WITH DEFAULT)?
             )
