@@ -62,6 +62,7 @@ import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
+import com.indeed.squall.jql.dimensions.DimensionDetails;
 import com.indeed.squall.jql.dimensions.DimensionsLoader;
 import com.indeed.squall.jql.dimensions.DimensionsTranslator;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
@@ -331,7 +332,7 @@ public class Session {
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
             treeTimer.pop();
-            final DatasetDimensions datasetDimensions = dimensions.get(dataset);
+            final DatasetDimensions datasetDimensions = dimensions.containsKey(dataset) ? dimensions.get(dataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
             final ImhotepSession session = closer.register(new DimensionsTranslator(build, datasetDimensions));
             treeTimer.pop();
 
