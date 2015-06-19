@@ -331,7 +331,8 @@ public class Session {
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
             treeTimer.pop();
-            final ImhotepSession session = closer.register(new DimensionsTranslator(build, dimensions.get(dataset)));
+            final DatasetDimensions datasetDimensions = dimensions.get(dataset);
+            final ImhotepSession session = closer.register(new DimensionsTranslator(build, datasetDimensions));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
@@ -345,7 +346,7 @@ public class Session {
                 session.regroup(new QueryRemapRule(1, Query.newRangeQuery(timeField, startDateTime.getMillis() / 1000, endDateTime.getMillis() / 1000, false), 0, 1));
                 treeTimer.pop();
             }
-            sessions.put(name, new ImhotepSessionInfo(session, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
+            sessions.put(name, new ImhotepSessionInfo(session, datasetDimensions, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
         }
     }
 
@@ -729,7 +730,7 @@ public class Session {
     }
 
     public boolean isIntField(String field) {
-        return sessions.values().stream().anyMatch(x -> x.intFields.contains(field));
+        return sessions.values().stream().anyMatch(x -> x.intFields.contains(field) || x.datasetDimensions.contains(field));
     }
 
     public boolean isStringField(String field) {
@@ -998,14 +999,16 @@ public class Session {
 
     public static class ImhotepSessionInfo {
         public final ImhotepSession session;
+        public final DatasetDimensions datasetDimensions;
         public final Collection<String> intFields;
         public final Collection<String> stringFields;
         public final DateTime startTime;
         public final DateTime endTime;
         public final String timeFieldName;
 
-        private ImhotepSessionInfo(ImhotepSession session, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        private ImhotepSessionInfo(ImhotepSession session, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
+            this.datasetDimensions = datasetDimensions;
             this.intFields = Collections.unmodifiableCollection(intFields);
             this.stringFields = Collections.unmodifiableCollection(stringFields);
             this.startTime = startTime;
