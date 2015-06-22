@@ -1,8 +1,10 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.actions.IntOrAction;
 import com.indeed.squall.iql2.language.actions.MetricAction;
@@ -15,11 +17,15 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.Token;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringTokenizer;
 
 public interface DocFilter {
 
@@ -38,10 +45,13 @@ public interface DocFilter {
     List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
 
     class FieldIs implements DocFilter {
+        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
         public final String field;
         public final Term term;
 
-        public FieldIs(String field, Term term) {
+        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Term term) {
+            // TODO: Immutable clone
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             this.field = field;
             this.term = term;
         }
@@ -56,18 +66,81 @@ public interface DocFilter {
             if (term.isIntTerm) {
                 return new DocMetric.HasInt(field, term.intTerm);
             } else {
-                return new DocMetric.HasString(field, term.stringTerm);
+                final List<String> tokens = tokenize(dataset);
+                if (tokens.size() == 1) {
+                    return new DocMetric.HasString(field, term.stringTerm);
+                }
+                DocMetric docMetric = null;
+                for (final String token : tokens) {
+                    if (docMetric == null) {
+                        docMetric = new DocMetric.HasString(field, token);
+                    } else {
+                        docMetric = new DocMetric.Add(docMetric, new DocMetric.HasString(field, token));
+                    }
+                }
+                return new DocMetric.MetricEqual(docMetric, new DocMetric.Constant(tokens.size()));
             }
         }
 
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
-            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field));
-            for (final String dataset : scope) {
-                datasetToQuery.put(dataset, query);
+            if (term.isIntTerm) {
+                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field));
+                for (final String dataset : scope) {
+                    datasetToQuery.put(dataset, query);
+                }
+            } else {
+                for (final String dataset : scope) {
+                    final List<String> tokens = tokenize(dataset);
+                    final List<com.indeed.flamdex.query.Query> clauses = new ArrayList<>();
+                    for (final String token : tokens) {
+                        clauses.add(com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(field, token)));
+                    }
+                    final com.indeed.flamdex.query.Query query;
+                    if (clauses.size() == 1) {
+                        query = clauses.get(0);
+                    } else {
+                        query = com.indeed.flamdex.query.Query.newBooleanQuery(BooleanOp.AND, clauses);
+                    }
+                    datasetToQuery.put(dataset, query);
+                }
             }
             return Collections.<Action>singletonList(new QueryAction(scope, datasetToQuery, target, positive, negative));
+        }
+
+        private List<String> tokenize(String dataset) {
+            if (term.isIntTerm) {
+                throw new IllegalStateException("Called tokenize on int term?!");
+            }
+            final Set<String> keywordAnalyzerFields;
+            if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
+                keywordAnalyzerFields = datasetToKeywordAnalyzerFields.get(dataset);
+            } else {
+                keywordAnalyzerFields = Collections.emptySet();
+            }
+            if (keywordAnalyzerFields.contains(field)) {
+                return Collections.singletonList(term.stringTerm);
+            }
+            final List<String> tokens = new ArrayList<>();
+            final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
+            try {
+                final TokenStream tokenStream = whitespaceAnalyzer.tokenStream(null, new StringReader(term.stringTerm));
+                final Token token = new Token();
+                try {
+                    while (tokenStream.next(token) != null) {
+                        tokens.add(token.term());
+                    }
+                } catch (IOException e) {
+                    throw Throwables.propagate(e);
+                }
+            } finally {
+                whitespaceAnalyzer.close();
+            }
+            if (tokens.isEmpty()) {
+                throw new IllegalStateException("Found no terms in WhitespaceAnalyzer field: " + field + ", term = [" + term + "]");
+            }
+            return tokens;
         }
 
         @Override
@@ -96,8 +169,10 @@ public interface DocFilter {
     class FieldIsnt implements DocFilter {
         public final String field;
         public final Term term;
+        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
 
-        public FieldIsnt(String field, Term term) {
+        public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Term term) {
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             this.field = field;
             this.term = term;
         }
@@ -109,12 +184,12 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            return new Not(new FieldIs(field, term)).asZeroOneMetric(dataset);
+            return new Not(new FieldIs(datasetToKeywordAnalyzerFields, field, term)).asZeroOneMetric(dataset);
         }
 
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new Not(new FieldIs(field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+            return new Not(new FieldIs(datasetToKeywordAnalyzerFields, field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -850,10 +925,12 @@ public interface DocFilter {
     class Lucene implements DocFilter {
         public final String query;
         private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+        private final Map<String, Set<String>> datasetToIntFields;
 
-        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
             this.query = query;
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+            this.datasetToIntFields = datasetToIntFields;
         }
 
         @Override
@@ -864,7 +941,7 @@ public interface DocFilter {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             final com.indeed.flamdex.query.Query rewritten = getFlamdexQuery(dataset);
-            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten);
+            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten, datasetToKeywordAnalyzerFields);
             return filter.asZeroOneMetric(dataset);
         }
 
@@ -894,8 +971,7 @@ public interface DocFilter {
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
-            // TODO: Get int fields?
-            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+            return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
         }
 
         @Override
@@ -1049,10 +1125,12 @@ public interface DocFilter {
     }
 
     class StringFieldIn implements DocFilter {
+        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
         public final String field;
         public final Set<String> terms;
 
-        public StringFieldIn(String field, Set<String> terms) {
+        public StringFieldIn(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Set<String> terms) {
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
             }
@@ -1070,9 +1148,9 @@ public interface DocFilter {
             DocFilter filter = null;
             for (final String term : terms) {
                 if (filter == null) {
-                    filter = new FieldIs(field, Term.term(term));
+                    filter = new FieldIs(datasetToKeywordAnalyzerFields, field, Term.term(term));
                 } else {
-                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
+                    filter = new Or(filter, new FieldIs(datasetToKeywordAnalyzerFields, field, Term.term(term)));
                 }
             }
             return filter.asZeroOneMetric(dataset);
@@ -1128,9 +1206,9 @@ public interface DocFilter {
             DocFilter filter = null;
             for (final long term : terms) {
                 if (filter == null) {
-                    filter = new FieldIs(field, Term.term(term));
+                    filter = new FieldIs(Collections.<String, Set<String>>emptyMap(), field, Term.term(term));
                 } else {
-                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
+                    filter = new Or(filter, new FieldIs(Collections.<String, Set<String>>emptyMap(), field, Term.term(term)));
                 }
             }
             return filter.asZeroOneMetric(dataset);

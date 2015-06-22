@@ -74,7 +74,7 @@ DATETIME_TOKEN
                 (':' DIGIT DIGIT
                     (':' DIGIT DIGIT
                         ('.' DIGIT DIGIT DIGIT
-                            ('+'|'-' DIGIT DIGIT ':' DIGIT DIGIT)?
+                            (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
                         )?
                     )?
                 )
@@ -325,7 +325,7 @@ groupByMetricEnglish [boolean useLegacy]
     ;
 
 groupByTime
-    : (TIME | TIMEBUCKETS) ('(' timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)? ')')?
+    : (TIME | TIMEBUCKETS) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? ')')?
     ;
 
 groupByField [boolean useLegacy]

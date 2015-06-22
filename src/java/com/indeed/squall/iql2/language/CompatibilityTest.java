@@ -30,7 +30,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Main.parseQuery(q, true, Collections.<String, Set<String>>emptyMap());
+                    Main.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
                 } catch (Exception e) {
                     successes--;
                     failures++;

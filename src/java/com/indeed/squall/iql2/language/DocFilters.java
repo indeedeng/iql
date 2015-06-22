@@ -24,17 +24,17 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields);
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         }
         if (docFilterContext.legacyDocFilter() != null) {
-            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetToKeywordAnalyzerFields);
+            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocFilter parseLegacyDocFilter(JQLParser.LegacyDocFilterContext legacyDocFilterContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static DocFilter parseLegacyDocFilter(JQLParser.LegacyDocFilterContext legacyDocFilterContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
         final DocFilter[] ref = new DocFilter[1];
 
         legacyDocFilterContext.enterRule(new JQLBaseListener() {
@@ -58,12 +58,12 @@ public class DocFilters {
                 String field = ctx.field.getText();
                 final List<JQLParser.TermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                accept(docInHelper(field, terms, negate));
+                accept(docInHelper(datasetToKeywordAnalyzerFields, field, terms, negate));
             }
 
             @Override
             public void enterLegacyDocFieldIsnt(@NotNull JQLParser.LegacyDocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
@@ -87,7 +87,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocNot(@NotNull JQLParser.LegacyDocNotContext ctx) {
-                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
@@ -97,12 +97,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIs(@NotNull JQLParser.LegacyDocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
             public void enterLegacyDocOr(@NotNull JQLParser.LegacyDocOrContext ctx) {
-                accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
@@ -149,12 +149,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocAnd(@NotNull JQLParser.LegacyDocAndContext ctx) {
-                accept(new DocFilter.And(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.And(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
             public void enterLegacyLucene(@NotNull JQLParser.LegacyLuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             @Override
@@ -164,7 +164,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFilterParens(@NotNull JQLParser.LegacyDocFilterParensContext ctx) {
-                accept(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields));
+                accept(parseLegacyDocFilter(ctx.legacyDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             @Override
@@ -179,7 +179,10 @@ public class DocFilters {
         return ref[0];
     }
 
-    public static DocFilter parseJQLDocFilter(JQLParser.JqlDocFilterContext docFilterContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static DocFilter parseJQLDocFilter(
+            JQLParser.JqlDocFilterContext docFilterContext,
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
+            final Map<String, Set<String>> datasetToIntFields) {
         final DocFilter[] ref = new DocFilter[1];
 
         docFilterContext.enterRule(new JQLBaseListener() {
@@ -203,12 +206,12 @@ public class DocFilters {
                 String field = ctx.field.getText();
                 final List<JQLParser.TermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                accept(docInHelper(field, terms, negate));
+                accept(docInHelper(datasetToKeywordAnalyzerFields, field, terms, negate));
             }
 
             @Override
             public void enterDocFieldIsnt(@NotNull JQLParser.DocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
@@ -232,7 +235,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(@NotNull JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
@@ -242,12 +245,12 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIs(@NotNull JQLParser.DocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
             }
 
             @Override
             public void enterDocOr(@NotNull JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
@@ -258,8 +261,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(@NotNull JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields);
-                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields);
+                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -294,12 +297,12 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(@NotNull JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields)));
+                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
             public void enterLucene(@NotNull JQLParser.LuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             @Override
@@ -309,7 +312,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(@NotNull JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             @Override
@@ -324,7 +327,7 @@ public class DocFilters {
         return ref[0];
     }
 
-    public static DocFilter docInHelper(String field, List<JQLParser.TermValContext> terms, boolean negate) {
+    public static DocFilter docInHelper(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, List<JQLParser.TermValContext> terms, boolean negate) {
         final List<Term> termsList = new ArrayList<>();
         for (final JQLParser.TermValContext term : terms) {
             termsList.add(Term.parseTerm(term));
@@ -340,7 +343,7 @@ public class DocFilters {
                     termSet.add(term.stringTerm);
                 }
             }
-            filter = new DocFilter.StringFieldIn(field, termSet);
+            filter = new DocFilter.StringFieldIn(datasetToKeywordAnalyzerFields, field, termSet);
         } else {
             final Set<Long> termSet = new LongOpenHashSet();
             for (final Term term : termsList) {

@@ -31,14 +31,14 @@ public class Query {
         this.selects = selects;
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         final List<com.indeed.squall.iql2.language.query.Dataset> datasets = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(queryContext.fromContents());
 
         final Optional<DocFilter> whereFilter;
         if (queryContext.docFilter() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : queryContext.docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
             if (filters.isEmpty()) {
                 whereFilter = Optional.absent();
@@ -51,7 +51,7 @@ public class Query {
 
         final List<com.indeed.squall.iql2.language.query.GroupBy> groupBys;
         if (queryContext.groupByContents() != null) {
-            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents(), datasetToKeywordAnalyzerFields);
+            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         } else {
             groupBys = Collections.emptyList();
         }
@@ -65,7 +65,7 @@ public class Query {
                 final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
                 selects = new ArrayList<>();
                 for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selects.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields));
+                    selects.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields));
                 }
             } else {
                 throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());

@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -526,12 +527,7 @@ public abstract class DocMetric {
 
         @Override
         protected List<String> getPushes(String dataset) {
-            if (value < 0) {
-                // TODO: Is this still necessary?
-                return new PushableDocMetric(new Negate(new Constant(value))).getPushes(dataset);
-            } else {
-                return Collections.singletonList(String.valueOf(value));
-            }
+            return Collections.singletonList(String.valueOf(value));
         }
 
         @Override

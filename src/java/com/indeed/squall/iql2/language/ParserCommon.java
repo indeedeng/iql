@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.Token;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ParserCommon {
@@ -13,7 +14,9 @@ public class ParserCommon {
     }
 
     public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext) {
-        if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
+        if (timePeriodContext == null) {
+            return Collections.singletonList(Pair.of(1, TimeUnit.HOUR));
+        } else if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
             final JQLParser.TimePeriodParseableContext periodContext = (JQLParser.TimePeriodParseableContext) timePeriodContext;
             final List<Token> coeffs = periodContext.coeffs;
             final List<Token> units = periodContext.units;
