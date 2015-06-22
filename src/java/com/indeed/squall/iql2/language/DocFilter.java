@@ -119,7 +119,7 @@ public interface DocFilter {
             } else {
                 keywordAnalyzerFields = Collections.emptySet();
             }
-            if (keywordAnalyzerFields.contains(field)) {
+            if (keywordAnalyzerFields.contains(field) || keywordAnalyzerFields.contains("*")) {
                 return Collections.singletonList(term.stringTerm);
             }
             final List<String> tokens = new ArrayList<>();
