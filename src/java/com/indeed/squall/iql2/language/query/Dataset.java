@@ -101,6 +101,10 @@ public class Dataset {
                 final JQLParser jqlParser = Main.parserForString(unquoted);
                 final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                 if (jqlParser.getNumberOfSyntaxErrors() > 0) {
+                    final DateTime dt = parseWordDate(unquoted);
+                    if (dt != null) {
+                        return dt;
+                    }
                     throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
                 }
                 return timePeriodDateTime(timePeriod);
@@ -111,15 +115,21 @@ public class Dataset {
             return new DateTime(Long.parseLong(dateTimeContext.INT().getText()));
         } else {
             final String textValue = dateTimeContext.getText();
-            if ("yesterday".startsWith(textValue)) {
-                return DateTime.now().withTimeAtStartOfDay().minusDays(1);
-            } else if (textValue.length() >= 3 && "today".startsWith(textValue)) {
-                return DateTime.now().withTimeAtStartOfDay();
-            } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue)) {
-                return DateTime.now().withTimeAtStartOfDay().plusDays(1);
-            }
+            final DateTime dt = parseWordDate(textValue);
+            if (dt != null) return dt;
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
+    }
+
+    private static DateTime parseWordDate(String textValue) {
+        if ("yesterday".startsWith(textValue)) {
+            return DateTime.now().withTimeAtStartOfDay().minusDays(1);
+        } else if (textValue.length() >= 3 && "today".startsWith(textValue)) {
+            return DateTime.now().withTimeAtStartOfDay();
+        } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue)) {
+            return DateTime.now().withTimeAtStartOfDay().plusDays(1);
+        }
+        return null;
     }
 
     private static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext) {
