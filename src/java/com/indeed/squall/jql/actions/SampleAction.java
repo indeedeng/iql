@@ -33,7 +33,7 @@ public class SampleAction implements Action {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
                 final boolean isIntField = v.intFields.contains(field);
-                v.session.randomRegroup(field, isIntField, seed, probability, targetGroup, negativeGroup, positiveGroup);
+                v.session.randomRegroup(field, isIntField, seed, probability, targetGroup, positiveGroup, negativeGroup);
             }
         }
     }
