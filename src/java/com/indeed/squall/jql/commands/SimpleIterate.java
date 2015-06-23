@@ -13,6 +13,7 @@ import com.indeed.squall.jql.DenseInt2ObjectMap;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.TermSelects;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class SimpleIterate {
     public final String field;
@@ -91,7 +91,7 @@ public class SimpleIterate {
         } else {
             topKMetricOrNull = null;
         }
-        final AggregateFilter filterOrNull = opts.filter.orElse(null);
+        final AggregateFilter filterOrNull = opts.filter.orNull();
 
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback;

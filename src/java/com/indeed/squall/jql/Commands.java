@@ -1,6 +1,8 @@
 package com.indeed.squall.jql;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -46,9 +48,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * @author jwolfe
@@ -167,7 +167,7 @@ public class Commands {
 
                 final Optional<AggregateFilter> filter;
                 if (filterNode.isNull()) {
-                    filter = Optional.empty();
+                    filter = Optional.absent();
                 } else {
                     filter = Optional.of(AggregateFilters.fromJson(filterNode, namedMetricLookup));
                 }
@@ -209,9 +209,9 @@ public class Commands {
             case "timeRegroup": {
                 final Optional<String> timeField;
                 if (command.has("timeField")) {
-                    timeField = Optional.ofNullable(command.get("timeField").textValue());
+                    timeField = Optional.fromNullable(command.get("timeField").textValue());
                 } else {
-                    timeField = Optional.empty();
+                    timeField = Optional.absent();
                 }
                 return new TimeRegroup(
                         command.get("value").longValue(),
@@ -299,7 +299,7 @@ public class Commands {
                 final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
                 final Optional<AggregateFilter> filter;
                 if (command.get("filter").isNull()) {
-                    filter = Optional.empty();
+                    filter = Optional.absent();
                 } else {
                     filter = Optional.of(AggregateFilters.fromJson(command.get("filter"), namedMetricLookup));
                 }
@@ -320,15 +320,15 @@ public class Commands {
                 final int numBuckets = command.get("numBuckets").intValue();
                 return new ExplodeTimeBuckets(
                         numBuckets,
-                        Optional.ofNullable(command.get("timeField").textValue()),
-                        Optional.ofNullable(command.get("timeFormat").textValue())
+                        Optional.fromNullable(command.get("timeField").textValue()),
+                        Optional.fromNullable(command.get("timeFormat").textValue())
                 );
             }
             case "timePeriodRegroup": {
                 return new TimePeriodRegroup(
                         command.get("periodMillis").longValue(),
-                        Optional.ofNullable(command.get("timeField").textValue()),
-                        Optional.ofNullable(command.get("timeFormat").textValue())
+                        Optional.fromNullable(command.get("timeField").textValue()),
+                        Optional.fromNullable(command.get("timeFormat").textValue())
                 );
             }
             case "sampleFields": {
@@ -381,15 +381,15 @@ public class Commands {
     private static Optional<String> getOptionalName(JsonNode command) {
         final Optional<String> name;
         if (command.has("name")) {
-            name = Optional.ofNullable(command.get("name").textValue());
+            name = Optional.fromNullable(command.get("name").textValue());
         } else {
-            name = Optional.empty();
+            name = Optional.absent();
         }
         return name;
     }
 
     private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
-        Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.empty();
+        Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.absent();
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
@@ -416,9 +416,9 @@ public class Commands {
 
     private static Optional<String> parseExplodeOpts(JsonNode opts) {
         if (opts == null) {
-            return Optional.empty();
+            return Optional.absent();
         }
-        Optional<String> defaultName = Optional.empty();
+        Optional<String> defaultName = Optional.absent();
         for (final JsonNode opt : opts) {
             switch (opt.get("type").textValue()) {
                 case "addDefault":

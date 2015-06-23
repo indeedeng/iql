@@ -1,13 +1,11 @@
 package com.indeed.squall.jql.commands;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
 import org.joda.time.DateTime;
-
-import javax.annotation.Nullable;
-import java.util.Optional;
 
 public class TimePeriodRegroup {
     private final long periodMillis;
@@ -31,7 +29,7 @@ public class TimePeriodRegroup {
         }
         final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final int numBuckets = (int) ((realEnd - earliestStart) / periodMillis);
-        final String format = timeFormat.orElse("yyyy-MM-dd HH:mm:ss");
+        final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
         session.assumeDense(new Function<Integer, Pair<String, Session.GroupKey>>() {
             public Pair<String, Session.GroupKey> apply(Integer group) {
                 final int oldGroup = 1 + (group - 1) / numBuckets;

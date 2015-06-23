@@ -1,5 +1,6 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class IterateAndExplode {
     public final String field;

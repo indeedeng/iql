@@ -1,8 +1,7 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Optional;
 import com.indeed.squall.jql.Session;
-
-import java.util.Optional;
 
 public class CreateGroupStatsLookup {
     public final double[] stats;

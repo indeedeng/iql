@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -63,6 +64,7 @@ import com.indeed.squall.jql.commands.SimpleIterate;
 import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
 import com.indeed.squall.jql.dimensions.DimensionDetails;
 import com.indeed.squall.jql.dimensions.DimensionsLoader;
@@ -97,14 +99,12 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -172,14 +172,26 @@ public class Session {
         if (propsStream != null) {
             props.load(propsStream);
         }
-        final String zkPath = (String) props.getOrDefault("zk_path", "***REMOVED***");
+        String zkPath = (String) props.get("zk_path");
+        if (zkPath == null) {
+            zkPath = "***REMOVED***";
+        }
         log.info("zkPath = " + zkPath);
 
         final ImhotepClient client = new ImhotepClient(zkPath, true);
 
-        final int wsSocketPort = Integer.parseInt((String) props.getOrDefault("ws_socket", "8001"));
+        String wsSocketPortString = (String) props.get("ws_socket");
+        if (wsSocketPortString == null) {
+            wsSocketPortString = "8001";
+        }
+        final int wsSocketPort = Integer.parseInt(wsSocketPortString);
         log.info("wsSocketPort = " + wsSocketPort);
-        final int unixSocketPort = Integer.parseInt((String) props.getOrDefault("unix_socket", "28347"));
+
+        String unixSocketPortString = (String) props.get("unix_socket");
+        if (unixSocketPortString == null) {
+            unixSocketPortString = "28347";
+        }
+        final int unixSocketPort = Integer.parseInt(unixSocketPortString);
         log.info("unixSocketPort = " + unixSocketPort);
 
         final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
@@ -294,7 +306,7 @@ public class Session {
                     });
                 }
             }
-            return Optional.empty();
+            return Optional.absent();
         } else {
             createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer);
             out.accept("opened");
@@ -426,8 +438,7 @@ public class Session {
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommand " + commandTree);
         try {
-            final Object command = Commands.parseCommand(commandTree, new java.util.function.Function<String, PerGroupConstant>() {
-                @Override
+            final Object command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
@@ -442,7 +453,7 @@ public class Session {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
 
-            final Object command = Commands.parseCommand(commandTree, new java.util.function.Function<String, PerGroupConstant>() {
+            final Object command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 @Override
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
@@ -654,7 +665,8 @@ public class Session {
     // result[1] will be the minimum value required to be greater than 1/k values.
     public static double[] getPercentiles(DoubleCollection values, int k) {
         final DoubleArrayList list = new DoubleArrayList(values);
-        list.sort(null);
+        // TODO: Will this be super slow?
+        Collections.sort(list);
         final double[] result = new double[k];
         for (int i = 0; i < k; i++) {
             result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
@@ -858,13 +870,13 @@ public class Session {
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             if (!it.nextField()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             if (!it.nextTerm()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             if (!it.nextGroup()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             it.groupStats(statsBuff);
             return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, statsBuff, it.termIntVal(), it.group()));
@@ -889,7 +901,7 @@ public class Session {
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };
-            final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(comparator);
+            final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
@@ -961,13 +973,13 @@ public class Session {
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             if (!it.nextField()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             if (!it.nextTerm()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             if (!it.nextGroup()) {
-                return Optional.empty();
+                return Optional.absent();
             }
             it.groupStats(statsBuff);
             return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, statsBuff, it.termStringVal(), it.group()));
@@ -991,7 +1003,7 @@ public class Session {
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };
-            final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(comparator);
+            final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());

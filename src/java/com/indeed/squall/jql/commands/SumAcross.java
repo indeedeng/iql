@@ -1,19 +1,16 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
-import com.indeed.squall.jql.Pushable;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
-import it.unimi.dsi.fastutil.ints.IntList;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class SumAcross implements IterateHandlerable<double[]> {

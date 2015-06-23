@@ -1,5 +1,6 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.QualifiedPush;
@@ -10,7 +11,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class GetGroupDistincts implements IterateHandlerable<long[]> {

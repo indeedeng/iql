@@ -1,11 +1,11 @@
 package com.indeed.squall.jql.metrics.aggregate;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Function;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class AggregateMetrics {
     public static AggregateMetric fromJson(final JsonNode node, final Function<String, PerGroupConstant> namedMetricLookup) {

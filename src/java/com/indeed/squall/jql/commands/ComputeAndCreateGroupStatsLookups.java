@@ -3,21 +3,20 @@ package com.indeed.squall.jql.commands;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public class ComputeAndCreateGroupStatsLookups {
     private final List<Pair<Object, String>> namedComputations;
@@ -76,7 +75,12 @@ public class ComputeAndCreateGroupStatsLookups {
             if (fields.size() != 1) {
                 throw new IllegalStateException("Invalid number of fields seen: " + fields.size());
             }
-            IterateHandlers.executeMulti(session, fields.stream().findFirst().get(), handlerables);
+            String theField = null;
+            for (final String field : fields) {
+                theField = field;
+                break;
+            }
+            IterateHandlers.executeMulti(session, theField, handlerables);
         }
     }
 

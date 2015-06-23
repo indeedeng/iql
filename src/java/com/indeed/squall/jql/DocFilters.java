@@ -1,12 +1,12 @@
 package com.indeed.squall.jql;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.indeed.squall.jql.metrics.document.DocMetric;
 import com.indeed.squall.jql.metrics.document.DocMetrics;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 public class DocFilters {
     public static DocFilter fromJson(final JsonNode node) {
