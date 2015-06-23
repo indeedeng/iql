@@ -50,7 +50,11 @@ public class IterateLag implements AggregateMetric {
     }
 
     private double handle(double value, int group) {
-        final ArrayDeque<Double> groupPrevScores = prevScores.computeIfAbsent(group, k -> new ArrayDeque<>(delay + 1));
+        ArrayDeque<Double> groupPrevScores = prevScores.get(group);
+        if (groupPrevScores == null) {
+            groupPrevScores = new ArrayDeque<>(delay + 1);
+            prevScores.put(group, groupPrevScores);
+        }
         groupPrevScores.addLast(value);
         if (groupPrevScores.size() > delay) {
             return groupPrevScores.pollFirst();

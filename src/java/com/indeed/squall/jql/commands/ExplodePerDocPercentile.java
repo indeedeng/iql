@@ -1,15 +1,18 @@
 package com.indeed.squall.jql.commands;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ExplodePerDocPercentile {
@@ -26,18 +29,22 @@ public class ExplodePerDocPercentile {
         final int numBuckets = this.numBuckets;
 
         final long[] counts = new long[session.numGroups + 1];
-        session.sessions.values().forEach(s -> Session.unchecked(() -> {
+        for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
             s.session.pushStat("count()");
             final long[] stats = s.session.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
             }
-        }));
+        }
 
         final long[] runningCounts = new long[session.numGroups + 1];
         final long[][] cutoffs = new long[session.numGroups + 1][numBuckets];
         final int[] soFar = new int[session.numGroups + 1];
-        Session.iterateMultiInt(session.getSessionsMapRaw(), session.sessions.keySet().stream().collect(Collectors.toMap(k -> k, k -> new IntArrayList(new int[]{0}))), field, new Session.IntIterateCallback() {
+        final Map<String, IntList> metricIndexes = Maps.newHashMap();
+        for (final String k : session.sessions.keySet()) {
+            metricIndexes.put(k, new IntArrayList(new int[]{0}));
+        }
+        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, field, new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
                 runningCounts[group] += stats[0];
@@ -79,10 +86,10 @@ public class ExplodePerDocPercentile {
 
         final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
 
-        session.sessions.values().forEach(s -> Session.unchecked(() -> {
+        for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
             s.session.regroup(rulesArr);
             s.session.popStat();
-        }));
+        }
 
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;

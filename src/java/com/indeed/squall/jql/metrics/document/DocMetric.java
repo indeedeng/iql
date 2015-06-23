@@ -11,20 +11,6 @@ import java.util.List;
 public interface DocMetric {
     List<String> pushes();
 
-    static DocMetric fromJson(JsonNode node) {
-        switch (node.get("type").textValue()) {
-            case "docStats": {
-                final JsonNode pushes = node.get("pushes");
-                final List<String> statPushes = Lists.newArrayList();
-                for (final JsonNode push : pushes) {
-                    statPushes.add(push.textValue());
-                }
-                return new BaseMetric(statPushes);
-            }
-        }
-        throw new RuntimeException("Oops: " + node);
-    }
-
     class BaseMetric implements DocMetric {
         private final List<String> push;
 

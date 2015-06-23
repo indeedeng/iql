@@ -6,6 +6,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.GroupLookupMergeType;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.Constant;
 import com.indeed.squall.jql.metrics.aggregate.IfThenElse;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -25,7 +26,7 @@ public class RegroupIntoLastSiblingWhere {
     // TODO: Use a bitset?
     public boolean[] execute(Session session) throws ImhotepOutOfMemoryException {
         // TODO: This could be made way more efficient, but I think this should way.
-        final GetGroupStats getGroupStats = new GetGroupStats(Arrays.asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
+        final GetGroupStats getGroupStats = new GetGroupStats(Arrays.<AggregateMetric>asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
         final List<Session.GroupStats> theStats = getGroupStats.execute(session);
         final boolean[] remerge = new boolean[session.numGroups + 1];
         for (int i = 0; i < session.numGroups; i++) {
@@ -56,7 +57,13 @@ public class RegroupIntoLastSiblingWhere {
             remerge[lastChildIndex] = false;
         }
 
-        final boolean anyStatsAtDepth = session.savedGroupStats.values().stream().anyMatch(s -> s.depth == session.currentDepth);
+        boolean anyStatsAtDepth = false;
+        for (final Session.SavedGroupStats s : session.savedGroupStats.values()) {
+            if (s.depth == session.currentDepth) {
+                anyStatsAtDepth = true;
+                break;
+            }
+        }
 
         final RegroupCondition theCondition = new RegroupCondition("foo", true, 0, null, false);
         final GroupRemapRule[] rules = new GroupRemapRule[session.numGroups];

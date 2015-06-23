@@ -1,5 +1,6 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.GroupRemapRule;
@@ -9,16 +10,17 @@ import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.TimeUnit;
 import org.joda.time.DateTime;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
 public class ExplodeDayOfWeek {
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
-        final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty());
+        final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.<String>empty());
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
@@ -31,11 +33,15 @@ public class ExplodeDayOfWeek {
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
         final int oldNumGroups = session.numGroups;
-        session.sessions.values().forEach(sessionInfo -> Session.unchecked(() -> sessionInfo.session.regroup(rulesArray)));
-        session.assumeDense(group -> {
-            final int originalGroup = 1 + (group - 1) / dayKeys.length;
-            final int dayOfWeek = (group - 1) % dayKeys.length;
-            return Pair.of(dayKeys[dayOfWeek], session.groupKeys.get(originalGroup));
+        for (final Session.ImhotepSessionInfo sessionInfo : session.sessions.values()) {
+            sessionInfo.session.regroup(rulesArray);
+        }
+        session.assumeDense(new Function<Integer, Pair<String, Session.GroupKey>>() {
+            public Pair<String, Session.GroupKey> apply(Integer group) {
+                final int originalGroup = 1 + (group - 1) / dayKeys.length;
+                final int dayOfWeek = (group - 1) % dayKeys.length;
+                return Pair.of(dayKeys[dayOfWeek], session.groupKeys.get(originalGroup));
+            }
         }, oldNumGroups * dayKeys.length);
         session.currentDepth += 1;
     }

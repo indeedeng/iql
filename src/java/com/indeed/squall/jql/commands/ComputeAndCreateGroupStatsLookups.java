@@ -1,6 +1,8 @@
 package com.indeed.squall.jql.commands;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
@@ -8,15 +10,14 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class ComputeAndCreateGroupStatsLookups {
     private final List<Pair<Object, String>> namedComputations;
@@ -34,24 +35,39 @@ public class ComputeAndCreateGroupStatsLookups {
             if (computation instanceof GetGroupDistincts) {
                 final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) computation;
                 fields.add(getGroupDistincts.field);
-                handlerables.add(new NameIt<>(session, x -> longToDouble(x), getGroupDistincts.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
+                    public double[] apply(long[] longs) {
+                        return longToDouble(longs);
+                    }
+                }, getGroupDistincts.iterateHandler(session), name));
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
-                handlerables.add(new NameIt<>(session, x -> x, sumAcross.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, Functions.<double[]>identity(), sumAcross.iterateHandler(session), name));
             } else if (computation instanceof GetGroupPercentiles) {
                 final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
                 fields.add(getGroupPercentiles.field);
-                handlerables.add(new NameIt<>(session, x -> longToDouble(x[0]), getGroupPercentiles.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, new Function<long[][], double[]>() {
+                    public double[] apply(long[][] input) {
+                        return longToDouble(input[0]);
+                    }
+                }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final AtomicReference<String> reference = new AtomicReference<>();
                 final List<Session.GroupStats> groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<List<Session.GroupStats>>() {});
-                session.evaluateCommandInternal(null, reference::set, computation);
+                session.evaluateCommandInternal(null, new Consumer<String>() {
+                    public void accept(String s) {
+                        reference.set(s);
+                    }
+                }, computation);
                 final double[] results = new double[groupStats.size()];
                 for (int i = 0; i < groupStats.size(); i++) {
                     results[i] = groupStats.get(i).stats[0];
                 }
-                session.evaluateCommandInternal(null, x -> {}, new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)));
+                session.evaluateCommandInternal(null, new Consumer<String>() {
+                    public void accept(String s) {
+                    }
+                }, new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)));
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }
@@ -86,7 +102,10 @@ public class ComputeAndCreateGroupStatsLookups {
         }
 
         private void nameIt(Session session, double[] value) throws ImhotepOutOfMemoryException, IOException {
-            session.evaluateCommandInternal(null, x -> {}, new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)));
+            session.evaluateCommandInternal(null, new Consumer<String>() {
+                public void accept(String s) {
+                }
+            }, new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)));
         }
 
         @Override

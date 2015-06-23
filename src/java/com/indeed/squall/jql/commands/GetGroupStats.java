@@ -31,7 +31,9 @@ public class GetGroupStats {
 
         session.timer.push("determining pushes");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
-        this.metrics.forEach(metric -> pushesRequired.addAll(metric.requires()));
+        for (final AggregateMetric metric : this.metrics) {
+            pushesRequired.addAll(metric.requires());
+        }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.timer.pop();
@@ -42,21 +44,30 @@ public class GetGroupStats {
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
             sessions.get(sessionName).pushStats(push.pushes);
-            sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
+            IntList metricIndex = sessionMetricIndexes.get(sessionName);
+            if (metricIndex == null) {
+                metricIndex = new IntArrayList();
+                sessionMetricIndexes.put(sessionName, metricIndex);
+            }
+            metricIndex.add(index);
         }
         session.timer.pop();
         session.timer.push("registering stats");
-        this.metrics.forEach(metric -> metric.register(metricIndexes, groupKeys));
+        for (final AggregateMetric metric : this.metrics) {
+            metric.register(metricIndexes, groupKeys);
+        }
         session.timer.pop();
 
         session.timer.push("getGroupStats");
         final long[][] allStats = new long[numStats][];
-        sessionMetricIndexes.forEach((name, positions) -> {
+        for (final Map.Entry<String, IntList> entry : sessionMetricIndexes.entrySet()) {
+            final String name = entry.getKey();
+            final IntList positions = entry.getValue();
             final ImhotepSession s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
                 allStats[positions.get(i)] = s.getGroupStats(i);
             }
-        });
+        }
         session.timer.pop();
 
         session.timer.push("computing aggregated stats");
@@ -85,11 +96,12 @@ public class GetGroupStats {
         session.timer.pop();
 
         session.timer.push("popStat");
-        sessions.values().forEach(s -> {
+        // TODO: Share code, parallelize
+        for (final ImhotepSession s : sessions.values()) {
             while (s.getNumStats() > 0) {
                 s.popStat();
             }
-        });
+        }
         session.timer.pop();
 
         return groupStats;

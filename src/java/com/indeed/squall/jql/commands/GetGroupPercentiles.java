@@ -72,13 +72,17 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]> {
         @Override
         public Set<QualifiedPush> requires() {
             final Set<QualifiedPush> pushes = Sets.newHashSetWithExpectedSize(scope.size());
-            scope.forEach(name -> pushes.add(new QualifiedPush(name, Collections.singletonList("count()"))));
+            for (final String name : scope) {
+                pushes.add(new QualifiedPush(name, Collections.singletonList("count()")));
+            }
             return pushes;
         }
 
         @Override
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            scope.forEach(name -> relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()")))));
+            for (final String name : scope) {
+                relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()"))));
+            }
         }
 
         @Override

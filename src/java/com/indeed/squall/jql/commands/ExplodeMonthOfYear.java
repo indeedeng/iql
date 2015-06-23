@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public class ExplodeMonthOfYear {
     public void execute(Session session) throws ImhotepOutOfMemoryException {
-        new TimeRegroup(1, 'M', -360, Optional.empty()).execute(session);
+        new TimeRegroup(1, 'M', -360, Optional.<String>empty()).execute(session);
     }
 }

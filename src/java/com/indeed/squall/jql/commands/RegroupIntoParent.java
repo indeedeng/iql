@@ -19,9 +19,14 @@ public class RegroupIntoParent {
     }
 
     public void execute(Session session) throws ImhotepOutOfMemoryException {
-        final int maxIndex = Ordering.natural().max(session.groupKeys.stream().skip(1).map(k -> k.parent.index).iterator());
+        int maxIndex = 0;
+        for (int i = 1; i < session.groupKeys.size(); i++) {
+            maxIndex = Math.max(maxIndex, session.groupKeys.get(i).parent.index);
+        }
         final Map<String, Session.SavedGroupStats> newSavedGroupStatsEntries = Maps.newHashMap();
-        session.savedGroupStats.forEach((k, v) -> {
+        for (final Map.Entry<String, Session.SavedGroupStats> entry : session.savedGroupStats.entrySet()) {
+            final String k = entry.getKey();
+            final Session.SavedGroupStats v = entry.getValue();
             if (v.depth == session.currentDepth) {
                 final double[] mergedStats = new double[maxIndex + 1];
                 final double[] oldStats = v.stats;
@@ -56,7 +61,7 @@ public class RegroupIntoParent {
                 }
                 newSavedGroupStatsEntries.put(k, new Session.SavedGroupStats(v.depth - 1, mergedStats));
             }
-        });
+        }
         session.savedGroupStats.putAll(newSavedGroupStatsEntries);
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         final RegroupCondition[] fakeConditions = new RegroupCondition[]{new RegroupCondition("fakeField", true, 1, null, false)};

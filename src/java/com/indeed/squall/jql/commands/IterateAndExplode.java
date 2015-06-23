@@ -43,7 +43,7 @@ public class IterateAndExplode {
                 }
                 explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
             } else {
-                explodes.add(new Commands.TermsWithExplodeOpts(Collections.emptyList(), this.explodeDefaultName));
+                explodes.add(new Commands.TermsWithExplodeOpts(Collections.<Term>emptyList(), this.explodeDefaultName));
             }
         }
         new ExplodePerGroup(explodes).execute(session);

@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -77,6 +79,7 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -102,8 +105,6 @@ import java.util.TreeSet;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -186,37 +187,46 @@ public class Session {
         executor.scheduleAtFixedRate(dimensionsLoader, 0, 5, TimeUnit.MINUTES);
 
         try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort), dimensionsLoader)) {
-            new Thread(wsServer::run).start();
+            new Thread(wsServer).start();
 
             final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
                 final TreeTimer treeTimer = new TreeTimer();
                 treeTimer.push("request");
-                new Thread(() -> {
-                    try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                         final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                             final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-                        final Supplier<JsonNode> nodeSupplier = () -> {
-                            try {
-                                final String line = in.readLine();
-                                return line == null ? null : MAPPER.readTree(line);
-                            } catch (final IOException e) {
-                                throw Throwables.propagate(e);
-                            }
-                        };
+                            final Supplier<JsonNode> nodeSupplier = new Supplier<JsonNode>() {
+                                public JsonNode get() {
+                                    try {
+                                        final String line = in.readLine();
+                                        return line == null ? null : MAPPER.readTree(line);
+                                    } catch (final IOException e) {
+                                        throw Throwables.propagate(e);
+                                    }
+                                }
+                            };
 
-                        System.out.println("Found connection");
-                        final Consumer<String> resultConsumer = out::println;
-                        treeTimer.push("processConnection");
-                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
-                        treeTimer.pop();
-                    } catch (Throwable e) {
-                        log.error("wat", e);
-                        System.out.println("e = " + e);
-                    } finally {
-                        treeTimer.pop();
-                        System.out.println(treeTimer.toString());
+                            System.out.println("Found connection");
+                            final Consumer<String> resultConsumer = new Consumer<String>() {
+                                public void accept(String s) {
+                                    out.println(s);
+                                }
+                            };
+                            treeTimer.push("processConnection");
+                            processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
+                            treeTimer.pop();
+                        } catch (Throwable e) {
+                            log.error("wat", e);
+                            System.out.println("e = " + e);
+                        } finally {
+                            treeTimer.pop();
+                            System.out.println(treeTimer.toString());
+                        }
                     }
                 }).start();
             }
@@ -278,7 +288,10 @@ public class Session {
                 if (isLast) {
                     session.evaluateCommandToTSV(command, out);
                 } else {
-                    session.evaluateCommand(command, x -> {});
+                    session.evaluateCommand(command, new Consumer<String>() {
+                        public void accept(String s) {
+                        }
+                    });
                 }
             }
             return Optional.empty();
@@ -291,7 +304,7 @@ public class Session {
 
     private static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
         final Map<Host, List<DatasetInfo>> shardListMap = client.getShardList();
-        final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
+        final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<ShardInfo>(), new HashSet<String>(), new HashSet<String>(), new HashSet<String>());
         for (final List<DatasetInfo> datasetList : shardListMap.values()) {
             for (final DatasetInfo d : datasetList) {
                 if (d.getDataset().equals(dataset)) {
@@ -337,8 +350,16 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("determine time range");
-            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(shards, ShardIdWithVersion::getStart));
-            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(shards, ShardIdWithVersion::getEnd));
+            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(shards, new Function<ShardIdWithVersion, DateTime>() {
+                public DateTime apply(ShardIdWithVersion input) {
+                    return input.getStart();
+                }
+            }));
+            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(shards, new Function<ShardIdWithVersion, DateTime>() {
+                public DateTime apply(@Nullable ShardIdWithVersion input) {
+                    return input.getEnd();
+                }
+            }));
             treeTimer.pop();
             final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
             final String timeField = isRamsesIndex ? "time" : "unixtime";
@@ -405,7 +426,12 @@ public class Session {
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommand " + commandTree);
         try {
-            final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+            final Object command = Commands.parseCommand(commandTree, new java.util.function.Function<String, PerGroupConstant>() {
+                @Override
+                public PerGroupConstant apply(String s) {
+                    return namedMetricLookup(s);
+                }
+            });
             evaluateCommandInternal(commandTree, out, command);
         } finally {
             timer.pop();
@@ -416,7 +442,12 @@ public class Session {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
 
-            final Object command = Commands.parseCommand(commandTree, this::namedMetricLookup);
+            final Object command = Commands.parseCommand(commandTree, new java.util.function.Function<String, PerGroupConstant>() {
+                @Override
+                public PerGroupConstant apply(String s) {
+                    return namedMetricLookup(s);
+                }
+            });
             if (command instanceof Iterate) {
                 final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
                 final StringBuilder sb = new StringBuilder();
@@ -447,7 +478,9 @@ public class Session {
                 final StringBuilder sb = new StringBuilder();
                 for (final GroupStats result : results) {
                     final List<String> keyColumns = result.key.asList(false);
-                    keyColumns.forEach(k -> sb.append(k).append('\t'));
+                    for (final String k : keyColumns) {
+                        sb.append(k).append('\t');
+                    }
                     for (final double stat : result.stats) {
                         if (DoubleMath.isMathematicalInteger(stat)) {
                             sb.append((long) stat).append('\t');
@@ -477,7 +510,9 @@ public class Session {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
                 final List<String> keyColumns = termSelects.groupKey.asList(true);
-                keyColumns.forEach(k -> sb.append(k).append('\t'));
+                for (final String k : keyColumns) {
+                    sb.append(k).append('\t');
+                }
                 if (termSelects.isIntTerm) {
                     sb.append(termSelects.intTerm).append('\t');
                 } else {
@@ -619,7 +654,7 @@ public class Session {
     // result[1] will be the minimum value required to be greater than 1/k values.
     public static double[] getPercentiles(DoubleCollection values, int k) {
         final DoubleArrayList list = new DoubleArrayList(values);
-        list.sort(Double::compare);
+        list.sort(null);
         final double[] result = new double[k];
         for (int i = 0; i < k; i++) {
             result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
@@ -635,8 +670,12 @@ public class Session {
     }
 
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
-        metrics.forEach(m -> m.register(metricIndexes, groupKeys));
-        filters.forEach(f -> f.register(metricIndexes, groupKeys));
+        for (final AggregateMetric metric : metrics) {
+            metric.register(metricIndexes, groupKeys);
+        }
+        for (final AggregateFilter filter : filters) {
+            filter.register(metricIndexes, groupKeys);
+        }
     }
 
     public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
@@ -646,32 +685,52 @@ public class Session {
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
             sessions.get(sessionName).session.pushStats(push.pushes);
-            sessionMetricIndexes.computeIfAbsent(sessionName, k -> new IntArrayList()).add(index);
+            // TODO: Terrible variable names.
+            IntList sessionMetricIndex = sessionMetricIndexes.get(sessionName);
+            if (sessionMetricIndex == null) {
+                sessionMetricIndex = new IntArrayList();
+                sessionMetricIndexes.put(sessionName, sessionMetricIndex);
+            }
+            sessionMetricIndex.add(index);
         }
     }
 
     public long getLatestEnd() {
-        return sessions.values().stream().mapToLong(x -> x.endTime.getMillis()).max().getAsLong();
+        return Ordering.natural().max(Iterables.transform(sessions.values(), new Function<ImhotepSessionInfo, Long>() {
+            public Long apply(ImhotepSessionInfo input) {
+                return input.endTime.getMillis();
+            }
+        }));
     }
 
     public long getEarliestStart() {
-        return sessions.values().stream().mapToLong(x -> x.startTime.getMillis()).min().getAsLong();
+        return Ordering.natural().min(Iterables.transform(sessions.values(), new Function<ImhotepSessionInfo, Long>() {
+            public Long apply(ImhotepSessionInfo input) {
+                return input.startTime.getMillis();
+            }
+        }));
     }
 
-    public int performTimeRegroup(long start, long end, long unitSize, Optional<String> fieldOverride) {
+    public int performTimeRegroup(long start, long end, long unitSize, final Optional<String> fieldOverride) throws ImhotepOutOfMemoryException {
         final int oldNumGroups = this.numGroups;
-        sessions.values().forEach(sessionInfo -> unchecked(() -> {
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             final ImhotepSession session = sessionInfo.session;
-            session.pushStat(fieldOverride.orElseGet(() -> sessionInfo.timeFieldName));
+            final String fieldName;
+            if (fieldOverride.isPresent()) {
+                fieldName = fieldOverride.get();
+            } else {
+                fieldName = sessionInfo.timeFieldName;
+            }
+            session.pushStat(fieldName);
             session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
             session.popStat();
-        }));
+        }
         return (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
     }
 
     public void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
         final BitSet anyPresent = new BitSet();
-        getSessionsMapRaw().values().forEach(session -> unchecked(() -> {
+        for (final ImhotepSession session : getSessionsMapRaw().values()) {
             session.pushStat("count()");
             final long[] counts = session.getGroupStats(0);
             for (int i = 0; i < counts.length; i++) {
@@ -680,7 +739,7 @@ public class Session {
                 }
             }
             session.popStat();
-        }));
+        }
 
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
@@ -699,7 +758,10 @@ public class Session {
 
         if (anyNonIdentity) {
             final GroupRemapRule[] ruleArray = rules.toArray(new GroupRemapRule[rules.size()]);
-            getSessionsMapRaw().values().forEach(session -> unchecked(() -> session.regroup(ruleArray)));
+            // TODO: Parallelize?
+            for (final ImhotepSession session : getSessionsMapRaw().values()) {
+                session.regroup(ruleArray);
+            }
         }
 
         numGroups = nextGroupKeys.size() - 1;
@@ -722,7 +784,9 @@ public class Session {
 
     public Map<String, ImhotepSession> getSessionsMapRaw() {
         final Map<String, ImhotepSession> sessionMap = Maps.newHashMap();
-        sessions.forEach((k,v) -> sessionMap.put(k, v.session));
+        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
+            sessionMap.put(entry.getKey(), entry.getValue().session);
+        }
         return sessionMap;
     }
 
@@ -731,11 +795,24 @@ public class Session {
     }
 
     public boolean isIntField(String field) {
-        return sessions.values().stream().anyMatch(x -> x.intFields.contains(field) || x.datasetDimensions.contains(field));
+        for (final ImhotepSessionInfo x : sessions.values()) {
+            if (x.intFields.contains(field) || x.datasetDimensions.contains(field)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isStringField(String field) {
-        return !isIntField(field) && sessions.values().stream().anyMatch(x -> x.stringFields.contains(field));
+        if (isIntField(field)) {
+            return false;
+        }
+        for (final ImhotepSessionInfo x : sessions.values()) {
+            if (x.stringFields.contains(field)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private PerGroupConstant namedMetricLookup(String name) {
@@ -799,17 +876,27 @@ public class Session {
     }
 
     public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, IntIterateCallback callback) throws IOException {
-        final int numMetrics = metricIndexes.values().stream().mapToInt(IntList::size).sum();
+        int numMetrics = 0;
+        for (final IntList metrics : metricIndexes.values()) {
+            numMetrics += metrics.size();
+        }
         try (final Closer closer = Closer.create()) {
-            final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>((Comparator<SessionIntIterationState>)(x, y) -> {
-                int r = Longs.compare(x.nextTerm, y.nextTerm);
-                if (r != 0) return r;
-                return Ints.compare(x.nextGroup, y.nextGroup);
-            });
+            final Comparator<SessionIntIterationState> comparator = new Comparator<SessionIntIterationState>() {
+                @Override
+                public int compare(SessionIntIterationState x, SessionIntIterationState y) {
+                    int r = Longs.compare(x.nextTerm, y.nextTerm);
+                    if (r != 0) return r;
+                    return Ints.compare(x.nextGroup, y.nextGroup);
+                }
+            };
+            final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(comparator);
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
-                SessionIntIterationState.construct(closer, session, field, sessionMetricIndexes).ifPresent(pq::add);
+                final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(closer, session, field, sessionMetricIndexes);
+                if (constructed.isPresent()) {
+                    pq.add(constructed.get());
+                }
             }
             final long[] realBuffer = new long[numMetrics];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
@@ -892,17 +979,26 @@ public class Session {
     }
 
     public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, StringIterateCallback callback) throws IOException {
-        final int numMetrics = metricIndexes.values().stream().mapToInt(IntList::size).sum();
+        int numMetrics = 0;
+        for (final IntList metrics : metricIndexes.values()) {
+            numMetrics += metrics.size();
+        }
         try (final Closer closer = Closer.create()) {
-            final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>((Comparator<SessionStringIterationState>)(x, y) -> {
-                int r = x.nextTerm.compareTo(y.nextTerm);
-                if (r != 0) return r;
-                return Ints.compare(x.nextGroup, y.nextGroup);
-            });
+            final Comparator<SessionStringIterationState> comparator = new Comparator<SessionStringIterationState>() {
+                public int compare(SessionStringIterationState x, SessionStringIterationState y) {
+                    int r = x.nextTerm.compareTo(y.nextTerm);
+                    if (r != 0) return r;
+                    return Ints.compare(x.nextGroup, y.nextGroup);
+                }
+            };
+            final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(comparator);
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
-                SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes).ifPresent(pq::add);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes);
+                if (constructed.isPresent()) {
+                    pq.add(constructed.get());
+                }
             }
             final long[] realBuffer = new long[numMetrics];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();

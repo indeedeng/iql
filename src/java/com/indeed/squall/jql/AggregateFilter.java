@@ -1,17 +1,13 @@
 package com.indeed.squall.jql;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
-import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -22,40 +18,6 @@ public interface AggregateFilter extends Pushable{
 
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
-
-    static AggregateFilter fromJson(JsonNode node, Function<String, PerGroupConstant> namedMetricLookup) {
-        final Supplier<AggregateMetric> m1 = () -> AggregateMetric.fromJson(node.get("arg1"), namedMetricLookup);
-        final Supplier<AggregateMetric> m2 = () -> AggregateMetric.fromJson(node.get("arg2"), namedMetricLookup);
-        final Supplier<AggregateFilter> f1 = () -> AggregateFilter.fromJson(node.get("arg1"), namedMetricLookup);
-        final Supplier<AggregateFilter> f2 = () -> AggregateFilter.fromJson(node.get("arg2"), namedMetricLookup);
-        switch (node.get("type").textValue()) {
-            case "termEquals":
-                return new TermEquals(Term.fromJson(node.get("value")));
-            case "not":
-                return new Not(AggregateFilter.fromJson(node.get("value"), namedMetricLookup));
-            case "regex":
-                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue());
-            case "metricEquals":
-                return new MetricEquals(m1.get(), m2.get());
-            case "metricNotEquals":
-                return new MetricNotEquals(m1.get(), m2.get());
-            case "greaterThan":
-                return new GreaterThan(m1.get(), m2.get());
-            case "greaterThanOrEquals":
-                return new GreaterThanOrEquals(m1.get(), m2.get());
-            case "lessThan":
-                return new LessThan(m1.get(), m2.get());
-            case "lessThanOrEquals":
-                return new LessThanOrEquals(m1.get(), m2.get());
-            case "and":
-                return new And(f1.get(), f2.get());
-            case "or":
-                return new Or(f1.get(), f2.get());
-            case "always":
-                return new Constant(true);
-        }
-        throw new RuntimeException("Oops: " + node);
-    }
 
     class TermEquals implements AggregateFilter {
         private final Term value;

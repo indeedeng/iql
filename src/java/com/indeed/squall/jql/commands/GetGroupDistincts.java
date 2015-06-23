@@ -57,7 +57,9 @@ public class GetGroupDistincts implements IterateHandlerable<long[]> {
         }
 
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            filter.ifPresent(f -> f.register(metricIndexes, groupKeys));
+            if (filter.isPresent()) {
+                filter.get().register(metricIndexes, groupKeys);
+            }
         }
 
         @Override

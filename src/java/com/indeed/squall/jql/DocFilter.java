@@ -1,6 +1,5 @@
 package com.indeed.squall.jql;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
@@ -13,7 +12,6 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -21,44 +19,6 @@ import java.util.regex.Pattern;
  */
 public interface DocFilter {
     void apply(String name, Session.ImhotepSessionInfo session, int numGroups) throws ImhotepOutOfMemoryException;
-
-    static DocFilter fromJson(JsonNode node) {
-        final Supplier<DocMetric> m1 = () -> DocMetric.fromJson(node.get("arg1"));
-        final Supplier<DocMetric> m2 = () -> DocMetric.fromJson(node.get("arg2"));
-        final Supplier<DocFilter> f1 = () -> DocFilter.fromJson(node.get("arg1"));
-        final Supplier<DocFilter> f2 = () -> DocFilter.fromJson(node.get("arg2"));
-        switch (node.get("type").textValue()) {
-            case "fieldEquals":
-                return new FieldEquals(node.get("field").textValue(), Term.fromJson(node.get("value")));
-            case "fieldNotEquals":
-                return new FieldNotEquals(node.get("field").textValue(), Term.fromJson(node.get("value")));
-            case "not":
-                return new Not(DocFilter.fromJson(node.get("value")));
-            case "regex":
-                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue(), false);
-            case "notRegex":
-                return new RegexFilter(node.get("field").textValue(), node.get("value").textValue(), true);
-            case "metricEquals":
-                return new MetricEquals(m1.get(), m2.get());
-            case "greaterThan":
-                return new GreaterThan(m1.get(), m2.get());
-            case "lessThan":
-                return new LessThan(m1.get(), m2.get());
-            case "and":
-                return new And(f1.get(), f2.get());
-            case "or":
-                return new Or(f1.get(), f2.get());
-            case "qualified": {
-                final List<String> names = Lists.newArrayList();
-                final JsonNode namesArr = node.get("names");
-                for (int i = 0; i < namesArr.size(); i++) {
-                    names.add(namesArr.get(i).textValue());
-                }
-                return new QualifiedFilter(names, fromJson(node.get("filter")));
-            }
-        }
-        throw new RuntimeException("Oops: " + node);
-    }
 
     class FieldEquals implements DocFilter {
         private final String field;
@@ -265,9 +225,19 @@ public interface DocFilter {
                         while (it.nextGroup()) {
                             final int group = it.group();
                             if (it.fieldIsIntType()) {
-                                intGroupTerms.computeIfAbsent(group, ignored -> new LongArrayList()).add(it.termIntVal());
+                                List<Long> intTerms = intGroupTerms.get(group);
+                                if (intTerms == null) {
+                                    intTerms = new LongArrayList();
+                                    intGroupTerms.put(group, intTerms);
+                                }
+                                intTerms.add(it.termIntVal());
                             } else {
-                                stringGroupTerms.computeIfAbsent(group, ignored -> Lists.newArrayList()).add(it.termStringVal());
+                                List<String> stringTerms = stringGroupTerms.get(group);
+                                if (stringTerms == null) {
+                                    stringTerms = Lists.newArrayList();
+                                    stringGroupTerms.put(group, stringTerms);
+                                }
+                                stringTerms.add(it.termStringVal());
                             }
                         }
                     }

@@ -1,10 +1,12 @@
 package com.indeed.squall.jql.commands;
 
+import com.google.common.base.Function;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
 import org.joda.time.DateTime;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 public class TimePeriodRegroup {
@@ -18,7 +20,7 @@ public class TimePeriodRegroup {
         this.timeFormat = timeFormat;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long shardEnd = session.getLatestEnd();
         final long realEnd;
@@ -30,12 +32,14 @@ public class TimePeriodRegroup {
         final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final int numBuckets = (int) ((realEnd - earliestStart) / periodMillis);
         final String format = timeFormat.orElse("yyyy-MM-dd HH:mm:ss");
-        session.assumeDense(group -> {
-            final int oldGroup = 1 + (group - 1) / numBuckets;
-            final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
-            final long start = earliestStart + groupOffset * periodMillis;
-            final long end = earliestStart + (groupOffset + 1) * periodMillis;
-            return Pair.of("[" + new DateTime(start).toString(format) + ", " + new DateTime(end).toString(format) + ")", session.groupKeys.get(oldGroup));
+        session.assumeDense(new Function<Integer, Pair<String, Session.GroupKey>>() {
+            public Pair<String, Session.GroupKey> apply(Integer group) {
+                final int oldGroup = 1 + (group - 1) / numBuckets;
+                final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
+                final long start = earliestStart + groupOffset * periodMillis;
+                final long end = earliestStart + (groupOffset + 1) * periodMillis;
+                return Pair.of("[" + new DateTime(start).toString(format) + ", " + new DateTime(end).toString(format) + ")", session.groupKeys.get(oldGroup));
+            }
         }, numGroups);
         session.currentDepth += 1;
     }

@@ -58,12 +58,21 @@ public class Running implements AggregateMetric {
     @Override
     public double apply(String term, long[] stats, int group) {
         final double val = inner.apply(term, stats, group);
-        return groupSums.compute(groupToRealGroup[group], (k, v) -> v == null ? val : v + val);
+        return getResult(groupToRealGroup[group], val);
     }
 
     @Override
     public double apply(long term, long[] stats, int group) {
         final double val = inner.apply(term, stats, group);
-        return groupSums.compute(groupToRealGroup[group], (k, v) -> v == null ? val : v + val);
+        return getResult(groupToRealGroup[group], val);
+    }
+
+    private double getResult(int group, double val) {
+        Double v = groupSums.get(group);
+        if (v != null) {
+            return v + val;
+        } else {
+            return val;
+        }
     }
 }

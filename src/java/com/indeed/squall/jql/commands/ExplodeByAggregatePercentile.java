@@ -46,7 +46,17 @@ public class ExplodeByAggregatePercentile {
         if (session.isIntField(field)) {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, field,
-                    (term, stats, group) -> perGroupTermToValue.computeIfAbsent(group, g -> new Long2DoubleOpenHashMap()).put(term, metric.apply(term, stats, group))
+                    new Session.IntIterateCallback() {
+                        @Override
+                        public void term(long term, long[] stats, int group) {
+                            Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
+                            if (termToValue == null) {
+                                termToValue = new Long2DoubleOpenHashMap();
+                                perGroupTermToValue.put(group, termToValue);
+                            }
+                            termToValue.put(term, metric.apply(term, stats, group));
+                        }
+                    }
             );
             final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
@@ -56,10 +66,18 @@ public class ExplodeByAggregatePercentile {
                 final Int2ObjectOpenHashMap<LongArrayList> groupOffsetToTerms = new Int2ObjectOpenHashMap<>();
                 for (final Long2DoubleMap.Entry entry : termToValue.long2DoubleEntrySet()) {
                     final int groupOffset = session.findPercentile(entry.getDoubleValue(), percentiles);
-                    groupOffsetToTerms.computeIfAbsent(groupOffset, k -> new LongArrayList()).add(entry.getLongKey());
+                    LongArrayList terms = groupOffsetToTerms.get(groupOffset);
+                    if (terms == null) {
+                        terms = new LongArrayList();
+                        groupOffsetToTerms.put(groupOffset, terms);
+                    }
+                    terms.add(entry.getLongKey());
                 }
 
-                final int arraySize = groupOffsetToTerms.values().stream().mapToInt(LongArrayList::size).sum();
+                int arraySize = 0;
+                for (final LongArrayList terms : groupOffsetToTerms.values()) {
+                    arraySize += terms.size();
+                }
                 final int[] positiveGroups = new int[arraySize];
                 final RegroupCondition[] conditions = new RegroupCondition[arraySize];
                 int arrayIndex = 0;
@@ -78,12 +96,23 @@ public class ExplodeByAggregatePercentile {
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
             final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.sessions.values().forEach(s -> Session.unchecked(() -> s.session.regroup(rulesArr)));
+            // TODO: Parallelize?
+            for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
+                s.session.regroup(rulesArr);
+            }
         } else if (session.isStringField(field)) {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-            Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field,
-                    (term, stats, group) -> perGroupTermToValue.computeIfAbsent(group, g -> new Object2DoubleOpenHashMap<>()).put(term, metric.apply(term, stats, group))
-            );
+            Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field, new Session.StringIterateCallback() {
+                @Override
+                public void term(String term, long[] stats, int group) {
+                    Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);
+                    if (termToValue == null) {
+                        termToValue = new Object2DoubleOpenHashMap<>();
+                        perGroupTermToValue.put(group, termToValue);
+                    }
+                    termToValue.put(term, metric.apply(term, stats, group));
+                }
+            });
             final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
@@ -92,10 +121,18 @@ public class ExplodeByAggregatePercentile {
                 final Int2ObjectOpenHashMap<ArrayList<String>> groupOffsetToTerms = new Int2ObjectOpenHashMap<>();
                 for (final Map.Entry<String, Double> entry : termToValue.entrySet()) {
                     final int groupOffset = session.findPercentile(entry.getValue(), percentiles);
-                    groupOffsetToTerms.computeIfAbsent(groupOffset, k -> new ArrayList<>()).add(entry.getKey());
+                    ArrayList<String> terms = groupOffsetToTerms.get(groupOffset);
+                    if (terms == null) {
+                        terms = new ArrayList<>();
+                        groupOffsetToTerms.put(groupOffset, terms);
+                    }
+                    terms.add(entry.getKey());
                 }
 
-                final int arraySize = groupOffsetToTerms.values().stream().mapToInt(ArrayList::size).sum();
+                int arraySize = 0;
+                for (final ArrayList<String> terms : groupOffsetToTerms.values()) {
+                    arraySize += terms.size();
+                }
                 final int[] positiveGroups = new int[arraySize];
                 final RegroupCondition[] conditions = new RegroupCondition[arraySize];
                 int arrayIndex = 0;
@@ -114,15 +151,18 @@ public class ExplodeByAggregatePercentile {
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
             final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.sessions.values().forEach(s -> Session.unchecked(() -> s.session.regroup(rulesArr)));
+            // TODO: Parallelize?
+            for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
+                s.session.regroup(rulesArr);
+            }
         } else {
             throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
         }
-        session.sessions.values().forEach(v -> Session.unchecked(() -> {
+        for (final Session.ImhotepSessionInfo v : session.sessions.values()) {
             while (v.session.getNumStats() > 0) {
                 v.session.popStat();
             }
-        }));
+        }
 
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;

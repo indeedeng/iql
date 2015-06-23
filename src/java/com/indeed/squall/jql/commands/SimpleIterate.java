@@ -4,8 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.math.DoubleMath;
+import com.google.common.primitives.Doubles;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.DenseInt2ObjectMap;
 import com.indeed.squall.jql.QualifiedPush;
@@ -44,28 +46,42 @@ public class SimpleIterate {
     public List<List<List<TermSelects>>> execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
-        opts.topK.ifPresent(topK -> metrics.add(topK.metric));
+        if (opts.topK.isPresent()) {
+            metrics.add(opts.topK.get().metric);
+        }
         metrics.addAll(this.selecting);
         for (final AggregateMetric metric : metrics) {
             allPushes.addAll(metric.requires());
         }
-        opts.filter.ifPresent(filter -> allPushes.addAll(filter.requires()));
+        if (opts.filter.isPresent()) {
+            allPushes.addAll(opts.filter.get().requires());
+        }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
-        session.registerMetrics(metricIndexes, metrics, Arrays.asList());
-        opts.filter.ifPresent(filter -> filter.register(metricIndexes, session.groupKeys));
+        session.registerMetrics(metricIndexes, metrics, Arrays.<AggregateFilter>asList());
+        if (opts.filter.isPresent()) {
+            opts.filter.get().register(metricIndexes, session.groupKeys);
+        }
 
         final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
         if (opts.topK.isPresent()) {
-            final Comparator<TermSelects> comparator = Comparator.comparing(x -> Double.isNaN(x.topMetric) ? Double.NEGATIVE_INFINITY : x.topMetric);
+            // TODO: Share this with Iterate. Or delete Iterate.
+            final Comparator<TermSelects> comparator = new Comparator<TermSelects>() {
+                @Override
+                public int compare(TermSelects o1, TermSelects o2) {
+                    final double v1 = Double.isNaN(o1.topMetric) ? Double.NEGATIVE_INFINITY : o1.topMetric;
+                    final double v2 = Double.isNaN(o2.topMetric) ? Double.NEGATIVE_INFINITY : o2.topMetric;
+                    return Doubles.compare(v1, v2);
+                }
+            };
             for (int i = 1; i <= session.numGroups; i++) {
                 // TODO: If this type changes, then a line below with an instanceof check will break.
                 pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
             }
         } else {
             for (int i = 1; i <= session.numGroups; i++) {
-                pqs.put(i, new ArrayDeque<>());
+                pqs.put(i, new ArrayDeque<TermSelects>());
             }
         }
         final AggregateMetric topKMetricOrNull;
@@ -97,11 +113,12 @@ public class SimpleIterate {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
         }
 
-        session.getSessionsMapRaw().values().forEach(s -> {
+        // TODO: This occurs way too many times....
+        for (final ImhotepSession s : session.getSessionsMapRaw().values()) {
             while (s.getNumStats() != 0) {
                 s.popStat();
             }
-        });
+        }
 
         if (streamResult) {
             out.accept("");
@@ -130,7 +147,9 @@ public class SimpleIterate {
     public static String createRow(Session.GroupKey groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = groupKey.asList(true);
-        keyColumns.forEach(k -> sb.append(k).append('\t'));
+        for (final String k : keyColumns) {
+            sb.append(k).append('\t');
+        }
         sb.append(term).append('\t');
         for (final double stat : selectBuffer) {
             if (DoubleMath.isMathematicalInteger(stat)) {
@@ -148,7 +167,9 @@ public class SimpleIterate {
     public static String createRow(Session.GroupKey groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = groupKey.asList(true);
-        keyColumns.forEach(k -> sb.append(k).append('\t'));
+        for (final String k : keyColumns) {
+            sb.append(k).append('\t');
+        }
         sb.append(term).append('\t');
         for (final double stat : selectBuffer) {
             if (DoubleMath.isMathematicalInteger(stat)) {

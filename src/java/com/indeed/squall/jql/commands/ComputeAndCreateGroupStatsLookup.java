@@ -24,7 +24,12 @@ public class ComputeAndCreateGroupStatsLookup {
         final AtomicReference<String> reference = new AtomicReference<>();
         final Object computation = this.computation;
         System.out.println("computation = " + computation);
-        session.evaluateCommandInternal(null, reference::set, computation);
+        session.evaluateCommandInternal(null, new Consumer<String>() {
+            @Override
+            public void accept(String s) {
+                reference.set(s);
+            }
+        }, computation);
         double[] results;
         if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
             results = Session.MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});

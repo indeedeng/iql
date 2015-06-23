@@ -71,14 +71,18 @@ public class SumAcross implements IterateHandlerable<double[]> {
         public Set<QualifiedPush> requires() {
             final Set<QualifiedPush> pushes = Sets.newHashSet();
             pushes.addAll(metric.requires());
-            filter.ifPresent(f -> pushes.addAll(f.requires()));
+            if (filter.isPresent()) {
+                pushes.addAll(filter.get().requires());
+            }
             return pushes;
         }
 
         @Override
         public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
             metric.register(metricIndexes, groupKeys);
-            filter.ifPresent(f -> f.register(metricIndexes, groupKeys));
+            if (filter.isPresent()) {
+                filter.get().register(metricIndexes, groupKeys);
+            }
         }
 
         @Override

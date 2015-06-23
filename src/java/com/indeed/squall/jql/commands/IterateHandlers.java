@@ -10,6 +10,7 @@ import com.indeed.squall.jql.Session;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -22,26 +23,48 @@ public class IterateHandlers {
         if (iterateHandlers.isEmpty()) {
             throw new IllegalArgumentException("Must have at least 1 IterateHandler");
         }
-        final Set<String> scope = iterateHandlers.stream().map(IterateHandler::scope).findFirst().get();
-        if (!iterateHandlers.stream().allMatch(x -> x.scope().equals(scope))) {
-            throw new IllegalArgumentException("All scopes must match");
+        Set<String> scope = null;
+        for (final IterateHandler<T> handler : iterateHandlers) {
+            if (scope == null) {
+                scope = handler.scope();
+            } else {
+                if (!scope.equals(handler.scope())) {
+                    throw new IllegalArgumentException("All scopes must match");
+                }
+            }
         }
-        
+        if (scope == null) {
+            throw new IllegalArgumentException("Must be given at least 1 handler!");
+        }
+
         final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
-        scope.forEach(s -> sessionsSubset.put(s, session.sessions.get(s).session));
+        for (final String s : scope) {
+            // session session sessions session
+            sessionsSubset.put(s, session.sessions.get(s).session);
+        }
         final Set<QualifiedPush> pushes = Sets.newHashSet();
-        iterateHandlers.forEach(h -> pushes.addAll(h.requires()));
+        for (final IterateHandler<T> handler : iterateHandlers) {
+            pushes.addAll(handler.requires());
+        }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
-        iterateHandlers.forEach(h -> h.register(metricIndexes, session.groupKeys));
+        for (final IterateHandler<T> handler : iterateHandlers) {
+            handler.register(metricIndexes, session.groupKeys);
+        }
 
         if (session.isIntField(field)) {
-            final List<Session.IntIterateCallback> intCallbacks = iterateHandlers.stream().map(IterateHandler::intIterateCallback).collect(Collectors.toList());
+            final List<Session.IntIterateCallback> intCallbacks = Lists.newArrayList();
+            for (final IterateHandler<T> handler : iterateHandlers) {
+                intCallbacks.add(handler.intIterateCallback());
+            }
             final Session.IntIterateCallback callback = new MultiIntIterateCallback(intCallbacks);
             Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, callback);
         } else if (session.isStringField(field)) {
-            final List<Session.StringIterateCallback> stringCallbacks = iterateHandlers.stream().map(IterateHandler::stringIterateCallback).collect(Collectors.toList());
+            final List<Session.StringIterateCallback> stringCallbacks = Lists.newArrayList();
+            for (final IterateHandler<T> handler : iterateHandlers) {
+                stringCallbacks.add(handler.stringIterateCallback());
+            }
             final Session.StringIterateCallback callback = new MultiStringIterateCallback(stringCallbacks);
             Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
         } else {
@@ -59,11 +82,12 @@ public class IterateHandlers {
             result.add(iterateHandler.finish());
         }
 
-        session.sessions.values().forEach(s -> {
+        // TODO: c'mon...
+        for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
             while (s.session.getNumStats() > 0) {
                 s.session.popStat();
             }
-        });
+        }
 
         return result;
     }

@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.jql.actions.Action;
+import com.indeed.squall.jql.actions.Actions;
 import com.indeed.squall.jql.commands.ApplyFilterActions;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
@@ -36,6 +37,7 @@ import com.indeed.squall.jql.commands.SumAcross;
 import com.indeed.squall.jql.commands.TimePeriodRegroup;
 import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.jql.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.jql.metrics.aggregate.PerGroupConstant;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
@@ -79,7 +81,7 @@ public class Commands {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final JsonNode selects = command.get("selects");
                 for (int i = 0; i < selects.size(); i++) {
-                    selecting.add(AggregateMetric.fromJson(selects.get(i), namedMetricLookup));
+                    selecting.add(AggregateMetrics.fromJson(selects.get(i), namedMetricLookup));
                 }
                 final String field = command.get("field").textValue();
                 final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
@@ -90,14 +92,16 @@ public class Commands {
             case "filterDocs": {
                 final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();
                 final JsonNode filters = command.get("perDatasetFilter");
-                filters.fieldNames().forEachRemaining(filterName -> {
+                final Iterator<String> filterNamesIterator = filters.fieldNames();
+                while (filterNamesIterator.hasNext()) {
+                    final String filterName = filterNamesIterator.next();
                     final List<String> pushes = Lists.newArrayList();
                     final JsonNode filterList = filters.get(filterName);
                     for (int i = 0; i < filterList.size(); i++) {
                         pushes.add(filterList.get(i).textValue());
                     }
                     perDatasetFilterMetric.put(filterName, pushes);
-                });
+                }
                 return new FilterDocs(perDatasetFilterMetric);
             }
             case "explodeGroups": {
@@ -130,7 +134,7 @@ public class Commands {
             case "getGroupStats": {
                 final List<AggregateMetric> metrics = Lists.newArrayListWithCapacity(command.get("metrics").size());
                 for (final JsonNode metric : command.get("metrics")) {
-                    metrics.add(AggregateMetric.fromJson(metric, namedMetricLookup));
+                    metrics.add(AggregateMetrics.fromJson(metric, namedMetricLookup));
                 }
                 boolean returnGroupKeys = false;
                 for (final JsonNode opt : command.get("opts")) {
@@ -153,7 +157,10 @@ public class Commands {
                 return new CreateGroupStatsLookup(stats, name);
             }
             case "getGroupDistincts": {
-                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
+                final Set<String> scope = Sets.newHashSet();
+                for (final JsonNode node : command.get("scope")) {
+                    scope.add(node.textValue());
+                }
                 final String field = command.get("field").textValue();
                 final JsonNode filterNode = command.get("filter");
                 final int windowSize = command.get("windowSize").intValue();
@@ -162,13 +169,16 @@ public class Commands {
                 if (filterNode.isNull()) {
                     filter = Optional.empty();
                 } else {
-                    filter = Optional.of(AggregateFilter.fromJson(filterNode, namedMetricLookup));
+                    filter = Optional.of(AggregateFilters.fromJson(filterNode, namedMetricLookup));
                 }
                 return new GetGroupDistincts(scope, field, filter, windowSize);
             }
             case "getGroupPercentiles": {
                 final String field = command.get("field").textValue();
-                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
+                final Set<String> scope = Sets.newHashSet();
+                for (final JsonNode node : command.get("scope")) {
+                    scope.add(node.textValue());
+                }
                 final JsonNode percentilesNode = command.get("percentiles");
                 final double[] percentiles = new double[percentilesNode.size()];
                 for (int i = 0; i < percentilesNode.size(); i++) {
@@ -179,14 +189,16 @@ public class Commands {
             case "metricRegroup": {
                 final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
                 final JsonNode metrics = command.get("perDatasetMetric");
-                metrics.fieldNames().forEachRemaining(filterName -> {
+                final Iterator<String> metricNameIterator = metrics.fieldNames();
+                while (metricNameIterator.hasNext()) {
+                    final String metricName = metricNameIterator.next();
                     final List<String> pushes = Lists.newArrayList();
-                    final JsonNode metricList = metrics.get(filterName);
+                    final JsonNode metricList = metrics.get(metricName);
                     for (int i = 0; i < metricList.size(); i++) {
                         pushes.add(metricList.get(i).textValue());
                     }
-                    perDatasetMetric.put(filterName, pushes);
-                });
+                    perDatasetMetric.put(metricName, pushes);
+                }
                 return new MetricRegroup(
                         perDatasetMetric,
                         command.get("min").longValue(),
@@ -269,7 +281,7 @@ public class Commands {
             }
             case "explodeByAggregatePercentile": {
                 final String field = command.get("field").textValue();
-                final AggregateMetric metric = AggregateMetric.fromJson(command.get("metric"), namedMetricLookup);
+                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
                 final int numBuckets = command.get("numBuckets").intValue();
                 return new ExplodeByAggregatePercentile(field, metric, numBuckets);
             }
@@ -279,14 +291,17 @@ public class Commands {
                 return new ExplodePerDocPercentile(field, numBuckets);
             }
             case "sumAcross": {
-                final Set<String> scope = Sets.newHashSet(Iterables.transform(command.get("scope"), JsonNode::textValue));
+                final Set<String> scope = Sets.newHashSet();
+                for (final JsonNode node : command.get("scope")) {
+                    scope.add(node.textValue());
+                }
                 final String field = command.get("field").textValue();
-                final AggregateMetric metric = AggregateMetric.fromJson(command.get("metric"), namedMetricLookup);
+                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
                 final Optional<AggregateFilter> filter;
                 if (command.get("filter").isNull()) {
                     filter = Optional.empty();
                 } else {
-                    filter = Optional.of(AggregateFilter.fromJson(command.get("filter"), namedMetricLookup));
+                    filter = Optional.of(AggregateFilters.fromJson(command.get("filter"), namedMetricLookup));
                 }
                 return new SumAcross(scope, field, metric, filter);
             }
@@ -294,7 +309,7 @@ public class Commands {
                 return new RegroupIntoParent(GroupLookupMergeType.parseJson(command.get("mergeType")));
             }
             case "regroupIntoLastSiblingWhere": {
-                final AggregateFilter filter = AggregateFilter.fromJson(command.get("filter"), namedMetricLookup);
+                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup);
                 final GroupLookupMergeType mergeType = GroupLookupMergeType.parseJson(command.get("mergeType"));
                 return new RegroupIntoLastSiblingWhere(filter, mergeType);
             }
@@ -338,7 +353,7 @@ public class Commands {
             case "applyFilterActions": {
                 final List<Action> actions = new ArrayList<>();
                 for (final JsonNode action : command.get("actions")) {
-                    actions.add(Action.parseFrom(action));
+                    actions.add(Actions.parseFrom(action));
                 }
                 return new ApplyFilterActions(actions);
             }
@@ -379,7 +394,7 @@ public class Commands {
             switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
                     for (final JsonNode metric : globalOpt.get("metrics")) {
-                        selecting.add(AggregateMetric.fromJson(metric, namedMetricLookup));
+                        selecting.add(AggregateMetrics.fromJson(metric, namedMetricLookup));
                     }
                     break;
                 }
