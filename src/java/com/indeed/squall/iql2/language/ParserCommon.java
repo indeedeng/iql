@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language;
 
+import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
 import org.joda.time.DateTimeZone;
@@ -32,7 +33,7 @@ public class ParserCommon {
             return result;
         } else if (timePeriodContext instanceof JQLParser.TimePeriodStringLiteralContext) {
             final String unquoted = ParserCommon.unquote(((JQLParser.TimePeriodStringLiteralContext) timePeriodContext).STRING_LITERAL().getText());
-            final JQLParser parser = Main.parserForString(unquoted);
+            final JQLParser parser = Queries.parserForString(unquoted);
             final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod());
             if (parser.getNumberOfSyntaxErrors() > 0) {
                 throw new IllegalArgumentException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");

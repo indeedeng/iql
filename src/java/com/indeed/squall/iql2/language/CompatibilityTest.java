@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language;
 
+import com.indeed.squall.iql2.language.query.Queries;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -30,7 +31,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Main.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
+                    Queries.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
                 } catch (Exception e) {
                     successes--;
                     failures++;

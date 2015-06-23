@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
-import com.indeed.squall.iql2.language.Main;
 import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.util.core.Pair;
@@ -98,7 +97,7 @@ public class Dataset {
             try {
                 return new DateTime(unquoted.replaceAll(" ", "T"));
             } catch (IllegalArgumentException e) {
-                final JQLParser jqlParser = Main.parserForString(unquoted);
+                final JQLParser jqlParser = Queries.parserForString(unquoted);
                 final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                 if (jqlParser.getNumberOfSyntaxErrors() > 0) {
                     final DateTime dt = parseWordDate(unquoted);

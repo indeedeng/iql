@@ -4,9 +4,8 @@ import com.google.common.base.Function;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.DocMetrics;
 import com.indeed.squall.iql2.language.JQLParser;
-import com.indeed.squall.iql2.language.Main;
+import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 
 import java.util.Collections;
@@ -279,7 +278,7 @@ public class ConstantFolding {
     };
 
     public static void main(String[] args) {
-        final JQLParser parser = Main.parserForString("sortingTime!=-1");
+        final JQLParser parser = Queries.parserForString("sortingTime!=-1");
         final JQLParser.DocFilterContext ctx = parser.docFilter(true);
         final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
         System.out.println("filter = " + filter);
