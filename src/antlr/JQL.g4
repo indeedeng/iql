@@ -114,8 +114,8 @@ STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 legacyAggregateMetric
     : DISTINCT '(' identifier ')' # LegacyAggregateDistinct
     | PERCENTILE '(' identifier ',' number ')' # LegacyAggregatePercentile
-    | legacyDocMetric '/' legacyDocMetric # LegacyAggregateDiv
     | legacyAggregateMetric '/' number # LegacyAggregateDivByConstant
+    | legacyDocMetric '/' legacyDocMetric # LegacyAggregateDiv
     | '(' legacyAggregateMetric ')' # LegacyAggregateParens
     | legacyDocMetric # LegacyImplicitSum
     ;

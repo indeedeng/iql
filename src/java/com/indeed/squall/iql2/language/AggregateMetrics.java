@@ -43,9 +43,17 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDiv(@NotNull JQLParser.LegacyAggregateDivContext ctx) {
+                final DocMetric divisor = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
+                final AggregateMetric aggDivisor;
+                if (divisor instanceof DocMetric.Constant) {
+                    final DocMetric.Constant constant = (DocMetric.Constant) divisor;
+                    aggDivisor = new AggregateMetric.Constant(constant.value);
+                } else {
+                    aggDivisor = new AggregateMetric.DocStats(divisor);
+                }
                 accept(new AggregateMetric.Divide(
                         new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields)),
-                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields))
+                        aggDivisor
                 ));
             }
 
