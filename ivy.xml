@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="1.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+
+    <info organisation="indeed" module="iql-server" status="integration"/>
+
+    <configurations defaultconfmapping="master->default(master)">
+        <conf name="master"/>
+        <conf name="test" extends="master"/>
+        <conf name="compile" extends="master"/>
+        <conf name="default" extends="master"/>
+        <conf name="runtime" extends="master"/>
+        <conf name="webapp" extends="master"/>
+        <conf name="developer" extends="master"/>
+    </configurations>
+
+    <dependencies>
+        <dependency org="indeed" name="common-search" rev="${common-search.version}"/>
+        <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
+        <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
+
+        <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
+        <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
+
+        <dependency org="spring" name="spring-beans" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-context" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-core" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-jdbc" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-web" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-webmvc" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-test" rev="3.2.4.RELEASE" />
+
+        <dependency org="apache" name="log4j" rev="${log4j.version}"/>
+        <dependency org="google" name="guava" rev="${google-guava.version}"/>
+        <dependency org="google" name="gag" rev="${gag.version}"/>
+
+        <dependency org="tomcat" name="servlet-api" rev="${servlet-api7.version}" conf="compile->default"/>
+        <dependency org="tomcat" name="jsp-api" rev="${jsp-api7.version}" conf="compile->default"/>
+
+        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer->default"/>
+
+        <exclude org="tomcat" conf="webapp"/>
+        <exclude org="org.mortbay.jetty" conf="webapp"/>
+        <exclude org="javax.servlet" module="servlet-api" conf="webapp"/>
+        <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp"/>
+        <exclude org="spring" module="spring-asm" conf="webapp"/>
+
+        <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
+    </dependencies>
+</ivy-module>
+
