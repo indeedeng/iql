@@ -18,23 +18,9 @@
     <dependencies>
         <dependency org="indeed" name="common-search" rev="${common-search.version}"/>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
-        <dependency org="indeed" name="jobsearch" rev="${jobsearch.version}"/>
-        <dependency org="indeed" name="jobsearchservice" rev="${jobsearchservice.version}"/>
-        <dependency org="indeed" name="squall-common" rev="${squall-common.version}"/>
-        <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
-        <dependency org="indeed" name="squall-classifiers" rev="${squall-classifiers.version}"/>
-        <dependency org="indeed" name="squall-labeler-common" rev="${squall-labeler-common.version}" />
 
         <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
         <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
-
-        <dependency org="spring" name="spring-beans" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-context" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-core" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-jdbc" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-web" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-webmvc" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-test" rev="3.2.4.RELEASE" />
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
@@ -42,20 +28,8 @@
         <dependency org="google" name="gag" rev="${gag.version}"/>
         <dependency org="opencsv" name="opencsv" rev="${opencsv.version}"/>
 
-        <dependency org="org.eclipse.jgit" name="org.eclipse.jgit" rev="3.3.0.201403021825-r"/>
-
-        <dependency org="tomcat" name="servlet-api" rev="${servlet-api7.version}" conf="compile->default"/>
-        <dependency org="tomcat" name="jsp-api" rev="${jsp-api7.version}" conf="compile->default"/>
-
-        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer->default"/>
-
-        <exclude org="tomcat" conf="webapp"/>
-        <exclude org="org.mortbay.jetty" conf="webapp"/>
-        <exclude org="javax.servlet" module="servlet-api" conf="webapp"/>
-        <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp"/>
-        <exclude org="spring" module="spring-asm" conf="webapp"/>
-
-        <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
+        <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
+        <dependency org="org.antlr" name="antlr4" rev="4.5" conf="compile->default"/>
     </dependencies>
 </ivy-module>
 
