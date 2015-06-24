@@ -93,8 +93,12 @@ public class Server {
 
         final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
-        final Closer closer = Closer.create();
-        final TreeTimer timer = new TreeTimer();
-        Session.createSession(imhotepClient, requestJson, closer, out, Collections.<String, DatasetDimensions>emptyMap(), timer);
+        try (final Closer closer = Closer.create()) {
+            final TreeTimer timer = new TreeTimer();
+            timer.push(q);
+            Session.createSession(imhotepClient, requestJson, closer, out, Collections.<String, DatasetDimensions>emptyMap(), timer);
+            timer.pop();
+            System.out.println(timer);
+        }
     }
 }
