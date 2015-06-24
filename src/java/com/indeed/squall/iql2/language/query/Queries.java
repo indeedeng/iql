@@ -117,7 +117,7 @@ public class Queries {
         }
     }
 
-    private static List<Map<String, String>> createDatasetMap(Query query) {
+    public static List<Map<String, String>> createDatasetMap(Query query) {
         final List<Map<String, String>> result = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
             final Map<String, String> m = new HashMap<>();
