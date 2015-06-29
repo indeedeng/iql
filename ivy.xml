@@ -16,9 +16,12 @@
     </configurations>
 
     <dependencies>
-        <dependency org="indeed" name="common-search" rev="${common-search.version}"/>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
+        <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
+
+        <dependency org="indeed" name="iql2-language" rev="${iql2-language.version}"/>
+        <dependency org="indeed" name="iql2-execution" rev="${iql2-execution.version}"/>
 
         <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
         <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
