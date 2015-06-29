@@ -198,50 +198,46 @@ public class Session {
         final DimensionsLoader dimensionsLoader = new DimensionsLoader("dataset-dimensions", new File("/var/lucene/__/ramses-meta"));
         executor.scheduleAtFixedRate(dimensionsLoader, 0, 5, TimeUnit.MINUTES);
 
-        try (WebSocketSessionServer wsServer = new WebSocketSessionServer(client, new InetSocketAddress(wsSocketPort), dimensionsLoader)) {
-            new Thread(wsServer).start();
+        final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
+        while (true) {
+            final Socket clientSocket = serverSocket.accept();
+            final TreeTimer treeTimer = new TreeTimer();
+            treeTimer.push("request");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                         final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-            final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
-            while (true) {
-                final Socket clientSocket = serverSocket.accept();
-                final TreeTimer treeTimer = new TreeTimer();
-                treeTimer.push("request");
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                             final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
-
-                            final Supplier<JsonNode> nodeSupplier = new Supplier<JsonNode>() {
-                                public JsonNode get() {
-                                    try {
-                                        final String line = in.readLine();
-                                        return line == null ? null : MAPPER.readTree(line);
-                                    } catch (final IOException e) {
-                                        throw Throwables.propagate(e);
-                                    }
+                        final Supplier<JsonNode> nodeSupplier = new Supplier<JsonNode>() {
+                            public JsonNode get() {
+                                try {
+                                    final String line = in.readLine();
+                                    return line == null ? null : MAPPER.readTree(line);
+                                } catch (final IOException e) {
+                                    throw Throwables.propagate(e);
                                 }
-                            };
+                            }
+                        };
 
-                            System.out.println("Found connection");
-                            final Consumer<String> resultConsumer = new Consumer<String>() {
-                                public void accept(String s) {
-                                    out.println(s);
-                                }
-                            };
-                            treeTimer.push("processConnection");
-                            processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
-                            treeTimer.pop();
-                        } catch (Throwable e) {
-                            log.error("wat", e);
-                            System.out.println("e = " + e);
-                        } finally {
-                            treeTimer.pop();
-                            System.out.println(treeTimer.toString());
-                        }
+                        System.out.println("Found connection");
+                        final Consumer<String> resultConsumer = new Consumer<String>() {
+                            public void accept(String s) {
+                                out.println(s);
+                            }
+                        };
+                        treeTimer.push("processConnection");
+                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
+                        treeTimer.pop();
+                    } catch (Throwable e) {
+                        log.error("wat", e);
+                        System.out.println("e = " + e);
+                    } finally {
+                        treeTimer.pop();
+                        System.out.println(treeTimer.toString());
                     }
-                }).start();
-            }
+                }
+            }).start();
         }
     }
 
