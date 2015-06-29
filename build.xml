@@ -9,6 +9,8 @@
     <!-- then load defaults from build.properties.default -->
     <property file="build.properties.default"/>
 
+    <property name="build.notwebapp" value=""/>
+
     <property name="indeed.project.dir" value="${env.INDEED_PROJECT_DIR}"/>
     <property name="common.build.dir" value="${indeed.project.dir}/javadev/build"/>
     <import file="${common.build.dir}/common-build.xml"/>
