@@ -3,7 +3,7 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
 
-    <info organisation="indeed" module="iql-server" status="integration"/>
+    <info organisation="indeed" module="iql2-server" status="integration"/>
 
     <configurations defaultconfmapping="master->default(master)">
         <conf name="master"/>
@@ -14,6 +14,11 @@
         <conf name="webapp" extends="master"/>
         <conf name="developer" extends="master"/>
     </configurations>
+
+    <publications>
+        <artifact name="iql2-server" type="jar" conf="master"/>
+        <artifact name="iql2-server" type="war" conf="master"/>
+    </publications>
 
     <dependencies>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
