@@ -35,7 +35,6 @@
         <dependency org="opencsv" name="opencsv" rev="${opencsv.version}"/>
 
         <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
-        <dependency org="org.antlr" name="antlr4" rev="4.5" conf="compile->default"/>
     </dependencies>
 </ivy-module>
 

@@ -15,4 +15,11 @@
     <property name="common.build.dir" value="${indeed.project.dir}/javadev/build"/>
     <import file="${common.build.dir}/common-build.xml"/>
 
+    <property name="antlr.gen.package" value="com.indeed.squall.iql2.language"/>
+    <property name="antlr.gen.outputPath" value="gen-src/java/com/indeed/squall/iql2/language"/>
+    <property name="antlr.gen.grammarFile" value="JQL.g4"/>
+    <import file="${common.build.dir}/common-antlr.xml"/>
+
+    <target name="generate-transient-java" depends="common.generate-transient-java, generate-antlr-java">
+    </target>
 </project>
