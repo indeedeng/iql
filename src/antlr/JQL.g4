@@ -95,8 +95,8 @@ identifier
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
 
-WS : [ \t\r\n]+ -> skip ;
-COMMENT : '/*' .*? '*/' -> skip ;
+WS : [ \t\r\n]+ -> channel(HIDDEN) ;
+COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 
 number : INT | DOUBLE ;
 

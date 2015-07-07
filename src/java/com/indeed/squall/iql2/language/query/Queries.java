@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.language.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
@@ -22,10 +24,13 @@ import com.indeed.squall.iql2.language.passes.HandleWhereClause;
 import com.indeed.squall.iql2.language.passes.RemoveNames;
 import com.indeed.squall.iql2.language.passes.SubstituteNamed;
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.DefaultErrorStrategy;
 import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.misc.Interval;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -133,6 +138,32 @@ public class Queries {
     public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
         return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields);
+    }
+
+    private static String getText(CharStream inputStream, ParserRuleContext context) {
+        if (context == null) {
+            return "";
+        }
+        return inputStream.getText(new Interval(context.start.getStartIndex(), context.stop.getStopIndex()));
+    }
+
+    public static SplitQuery parseSplitQuery(String q, boolean useLegacy) {
+        final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
+        final CharStream queryInputStream = queryContext.start.getInputStream();
+        final String from = getText(queryInputStream, queryContext.fromContents());
+        final String where = Joiner.on(' ').join(Iterables.transform(queryContext.docFilter(), new Function<JQLParser.DocFilterContext, String>() {
+            public String apply(@Nullable JQLParser.DocFilterContext input) {
+                return getText(queryInputStream, input);
+            }
+        }));
+        final String groupBy = getText(queryInputStream, queryContext.groupByContents());
+        final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
+            public String apply(@Nullable JQLParser.SelectContentsContext input) {
+                return getText(queryInputStream, input);
+            }
+        }));
+
+        return new SplitQuery(from, where, groupBy, select, "");
     }
 
     public static JQLParser.QueryContext parseQueryContext(String q, boolean useLegacy) {

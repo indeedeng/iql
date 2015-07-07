@@ -59,4 +59,11 @@ public class UpperCaseInputStream implements CharStream {
     public String getSourceName() {
         return charStream.getSourceName();
     }
+
+    @Override
+    public String toString() {
+        return "UpperCaseInputStream{" +
+                "charStream=" + charStream +
+                '}';
+    }
 }
