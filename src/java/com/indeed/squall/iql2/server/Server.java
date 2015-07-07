@@ -46,6 +46,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Controller
+@RequestMapping("/iql")
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
