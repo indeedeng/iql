@@ -498,12 +498,9 @@ public class Session {
                     if (keyColumns.size() + result.stats.length > 0) {
                         sb.setLength(sb.length() - 1);
                     }
-                    sb.append('\n');
+                    out.accept(sb.toString());
+                    sb.setLength(0);
                 }
-                if (results.size() > 0) {
-                    sb.setLength(sb.length() - 1);
-                }
-                out.accept(MAPPER.writeValueAsString(Arrays.asList(sb.toString())));
             } else {
                 throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
             }
