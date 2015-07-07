@@ -182,9 +182,9 @@ jqlAggregateFilter
 
 docMetricAtom
     /* TODO: identifier */
-    : field=identifier ('='|':') term=(STRING_LITERAL | ID | TIME_UNIT | INT) # DocMetricAtomHasString
+    : field=identifier ('='|':') term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasString
     /* TODO: identifier */
-    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT | INT) ')' # DocMetricAtomHasString
+    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # DocMetricAtomHasString
     | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
     /* TODO: identifier */
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasntString
