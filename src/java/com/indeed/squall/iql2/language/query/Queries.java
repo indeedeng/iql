@@ -40,6 +40,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -149,6 +150,7 @@ public class Queries {
 
     public static SplitQuery parseSplitQuery(String q, boolean useLegacy) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
+        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents());
         final String where = Joiner.on(' ').join(Iterables.transform(queryContext.docFilter(), new Function<JQLParser.DocFilterContext, String>() {
@@ -163,7 +165,28 @@ public class Queries {
             }
         }));
 
-        return new SplitQuery(from, where, groupBy, select, "");
+        final String dataset;
+        final String start;
+        final String startRawString;
+        final String end;
+        final String endRawString;
+
+        if (queryContext.fromContents().datasetOptTime().isEmpty()) {
+            final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
+            dataset = datasetCtx.index.getText();
+            start = parsed.datasets.get(0).startInclusive.toString();
+            startRawString = getText(queryInputStream, datasetCtx.start);
+            end = parsed.datasets.get(0).endExclusive.toString();
+            endRawString = getText(queryInputStream, datasetCtx.end);
+        } else {
+            dataset = "";
+            start = "";
+            startRawString = "";
+            end = "";
+            endRawString = "";
+        }
+
+        return new SplitQuery(from, where, groupBy, select, "", dataset, start, startRawString, end, endRawString);
     }
 
     public static JQLParser.QueryContext parseQueryContext(String q, boolean useLegacy) {
