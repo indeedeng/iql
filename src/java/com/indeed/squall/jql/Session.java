@@ -310,7 +310,7 @@ public class Session {
         }
     }
 
-    private static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
+    public static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
         final Map<Host, List<DatasetInfo>> shardListMap = client.getShardList();
         final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<ShardInfo>(), new HashSet<String>(), new HashSet<String>(), new HashSet<String>());
         for (final List<DatasetInfo> datasetList : shardListMap.values()) {
