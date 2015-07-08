@@ -32,6 +32,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -135,7 +136,7 @@ public class Server {
             final String dataset = describeDatasetMatcher.group(4);
             final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
             if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                response.getOutputStream().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
+                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
             } else {
                 throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
             }
@@ -167,7 +168,7 @@ public class Server {
                 result.put("type", type);
                 result.put("imhotepType", imhotepType);
                 result.put("topTerms", Collections.emptyList());
-                response.getOutputStream().println(OBJECT_MAPPER.writeValueAsString(result));
+                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
             } else {
                 throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
             }
@@ -184,12 +185,12 @@ public class Server {
                 datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
             }
             if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                response.getOutputStream().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
             } else {
                 throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
             }
         } else {
-            final ServletOutputStream outputStream = response.getOutputStream();
+            final PrintWriter outputStream = response.getWriter();
             if (isStream) {
                 outputStream.println(": This is the start of the IQL Query Stream");
                 outputStream.println();
@@ -198,14 +199,10 @@ public class Server {
             executeQuery(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
-                    try {
-                        if (isStream) {
-                            outputStream.print("data: ");
-                        }
-                        outputStream.println(s);
-                    } catch (IOException e) {
-                        throw Throwables.propagate(e);
+                    if (isStream) {
+                        outputStream.print("data: ");
                     }
+                    outputStream.println(s);
                 }
             }, timer);
             if (isStream) {
