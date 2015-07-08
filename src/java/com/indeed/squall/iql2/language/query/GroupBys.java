@@ -97,7 +97,14 @@ public class GroupBys {
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
-                    excludeGutters = false;
+                    if (ctx2.gutterID != null) {
+                        final String text = ctx2.gutterID.getText();
+                        excludeGutters = "true".equalsIgnoreCase(text);
+                    } else if (ctx2.gutterNumber != null) {
+                        excludeGutters = "1".equals(ctx2.gutterNumber.getText());
+                    } else {
+                        excludeGutters = false;
+                    }
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
                     metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);

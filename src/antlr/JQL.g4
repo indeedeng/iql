@@ -319,7 +319,7 @@ topTermsGroupByElem [boolean useLegacy]
     ;
 
 groupByMetric [boolean useLegacy]
-    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT ')'
+    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
     ;
 
 groupByMetricEnglish [boolean useLegacy]
