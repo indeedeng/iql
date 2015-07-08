@@ -46,7 +46,7 @@
         <dependency org="tomcat" name="servlet-api" rev="${servlet-api7.version}" conf="compile->default"/>
         <dependency org="tomcat" name="jsp-api" rev="${jsp-api7.version}" conf="compile->default"/>
 
-        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer->default"/>
+        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}"/>
 
         <exclude org="tomcat" conf="webapp"/>
         <exclude org="org.mortbay.jetty" conf="webapp"/>
