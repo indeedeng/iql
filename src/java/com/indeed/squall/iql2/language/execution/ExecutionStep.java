@@ -202,7 +202,7 @@ public interface ExecutionStep {
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(metric).getPushes(s));
             }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval));
+            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters));
         }
 
         @Override

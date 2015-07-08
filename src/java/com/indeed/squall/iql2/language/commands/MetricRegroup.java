@@ -17,9 +17,9 @@ public class MetricRegroup implements Command, JsonSerializable {
     public final long min;
     public final long max;
     public final long interval;
-    public final boolean excludeGutters = false;
+    public final boolean excludeGutters;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval) {
+    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
         for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
@@ -28,6 +28,7 @@ public class MetricRegroup implements Command, JsonSerializable {
         this.min = min;
         this.max = max;
         this.interval = interval;
+        this.excludeGutters = excludeGutters;
     }
 
     @Override
