@@ -160,7 +160,9 @@ jqlAggregateMetric
     | jqlAggregateMetric AS name=identifier # AggregateNamed
     ;
 
-scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' ;
+scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' # MultiScope
+      | identifier # SingleScope
+      ;
 
 aggregateFilter [boolean useLegacy]
     : {$ctx.useLegacy}? {false}? // No such thing

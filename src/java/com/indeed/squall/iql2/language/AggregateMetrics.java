@@ -108,8 +108,14 @@ public class AggregateMetrics {
 
             public void enterAggregateQualified(@NotNull JQLParser.AggregateQualifiedContext ctx) {
                 final List<String> scope = new ArrayList<>();
-                for (final JQLParser.IdentifierContext dataset : ctx.scope().datasets) {
-                    scope.add(dataset.getText());
+                if (ctx.scope() instanceof JQLParser.SingleScopeContext) {
+                    final JQLParser.SingleScopeContext singleScopeContext = (JQLParser.SingleScopeContext) ctx.scope();
+                    scope.add(singleScopeContext.identifier().getText());
+                } else if (ctx.scope() instanceof JQLParser.MultiScopeContext) {
+                    final JQLParser.MultiScopeContext multiScopeContext = (JQLParser.MultiScopeContext) ctx.scope();
+                    for (final JQLParser.IdentifierContext dataset : multiScopeContext.datasets) {
+                        scope.add(dataset.getText());
+                    }
                 }
                 accept(new AggregateMetric.Qualified(scope, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
