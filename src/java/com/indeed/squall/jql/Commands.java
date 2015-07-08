@@ -199,11 +199,23 @@ public class Commands {
                     }
                     perDatasetMetric.put(metricName, pushes);
                 }
+                boolean excludeGutters = false;
+                if (command.has("opts")) {
+                    for (final JsonNode opt : command.get("opts")) {
+                        switch (opt.get("type").textValue()) {
+                            case "excludeGutters": {
+                                excludeGutters = true;
+                                break;
+                            }
+                        }
+                    }
+                }
                 return new MetricRegroup(
                         perDatasetMetric,
                         command.get("min").longValue(),
                         command.get("max").longValue(),
-                        command.get("interval").longValue()
+                        command.get("interval").longValue(),
+                        excludeGutters
                 );
             }
             case "timeRegroup": {

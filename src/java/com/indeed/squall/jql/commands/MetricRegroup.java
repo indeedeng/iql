@@ -17,8 +17,10 @@ public class MetricRegroup {
     public final long min;
     public final long max;
     public final long interval;
+    public final boolean excludeGutters;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval) {
+    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters) {
+        this.excludeGutters = excludeGutters;
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
         for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
@@ -46,7 +48,7 @@ public class MetricRegroup {
             if (numStats != 1) {
                 throw new IllegalStateException("Pushed more than one stat!: " + pushes);
             }
-            s.metricRegroup(0, min, max, interval);
+            s.metricRegroup(0, min, max, interval, excludeGutters);
             s.popStat();
         }
 
