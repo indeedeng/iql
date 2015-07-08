@@ -67,14 +67,14 @@ public class Server {
         return Collections.emptyList();
     }
 
-    @RequestMapping("/iql/parse")
+    @RequestMapping(value={"/iql/parse", "/iql2/parse"})
     @ResponseBody
     public Object parse(
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
+        final int version = getVersion(request);
         try {
             response.setHeader("Content-Type", "application/json");
             final Query query = Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields());
@@ -90,14 +90,24 @@ public class Server {
         }
     }
 
-    @RequestMapping("/iql/split")
+    private int getVersion(HttpServletRequest request) {
+        final int fallbackVersion;
+        if (request.getServletPath().startsWith("/iql2/")) {
+            fallbackVersion = 2;
+        } else {
+            fallbackVersion = 1;
+        }
+        return ServletRequestUtils.getIntParameter(request, "v", fallbackVersion);
+    }
+
+    @RequestMapping(value={"/iql/split","/iql2/split"})
     @ResponseBody
     public Object split(
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
+        final int version = getVersion(request);
         response.setHeader("Content-Type", "application/json");
         try {
             return Queries.parseSplitQuery(q, version == 1);
@@ -115,12 +125,12 @@ public class Server {
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
 
-    @RequestMapping("/iql/query")
+    @RequestMapping(value={"/iql/query","/iql2/query"})
     public void handle(final HttpServletRequest request,
                        final HttpServletResponse response,
                        final @Nonnull @RequestParam("q") String query
     ) throws ServletException, IOException, ImhotepOutOfMemoryException {
-        final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
+        final int version = getVersion(request);
         final String contentType = request.getHeader("Accept");
         final TreeTimer timer = new TreeTimer();
 
@@ -210,7 +220,7 @@ public class Server {
                 outputStream.println("event: header");
                 final Map<String, Object> headerMap = new HashMap<>();
                 headerMap.put("IQL-Cached", false);
-                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n","\t"));
+                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
                 outputStream.println();
                 outputStream.println("event: complete");
