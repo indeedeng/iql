@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.server.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
@@ -28,7 +27,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -44,7 +42,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Controller
-@RequestMapping("/iql")
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -64,13 +61,13 @@ public class Server {
         return Collections.emptyMap();
     }
 
-    @RequestMapping("/elaborateable")
+    @RequestMapping(value={"/iql/elaborateable","/iql2/elaborateable"})
     @ResponseBody
     public List<String> elaborateable() {
         return Collections.emptyList();
     }
 
-    @RequestMapping("/parse")
+    @RequestMapping("/iql/parse")
     @ResponseBody
     public Object parse(
             final HttpServletRequest request,
@@ -93,15 +90,15 @@ public class Server {
         }
     }
 
-    @RequestMapping("/split")
+    @RequestMapping("/iql/split")
     @ResponseBody
     public Object split(
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        response.setHeader("Content-Type", "application/json");
         final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
+        response.setHeader("Content-Type", "application/json");
         try {
             return Queries.parseSplitQuery(q, version == 1);
         } catch (Exception e) {
@@ -118,16 +115,13 @@ public class Server {
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
 
-    @RequestMapping("/query")
+    @RequestMapping("/iql/query")
     public void handle(final HttpServletRequest request,
                        final HttpServletResponse response,
                        final @Nonnull @RequestParam("q") String query
     ) throws ServletException, IOException, ImhotepOutOfMemoryException {
         final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
-        response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
-
         final String contentType = request.getHeader("Accept");
-        final boolean isStream = contentType.contains("text/event-stream");
         final TreeTimer timer = new TreeTimer();
 
         final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
@@ -144,7 +138,7 @@ public class Server {
             final String dataset = describeDatasetFieldMatcher.group(4);
             final String field = describeDatasetFieldMatcher.group(5);
             final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
-            
+
             final String type;
             final String imhotepType;
             if (datasetInfo.getIntFields().contains(field)) {
@@ -190,6 +184,12 @@ public class Server {
                 throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
             }
         } else {
+            final boolean isStream = contentType.contains("text/event-stream");
+            if (isStream) {
+                response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
+            } else {
+                response.setHeader("Content-Type", "text/plain;charset=utf-8");
+            }
             final PrintWriter outputStream = response.getWriter();
             if (isStream) {
                 outputStream.println(": This is the start of the IQL Query Stream");
