@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server;
+package com.indeed.squall.iql2.server.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +13,6 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.query.SplitQuery;
 import com.indeed.squall.jql.DatasetDescriptor;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.compat.Consumer;
@@ -34,10 +33,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,7 +76,6 @@ public class Server {
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        response.setHeader("Access-Control-Allow-Origin", "*");
         final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
         try {
             response.setHeader("Content-Type", "application/json");
@@ -103,7 +99,6 @@ public class Server {
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Content-Type", "application/json");
         final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
         try {
@@ -128,7 +123,6 @@ public class Server {
                        final @Nonnull @RequestParam("q") String query
     ) throws ServletException, IOException, ImhotepOutOfMemoryException {
         final int version = ServletRequestUtils.getIntParameter(request, "v", 1);
-        response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
 
         final String contentType = request.getHeader("Accept");
