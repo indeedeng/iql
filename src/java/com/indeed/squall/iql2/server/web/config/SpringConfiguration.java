@@ -2,9 +2,9 @@ package com.indeed.squall.iql2.server.web.config;
 
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
-import com.indeed.squall.iql2.server.web.Server;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.cache.QueryCacheFactory;
+import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +22,7 @@ import java.io.IOException;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {SpringConfiguration.class, Server.class})
+@ComponentScan(basePackageClasses = {ConfigurationPackageMarker.class, ServletsPackageMarker.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 

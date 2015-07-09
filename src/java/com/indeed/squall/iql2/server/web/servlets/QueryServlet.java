@@ -1,8 +1,7 @@
-package com.indeed.squall.iql2.server.web;
+package com.indeed.squall.iql2.server.web.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -29,10 +28,8 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -41,9 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
@@ -53,104 +48,46 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Controller
-public class Server {
-    private static final Logger log = Logger.getLogger(Server.class);
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+public class QueryServlet {
+    private static final Logger log = Logger.getLogger(QueryServlet.class);
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
 
+    private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
+    private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
+
     @Autowired
-    public Server(ImhotepClient imhotepClient, QueryCache queryCache) {
+    public QueryServlet(ImhotepClient imhotepClient, QueryCache queryCache) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
     }
 
+    // TODO: use a shared reloader, and have actual values
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
         return Collections.emptyMap();
     }
 
+    // TODO: use a shared reloader, and have actual values
     private Map<String, Set<String>> getDatasetToIntFields() {
         return Collections.emptyMap();
     }
 
-    @RequestMapping(value={"/iql/elaborateable","/iql2/elaborateable"})
-    @ResponseBody
-    public List<String> elaborateable() {
-        return Collections.emptyList();
-    }
-
-    @RequestMapping(value={"/iql/parse", "/iql2/parse"})
-    @ResponseBody
-    public Object parse(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            final @Nonnull @RequestParam("q") String q
-    ) {
-        final int version = getVersion(request);
-        try {
-            response.setHeader("Content-Type", "application/json");
-            final Query query = Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields());
-            return ImmutableMap.of("parsed", true);
-        } catch (Exception e) {
-            final HashMap<String, Object> errorMap = new HashMap<>();
-            errorMap.put("clause", "where");
-            errorMap.put("offsetInClause", 5);
-            errorMap.put("exceptionType", e.getClass().getSimpleName());
-            errorMap.put("message", e.getMessage());
-            errorMap.put("stackTrace", Joiner.on('\n').join(e.getStackTrace()));
-            return errorMap;
-        }
-    }
-
-    private int getVersion(HttpServletRequest request) {
-        final int fallbackVersion;
-        if (request.getServletPath().startsWith("/iql2/")) {
-            fallbackVersion = 2;
-        } else {
-            fallbackVersion = 1;
-        }
-        return ServletRequestUtils.getIntParameter(request, "v", fallbackVersion);
-    }
-
-    @RequestMapping(value={"/iql/split","/iql2/split"})
-    @ResponseBody
-    public Object split(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            final @Nonnull @RequestParam("q") String q
-    ) {
-        final int version = getVersion(request);
-        response.setHeader("Content-Type", "application/json");
-        try {
-            return Queries.parseSplitQuery(q, version == 1);
-        } catch (Exception e) {
-            final HashMap<String, Object> errorMap = new HashMap<>();
-            errorMap.put("clause", "where");
-            errorMap.put("offsetInClause", 5);
-            errorMap.put("exceptionType", e.getClass().getSimpleName());
-            errorMap.put("message", e.getMessage());
-            errorMap.put("stackTrace", Joiner.on('\n').join(e.getStackTrace()));
-            return errorMap;
-        }
-    }
-
-    private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
-    private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
-
     @RequestMapping(value={"/iql/query","/iql2/query"})
-    public void handle(final HttpServletRequest request,
-                       final HttpServletResponse response,
-                       final @Nonnull @RequestParam("q") String query
+    public void query(
+            final HttpServletRequest request,
+            final HttpServletResponse response,
+            final @Nonnull @RequestParam("q") String query
     ) throws ServletException, IOException, ImhotepOutOfMemoryException {
-        final int version = getVersion(request);
+        final int version = ServletUtil.getVersion(request);
         final String contentType = request.getHeader("Accept");
         final TreeTimer timer = new TreeTimer();
 
@@ -268,7 +205,9 @@ public class Server {
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         for (final Dataset dataset : query.datasets) {
+            timer.push("get chosen shards");
             final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(dataset.dataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
+            timer.pop();
             for (final ShardIdWithVersion chosenShard : chosenShards) {
                 shards.add(Pair.of(dataset.dataset, chosenShard.getShardId()));
             }
@@ -339,7 +278,7 @@ public class Server {
         }
     }
 
-    private String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards) {
+    private static String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
