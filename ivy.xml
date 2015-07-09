@@ -48,6 +48,9 @@
 
         <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}"/>
 
+        <dependency org="hadoop" name="hadoop-core" rev="${hadoop-core.cdh4.version}"/>
+        <dependency org="hadoop" name="hadoop-common" rev="${hadoop-common.cdh4.version}"/>
+
         <exclude org="tomcat" conf="webapp"/>
         <exclude org="org.mortbay.jetty" conf="webapp"/>
         <exclude org="javax.servlet" module="servlet-api" conf="webapp"/>

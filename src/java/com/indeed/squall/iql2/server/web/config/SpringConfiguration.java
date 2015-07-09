@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.server.web.config;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
 import com.indeed.squall.iql2.server.web.Server;
+import com.indeed.squall.iql2.server.web.cache.QueryCache;
+import com.indeed.squall.iql2.server.web.cache.QueryCacheFactory;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -14,9 +16,8 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import javax.xml.bind.PropertyException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 @Configuration
 @EnableWebMvc
@@ -37,6 +38,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         } else {
             return new ImhotepClient(zkNodes, zkPath, true);
         }
+    }
+
+    @Bean
+    QueryCache queryCache() throws PropertyException {
+        return QueryCacheFactory.newQueryCache(env);
     }
 
     @Bean

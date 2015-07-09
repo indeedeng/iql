@@ -1,25 +1,30 @@
 package com.indeed.squall.iql2.server.web;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.jql.DatasetDescriptor;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,14 +38,22 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -52,10 +65,12 @@ public class Server {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ImhotepClient imhotepClient;
+    private final QueryCache queryCache;
 
     @Autowired
-    public Server(ImhotepClient imhotepClient) {
+    public Server(ImhotepClient imhotepClient, QueryCache queryCache) {
         this.imhotepClient = imhotepClient;
+        this.queryCache = queryCache;
     }
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
@@ -238,34 +253,107 @@ public class Server {
                 outputStream.println("data: :)");
             }
         }
-        System.out.println("timer = " + timer);
+        System.out.println(timer);
     }
 
     public void executeQuery(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer) throws IOException, ImhotepOutOfMemoryException {
+        timer.push("parse query");
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields);
+        timer.pop();
+
+        timer.push("compute commands");
         final List<Command> commands = Queries.queryCommands(query);
-        final ObjectMapper objectMapper = new ObjectMapper();
-        if (log.isTraceEnabled()) {
-            log.trace("commands = " + commands);
-            for (final Command command : commands) {
-                log.trace("command = " + command);
-                final String s = objectMapper.writeValueAsString(command);
-                log.trace("s = " + s);
+        timer.pop();
+
+        timer.push("compute hash");
+        final Set<Pair<String, String>> shards = Sets.newHashSet();
+        for (final Dataset dataset : query.datasets) {
+            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(dataset.dataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
+            for (final ShardIdWithVersion chosenShard : chosenShards) {
+                shards.add(Pair.of(dataset.dataset, chosenShard.getShardId()));
             }
-            final String commandList = objectMapper.writeValueAsString(commands);
-            log.trace("commandList = " + commandList);
         }
-
-        final Map<String, Object> request = new HashMap<>();
-        request.put("datasets", Queries.createDatasetMap(query));
-        request.put("commands", commands);
-
-        final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
+        final String queryHash = computeQueryHash(commands, shards);
+        final String cacheFile = queryHash + ".tsv";
+        timer.pop();
 
         try (final Closer closer = Closer.create()) {
+            if (queryCache.isEnabled()) {
+                timer.push("cache check");
+                final boolean isCached = queryCache.isFileCached(cacheFile);
+                timer.pop();
+
+                if (isCached) {
+                    timer.push("read cache");
+                    sendCachedQuery(cacheFile, out);
+                    timer.pop();
+                    return;
+                } else {
+                    final Consumer<String> oldOut = out;
+                    final BufferedWriter cacheOutputStream = closer.register(new BufferedWriter(new OutputStreamWriter(queryCache.getOutputStream(cacheFile), Charsets.UTF_8)));
+                    out = new Consumer<String>() {
+                        @Override
+                        public void accept(String s) {
+                            oldOut.accept(s);
+                            try {
+                                cacheOutputStream.write(s);
+                                cacheOutputStream.newLine();
+                            } catch (IOException e) {
+                                throw Throwables.propagate(e);
+                            }
+                        }
+                    };
+                }
+            }
+
+            final ObjectMapper objectMapper = new ObjectMapper();
+            if (log.isTraceEnabled()) {
+                log.trace("commands = " + commands);
+                for (final Command command : commands) {
+                    log.trace("command = " + command);
+                    final String s = objectMapper.writeValueAsString(command);
+                    log.trace("s = " + s);
+                }
+                final String commandList = objectMapper.writeValueAsString(commands);
+                log.trace("commandList = " + commandList);
+            }
+
+            final Map<String, Object> request = new HashMap<>();
+            request.put("datasets", Queries.createDatasetMap(query));
+            request.put("commands", commands);
+
+            final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
+
             timer.push(q);
             Session.createSession(imhotepClient, requestJson, closer, out, Collections.<String, DatasetDimensions>emptyMap(), timer);
             timer.pop();
         }
+    }
+
+    private void sendCachedQuery(String cacheFile, Consumer<String> out) throws IOException {
+        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
+            String line;
+            while ((line = stream.readLine()) != null) {
+                out.accept(line);
+            }
+        }
+    }
+
+    private String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards) {
+        final MessageDigest sha1;
+        try {
+            sha1 = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Failed to init SHA1", e);
+            throw Throwables.propagate(e);
+        }
+        for (final Command command : commands) {
+            sha1.update(command.toString().getBytes(Charsets.UTF_8));
+        }
+        for (final Pair<String, String> pair : shards) {
+            sha1.update(pair.getFirst().getBytes(Charsets.UTF_8));
+            sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
+        }
+        return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 }

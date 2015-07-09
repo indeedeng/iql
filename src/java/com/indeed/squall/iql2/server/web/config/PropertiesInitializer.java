@@ -2,8 +2,6 @@ package com.indeed.squall.iql2.server.web.config;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.indeed.util.varexport.Export;
-import com.indeed.util.varexport.VarExporter;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;

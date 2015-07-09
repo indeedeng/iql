@@ -1,9 +1,6 @@
 package com.indeed.squall.iql2.server.web.config;
 
 import com.indeed.squall.common.web.AbstractWebAppInitializer;
-import com.indeed.squall.iql2.server.web.config.SpringConfiguration;
-
-import javax.servlet.ServletRegistration;
 
 public class WebApp extends AbstractWebAppInitializer {
     @Override
