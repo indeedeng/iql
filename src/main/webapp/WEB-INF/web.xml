@@ -9,5 +9,6 @@
     <absolute-ordering>
         <name>spring_web</name>
         <name>iql_webapp</name>
+        <name>ims_rest_server</name>
     </absolute-ordering>
 </web-app>

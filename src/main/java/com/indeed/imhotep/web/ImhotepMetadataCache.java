@@ -17,29 +17,41 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.indeed.util.core.io.Closeables2;
-import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.metadata.MetricMetadata;
+import com.indeed.imhotep.metadata.YamlMetadataConverter;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.ims.client.yamlFile.DatasetYaml;
+import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.Query;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -55,11 +67,34 @@ public class ImhotepMetadataCache {
     private final ImhotepClient imhotepClient;
     private String ramsesMetadataPath;
     private final List<Pattern> disabledFields = Lists.newArrayList();
+    private ImsClientInterface metadataClient;
 
 
     public ImhotepMetadataCache(ImhotepClient client, String ramsesMetadataPath, String disabledFields) {
         imhotepClient = client;
         this.ramsesMetadataPath = ramsesMetadataPath;
+        try {
+            ///A way to get the port from tomcat without a request
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
+                       Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
+            String hostname = InetAddress.getLocalHost().getHostName();
+            InetAddress[] addresses = InetAddress.getAllByName(hostname);
+            ArrayList<String> ports = new ArrayList<String>();
+            for (Iterator<ObjectName> i = objs.iterator(); i.hasNext();) {
+                ObjectName obj = i.next();
+                String port = obj.getKeyProperty("port");
+                ports.add(port);
+            }
+            ///
+            String url = "http://localhost:" + ports.get(0)+"/iql/";
+            metadataClient = ImsClient.build(url);
+        } catch (URISyntaxException e) {
+                log.error("Failed to connect to the metadata service",e);
+        }
+        catch (Exception e) {
+            log.error(e);
+        }
         if(disabledFields != null) {
             for(String field : disabledFields.split(",")) {
                 try {
@@ -74,54 +109,22 @@ public class ImhotepMetadataCache {
     // updated every 60s and actual shards in ImhotepClient are reloaded every 60s
     @Scheduled(fixedRate = 60000)
     public void updateDatasets() {
-        Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToShardList();
-        List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
-        Collections.sort(datasetNames);
-
-        if(datasetNames.size() == 0) {   // if we get no data, just keep what we already have
-            log.warn("Imhotep returns no datasets");
-            return;
-        }
-
         // First make empty DatasetMetadata instances
         final LinkedHashMap<String, DatasetMetadata> newDatasets = Maps.newLinkedHashMap();
-        for(String datasetName : datasetNames) {
-            final DatasetMetadata datasetMetadata = new DatasetMetadata(datasetName);
-            newDatasets.put(datasetName, datasetMetadata);
+
+//       now load the metadata from the IMS
+        DatasetYaml[] datasetYamls = metadataClient.getDatasets();
+        for (final DatasetYaml dataset : datasetYamls) {
+            newDatasets.put(dataset.getName(), YamlMetadataConverter.convertDataset(dataset));
         }
 
-        // Now pre-fill the metadata with fields from Imhotep
-        for(DatasetInfo datasetInfo : datasetToShardList.values()) {
-            List<String> dsIntFields = Lists.newArrayList(datasetInfo.getIntFields());
-            List<String> dsStringFields = Lists.newArrayList(datasetInfo.getStringFields());
-            removeDisabledFields(dsIntFields);
-            removeDisabledFields(dsStringFields);
-            Collections.sort(dsIntFields);
-            Collections.sort(dsStringFields);
-
-            final String datasetName = datasetInfo.getDataset();
-            final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
-            final LinkedHashMap<String, FieldMetadata> fieldMetadatas = datasetMetadata.getFields();
-
-            for(String stringField : dsStringFields) {
-                fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
-            }
-
-            for(String intField : dsIntFields) {
-                fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
-            }
-        }
-
-        // now load the metadata from files
-        loadMetadataFromFiles(newDatasets);
-        for(final DatasetMetadata datasetMetadata : newDatasets.values()) {
-            addStandardAliases(datasetMetadata);
-
+        for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
             datasetMetadata.finishLoading();
         }
 
         // new metadata instance is ready for use
         datasets = newDatasets;
+
     }
 
 
@@ -158,22 +161,8 @@ public class ImhotepMetadataCache {
 
     @Scheduled(fixedRate = 60000)
     private void updateKeywordAnalyzerWhitelist() {
-        try {
-            File whitelistFile = new File(ramsesMetadataPath, "keywordAnalyzerWhitelist.json");
-            if (whitelistFile.exists()) {
-                final Map<String, Set<String>> newKeywordAnaylzerWhitelist = Maps.newHashMap();
-                FileInputStream is = new FileInputStream(whitelistFile);
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, List<String>> tmpMap = mapper.readValue(is, new TypeReference<Map<String,List<String>>>(){});
-                for (final String indexName : tmpMap.keySet()) {
-                    final Set<String> whitelistedFields = Sets.newHashSet(tmpMap.get(indexName));
-                    newKeywordAnaylzerWhitelist.put(indexName, whitelistedFields);
-                }
-                datasetToKeywordAnaylzerWhitelist = newKeywordAnaylzerWhitelist;
-            }
-        } catch (Exception e) {
-            log.warn("Failed to process keywordAnalyzerWhitelist.json", e);
-        }
+        datasetToKeywordAnaylzerWhitelist = metadataClient.getWhitelist();//newKeywordAnaylzerWhitelist;
+
     }
 
     private boolean loadMetadataFromFiles(LinkedHashMap<String, DatasetMetadata> newDatasetToAliases) {
