@@ -21,6 +21,17 @@ public class ExplodeMonthOfYear implements Command, JsonSerializable {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ExplodeMonthOfYear;
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO: ???
+        return 83;
+    }
+
+    @Override
     public String toString() {
         return "ExplodeMonthOfYear{}";
     }

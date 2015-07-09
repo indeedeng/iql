@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
 
 public class GetGroupPercentiles implements Command, JsonSerializable {
@@ -33,6 +34,21 @@ public class GetGroupPercentiles implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GetGroupPercentiles that = (GetGroupPercentiles) o;
+        return Objects.equals(scope, that.scope) &&
+                Objects.equals(field, that.field) &&
+                Objects.equals(percentiles, that.percentiles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(scope, field, percentiles);
     }
 
     @Override

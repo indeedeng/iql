@@ -10,6 +10,7 @@ import com.indeed.util.core.Pair;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializable {
     private final List<Pair<Command, String>> namedComputations;
@@ -33,6 +34,19 @@ public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializa
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ComputeAndCreateGroupStatsLookups that = (ComputeAndCreateGroupStatsLookups) o;
+        return Objects.equals(namedComputations, that.namedComputations);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(namedComputations);
     }
 
     @Override

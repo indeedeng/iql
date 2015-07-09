@@ -9,6 +9,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class GetGroupStats implements Command, JsonSerializable {
     public final List<AggregateMetric> metrics;
@@ -35,6 +36,20 @@ public class GetGroupStats implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GetGroupStats that = (GetGroupStats) o;
+        return Objects.equals(returnGroupKeys, that.returnGroupKeys) &&
+                Objects.equals(metrics, that.metrics);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(metrics, returnGroupKeys);
     }
 
     @Override

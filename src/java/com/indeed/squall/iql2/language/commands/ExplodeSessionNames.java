@@ -21,6 +21,17 @@ public class ExplodeSessionNames implements Command, JsonSerializable {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ExplodeSessionNames;
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO: ????
+        return 3821;
+    }
+
+    @Override
     public String toString() {
         return "ExplodeSessionNames{}";
     }

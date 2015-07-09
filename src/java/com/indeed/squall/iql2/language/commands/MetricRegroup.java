@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MetricRegroup implements Command, JsonSerializable {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
@@ -50,6 +51,23 @@ public class MetricRegroup implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricRegroup that = (MetricRegroup) o;
+        return Objects.equals(min, that.min) &&
+                Objects.equals(max, that.max) &&
+                Objects.equals(interval, that.interval) &&
+                Objects.equals(excludeGutters, that.excludeGutters) &&
+                Objects.equals(perDatasetMetric, that.perDatasetMetric);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(perDatasetMetric, min, max, interval, excludeGutters);
     }
 
     @Override

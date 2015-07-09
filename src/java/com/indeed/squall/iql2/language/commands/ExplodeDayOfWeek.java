@@ -21,6 +21,17 @@ public class ExplodeDayOfWeek implements Command, JsonSerializable {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ExplodeDayOfWeek;
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO: ??????
+        return 31;
+    }
+
+    @Override
     public String toString() {
         return "ExplodeDayOfWeek{}";
     }

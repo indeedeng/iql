@@ -10,6 +10,7 @@ import com.indeed.squall.iql2.language.actions.Action;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class ApplyFilterActions implements Command, JsonSerializable {
     public final ImmutableList<Action> actions;
@@ -26,6 +27,19 @@ public class ApplyFilterActions implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ApplyFilterActions that = (ApplyFilterActions) o;
+        return Objects.equals(actions, that.actions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(actions);
     }
 
     @Override

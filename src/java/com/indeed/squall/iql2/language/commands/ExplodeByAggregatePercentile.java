@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.indeed.squall.iql2.language.AggregateMetric;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
     public final String field;
@@ -32,6 +33,21 @@ public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExplodeByAggregatePercentile that = (ExplodeByAggregatePercentile) o;
+        return Objects.equals(numBuckets, that.numBuckets) &&
+                Objects.equals(field, that.field) &&
+                Objects.equals(metric, that.metric);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, metric, numBuckets);
     }
 
     @Override

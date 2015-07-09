@@ -11,6 +11,7 @@ import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class IterateAndExplode implements Command, JsonSerializable {
     public final String field;
@@ -53,6 +54,23 @@ public class IterateAndExplode implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IterateAndExplode that = (IterateAndExplode) o;
+        return Objects.equals(field, that.field) &&
+                Objects.equals(selecting, that.selecting) &&
+                Objects.equals(fieldOpts, that.fieldOpts) &&
+                Objects.equals(fieldLimits, that.fieldLimits) &&
+                Objects.equals(explodeDefaultName, that.explodeDefaultName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
     }
 
     @Override

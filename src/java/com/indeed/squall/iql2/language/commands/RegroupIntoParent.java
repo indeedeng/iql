@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class RegroupIntoParent implements Command, JsonSerializable {
     private final GroupLookupMergeType mergeType;
@@ -23,6 +24,19 @@ public class RegroupIntoParent implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RegroupIntoParent that = (RegroupIntoParent) o;
+        return Objects.equals(mergeType, that.mergeType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mergeType);
     }
 
     @Override

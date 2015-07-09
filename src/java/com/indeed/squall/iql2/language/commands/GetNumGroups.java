@@ -20,6 +20,17 @@ public class GetNumGroups implements Command, JsonSerializable {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        return obj instanceof GetNumGroups;
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO: ???
+        return 233;
+    }
+
+    @Override
     public String toString() {
         return "GetNumGroups{}";
     }

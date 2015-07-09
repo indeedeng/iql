@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateFilter;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class RegroupIntoLastSiblingWhere implements Command, JsonSerializable {
     private final AggregateFilter filter;
@@ -26,6 +27,20 @@ public class RegroupIntoLastSiblingWhere implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RegroupIntoLastSiblingWhere that = (RegroupIntoLastSiblingWhere) o;
+        return Objects.equals(filter, that.filter) &&
+                Objects.equals(mergeType, that.mergeType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(filter, mergeType);
     }
 
     @Override

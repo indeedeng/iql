@@ -8,6 +8,7 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
 
 public class GetGroupDistincts implements Command, JsonSerializable {
@@ -37,6 +38,22 @@ public class GetGroupDistincts implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GetGroupDistincts that = (GetGroupDistincts) o;
+        return Objects.equals(windowSize, that.windowSize) &&
+                Objects.equals(scope, that.scope) &&
+                Objects.equals(field, that.field) &&
+                Objects.equals(filter, that.filter);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(scope, field, filter, windowSize);
     }
 
     @Override

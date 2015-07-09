@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class SampleFields implements Command, JsonSerializable {
     private final Map<String, List<DocFilter.Sample>> perDatasetSamples;
@@ -36,6 +37,19 @@ public class SampleFields implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SampleFields that = (SampleFields) o;
+        return Objects.equals(perDatasetSamples, that.perDatasetSamples);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(perDatasetSamples);
     }
 
     @Override

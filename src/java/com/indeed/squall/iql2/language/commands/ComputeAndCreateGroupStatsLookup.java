@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ComputeAndCreateGroupStatsLookup implements Command, JsonSerializable {
     public final Command computation;
@@ -29,6 +30,20 @@ public class ComputeAndCreateGroupStatsLookup implements Command, JsonSerializab
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ComputeAndCreateGroupStatsLookup that = (ComputeAndCreateGroupStatsLookup) o;
+        return Objects.equals(computation, that.computation) &&
+                Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(computation, name);
     }
 
     @Override

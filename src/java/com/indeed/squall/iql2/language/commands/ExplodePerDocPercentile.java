@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ExplodePerDocPercentile implements Command, JsonSerializable {
     public final String field;
@@ -28,6 +29,20 @@ public class ExplodePerDocPercentile implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExplodePerDocPercentile that = (ExplodePerDocPercentile) o;
+        return Objects.equals(numBuckets, that.numBuckets) &&
+                Objects.equals(field, that.field);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, numBuckets);
     }
 
     @Override

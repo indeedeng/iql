@@ -9,6 +9,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;
@@ -34,6 +35,22 @@ public class SimpleIterate implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleIterate that = (SimpleIterate) o;
+        return Objects.equals(streamResult, that.streamResult) &&
+                Objects.equals(field, that.field) &&
+                Objects.equals(opts, that.opts) &&
+                Objects.equals(selecting, that.selecting);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, opts, selecting, streamResult);
     }
 
     @Override

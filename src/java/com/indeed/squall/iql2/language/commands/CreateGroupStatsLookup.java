@@ -8,6 +8,7 @@ import com.google.common.base.Optional;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class CreateGroupStatsLookup implements Command, JsonSerializable {
     public final double[] stats;
@@ -30,6 +31,20 @@ public class CreateGroupStatsLookup implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CreateGroupStatsLookup that = (CreateGroupStatsLookup) o;
+        return Objects.equals(stats, that.stats) &&
+                Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stats, name);
     }
 
     @Override

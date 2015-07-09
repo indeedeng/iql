@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ExplodeTimeBuckets implements Command, JsonSerializable {
     private final int numBuckets;
@@ -32,6 +33,21 @@ public class ExplodeTimeBuckets implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExplodeTimeBuckets that = (ExplodeTimeBuckets) o;
+        return Objects.equals(numBuckets, that.numBuckets) &&
+                Objects.equals(timeField, that.timeField) &&
+                Objects.equals(timeFormat, that.timeFormat);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(numBuckets, timeField, timeFormat);
     }
 
     @Override
