@@ -117,6 +117,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             List<Host> hosts = Arrays.asList(new Host(mergePointParts[0], Integer.parseInt(mergePointParts[1])));
             return new ImhotepClient(hosts);
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
+            zkPath = "/imhotep/stage-daemons";
             return new ImhotepClient(zkNodes, zkPath, true);
         } else {
             if(quiet) {
