@@ -1,8 +1,10 @@
 package com.indeed.squall.iql2.server.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
@@ -17,7 +19,9 @@ import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
 import com.indeed.util.core.TreeTimer;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestUtils;
@@ -32,6 +36,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -218,10 +223,16 @@ public class Server {
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
+
                 final Map<String, Object> headerMap = new HashMap<>();
-                headerMap.put("IQL-Cached", false);
+                headerMap.put("IQL-Cached", "false");
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+                headerMap.put("IQL-Shard-List", "");
+                headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
+                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
+                headerMap.put("IQL-Totals", "[]");
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+
                 outputStream.println();
                 outputStream.println("event: complete");
                 outputStream.println("data: :)");
