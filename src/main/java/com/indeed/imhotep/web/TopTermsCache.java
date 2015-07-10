@@ -58,7 +58,7 @@ public class TopTermsCache {
     }
 
     @Scheduled(fixedRate = CACHE_UPDATE_FREQUENCY)
-    private void updateTopTerms() {
+    public void updateTopTerms() {
         final File cacheFile = new File(localCachePath, CACHE_FILE_NAME);
         final String cacheFilePath = cacheFile.getAbsolutePath();
         if((!initialized || devMode) && cacheFile.exists()) {

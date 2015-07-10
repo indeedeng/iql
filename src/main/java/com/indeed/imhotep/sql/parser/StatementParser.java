@@ -41,6 +41,7 @@ public class StatementParser {
     private static final Pattern selectPattern = Pattern.compile("(?i)\\s*(?:select|from) .*");
     private static final Pattern showPattern = Pattern.compile("(?i)\\s*show\\s+(?:tables|datasets).*");
     private static final Pattern describePattern = Pattern.compile("(?i)\\s*(?:describe|explain|desc)\\s+(\\w+)(?:(?:\\s+|\\.)(\\w+))?.*");
+    public static int LOWEST_YEAR_ALLOWED = 0;
 
 
     public static IQLStatement parse(String statement) {
@@ -206,7 +207,7 @@ public class StatementParser {
                 if(!startTime.isBefore(endTime)) {
                     throw new IllegalArgumentException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
                 }
-                if(startTime.isBefore(new DateTime(0, 1, 1, 0, 0))) {
+                if(startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0))) {
                     throw new IllegalArgumentException("The start date appears to be too low. Check for a typo: " + startTime);
                 }
                 return new FromClause(dataset, startTime, endTime, start, end);

@@ -76,7 +76,7 @@ public class ImhotepMetadataCache {
     public void updateDatasets() {
         Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToShardList();
         List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
-        Collections.sort(datasetNames);
+        Collections.sort(datasetNames, String.CASE_INSENSITIVE_ORDER);
 
         if(datasetNames.size() == 0) {   // if we get no data, just keep what we already have
             log.warn("Imhotep returns no datasets");
@@ -103,11 +103,12 @@ public class ImhotepMetadataCache {
             final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
             final LinkedHashMap<String, FieldMetadata> fieldMetadatas = datasetMetadata.getFields();
 
-            for(String intField : dsIntFields) {
-                fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
-            }
             for(String stringField : dsStringFields) {
                 fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
+            }
+
+            for(String intField : dsIntFields) {
+                fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
             }
         }
 
