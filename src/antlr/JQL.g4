@@ -126,7 +126,7 @@ aggregateMetric [boolean useLegacy]
     ;
 
 // THIS IS A HACK to work around https://github.com/antlr/antlr4/issues/773
-jqlSumOverMetric : SUM_OVER '(' groupByElement[true] ',' jqlAggregateMetric ')' ;
+jqlSumOverMetric : SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' ;
 
 jqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
