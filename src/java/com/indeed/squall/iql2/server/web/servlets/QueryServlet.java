@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -16,6 +17,7 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
+import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.jql.DatasetDescriptor;
 import com.indeed.squall.jql.Session;
@@ -93,8 +95,11 @@ public class QueryServlet {
     ) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
         final int version = ServletUtil.getVersion(request);
         final String contentType = request.getHeader("Accept");
-        final String username = "jwolfe"; // TODO: read username..
+        final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
+        final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
         final TreeTimer timer = new TreeTimer();
+
+        // TODO: Check for username and client values
 
         final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
         final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
