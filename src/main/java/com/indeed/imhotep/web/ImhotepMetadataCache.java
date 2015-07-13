@@ -17,6 +17,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
@@ -26,6 +27,8 @@ import com.indeed.imhotep.metadata.YamlMetadataConverter;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
+import com.indeed.ims.client.yamlFile.FieldsYaml;
+import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
@@ -109,13 +112,68 @@ public class ImhotepMetadataCache {
     // updated every 60s and actual shards in ImhotepClient are reloaded every 60s
     @Scheduled(fixedRate = 60000)
     public void updateDatasets() {
+        Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToShardList();
+        List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
+        Collections.sort(datasetNames);
+
+        if(datasetNames.size() == 0) {   // if we get no data, just keep what we already have
+            log.warn("Imhotep returns no datasets");
+            return;
+        }
+
         // First make empty DatasetMetadata instances
         final LinkedHashMap<String, DatasetMetadata> newDatasets = Maps.newLinkedHashMap();
+        for(String datasetName : datasetNames) {
+            final DatasetMetadata datasetMetadata = new DatasetMetadata(datasetName);
+            newDatasets.put(datasetName, datasetMetadata);
+        }
+
+        // Now pre-fill the metadata with fields from Imhotep
+        for(DatasetInfo datasetInfo : datasetToShardList.values()) {
+            List<String> dsIntFields = Lists.newArrayList(datasetInfo.getIntFields());
+            List<String> dsStringFields = Lists.newArrayList(datasetInfo.getStringFields());
+            removeDisabledFields(dsIntFields);
+            removeDisabledFields(dsStringFields);
+            Collections.sort(dsIntFields);
+            Collections.sort(dsStringFields);
+
+            final String datasetName = datasetInfo.getDataset();
+            final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
+            final LinkedHashMap<String, FieldMetadata> fieldMetadatas = datasetMetadata.getFields();
+
+            for(String intField : dsIntFields) {
+                fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
+            }
+            for(String stringField : dsStringFields) {
+                fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
+            }
+        }
+
 
 //       now load the metadata from the IMS
         DatasetYaml[] datasetYamls = metadataClient.getDatasets();
-        for (final DatasetYaml dataset : datasetYamls) {
-            newDatasets.put(dataset.getName(), YamlMetadataConverter.convertDataset(dataset));
+        for (final DatasetYaml datasetYaml : datasetYamls) {
+            if(newDatasets.containsKey(datasetYaml.getName())){
+                DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
+                newDataset.setDescription(datasetYaml.getDescription());
+
+                FieldsYaml[] fieldsYamls = datasetYaml.getFields();
+                for(FieldsYaml fieldYaml : fieldsYamls){
+                    FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
+                    if (fieldMetadata !=null){
+                        fieldMetadata.setDescription(fieldYaml.getDescription());
+                        fieldMetadata.setDescription(fieldYaml.getDescription());
+                        fieldMetadata.setHidden(fieldYaml.getHidden());
+                        fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
+
+                    }
+                }
+                MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
+                Map<String, MetricMetadata> metrics = newDataset.getMetrics();
+                for (MetricsYaml metricYaml : metricsYamls){
+                    metrics.put(metricYaml.getName(), YamlMetadataConverter.convertMetricMetadata(metricYaml));
+                }
+            }
         }
 
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
