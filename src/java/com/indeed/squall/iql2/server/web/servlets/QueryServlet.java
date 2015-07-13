@@ -2,9 +2,11 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
@@ -17,6 +19,7 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
+import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.jql.DatasetDescriptor;
@@ -48,6 +51,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,7 @@ import java.util.regex.Pattern;
 @Controller
 public class QueryServlet {
     private static final Logger log = Logger.getLogger(QueryServlet.class);
+    private static final Logger dataLog = Logger.getLogger("indeed.logentry");
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -99,118 +104,153 @@ public class QueryServlet {
         final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
         final TreeTimer timer = new TreeTimer();
 
+        long queryStartTimestamp = System.currentTimeMillis();
+
         // TODO: Check for username and client values
+        try {
+            final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
+            final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
+            if (describeDatasetMatcher.matches()) {
+                final String dataset = describeDatasetMatcher.group(4);
+                final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
+                if (contentType.contains("application/json") || contentType.contains("*/*")) {
+                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
+                } else {
+                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
+                }
+            } else if (describeDatasetFieldMatcher.matches()) {
+                final String dataset = describeDatasetFieldMatcher.group(4);
+                final String field = describeDatasetFieldMatcher.group(5);
+                final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
 
-        final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
-        final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
-        if (describeDatasetMatcher.matches()) {
-            final String dataset = describeDatasetMatcher.group(4);
-            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
-            if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
-            } else {
-                throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-            }
-        } else if (describeDatasetFieldMatcher.matches()) {
-            final String dataset = describeDatasetFieldMatcher.group(4);
-            final String field = describeDatasetFieldMatcher.group(5);
-            final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
-
-            final String type;
-            final String imhotepType;
-            if (datasetInfo.getIntFields().contains(field)) {
-                type = "Integer";
-                if (datasetInfo.getStringFields().contains(field)) {
+                final String type;
+                final String imhotepType;
+                if (datasetInfo.getIntFields().contains(field)) {
+                    type = "Integer";
+                    if (datasetInfo.getStringFields().contains(field)) {
+                        imhotepType = "String";
+                    } else {
+                        imhotepType = "Integer";
+                    }
+                } else if (datasetInfo.getStringFields().contains(field)) {
+                    type = "String";
                     imhotepType = "String";
                 } else {
-                    imhotepType = "Integer";
+                    throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
                 }
-            } else if (datasetInfo.getStringFields().contains(field)) {
-                type = "String";
-                imhotepType = "String";
-            } else {
-                throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
-            }
 
-            if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                final Map<String, Object> result = new HashMap<>();
-                result.put("name", field);
-                result.put("description", "");
-                result.put("type", type);
-                result.put("imhotepType", imhotepType);
-                result.put("topTerms", Collections.emptyList());
-                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
-            } else {
-                throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-            }
-        } else if (query.trim().toLowerCase().equals("show datasets")) {
-            final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
-            final Set<String> datasets = new TreeSet<>();
-            for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
-                for (final DatasetInfo datasetInfo : datasetInfos) {
-                    datasets.add(datasetInfo.getDataset());
+                if (contentType.contains("application/json") || contentType.contains("*/*")) {
+                    final Map<String, Object> result = new HashMap<>();
+                    result.put("name", field);
+                    result.put("description", "");
+                    result.put("type", type);
+                    result.put("imhotepType", imhotepType);
+                    result.put("topTerms", Collections.emptyList());
+                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
+                } else {
+                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
                 }
-            }
-            final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
-            for (final String dataset : datasets) {
-                datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
-            }
-            if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
-            } else {
-                throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-            }
-        } else {
-            final boolean isStream = contentType.contains("text/event-stream");
-            if (isStream) {
-                response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
-            } else {
-                response.setHeader("Content-Type", "text/plain;charset=utf-8");
-            }
-            final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
-            try {
-                timer.push("Acquire concurrent query lock");
-                queryTracker.acquireLocks(); // blocks and waits if necessary
-                timer.pop();
-                final PrintWriter outputStream = response.getWriter();
-                if (isStream) {
-                    outputStream.println(": This is the start of the IQL Query Stream");
-                    outputStream.println();
-                    outputStream.println("event: resultstream");
-                }
-                executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        if (isStream) {
-                            outputStream.print("data: ");
-                        }
-                        outputStream.println(s);
+            } else if (query.trim().toLowerCase().equals("show datasets")) {
+                final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
+                final Set<String> datasets = new TreeSet<>();
+                for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
+                    for (final DatasetInfo datasetInfo : datasetInfos) {
+                        datasets.add(datasetInfo.getDataset());
                     }
-                }, timer, queryTracker);
+                }
+                final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
+                for (final String dataset : datasets) {
+                    datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
+                }
+                if (contentType.contains("application/json") || contentType.contains("*/*")) {
+                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+                } else {
+                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
+                }
+            } else {
+                final boolean isStream = contentType.contains("text/event-stream");
                 if (isStream) {
-                    outputStream.println();
-                    outputStream.println("event: header");
-
-                    final Map<String, Object> headerMap = new HashMap<>();
-                    headerMap.put("IQL-Cached", "false");
-                    headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                    headerMap.put("IQL-Shard-List", "");
-                    headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
-                    headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
-                    headerMap.put("IQL-Totals", "[]");
-                    outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
-
-                    outputStream.println();
-                    outputStream.println("event: complete");
-                    outputStream.println("data: :)");
+                    response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
+                } else {
+                    response.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
-            } finally {
-                if (!queryTracker.isAsynchronousRelease()) {
-                    queryTracker.close();
+                final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
+                try {
+                    timer.push("Acquire concurrent query lock");
+                    queryTracker.acquireLocks(); // blocks and waits if necessary
+                    timer.pop();
+                    queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
+                    final PrintWriter outputStream = response.getWriter();
+                    if (isStream) {
+                        outputStream.println(": This is the start of the IQL Query Stream");
+                        outputStream.println();
+                        outputStream.println("event: resultstream");
+                    }
+                    executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
+                        @Override
+                        public void accept(String s) {
+                            if (isStream) {
+                                outputStream.print("data: ");
+                            }
+                            outputStream.println(s);
+                        }
+                    }, timer, queryTracker);
+                    if (isStream) {
+                        outputStream.println();
+                        outputStream.println("event: header");
+
+                        final Map<String, Object> headerMap = new HashMap<>();
+                        headerMap.put("IQL-Cached", "false");
+                        headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+                        headerMap.put("IQL-Shard-List", "");
+                        headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
+                        headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
+                        headerMap.put("IQL-Totals", "[]");
+                        outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+
+                        outputStream.println();
+                        outputStream.println("event: complete");
+                        outputStream.println("data: :)");
+                    }
+                } finally {
+                    if (!queryTracker.isAsynchronousRelease()) {
+                        queryTracker.close();
+                    }
                 }
+            }
+        } finally {
+            try {
+                String remoteAddr = getForwardedForIPAddress(request);
+                if (remoteAddr == null) {
+                    remoteAddr = request.getRemoteAddr();
+                }
+                logQuery(request, query, username, queryStartTimestamp, null, remoteAddr);
+            } catch (Throwable ignored) {
+                // Do nothing
             }
         }
         System.out.println(timer);
+    }
+
+    /**
+     * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
+     * the order in which the header values will be returned. I have examined the Tomcat source to establish that it does return the values in order, but this
+     * behavior should not be assumed from other servlet containers.
+     *
+     * @param req request
+     * @return the X-Forwarded-For IP address or null if none
+     */
+    private static String getForwardedForIPAddress(final HttpServletRequest req) {
+        return getForwardedForIPAddress(req, "X-Forwarded-For");
+    }
+
+    private static String getForwardedForIPAddress(final HttpServletRequest req, final String forwardForHeaderName) {
+        final Enumeration headers = req.getHeaders(forwardForHeaderName);
+        String value = null;
+        while (headers.hasMoreElements()) {
+            value = (String) headers.nextElement();
+        }
+        return value;
     }
 
     public void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
@@ -316,5 +356,60 @@ public class QueryServlet {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static final int QUERY_LENGTH_LIMIT = 55000; // trying to not cause the logentry to overflow from being larger than 2^16
+
+    private void logQuery(HttpServletRequest req,
+                          String query,
+                          String userName,
+                          long queryStartTimestamp,
+                          Throwable errorOccurred,
+                          String remoteAddr) {
+        final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
+        if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
+            logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
+        }
+
+        final String client = Strings.nullToEmpty(req.getParameter("client"));
+
+        final QueryLogEntry logEntry = new QueryLogEntry();
+        logEntry.setProperty("v", 0);
+        logEntry.setProperty("username", userName);
+        logEntry.setProperty("client", client);
+        logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
+        logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
+        logEntry.setProperty("tottime", (int)timeTaken);
+
+        final List<String> params = Lists.newArrayList();
+        final Enumeration<String> paramsEnum = req.getParameterNames();
+        while(paramsEnum.hasMoreElements()) {
+            final String param = paramsEnum.nextElement();
+            // TODO: Add whitelist
+            params.add(param);
+        }
+        logEntry.setProperty("params", Joiner.on(' ').join(params));
+        final String queryToLog = query.length() > QUERY_LENGTH_LIMIT ? query.substring(0, QUERY_LENGTH_LIMIT) : query;
+        logEntry.setProperty("q", queryToLog);
+        logEntry.setProperty("qlen", query.length());
+        logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
+        if(errorOccurred != null) {
+            logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
+            logEntry.setProperty("exceptionmsg", errorOccurred.getMessage());
+        }
+
+        // TODO: Log semantic information about the query.
+//        final String queryType = logStatementData(parsedQuery, selectExecutionStats, logEntry);
+//        logEntry.setProperty("statement", queryType);
+
+        dataLog.info(logEntry);
+    }
+
+    private void logQueryToLog4J(String query, String identification, long timeTaken) {
+        if(query.length() > 500) {
+            query = query.replaceAll("\\(([^\\)]{0,100}+)[^\\)]+\\)", "\\($1\\.\\.\\.\\)");
+        }
+        final String timeTakenStr = timeTaken >= 0 ? String.valueOf(timeTaken) : "";
+        log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
     }
 }
