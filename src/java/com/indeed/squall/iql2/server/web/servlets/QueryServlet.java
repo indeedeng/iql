@@ -15,6 +15,7 @@ import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.jql.DatasetDescriptor;
 import com.indeed.squall.jql.Session;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,14 +63,16 @@ public class QueryServlet {
 
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
+    private final ExecutionManager executionManager;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
 
     @Autowired
-    public QueryServlet(ImhotepClient imhotepClient, QueryCache queryCache) {
+    public QueryServlet(ImhotepClient imhotepClient, QueryCache queryCache, ExecutionManager executionManager) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
+        this.executionManager = executionManager;
     }
 
     // TODO: use a shared reloader, and have actual values
@@ -86,9 +90,10 @@ public class QueryServlet {
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String query
-    ) throws ServletException, IOException, ImhotepOutOfMemoryException {
+    ) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
         final int version = ServletUtil.getVersion(request);
         final String contentType = request.getHeader("Accept");
+        final String username = "jwolfe"; // TODO: read username..
         final TreeTimer timer = new TreeTimer();
 
         final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
@@ -157,43 +162,52 @@ public class QueryServlet {
             } else {
                 response.setHeader("Content-Type", "text/plain;charset=utf-8");
             }
-            final PrintWriter outputStream = response.getWriter();
-            if (isStream) {
-                outputStream.println(": This is the start of the IQL Query Stream");
-                outputStream.println();
-                outputStream.println("event: resultstream");
-            }
-            executeQuery(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    if (isStream) {
-                        outputStream.print("data: ");
-                    }
-                    outputStream.println(s);
+            final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
+            try {
+                queryTracker.acquireLocks(); // blocks and waits if necessary
+                // TODO: Don't count time waiting?
+                final PrintWriter outputStream = response.getWriter();
+                if (isStream) {
+                    outputStream.println(": This is the start of the IQL Query Stream");
+                    outputStream.println();
+                    outputStream.println("event: resultstream");
                 }
-            }, timer);
-            if (isStream) {
-                outputStream.println();
-                outputStream.println("event: header");
+                executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
+                        if (isStream) {
+                            outputStream.print("data: ");
+                        }
+                        outputStream.println(s);
+                    }
+                }, timer, queryTracker);
+                if (isStream) {
+                    outputStream.println();
+                    outputStream.println("event: header");
 
-                final Map<String, Object> headerMap = new HashMap<>();
-                headerMap.put("IQL-Cached", "false");
-                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                headerMap.put("IQL-Shard-List", "");
-                headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
-                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
-                headerMap.put("IQL-Totals", "[]");
-                outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+                    final Map<String, Object> headerMap = new HashMap<>();
+                    headerMap.put("IQL-Cached", "false");
+                    headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+                    headerMap.put("IQL-Shard-List", "");
+                    headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
+                    headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
+                    headerMap.put("IQL-Totals", "[]");
+                    outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
 
-                outputStream.println();
-                outputStream.println("event: complete");
-                outputStream.println("data: :)");
+                    outputStream.println();
+                    outputStream.println("event: complete");
+                    outputStream.println("data: :)");
+                }
+            } finally {
+                if (!queryTracker.isAsynchronousRelease()) {
+                    queryTracker.close();
+                }
             }
         }
         System.out.println(timer);
     }
 
-    public void executeQuery(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer) throws IOException, ImhotepOutOfMemoryException {
+    public void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
@@ -231,6 +245,7 @@ public class QueryServlet {
                     return;
                 } else {
                     final Consumer<String> oldOut = out;
+                    // TODO: Use queryCache.writeFromFile() instead, and call writeFromFile asynchronously
                     final BufferedWriter cacheOutputStream = closer.register(new BufferedWriter(new OutputStreamWriter(queryCache.getOutputStream(cacheFile), Charsets.UTF_8)));
                     out = new Consumer<String>() {
                         @Override
