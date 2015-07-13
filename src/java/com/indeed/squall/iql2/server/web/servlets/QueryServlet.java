@@ -169,8 +169,9 @@ public class QueryServlet {
             }
             final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
             try {
+                timer.push("Acquire concurrent query lock");
                 queryTracker.acquireLocks(); // blocks and waits if necessary
-                // TODO: Don't count time waiting?
+                timer.pop();
                 final PrintWriter outputStream = response.getWriter();
                 if (isStream) {
                     outputStream.println(": This is the start of the IQL Query Stream");
