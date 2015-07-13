@@ -194,6 +194,8 @@ public class QueryServlet {
     }
 
     public void executeQuery(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer) throws IOException, ImhotepOutOfMemoryException {
+        timer.push(q);
+
         timer.push("parse query");
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields);
         timer.pop();
@@ -263,10 +265,9 @@ public class QueryServlet {
 
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
-            timer.push(q);
             Session.createSession(imhotepClient, requestJson, closer, out, Collections.<String, DatasetDimensions>emptyMap(), timer);
-            timer.pop();
         }
+        timer.pop();
     }
 
     private void sendCachedQuery(String cacheFile, Consumer<String> out) throws IOException {
