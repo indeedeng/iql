@@ -13,11 +13,11 @@ import java.util.Objects;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;
-    public final Iterate.FieldIterateOpts opts;
+    public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     public final boolean streamResult;
 
-    public SimpleIterate(String field, Iterate.FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult) {
+    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;

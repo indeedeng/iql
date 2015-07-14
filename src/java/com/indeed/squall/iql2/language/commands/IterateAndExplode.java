@@ -16,11 +16,11 @@ import java.util.Objects;
 public class IterateAndExplode implements Command, JsonSerializable {
     public final String field;
     public final List<AggregateMetric> selecting;
-    public final Iterate.FieldIterateOpts fieldOpts;
-    public final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits;
+    public final FieldIterateOpts fieldOpts;
+    public final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits;
     public final Optional<String> explodeDefaultName;
 
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, Iterate.FieldIterateOpts fieldOpts, Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
+    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;
@@ -36,7 +36,7 @@ public class IterateAndExplode implements Command, JsonSerializable {
         gen.writeArrayFieldStart("iterOpts");
         gen.writeObject(ImmutableMap.of("type", "defaultedFieldOpts", "opts", fieldOpts));
         if (fieldLimits.isPresent()) {
-            final Pair<Integer, Iterate.FieldLimitingMechanism> p = fieldLimits.get();
+            final Pair<Integer, FieldLimitingMechanism> p = fieldLimits.get();
             gen.writeObject(ImmutableMap.of("type", "limitingFields", "numFields", p.getFirst(), "by", p.getSecond()));
         }
         if (!selecting.isEmpty()) {

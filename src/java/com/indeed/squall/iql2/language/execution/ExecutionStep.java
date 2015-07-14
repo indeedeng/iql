@@ -13,12 +13,14 @@ import com.indeed.squall.iql2.language.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookups;
-import com.indeed.squall.iql2.language.commands.Iterate;
+import com.indeed.squall.iql2.language.commands.FieldIterateOpts;
+import com.indeed.squall.iql2.language.commands.FieldLimitingMechanism;
 import com.indeed.squall.iql2.language.commands.IterateAndExplode;
 import com.indeed.squall.iql2.language.commands.MetricRegroup;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.language.commands.TimeRegroup;
+import com.indeed.squall.iql2.language.commands.TopK;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 
@@ -139,12 +141,12 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
+            final FieldIterateOpts opts = new FieldIterateOpts();
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
             }
             if (limit.isPresent()) {
-                opts.topK = Optional.of(new Iterate.TopK((int) (long) limit.get(), metric));
+                opts.topK = Optional.of(new TopK((int) (long) limit.get(), metric));
             }
             final Optional<String> withDefaultName;
             if (withDefault) {
@@ -152,7 +154,7 @@ public interface ExecutionStep {
             } else {
                 withDefaultName = Optional.absent();
             }
-            final Command command = new IterateAndExplode(field, Collections.<AggregateMetric>emptyList(), opts, Optional.<Pair<Integer, Iterate.FieldLimitingMechanism>>absent(), withDefaultName);
+            final Command command = new IterateAndExplode(field, Collections.<AggregateMetric>emptyList(), opts, Optional.<Pair<Integer, FieldLimitingMechanism>>absent(), withDefaultName);
             return Collections.singletonList(command);
         }
 
@@ -421,9 +423,9 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
+            final FieldIterateOpts opts = new FieldIterateOpts();
             if (limit.isPresent()) {
-                opts.topK = Optional.of(new Iterate.TopK((int) (long) limit.get(), metric));
+                opts.topK = Optional.of(new TopK((int) (long) limit.get(), metric));
             }
             opts.filter = filter;
             final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, !limit.isPresent() && !forceNonStreaming);
