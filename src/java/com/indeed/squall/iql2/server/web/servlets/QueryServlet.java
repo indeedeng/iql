@@ -297,13 +297,13 @@ public class QueryServlet {
                     return;
                 } else {
                     final Consumer<String> oldOut = out;
-                    // TODO: Use queryCache.writeFromFile() instead, and call writeFromFile asynchronously
                     final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
                     final File cacheFile = tmpFile.toFile();
                     final BufferedWriter cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
                     closer.register(new Closeable() {
                         @Override
                         public void close() throws IOException {
+                            // TODO: Do this stuff asynchronously
                             cacheWriter.close();
                             queryCache.writeFromFile(cacheFileName, cacheFile);
                             if (!cacheFile.delete()) {
