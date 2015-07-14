@@ -5,9 +5,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.DenseInt2ObjectMap;
 import com.indeed.squall.jql.QualifiedPush;
@@ -82,7 +82,19 @@ public class SimpleIterate implements Command {
                 public int compare(TermSelects o1, TermSelects o2) {
                     final double v1 = Double.isNaN(o1.topMetric) ? Double.NEGATIVE_INFINITY : o1.topMetric;
                     final double v2 = Double.isNaN(o2.topMetric) ? Double.NEGATIVE_INFINITY : o2.topMetric;
-                    return Doubles.compare(v1, v2);
+
+                    int r = Doubles.compare(v1, v2);
+                    if (r != 0) {
+                        return r;
+                    }
+
+                    if (o1.isIntTerm) {
+                        r = Longs.compare(o1.intTerm, o2.intTerm);
+                    } else {
+                        r = o1.stringTerm.compareTo(o2.stringTerm);
+                    }
+
+                    return r;
                 }
             };
             for (int i = 1; i <= session.numGroups; i++) {
