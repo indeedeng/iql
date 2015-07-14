@@ -162,7 +162,6 @@ public class ImhotepMetadataCache {
                     FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
                     if (fieldMetadata !=null){
                         fieldMetadata.setDescription(fieldYaml.getDescription());
-                        fieldMetadata.setDescription(fieldYaml.getDescription());
                         fieldMetadata.setHidden(fieldYaml.getHidden());
                         fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
 
