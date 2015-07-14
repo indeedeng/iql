@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -43,10 +44,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -275,31 +281,47 @@ public class QueryServlet {
             }
         }
         final String queryHash = computeQueryHash(commands, shards);
-        final String cacheFile = queryHash + ".tsv";
+        final String cacheFileName = queryHash + ".tsv";
         timer.pop();
 
         try (final Closer closer = Closer.create()) {
             if (queryCache.isEnabled()) {
                 timer.push("cache check");
-                final boolean isCached = queryCache.isFileCached(cacheFile);
+                final boolean isCached = queryCache.isFileCached(cacheFileName);
                 timer.pop();
 
                 if (isCached) {
                     timer.push("read cache");
-                    sendCachedQuery(cacheFile, out);
+                    sendCachedQuery(cacheFileName, out, query.rowLimit);
                     timer.pop();
                     return;
                 } else {
                     final Consumer<String> oldOut = out;
                     // TODO: Use queryCache.writeFromFile() instead, and call writeFromFile asynchronously
-                    final BufferedWriter cacheOutputStream = closer.register(new BufferedWriter(new OutputStreamWriter(queryCache.getOutputStream(cacheFile), Charsets.UTF_8)));
+                    final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
+                    final File cacheFile = tmpFile.toFile();
+                    final BufferedWriter cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
+                    closer.register(new Closeable() {
+                        @Override
+                        public void close() throws IOException {
+                            cacheWriter.close();
+                            queryCache.writeFromFile(cacheFileName, cacheFile);
+                            cacheFile.delete();
+                        }
+                    });
+                    final int rowLimit = query.rowLimit.or(Integer.MAX_VALUE);
                     out = new Consumer<String>() {
+                        int rowsWritten = 0;
+
                         @Override
                         public void accept(String s) {
-                            oldOut.accept(s);
+                            if (rowsWritten < rowLimit) {
+                                oldOut.accept(s);
+                                rowsWritten += 1;
+                            }
                             try {
-                                cacheOutputStream.write(s);
-                                cacheOutputStream.newLine();
+                                cacheWriter.write(s);
+                                cacheWriter.newLine();
                             } catch (IOException e) {
                                 throw Throwables.propagate(e);
                             }
@@ -331,11 +353,17 @@ public class QueryServlet {
         timer.pop();
     }
 
-    private void sendCachedQuery(String cacheFile, Consumer<String> out) throws IOException {
+    private void sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit) throws IOException {
+        final int limit = rowLimit.or(Integer.MAX_VALUE);
+        int rowsWritten = 0;
         try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
             String line;
             while ((line = stream.readLine()) != null) {
                 out.accept(line);
+                rowsWritten += 1;
+                if (rowsWritten >= limit) {
+                    break;
+                }
             }
         }
     }
