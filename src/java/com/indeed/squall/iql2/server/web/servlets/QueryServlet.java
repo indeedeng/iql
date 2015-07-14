@@ -19,6 +19,7 @@ import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
@@ -50,6 +52,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -110,6 +113,8 @@ public class QueryServlet {
         final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
         final TreeTimer timer = new TreeTimer();
 
+        Throwable errorOccurred = null;
+
         long queryStartTimestamp = System.currentTimeMillis();
 
         // TODO: Check for username and client values
@@ -118,61 +123,13 @@ public class QueryServlet {
             final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
             if (describeDatasetMatcher.matches()) {
                 final String dataset = describeDatasetMatcher.group(4);
-                final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
-                if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
-                } else {
-                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-                }
+                processDescribeDataset(response, contentType, dataset);
             } else if (describeDatasetFieldMatcher.matches()) {
                 final String dataset = describeDatasetFieldMatcher.group(4);
                 final String field = describeDatasetFieldMatcher.group(5);
-                final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
-
-                final String type;
-                final String imhotepType;
-                if (datasetInfo.getIntFields().contains(field)) {
-                    type = "Integer";
-                    if (datasetInfo.getStringFields().contains(field)) {
-                        imhotepType = "String";
-                    } else {
-                        imhotepType = "Integer";
-                    }
-                } else if (datasetInfo.getStringFields().contains(field)) {
-                    type = "String";
-                    imhotepType = "String";
-                } else {
-                    throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
-                }
-
-                if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                    final Map<String, Object> result = new HashMap<>();
-                    result.put("name", field);
-                    result.put("description", "");
-                    result.put("type", type);
-                    result.put("imhotepType", imhotepType);
-                    result.put("topTerms", Collections.emptyList());
-                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
-                } else {
-                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-                }
+                processDescribeField(response, contentType, dataset, field);
             } else if (query.trim().toLowerCase().equals("show datasets")) {
-                final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
-                final Set<String> datasets = new TreeSet<>();
-                for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
-                    for (final DatasetInfo datasetInfo : datasetInfos) {
-                        datasets.add(datasetInfo.getDataset());
-                    }
-                }
-                final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
-                for (final String dataset : datasets) {
-                    datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
-                }
-                if (contentType.contains("application/json") || contentType.contains("*/*")) {
-                    response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
-                } else {
-                    throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-                }
+                processShowDatasets(response, contentType);
             } else {
                 final boolean isStream = contentType.contains("text/event-stream");
                 if (isStream) {
@@ -224,18 +181,125 @@ public class QueryServlet {
                     }
                 }
             }
+        } catch (Throwable e) {
+            final boolean isStream = contentType.contains("text/event-stream"); // TODO: Share computation
+            final boolean isJson = false;
+            final boolean status500 = true;
+            handleError(response, isJson, e, status500, isStream);
+            errorOccurred = e;
         } finally {
             try {
                 String remoteAddr = getForwardedForIPAddress(request);
                 if (remoteAddr == null) {
                     remoteAddr = request.getRemoteAddr();
                 }
-                logQuery(request, query, username, queryStartTimestamp, null, remoteAddr);
+                logQuery(request, query, username, queryStartTimestamp, errorOccurred, remoteAddr);
             } catch (Throwable ignored) {
                 // Do nothing
             }
         }
         System.out.println(timer);
+    }
+
+    public static void handleError(HttpServletResponse response, boolean isJson, Throwable e, boolean status500, boolean isStream) throws IOException {
+        if(!(e instanceof Exception || e instanceof OutOfMemoryError)) {
+            throw Throwables.propagate(e);
+        }
+        // output parse/execute error
+        if (!isJson) {
+            final PrintWriter printStream = response.getWriter();
+            if (isStream) {
+                response.setContentType("text/event-stream");
+                final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
+                printStream.println("event: servererror");
+                for (String s : stackTrace) {
+                    printStream.println("data: " + s);
+                }
+                printStream.println();
+            } else {
+                response.setStatus(500);
+                e.printStackTrace(printStream);
+                printStream.close();
+            }
+        } else {
+            if(status500) {
+                response.setStatus(500);
+            }
+            // construct a parsed error object to be JSON serialized
+            String clause = "";
+            int offset = -1;
+//            if(e instanceof IQLParseException) {
+//                final IQLParseException IQLParseException = (IQLParseException) e;
+//                clause = IQLParseException.getClause();
+//                offset = IQLParseException.getOffsetInClause();
+//            }
+            final String stackTrace = Throwables.getStackTraceAsString(Throwables.getRootCause(e));
+            final ErrorResult error = new ErrorResult(e.getClass().getSimpleName(), e.getMessage(), stackTrace, clause, offset);
+            response.setContentType("application/json");
+            final PrintWriter outputStream = response.getWriter();
+            OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(outputStream, error);
+            outputStream.close();
+        }
+    }
+
+    private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
+        final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
+        final Set<String> datasets = new TreeSet<>();
+        for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
+            for (final DatasetInfo datasetInfo : datasetInfos) {
+                datasets.add(datasetInfo.getDataset());
+            }
+        }
+        final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
+        for (final String dataset : datasets) {
+            datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
+        }
+        if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+        } else {
+            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
+        }
+    }
+
+    private void processDescribeField(HttpServletResponse response, String contentType, String dataset, String field) throws IOException {
+        final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
+
+        final String type;
+        final String imhotepType;
+        if (datasetInfo.getIntFields().contains(field)) {
+            type = "Integer";
+            if (datasetInfo.getStringFields().contains(field)) {
+                imhotepType = "String";
+            } else {
+                imhotepType = "Integer";
+            }
+        } else if (datasetInfo.getStringFields().contains(field)) {
+            type = "String";
+            imhotepType = "String";
+        } else {
+            throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
+        }
+
+        if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            final Map<String, Object> result = new HashMap<>();
+            result.put("name", field);
+            result.put("description", "");
+            result.put("type", type);
+            result.put("imhotepType", imhotepType);
+            result.put("topTerms", Collections.emptyList());
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
+        } else {
+            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
+        }
+    }
+
+    private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
+        if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
+        } else {
+            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
+        }
     }
 
     /**
