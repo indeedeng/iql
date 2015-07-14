@@ -702,6 +702,19 @@ public class Session {
         }
     }
 
+    // TODO: Parallelize across sessions?
+    public void popStats() {
+        timer.push("popStats");
+        for (final ImhotepSessionInfo imhotepSessionInfo : sessions.values()) {
+            final ImhotepSession session = imhotepSessionInfo.session;
+            final int numStats = session.getNumStats();
+            for (int i = 0; i < numStats; i++) {
+                session.popStat();
+            }
+        }
+        timer.pop();
+    }
+
     private static class SessionIntIterationState {
         public final FTGSIterator iterator;
         private final IntList metricIndexes;

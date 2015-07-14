@@ -123,12 +123,7 @@ public class SimpleIterate implements Command {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
         }
 
-        // TODO: This occurs way too many times....
-        for (final ImhotepSession s : session.getSessionsMapRaw().values()) {
-            while (s.getNumStats() != 0) {
-                s.popStat();
-            }
-        }
+        session.popStats();
 
         if (streamResult) {
             out.accept("");

@@ -160,11 +160,8 @@ public class ExplodeByAggregatePercentile implements Command {
         } else {
             throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
         }
-        for (final Session.ImhotepSessionInfo v : session.sessions.values()) {
-            while (v.session.getNumStats() > 0) {
-                v.session.popStat();
-            }
-        }
+
+        session.popStats();
 
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;

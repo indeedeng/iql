@@ -103,12 +103,7 @@ public class GetGroupStats implements Command {
         session.timer.pop();
 
         session.timer.push("popStat");
-        // TODO: Share code, parallelize
-        for (final ImhotepSession s : sessions.values()) {
-            while (s.getNumStats() > 0) {
-                s.popStat();
-            }
-        }
+        session.popStats();
         session.timer.pop();
 
         return groupStats;

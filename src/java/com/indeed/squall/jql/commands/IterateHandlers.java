@@ -80,12 +80,7 @@ public class IterateHandlers {
             result.add(iterateHandler.finish());
         }
 
-        // TODO: c'mon...
-        for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            while (s.session.getNumStats() > 0) {
-                s.session.popStat();
-            }
-        }
+        session.popStats();
 
         return result;
     }
