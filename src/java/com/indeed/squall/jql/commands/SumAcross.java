@@ -6,6 +6,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 
 import java.io.IOException;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SumAcross implements IterateHandlerable<double[]> {
+public class SumAcross implements IterateHandlerable<double[]>, Command {
     public final Set<String> scope;
     public final String field;
     public final AggregateMetric metric;
@@ -43,8 +44,9 @@ public class SumAcross implements IterateHandlerable<double[]> {
 //        };
 //    }
 
-    public double[] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
-        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        out.accept(Session.MAPPER.writeValueAsString(IterateHandlers.executeSingle(session, field, iterateHandler(session))));
     }
 
     @Override

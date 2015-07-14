@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.Commands;
 import com.indeed.squall.jql.Session;
@@ -15,7 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class IterateAndExplode {
+public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;
     public final Iterate.FieldIterateOpts fieldOpts;
@@ -30,9 +31,10 @@ public class IterateAndExplode {
         this.explodeDefaultName = explodeDefaultName;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(this.field, this.fieldOpts));
-        final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).execute(session);
+        final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).evaluate(session);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
             if (groupResults.size() > 0) {
@@ -46,6 +48,6 @@ public class IterateAndExplode {
                 explodes.add(new Commands.TermsWithExplodeOpts(Collections.<Term>emptyList(), this.explodeDefaultName));
             }
         }
-        new ExplodePerGroup(explodes).execute(session);
+        new ExplodePerGroup(explodes).execute(session, out);
     }
 }

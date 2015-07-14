@@ -5,11 +5,12 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import java.util.List;
 import java.util.Map;
 
-public class FilterDocs {
+public class FilterDocs implements Command {
     public final Map<String, List<String>> perDatasetFilterMetric;
 
     public FilterDocs(Map<String, List<String>> perDatasetFilterMetric) {
@@ -20,7 +21,8 @@ public class FilterDocs {
         this.perDatasetFilterMetric = copy;
     }
 
-    public void execute(Session s) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session s, Consumer<String> out) throws ImhotepOutOfMemoryException {
         // TODO: Do these in parallel?
         for (final Map.Entry<String,List<String>> entry : this.perDatasetFilterMetric.entrySet()) {
             final ImhotepSession session = s.sessions.get(entry.getKey()).session;
@@ -35,5 +37,6 @@ public class FilterDocs {
             s.timer.pop();
             session.popStat();
         }
+        out.accept("{}");
     }
 }

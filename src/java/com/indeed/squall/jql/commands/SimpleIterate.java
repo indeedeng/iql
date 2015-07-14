@@ -17,6 +17,8 @@ import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -27,7 +29,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-public class SimpleIterate {
+public class SimpleIterate implements Command {
     public final String field;
     public final Iterate.FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
@@ -43,7 +45,15 @@ public class SimpleIterate {
         }
     }
 
-    public List<List<List<TermSelects>>> execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    @Override
+    public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final List<List<List<TermSelects>>> result = this.evaluate(session, out);
+        final StringBuilder sb = new StringBuilder();
+        Session.writeTermSelectsJson(result, sb);
+        out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+    }
+
+    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
         if (opts.topK.isPresent()) {

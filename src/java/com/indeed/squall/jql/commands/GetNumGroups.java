@@ -1,4 +1,15 @@
 package com.indeed.squall.jql.commands;
 
-public class GetNumGroups {
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
+
+import java.io.IOException;
+import java.util.Collections;
+
+public class GetNumGroups implements Command {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(session.numGroups)));
+    }
 }

@@ -3,18 +3,20 @@ package com.indeed.squall.jql.commands;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import java.util.List;
 import java.util.Map;
 
-public class SampleFields {
+public class SampleFields implements Command {
     private final Map<String, List<SampleDefinition>> perDatasetSamples;
 
     public SampleFields(Map<String, List<SampleDefinition>> perDatasetSamples) {
         this.perDatasetSamples = perDatasetSamples;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         for (final Map.Entry<String, List<SampleDefinition>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             final List<SampleDefinition> samples = entry.getValue();
@@ -23,6 +25,7 @@ public class SampleFields {
                 s.randomRegroup(sample.field, session.isIntField(sample.field), sample.seed, sample.fraction, 1, 1, 0);
             }
         }
+        out.accept("SampledFields");
     }
 
     public static class SampleDefinition {

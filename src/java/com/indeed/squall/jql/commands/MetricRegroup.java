@@ -7,12 +7,13 @@ import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class MetricRegroup {
+public class MetricRegroup implements Command {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     public final long min;
     public final long max;
@@ -31,7 +32,8 @@ public class MetricRegroup {
         this.interval = interval;
     }
 
-    public void execute(final Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final long max = this.max;
         final long min = this.min;
         final long interval = this.interval;
@@ -73,5 +75,7 @@ public class MetricRegroup {
         });
 
         session.currentDepth += 1;
+
+        out.accept("success");
     }
 }

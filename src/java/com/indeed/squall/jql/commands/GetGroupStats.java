@@ -5,17 +5,19 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GetGroupStats {
+public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
     public final boolean returnGroupKeys;
 
@@ -24,7 +26,12 @@ public class GetGroupStats {
         this.returnGroupKeys = returnGroupKeys;
     }
 
-    public List<Session.GroupStats> execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        out.accept(Session.MAPPER.writeValueAsString(evaluate(session)));
+    }
+
+    public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {
         final List<Session.GroupKey> groupKeys = session.groupKeys;
         final Map<String, ImhotepSession> sessions = session.getSessionsMapRaw();
         final int numGroups = session.numGroups;
@@ -106,5 +113,4 @@ public class GetGroupStats {
 
         return groupStats;
     }
-
 }

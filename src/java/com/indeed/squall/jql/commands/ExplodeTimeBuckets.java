@@ -3,8 +3,9 @@ package com.indeed.squall.jql.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
-public class ExplodeTimeBuckets {
+public class ExplodeTimeBuckets implements Command {
     private final int numBuckets;
     private final Optional<String> timeField;
     private final Optional<String> timeFormat;
@@ -15,10 +16,11 @@ public class ExplodeTimeBuckets {
         this.timeFormat = timeFormat;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long latestEnd = session.getLatestEnd();
         final long bucketSize = (latestEnd - earliestStart) / numBuckets;
-        new TimePeriodRegroup(bucketSize, timeField, timeFormat).execute(session);
+        new TimePeriodRegroup(bucketSize, timeField, timeFormat).execute(session, out);
     }
 }

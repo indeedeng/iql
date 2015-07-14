@@ -19,7 +19,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
@@ -37,33 +36,10 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
-import com.indeed.squall.jql.commands.ApplyFilterActions;
-import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
-import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
-import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
-import com.indeed.squall.jql.commands.ExplodeByAggregatePercentile;
-import com.indeed.squall.jql.commands.ExplodeDayOfWeek;
-import com.indeed.squall.jql.commands.ExplodeGroups;
-import com.indeed.squall.jql.commands.ExplodeMonthOfYear;
-import com.indeed.squall.jql.commands.ExplodePerDocPercentile;
-import com.indeed.squall.jql.commands.ExplodePerGroup;
-import com.indeed.squall.jql.commands.ExplodeSessionNames;
-import com.indeed.squall.jql.commands.ExplodeTimeBuckets;
-import com.indeed.squall.jql.commands.FilterDocs;
-import com.indeed.squall.jql.commands.GetGroupDistincts;
-import com.indeed.squall.jql.commands.GetGroupPercentiles;
+import com.indeed.squall.jql.commands.Command;
 import com.indeed.squall.jql.commands.GetGroupStats;
-import com.indeed.squall.jql.commands.GetNumGroups;
 import com.indeed.squall.jql.commands.Iterate;
-import com.indeed.squall.jql.commands.IterateAndExplode;
-import com.indeed.squall.jql.commands.MetricRegroup;
-import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
-import com.indeed.squall.jql.commands.RegroupIntoParent;
-import com.indeed.squall.jql.commands.SampleFields;
 import com.indeed.squall.jql.commands.SimpleIterate;
-import com.indeed.squall.jql.commands.SumAcross;
-import com.indeed.squall.jql.commands.TimePeriodRegroup;
-import com.indeed.squall.jql.commands.TimeRegroup;
 import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
 import com.indeed.squall.jql.dimensions.DimensionDetails;
@@ -88,7 +64,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
@@ -102,7 +77,6 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -434,12 +408,12 @@ public class Session {
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommand " + commandTree);
         try {
-            final Object command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
+            final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
             });
-            evaluateCommandInternal(commandTree, out, command);
+            command.execute(this, out);
         } finally {
             timer.pop();
         }
@@ -449,20 +423,20 @@ public class Session {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
 
-            final Object command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
+            final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 @Override
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
             });
             if (command instanceof Iterate) {
-                final List<List<List<TermSelects>>> results = ((Iterate) command).execute(this);
+                final List<List<List<TermSelects>>> results = ((Iterate) command).evaluate(this);
                 final StringBuilder sb = new StringBuilder();
                 writeTermSelectsJson(results, sb);
                 out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
             } else if (command instanceof SimpleIterate) {
                 final SimpleIterate simpleIterate = (SimpleIterate) command;
-                final List<List<List<TermSelects>>> result = simpleIterate.execute(this, out);
+                final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
                 //noinspection StatementWithEmptyBody
                 if (simpleIterate.streamResult) {
                     // result already sent
@@ -481,7 +455,7 @@ public class Session {
                 }
             } else if (command instanceof GetGroupStats) {
                 final GetGroupStats getGroupStats = (GetGroupStats) command;
-                final List<GroupStats> results = getGroupStats.execute(this);
+                final List<GroupStats> results = getGroupStats.evaluate(this);
                 final StringBuilder sb = new StringBuilder();
                 for (final GroupStats result : results) {
                     final List<String> keyColumns = result.key.asList(false);
@@ -509,7 +483,7 @@ public class Session {
         }
     }
 
-    private void writeTermSelectsJson(List<List<List<TermSelects>>> results, StringBuilder sb) {
+    public static void writeTermSelectsJson(List<List<List<TermSelects>>> results, StringBuilder sb) {
         for (final List<List<TermSelects>> groupFieldTerms : results) {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
@@ -534,114 +508,6 @@ public class Session {
             }
         }
         sb.setLength(sb.length() - 1);
-    }
-
-    public void evaluateCommandInternal(JsonNode commandTree, Consumer<String> out, Object command) throws ImhotepOutOfMemoryException, IOException {
-        if (command instanceof Iterate) {
-            final Iterate iterate = (Iterate) command;
-            final List<List<List<TermSelects>>> allTermSelects = iterate.execute(this);
-            out.accept(MAPPER.writeValueAsString(allTermSelects));
-        } else if (command instanceof SimpleIterate) {
-            final SimpleIterate simpleIterate = (SimpleIterate) command;
-            if (simpleIterate.streamResult) {
-                throw new IllegalArgumentException("Cannot stream SimpleIterate result except in evaluateToTSV!");
-            } else {
-                final List<List<List<TermSelects>>> result = simpleIterate.execute(this, null);
-                final StringBuilder sb = new StringBuilder();
-                writeTermSelectsJson(result, sb);
-                out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
-            }
-        } else if (command instanceof FilterDocs) {
-            final FilterDocs filterDocs = (FilterDocs) command;
-            filterDocs.execute(this);
-            out.accept("{}");
-        } else if (command instanceof ExplodeGroups) {
-            final ExplodeGroups explodeGroups = (ExplodeGroups) command;
-            explodeGroups.execute(this);
-            out.accept("success");
-        } else if (command instanceof MetricRegroup) {
-            final MetricRegroup metricRegroup = (MetricRegroup) command;
-            metricRegroup.execute(this);
-            out.accept("success");
-        } else if (command instanceof TimeRegroup) {
-            final TimeRegroup timeRegroup = (TimeRegroup) command;
-            timeRegroup.execute(this);
-            out.accept("success");
-        } else if (command instanceof GetGroupStats) {
-            final GetGroupStats getGroupStats = (GetGroupStats) command;
-            final List<GroupStats> results = getGroupStats.execute(this);
-            out.accept(MAPPER.writeValueAsString(results));
-        } else if (command instanceof CreateGroupStatsLookup) {
-            final CreateGroupStatsLookup createGroupStatsLookup = (CreateGroupStatsLookup) command;
-            final String lookupName = createGroupStatsLookup.execute(this);
-            out.accept(MAPPER.writeValueAsString(Arrays.asList(lookupName)));
-        } else if (command instanceof GetGroupDistincts) {
-            final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) command;
-            final long[] groupCounts = getGroupDistincts.execute(this);
-            out.accept(MAPPER.writeValueAsString(groupCounts));
-        } else if (command instanceof GetGroupPercentiles) {
-            final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) command;
-            final long[][] results = getGroupPercentiles.execute(this);
-            out.accept(MAPPER.writeValueAsString(results));
-        } else if (command instanceof GetNumGroups) {
-            out.accept(MAPPER.writeValueAsString(Collections.singletonList(numGroups)));
-        } else if (command instanceof ExplodePerGroup) {
-            ((ExplodePerGroup) command).execute(this);
-            out.accept("success");
-        } else if (command instanceof ExplodeDayOfWeek) {
-            ((ExplodeDayOfWeek) command).execute(this);
-            out.accept("success");
-        } else if (command instanceof ExplodeSessionNames) {
-            final TreeSet<String> names = Sets.newTreeSet(sessions.keySet());
-            // TODO: This
-            throw new UnsupportedOperationException("Get around to implementing ExplodeSessionNames");
-        } else if (command instanceof IterateAndExplode) {
-            final IterateAndExplode iterateAndExplode = (IterateAndExplode) command;
-            iterateAndExplode.execute(this);
-        } else if (command instanceof ComputeAndCreateGroupStatsLookup) {
-            final ComputeAndCreateGroupStatsLookup computeAndCreateGroupStatsLookup = (ComputeAndCreateGroupStatsLookup) command;
-            computeAndCreateGroupStatsLookup.execute(this, out);
-        } else if (command instanceof ComputeAndCreateGroupStatsLookups) {
-            final ComputeAndCreateGroupStatsLookups computeAndCreateGroupStatsLookups = (ComputeAndCreateGroupStatsLookups) command;
-            computeAndCreateGroupStatsLookups.execute(this);
-        } else if (command instanceof ExplodeByAggregatePercentile) {
-            final ExplodeByAggregatePercentile explodeCommand = (ExplodeByAggregatePercentile) command;
-            explodeCommand.execute(this);
-            out.accept("ExplodedByAggregatePercentile");
-        } else if (command instanceof ExplodePerDocPercentile) {
-            final ExplodePerDocPercentile explodeCommand = (ExplodePerDocPercentile) command;
-            explodeCommand.execute(this);
-            out.accept("ExplodedPerDocPercentile");
-        } else if (command instanceof SumAcross) {
-            final SumAcross sumAcross = (SumAcross) command;
-            final double[] results = sumAcross.execute(this);
-            out.accept(MAPPER.writeValueAsString(results));
-        } else if (command instanceof RegroupIntoParent) {
-            final RegroupIntoParent regroupIntoParent = (RegroupIntoParent) command;
-            regroupIntoParent.execute(this);
-            out.accept("RegroupedIntoParent");
-        } else if (command instanceof RegroupIntoLastSiblingWhere) {
-            final RegroupIntoLastSiblingWhere regroupIntoLastSiblingWhere = (RegroupIntoLastSiblingWhere) command;
-            final boolean[] merged = regroupIntoLastSiblingWhere.execute(this);
-            out.accept(MAPPER.writeValueAsString(merged));
-        } else if (command instanceof ExplodeMonthOfYear) {
-            ((ExplodeMonthOfYear) command).execute(this);
-            out.accept("ExplodedMonthOfYear");
-        } else if (command instanceof TimePeriodRegroup) {
-            ((TimePeriodRegroup) command).execute(this);
-            out.accept("TimePeriodRegrouped");
-        } else if (command instanceof ExplodeTimeBuckets) {
-            ((ExplodeTimeBuckets) command).execute(this);
-            out.accept("ExplodedTimeBuckets");
-        } else if (command instanceof SampleFields) {
-            ((SampleFields) command).execute(this);
-            out.accept("SampledFields");
-        } else if (command instanceof ApplyFilterActions) {
-            ((ApplyFilterActions) command).execute(this);
-            out.accept("Applied filters");
-        } else {
-            throw new IllegalArgumentException("Invalid command: " + commandTree);
-        }
     }
 
     public int findPercentile(double v, double[] percentiles) {

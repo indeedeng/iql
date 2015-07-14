@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ComputeAndCreateGroupStatsLookup {
+public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Object computation;
     public final Optional<String> name;
 
@@ -19,17 +19,18 @@ public class ComputeAndCreateGroupStatsLookup {
         this.name = name;
     }
 
+    @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         // TODO: Seriously? Serializing to JSON and then back? To the same program?
         final AtomicReference<String> reference = new AtomicReference<>();
         final Object computation = this.computation;
         System.out.println("computation = " + computation);
-        session.evaluateCommandInternal(null, new Consumer<String>() {
+        ((Command) computation).execute(session, new Consumer<String>() {
             @Override
             public void accept(String s) {
                 reference.set(s);
             }
-        }, computation);
+        });
         double[] results;
         if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
             results = Session.MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
@@ -46,6 +47,6 @@ public class ComputeAndCreateGroupStatsLookup {
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
         }
-        session.evaluateCommandInternal(null, out, new CreateGroupStatsLookup(Session.prependZero(results), this.name));
+        new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session, out);
     }
 }

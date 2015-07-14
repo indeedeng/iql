@@ -8,17 +8,19 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.Commands;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import java.util.List;
 
-public class ExplodePerGroup {
+public class ExplodePerGroup implements Command {
     public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
 
     public ExplodePerGroup(List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts) {
         this.termsWithExplodeOpts = termsWithExplodeOpts;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         int nextGroup = 1;
         final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList((Session.GroupKey) null);
@@ -64,5 +66,7 @@ public class ExplodePerGroup {
         session.numGroups = nextGroup - 1;
         session.groupKeys = nextGroupKeys;
         session.currentDepth += 1;
+
+        out.accept("success");
     }
 }

@@ -6,6 +6,7 @@ import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class ExplodePerDocPercentile {
+public class ExplodePerDocPercentile implements Command {
     public final String field;
     public final int numBuckets;
 
@@ -23,7 +24,8 @@ public class ExplodePerDocPercentile {
         this.numBuckets = numBuckets;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final String field = this.field;
         final int numBuckets = this.numBuckets;
 
@@ -93,5 +95,7 @@ public class ExplodePerDocPercentile {
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;
         session.currentDepth += 1;
+
+        out.accept("ExplodedPerDocPercentile");
     }
 }

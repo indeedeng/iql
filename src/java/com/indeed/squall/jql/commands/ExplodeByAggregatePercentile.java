@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
@@ -20,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ExplodeByAggregatePercentile {
+public class ExplodeByAggregatePercentile implements Command {
     public final String field;
     public final AggregateMetric metric;
     public final int numBuckets;
@@ -31,7 +32,8 @@ public class ExplodeByAggregatePercentile {
         this.numBuckets = numBuckets;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final String field = this.field;
         final AggregateMetric metric = this.metric;
         final int numBuckets = this.numBuckets;
@@ -167,5 +169,7 @@ public class ExplodeByAggregatePercentile {
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;
         session.currentDepth += 1;
+
+        out.accept("ExplodedByAggregatePercentile");
     }
 }

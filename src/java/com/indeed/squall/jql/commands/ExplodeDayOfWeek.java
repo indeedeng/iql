@@ -9,12 +9,14 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.TimeUnit;
+import com.indeed.squall.jql.compat.Consumer;
 import org.joda.time.DateTime;
 
 import java.util.List;
 
-public class ExplodeDayOfWeek {
-    public void execute(final Session session) throws ImhotepOutOfMemoryException {
+public class ExplodeDayOfWeek implements Command {
+    @Override
+    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final String[] dayKeys = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
@@ -43,5 +45,7 @@ public class ExplodeDayOfWeek {
             }
         }, oldNumGroups * dayKeys.length);
         session.currentDepth += 1;
+
+        out.accept("success");
     }
 }

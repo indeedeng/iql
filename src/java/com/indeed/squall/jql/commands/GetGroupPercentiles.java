@@ -5,6 +5,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GetGroupPercentiles implements IterateHandlerable<long[][]> {
+public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Command {
     public final Set<String> scope;
     public final String field;
     public final double[] percentiles;
@@ -25,8 +26,10 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]> {
         this.percentiles = percentiles;
     }
 
-    public long[][] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
-        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final long[][] results = IterateHandlers.executeSingle(session, field, iterateHandler(session));
+        out.accept(Session.MAPPER.writeValueAsString(results));
     }
 
     @Override

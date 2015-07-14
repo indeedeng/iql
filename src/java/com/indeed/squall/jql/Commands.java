@@ -12,6 +12,7 @@ import com.indeed.flamdex.query.Term;
 import com.indeed.squall.jql.actions.Action;
 import com.indeed.squall.jql.actions.Actions;
 import com.indeed.squall.jql.commands.ApplyFilterActions;
+import com.indeed.squall.jql.commands.Command;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.jql.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.jql.commands.CreateGroupStatsLookup;
@@ -56,7 +57,7 @@ import java.util.Set;
 public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
-    public static Object parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup) {
+    public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup) {
         switch (command.get("command").textValue()) {
             case "iterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
@@ -277,14 +278,14 @@ public class Commands {
                 return new IterateAndExplode(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
             }
             case "computeAndCreateGroupStatsLookup": {
-                final Object computation = parseCommand(command.get("computation"), namedMetricLookup);
+                final Command computation = parseCommand(command.get("computation"), namedMetricLookup);
                 validatePrecomputedCommand(computation);
                 return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
             }
             case "computeAndCreateGroupStatsLookups": {
-                final List<Pair<Object, String>> namedComputations = Lists.newArrayList();
+                final List<Pair<Command, String>> namedComputations = Lists.newArrayList();
                 for (final JsonNode namedComputation : command.get("computations")) {
-                    final Object computation = parseCommand(namedComputation.get(0), namedMetricLookup);
+                    final Command computation = parseCommand(namedComputation.get(0), namedMetricLookup);
                     validatePrecomputedCommand(computation);
                     final String name = namedComputation.get(1).textValue();
                     namedComputations.add(Pair.of(computation, name));

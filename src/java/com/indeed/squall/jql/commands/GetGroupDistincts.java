@@ -5,6 +5,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.QualifiedPush;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import java.io.IOException;
 import java.util.BitSet;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GetGroupDistincts implements IterateHandlerable<long[]> {
+public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     public final Set<String> scope;
     public final String field;
     public final Optional<AggregateFilter> filter;
@@ -26,8 +27,9 @@ public class GetGroupDistincts implements IterateHandlerable<long[]> {
         this.windowSize = windowSize;
     }
 
-    public long[] execute(Session session) throws ImhotepOutOfMemoryException, IOException {
-        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final long[] groupCounts = IterateHandlers.executeSingle(session, field, iterateHandler(session));
+        out.accept(Session.MAPPER.writeValueAsString(groupCounts));
     }
 
     public IterateHandler<long[]> iterateHandler(Session session) {

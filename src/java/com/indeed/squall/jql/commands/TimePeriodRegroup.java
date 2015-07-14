@@ -5,9 +5,10 @@ import com.google.common.base.Optional;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 import org.joda.time.DateTime;
 
-public class TimePeriodRegroup {
+public class TimePeriodRegroup implements Command {
     private final long periodMillis;
     private final Optional<String> timeField;
     private final Optional<String> timeFormat;
@@ -18,7 +19,8 @@ public class TimePeriodRegroup {
         this.timeFormat = timeFormat;
     }
 
-    public void execute(final Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long shardEnd = session.getLatestEnd();
         final long realEnd;
@@ -40,5 +42,7 @@ public class TimePeriodRegroup {
             }
         }, numGroups);
         session.currentDepth += 1;
+
+        out.accept("TimePeriodRegrouped");
     }
 }

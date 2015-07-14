@@ -7,18 +7,20 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.GroupLookupMergeType;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
 import java.util.Arrays;
 import java.util.Map;
 
-public class RegroupIntoParent {
+public class RegroupIntoParent implements Command {
     private final GroupLookupMergeType mergeType;
 
     public RegroupIntoParent(GroupLookupMergeType mergeType) {
         this.mergeType = mergeType;
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         int maxIndex = 0;
         for (int i = 1; i < session.groupKeys.size(); i++) {
             maxIndex = Math.max(maxIndex, session.groupKeys.get(i).parent.index);
@@ -78,5 +80,7 @@ public class RegroupIntoParent {
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
         session.groupKeys = Arrays.asList(newGroupKeys);
+
+        out.accept("RegroupedIntoParent");
     }
 }

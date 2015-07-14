@@ -1,11 +1,13 @@
 package com.indeed.squall.jql.commands;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.jql.AggregateFilter;
 import com.indeed.squall.jql.GroupLookupMergeType;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.jql.metrics.aggregate.Constant;
 import com.indeed.squall.jql.metrics.aggregate.IfThenElse;
@@ -14,7 +16,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import java.util.Arrays;
 import java.util.List;
 
-public class RegroupIntoLastSiblingWhere {
+public class RegroupIntoLastSiblingWhere implements Command {
     private final AggregateFilter filter;
     private final GroupLookupMergeType mergeType;
 
@@ -23,11 +25,11 @@ public class RegroupIntoLastSiblingWhere {
         this.mergeType = mergeType;
     }
 
-    // TODO: Use a bitset?
-    public boolean[] execute(Session session) throws ImhotepOutOfMemoryException {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, JsonProcessingException {
         // TODO: This could be made way more efficient, but I think this should way.
         final GetGroupStats getGroupStats = new GetGroupStats(Arrays.<AggregateMetric>asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
-        final List<Session.GroupStats> theStats = getGroupStats.execute(session);
+        final List<Session.GroupStats> theStats = getGroupStats.evaluate(session);
         final boolean[] remerge = new boolean[session.numGroups + 1];
         for (int i = 0; i < session.numGroups; i++) {
             remerge[i + 1] = theStats.get(i).stats[0] > 0.5;
@@ -98,6 +100,9 @@ public class RegroupIntoLastSiblingWhere {
             }
         }
 
-        return Arrays.copyOfRange(remerge, 1, remerge.length);
+        // TODO: Use a bitset?
+        // TODO: Don't copy subrange
+        final boolean[] merged = Arrays.copyOfRange(remerge, 1, remerge.length);
+        out.accept(Session.MAPPER.writeValueAsString(merged));
     }
 }

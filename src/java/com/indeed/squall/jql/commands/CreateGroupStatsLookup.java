@@ -1,9 +1,13 @@
 package com.indeed.squall.jql.commands;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
 import com.indeed.squall.jql.Session;
+import com.indeed.squall.jql.compat.Consumer;
 
-public class CreateGroupStatsLookup {
+import java.util.Arrays;
+
+public class CreateGroupStatsLookup implements Command {
     public final double[] stats;
     public final Optional<String> name;
 
@@ -12,7 +16,8 @@ public class CreateGroupStatsLookup {
         this.name = name;
     }
 
-    public String execute(Session session) {
+    @Override
+    public void execute(Session session, Consumer<String> out) throws JsonProcessingException {
         final int depth = session.currentDepth;
         final double[] stats = this.stats;
         final Session.SavedGroupStats savedStats = new Session.SavedGroupStats(depth, stats);
@@ -26,6 +31,6 @@ public class CreateGroupStatsLookup {
             lookupName = String.valueOf(session.savedGroupStats.size());
         }
         session.savedGroupStats.put(lookupName, savedStats);
-        return lookupName;
+        out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName)));
     }
 }
