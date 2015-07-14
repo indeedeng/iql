@@ -144,7 +144,7 @@ jqlAggregateMetric
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | jqlSumOverMetric # AggregateSumAcross
-    | AVG_OVER '(' field=identifier (HAVING jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | docMetricAtom # AggregateDocMetricAtom
     | '[' jqlDocMetric ']' # AggregateSum
