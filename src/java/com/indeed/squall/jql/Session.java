@@ -38,7 +38,6 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.jql.commands.Command;
 import com.indeed.squall.jql.commands.GetGroupStats;
-import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.SimpleIterate;
 import com.indeed.squall.jql.compat.Consumer;
 import com.indeed.squall.jql.dimensions.DatasetDimensions;
@@ -422,19 +421,13 @@ public class Session {
     public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
-
             final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 @Override
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
             });
-            if (command instanceof Iterate) {
-                final List<List<List<TermSelects>>> results = ((Iterate) command).evaluate(this);
-                final StringBuilder sb = new StringBuilder();
-                writeTermSelectsJson(results, sb);
-                out.accept(MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
-            } else if (command instanceof SimpleIterate) {
+            if (command instanceof SimpleIterate) {
                 final SimpleIterate simpleIterate = (SimpleIterate) command;
                 final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
                 //noinspection StatementWithEmptyBody

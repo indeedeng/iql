@@ -3,7 +3,6 @@ package com.indeed.squall.jql;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -24,12 +23,13 @@ import com.indeed.squall.jql.commands.ExplodePerDocPercentile;
 import com.indeed.squall.jql.commands.ExplodePerGroup;
 import com.indeed.squall.jql.commands.ExplodeSessionNames;
 import com.indeed.squall.jql.commands.ExplodeTimeBuckets;
+import com.indeed.squall.jql.commands.FieldIterateOpts;
+import com.indeed.squall.jql.commands.FieldLimitingMechanism;
 import com.indeed.squall.jql.commands.FilterDocs;
 import com.indeed.squall.jql.commands.GetGroupDistincts;
 import com.indeed.squall.jql.commands.GetGroupPercentiles;
 import com.indeed.squall.jql.commands.GetGroupStats;
 import com.indeed.squall.jql.commands.GetNumGroups;
-import com.indeed.squall.jql.commands.Iterate;
 import com.indeed.squall.jql.commands.IterateAndExplode;
 import com.indeed.squall.jql.commands.MetricRegroup;
 import com.indeed.squall.jql.commands.RegroupIntoLastSiblingWhere;
@@ -59,25 +59,6 @@ public class Commands {
 
     public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup) {
         switch (command.get("command").textValue()) {
-            case "iterate": {
-                final List<AggregateMetric> selecting = Lists.newArrayList();
-                final Iterate.FieldIterateOpts defaultOpts = new Iterate.FieldIterateOpts();
-                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, defaultOpts, command.get("opts"));
-
-                final List<Iterate.FieldWithOptions> fieldsWithOpts = Lists.newArrayList();
-                final JsonNode fields = command.get("fields");
-                for (final JsonNode field : fields) {
-                    final String fieldName = field.get(0).textValue();
-                    final JsonNode optsNode = field.get(1);
-
-                    final Iterate.FieldIterateOpts fieldIterateOpts = defaultOpts.copy();
-                    fieldIterateOpts.parseFrom(optsNode, namedMetricLookup);
-
-                    fieldsWithOpts.add(new Iterate.FieldWithOptions(fieldName, fieldIterateOpts));
-                }
-
-                return new Iterate(fieldsWithOpts, fieldLimits, selecting);
-            }
             case "simpleIterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final JsonNode selects = command.get("selects");
@@ -85,7 +66,7 @@ public class Commands {
                     selecting.add(AggregateMetrics.fromJson(selects.get(i), namedMetricLookup));
                 }
                 final String field = command.get("field").textValue();
-                final Iterate.FieldIterateOpts opts = new Iterate.FieldIterateOpts();
+                final FieldIterateOpts opts = new FieldIterateOpts();
                 opts.parseFrom(command.get("opts"), namedMetricLookup);
                 final boolean streamResult = command.get("streamResult").booleanValue();
                 return new SimpleIterate(field, opts, selecting, streamResult);
@@ -272,8 +253,8 @@ public class Commands {
                 final Optional<String> explodeDefaultName = parseExplodeOpts(command.get("explodeOpts"));
 
                 final List<AggregateMetric> selecting = Lists.newArrayList();
-                final Iterate.FieldIterateOpts fieldOpts = new Iterate.FieldIterateOpts();
-                final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
+                final FieldIterateOpts fieldOpts = new FieldIterateOpts();
+                final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
 
                 return new IterateAndExplode(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
             }
@@ -401,8 +382,8 @@ public class Commands {
         return name;
     }
 
-    private static Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, Iterate.FieldIterateOpts defaultOpts, JsonNode globalOpts) {
-        Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits = Optional.absent();
+    private static Optional<Pair<Integer, FieldLimitingMechanism>> parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, FieldIterateOpts defaultOpts, JsonNode globalOpts) {
+        Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits = Optional.absent();
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
@@ -414,7 +395,7 @@ public class Commands {
                 case "limitingFields": {
                     fieldLimits = Optional.of(Pair.of(
                             globalOpt.get("numFields").intValue(),
-                            Iterate.FieldLimitingMechanism.valueOf(globalOpt.get("by").textValue())
+                            FieldLimitingMechanism.valueOf(globalOpt.get("by").textValue())
                     ));
                     break;
                 }

@@ -12,18 +12,17 @@ import com.indeed.squall.jql.Session;
 import com.indeed.squall.jql.TermSelects;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;
-    public final Iterate.FieldIterateOpts fieldOpts;
-    public final Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits;
+    public final FieldIterateOpts fieldOpts;
+    public final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits;
     public final Optional<String> explodeDefaultName;
 
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, Iterate.FieldIterateOpts fieldOpts, Optional<Pair<Integer, Iterate.FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
+    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;
