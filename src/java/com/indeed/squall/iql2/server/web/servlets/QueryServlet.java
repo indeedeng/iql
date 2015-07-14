@@ -114,6 +114,7 @@ public class QueryServlet {
 
         long queryStartTimestamp = System.currentTimeMillis();
 
+        final boolean isStream = contentType.contains("text/event-stream");
         // TODO: Check for username and client values
         try {
             final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
@@ -128,58 +129,9 @@ public class QueryServlet {
             } else if (query.trim().toLowerCase().equals("show datasets")) {
                 processShowDatasets(response, contentType);
             } else {
-                final boolean isStream = contentType.contains("text/event-stream");
-                if (isStream) {
-                    response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
-                } else {
-                    response.setHeader("Content-Type", "text/plain;charset=utf-8");
-                }
-                final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
-                try {
-                    timer.push("Acquire concurrent query lock");
-                    queryTracker.acquireLocks(); // blocks and waits if necessary
-                    timer.pop();
-                    queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
-                    final PrintWriter outputStream = response.getWriter();
-                    if (isStream) {
-                        outputStream.println(": This is the start of the IQL Query Stream");
-                        outputStream.println();
-                        outputStream.println("event: resultstream");
-                    }
-                    executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new Consumer<String>() {
-                        @Override
-                        public void accept(String s) {
-                            if (isStream) {
-                                outputStream.print("data: ");
-                            }
-                            outputStream.println(s);
-                        }
-                    }, timer, queryTracker);
-                    if (isStream) {
-                        outputStream.println();
-                        outputStream.println("event: header");
-
-                        final Map<String, Object> headerMap = new HashMap<>();
-                        headerMap.put("IQL-Cached", "false");
-                        headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                        headerMap.put("IQL-Shard-List", "");
-                        headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
-                        headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
-                        headerMap.put("IQL-Totals", "[]");
-                        outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
-
-                        outputStream.println();
-                        outputStream.println("event: complete");
-                        outputStream.println("data: :)");
-                    }
-                } finally {
-                    if (!queryTracker.isAsynchronousRelease()) {
-                        queryTracker.close();
-                    }
-                }
+                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream);
             }
         } catch (Throwable e) {
-            final boolean isStream = contentType.contains("text/event-stream"); // TODO: Share computation
             final boolean isJson = false;
             final boolean status500 = true;
             handleError(response, isJson, e, status500, isStream);
@@ -320,7 +272,69 @@ public class QueryServlet {
         return value;
     }
 
-    public void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
+    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, boolean isStream) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+        if (isStream) {
+            response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
+        } else {
+            response.setHeader("Content-Type", "text/plain;charset=utf-8");
+        }
+        final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
+        long queryStartTimestamp;
+        try {
+            timer.push("Acquire concurrent query lock");
+            queryTracker.acquireLocks(); // blocks and waits if necessary
+            timer.pop();
+            queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
+            final PrintWriter outputStream = response.getWriter();
+            if (isStream) {
+                outputStream.println(": This is the start of the IQL Query Stream");
+                outputStream.println();
+                outputStream.println("event: resultstream");
+            }
+            final Consumer<String> out;
+            if (isStream) {
+                out = new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
+                        outputStream.print("data: ");
+                        outputStream.println(s);
+                    }
+                };
+            } else {
+                out = new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
+                        outputStream.println(s);
+                    }
+                };
+            }
+            executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, queryTracker);
+            if (isStream) {
+                outputStream.println();
+                outputStream.println("event: header");
+
+                final Map<String, Object> headerMap = new HashMap<>();
+                headerMap.put("IQL-Cached", "false");
+                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+                headerMap.put("IQL-Shard-List", "");
+                headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
+                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
+                headerMap.put("IQL-Totals", "[]");
+                outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+
+                outputStream.println();
+                outputStream.println("event: complete");
+                outputStream.println("data: :)");
+            }
+        } finally {
+            if (!queryTracker.isAsynchronousRelease()) {
+                queryTracker.close();
+            }
+        }
+        return queryStartTimestamp;
+    }
+
+    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
