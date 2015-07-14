@@ -33,8 +33,7 @@ public class IterateAndExplode implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<Iterate.FieldWithOptions> fieldWithOpts = Arrays.asList(new Iterate.FieldWithOptions(this.field, this.fieldOpts));
-        final List<List<List<TermSelects>>> iterationResults = new Iterate(fieldWithOpts, this.fieldLimits, this.selecting).evaluate(session);
+        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, false).evaluate(session, out);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
             if (groupResults.size() > 0) {
