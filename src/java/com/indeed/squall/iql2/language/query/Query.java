@@ -23,12 +23,14 @@ public class Query {
     public final Optional<DocFilter> filter;
     public final List<com.indeed.squall.iql2.language.query.GroupBy> groupBys;
     public final List<AggregateMetric> selects;
+    public final Optional<Integer> rowLimit;
 
-    public Query(List<com.indeed.squall.iql2.language.query.Dataset> datasets, Optional<DocFilter> filter, List<com.indeed.squall.iql2.language.query.GroupBy> groupBys, List<AggregateMetric> selects) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupBy> groupBys, List<AggregateMetric> selects, Optional<Integer> rowLimit) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
         this.selects = selects;
+        this.rowLimit = rowLimit;
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
@@ -74,7 +76,14 @@ public class Query {
             selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
         }
 
-        return new Query(datasets, whereFilter, groupBys, selects);
+        final Optional<Integer> rowLimit;
+        if (queryContext.limit == null) {
+            rowLimit = Optional.absent();
+        } else {
+            rowLimit = Optional.of(Integer.parseInt(queryContext.limit.getText()));
+        }
+
+        return new Query(datasets, whereFilter, groupBys, selects, rowLimit);
     }
 
     public Query transform(
@@ -98,7 +107,7 @@ public class Query {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects);
+        return new Query(datasets, filter, groupBys, selects, rowLimit);
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
@@ -110,7 +119,7 @@ public class Query {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.traverse1(f));
         }
-        return new Query(datasets, filter, groupBys, selects);
+        return new Query(datasets, filter, groupBys, selects, rowLimit);
     }
 
     public Set<String> extractDatasetNames() {
