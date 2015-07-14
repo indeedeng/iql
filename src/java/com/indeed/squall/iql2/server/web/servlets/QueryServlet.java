@@ -306,7 +306,9 @@ public class QueryServlet {
                         public void close() throws IOException {
                             cacheWriter.close();
                             queryCache.writeFromFile(cacheFileName, cacheFile);
-                            cacheFile.delete();
+                            if (!cacheFile.delete()) {
+                                log.warn("Failed to delete  " + cacheFile);
+                            }
                         }
                     });
                     final int rowLimit = query.rowLimit.or(Integer.MAX_VALUE);
