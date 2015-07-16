@@ -42,10 +42,10 @@ import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
@@ -564,7 +564,7 @@ public class QueryServlet {
         if(json) {
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             final ObjectNode jsonRoot = mapper.createObjectNode();
             field.toJSON(jsonRoot);
 
@@ -590,7 +590,7 @@ public class QueryServlet {
         if(json) {
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             final ObjectNode jsonRoot = mapper.createObjectNode();
             datasetMetadata.toJSON(jsonRoot, mapper, false);
 
@@ -691,7 +691,7 @@ public class QueryServlet {
             resp.setContentType("application/json");
             final ObjectMapper jsonMapper = new ObjectMapper();
             final ServletOutputStream outputStream = resp.getOutputStream();
-            jsonMapper.defaultPrettyPrintingWriter().writeValue(outputStream, error);
+            jsonMapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, error);
             outputStream.close();
         }
     }
