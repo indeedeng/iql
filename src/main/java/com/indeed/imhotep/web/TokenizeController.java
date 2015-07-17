@@ -15,10 +15,10 @@
 
 import com.indeed.imhotep.sql.parser.TerminalParser;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.codehaus.jparsec.Token;
 import org.codehaus.jparsec.Tokens;
 import org.springframework.http.MediaType;
@@ -50,7 +50,7 @@ public class TokenizeController {
             final ServletOutputStream outputStream = resp.getOutputStream();
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             final ObjectNode jsonRoot = mapper.createObjectNode();
             final ArrayNode tokenArrayNode= jsonRoot.arrayNode();
             jsonRoot.put("tokens", tokenArrayNode);

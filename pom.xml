@@ -36,15 +36,46 @@
     </repositories>
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>ims-rest-server</artifactId>
+            <version>${ims.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>ims-rest-client</artifactId>
+            <version>${ims.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.indeed</groupId>
             <artifactId>imhotep-server</artifactId>
-            <version>${imhotep-server.version}</version>
+            <version>${imhotep.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hadoop-client</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>imhotep-client</artifactId>
+            <version>${imhotep.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.indeed</groupId>
             <artifactId>util-core</artifactId>
+            <version>${indeed-util.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>util-serialization</artifactId>
             <version>${indeed-util.version}</version>
         </dependency>
 
@@ -83,13 +114,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.sf.json-lib</groupId>
-            <artifactId>json-lib</artifactId>
-            <version>2.4</version>
-            <classifier>jdk15</classifier>
-        </dependency>
-
-        <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
             <version>2.3</version>
@@ -102,17 +126,36 @@
         </dependency>
 
         <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>dk.brics.automaton</groupId>
             <artifactId>automaton</artifactId>
             <version>${automaton.version}</version>
         </dependency>
 
+
+
         <!-- Hadoop for caching -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
+            <artifactId>hadoop-common</artifactId>
             <version>2.0.0-cdh4.4.0</version>
             <exclusions>
+                <exclusion>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-mapreduce-client-app</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-mapreduce-client-core</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
                 <exclusion>
                     <artifactId>javax.servlet</artifactId>
                     <groupId>org.glassfish</groupId>
@@ -133,19 +176,57 @@
                     <artifactId>jsp-api</artifactId>
                     <groupId>javax.servlet.jsp</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>jersey-core</artifactId>
+                    <groupId>com.sun.jersey</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jersey-server</artifactId>
+                    <groupId>com.sun.jersey</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jersey-test-framework-grizzly2</artifactId>
+                    <groupId>com.sun.jersey.jersey-test-framework</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jersey-json</artifactId>
+                    <groupId>com.sun.jersey</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jersey-guice</artifactId>
+                    <groupId>com.sun.jersey.contribs</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
 
         <!--Spring Dependencies -->
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-test</artifactId>
+            <artifactId>spring-webmvc</artifactId>
             <version>${spring.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
+            <artifactId>spring-web</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
             <version>${spring.version}</version>
         </dependency>
 
@@ -161,16 +242,41 @@
             <version>${gnu-trove.version}</version>
         </dependency>
 
-        <!-- Test dependencies -->
+         <!-- TODO: remove dependency once com.indeed.imhotep.iql.PercentileGrouping is using Trove-->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit-dep</artifactId>
-            <scope>test</scope>
+            <groupId>it.unimi.dsi</groupId>
+            <artifactId>fastutil</artifactId>
+            <version>6.2.2</version>
         </dependency>
 
         <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk</artifactId>
+            <version>1.7.11</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -182,14 +288,16 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep-server.version>1.0.14-internal</imhotep-server.version>
-        <indeed-util.version>1.0.12-internal-20140805170920</indeed-util.version>
+        <imhotep-server.version>[1.0.3-internal,)</imhotep-server.version>
+        <indeed-util.version>[1.0.9-SNAPSHOT,)</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
         <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
+        <jackson2.version>2.5.2</jackson2.version>
+        <lucene.version>2.4.1</lucene.version>
     </properties>
 
 </project>

@@ -15,7 +15,7 @@
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
