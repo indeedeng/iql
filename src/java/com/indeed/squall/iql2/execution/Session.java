@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +11,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -39,7 +37,6 @@ import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
-import com.indeed.squall.iql2.execution.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
@@ -51,20 +48,12 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -74,10 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.*;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -134,122 +120,6 @@ public class Session {
     public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer) {
         this.sessions = sessions;
         this.timer = timer;
-    }
-
-    public static void main(String[] args) throws Exception {
-        org.apache.log4j.BasicConfigurator.configure();
-        Logger.getRootLogger().setLevel(Level.INFO);
-
-        final Properties props = new Properties();
-        final InputStream propsStream = Session.class.getResourceAsStream("config.properties");
-        if (propsStream != null) {
-            props.load(propsStream);
-        }
-        String zkPath = (String) props.get("zk_path");
-        if (zkPath == null) {
-            zkPath = "***REMOVED***";
-        }
-        log.info("zkPath = " + zkPath);
-
-        final ImhotepClient client = new ImhotepClient(zkPath, true);
-
-        String wsSocketPortString = (String) props.get("ws_socket");
-        if (wsSocketPortString == null) {
-            wsSocketPortString = "8001";
-        }
-        final int wsSocketPort = Integer.parseInt(wsSocketPortString);
-        log.info("wsSocketPort = " + wsSocketPort);
-
-        String unixSocketPortString = (String) props.get("unix_socket");
-        if (unixSocketPortString == null) {
-            unixSocketPortString = "28347";
-        }
-        final int unixSocketPort = Integer.parseInt(unixSocketPortString);
-        log.info("unixSocketPort = " + unixSocketPort);
-
-        final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
-        final DimensionsLoader dimensionsLoader = new DimensionsLoader("dataset-dimensions", new File("/var/lucene/__/ramses-meta"));
-        executor.scheduleAtFixedRate(dimensionsLoader, 0, 5, TimeUnit.MINUTES);
-
-        final ServerSocket serverSocket = new ServerSocket(unixSocketPort);
-        while (true) {
-            final Socket clientSocket = serverSocket.accept();
-            final TreeTimer treeTimer = new TreeTimer();
-            treeTimer.push("request");
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try (final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                         final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
-
-                        final Supplier<JsonNode> nodeSupplier = new Supplier<JsonNode>() {
-                            public JsonNode get() {
-                                try {
-                                    final String line = in.readLine();
-                                    return line == null ? null : MAPPER.readTree(line);
-                                } catch (final IOException e) {
-                                    throw Throwables.propagate(e);
-                                }
-                            }
-                        };
-
-                        System.out.println("Found connection");
-                        final Consumer<String> resultConsumer = new Consumer<String>() {
-                            public void accept(String s) {
-                                out.println(s);
-                            }
-                        };
-                        treeTimer.push("processConnection");
-                        processConnection(client, nodeSupplier, resultConsumer, dimensionsLoader.getDimensions(), treeTimer);
-                        treeTimer.pop();
-                    } catch (Throwable e) {
-                        log.error("wat", e);
-                        System.out.println("e = " + e);
-                    } finally {
-                        treeTimer.pop();
-                        System.out.println(treeTimer.toString());
-                    }
-                }
-            }).start();
-        }
-    }
-
-    public static void processConnection(ImhotepClient client, Supplier<JsonNode> in, Consumer<String> out, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws IOException, ImhotepOutOfMemoryException {
-        treeTimer.push("firstLine");
-        final JsonNode sessionRequest = in.get();
-        treeTimer.pop();
-        if (sessionRequest.has("describe")) {
-            processDescribe(client, out, sessionRequest);
-        } else {
-            try (final Closer closer = Closer.create()) {
-                treeTimer.push("createSession");
-                final Optional<Session> session = createSession(client, sessionRequest, closer, out, dimensions, treeTimer);
-                treeTimer.pop();
-                treeTimer.push("commands");
-                if (session.isPresent()) {
-                    // Not using ifPresent because of exceptions
-                    final Session session1 = session.get();
-                    JsonNode inputTree;
-                    while ((inputTree = in.get()) != null) {
-                        System.out.println("inputLine = " + inputTree);
-                        session1.evaluateCommand(inputTree, out);
-                        System.out.println("Evaluated.");
-                    }
-                }
-                treeTimer.pop();
-            } catch (Exception e) {
-                final String error = Session.MAPPER.writeValueAsString(ImmutableMap.of("error", "1", "message", ""+e.getMessage(), "cause", ""+e.getCause(), "stackTrace", ""+ Arrays.toString(e.getStackTrace())));
-                System.out.println("error = " + error);
-                out.accept(error);
-                throw e;
-            }
-        }
-    }
-
-    public static void processDescribe(ImhotepClient client, Consumer<String> out, JsonNode sessionRequest) throws JsonProcessingException {
-        final DatasetInfo datasetInfo = client.getDatasetToShardList().get(sessionRequest.get("describe").textValue());
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo);
-        out.accept(MAPPER.writeValueAsString(datasetDescriptor));
     }
 
     public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
