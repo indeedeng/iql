@@ -153,11 +153,16 @@ public class Queries {
         final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents());
-        final String where = Joiner.on(' ').join(Iterables.transform(queryContext.docFilter(), new Function<JQLParser.DocFilterContext, String>() {
-            public String apply(@Nullable JQLParser.DocFilterContext input) {
-                return getText(queryInputStream, input);
-            }
-        }));
+        final String where;
+        if (queryContext.whereContents() != null) {
+            where = Joiner.on(' ').join(Iterables.transform(queryContext.whereContents().docFilter(), new Function<JQLParser.DocFilterContext, String>() {
+                public String apply(@Nullable JQLParser.DocFilterContext input) {
+                    return getText(queryInputStream, input);
+                }
+            }));
+        } else {
+            where = "";
+        }
         final String groupBy = getText(queryInputStream, queryContext.groupByContents());
         final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
             public String apply(@Nullable JQLParser.SelectContentsContext input) {

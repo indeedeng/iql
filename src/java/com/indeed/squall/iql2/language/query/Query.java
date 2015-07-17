@@ -37,9 +37,9 @@ public class Query {
         final List<com.indeed.squall.iql2.language.query.Dataset> datasets = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(queryContext.fromContents());
 
         final Optional<DocFilter> whereFilter;
-        if (queryContext.docFilter() != null) {
+        if (queryContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
-            for (final JQLParser.DocFilterContext ctx : queryContext.docFilter()) {
+            for (final JQLParser.DocFilterContext ctx : queryContext.whereContents().docFilter()) {
                 filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
             if (filters.isEmpty()) {

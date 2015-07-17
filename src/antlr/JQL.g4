@@ -385,6 +385,10 @@ fromContents
     : dataset (',' datasetOptTime)*
     ;
 
+whereContents [boolean useLegacy]
+    : (docFilters+=docFilter[$ctx.useLegacy])+
+    ;
+
 groupByContents [boolean useLegacy]
     : (groupByElement[$ctx.useLegacy] (',' groupByElement[$ctx.useLegacy])*)?
     ;
@@ -396,7 +400,7 @@ selectContents [boolean useLegacy]
 query [boolean useLegacy]
     : (SELECT selects+=selectContents[$ctx.useLegacy])?
       FROM fromContents
-      (WHERE docFilter[$ctx.useLegacy]+)?
+      (WHERE whereContents[$ctx.useLegacy])?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?
