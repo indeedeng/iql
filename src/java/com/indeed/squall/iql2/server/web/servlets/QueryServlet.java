@@ -15,6 +15,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
@@ -28,6 +29,7 @@ import com.indeed.squall.iql2.execution.DatasetDescriptor;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
+import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import org.apache.commons.codec.binary.Base64;
@@ -77,25 +79,36 @@ public class QueryServlet {
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
+    private final DimensionsLoader dimensionsLoader;
+    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
 
     @Autowired
-    public QueryServlet(ImhotepClient imhotepClient, QueryCache queryCache, ExecutionManager executionManager) {
+    public QueryServlet(
+            final ImhotepClient imhotepClient,
+            final QueryCache queryCache,
+            final ExecutionManager executionManager,
+            final DimensionsLoader dimensionsLoader,
+            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
+        this.dimensionsLoader = dimensionsLoader;
+        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
     }
 
-    // TODO: use a shared reloader, and have actual values
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        return Collections.emptyMap();
+        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist();
     }
 
-    // TODO: use a shared reloader, and have actual values
-    private Map<String, Set<String>> getDatasetToIntFields() {
-        return Collections.emptyMap();
+    private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
+        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getDatasetToIntFields();
+    }
+
+    private Map<String, DatasetDimensions> getDimensions() {
+        return dimensionsLoader.getDimensions();
     }
 
     @RequestMapping(value={"/iql/query","/iql2/query"})
@@ -425,7 +438,7 @@ public class QueryServlet {
 
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
-            Session.createSession(imhotepClient, requestJson, closer, out, Collections.<String, DatasetDimensions>emptyMap(), timer);
+            Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer);
         }
         timer.pop();
     }
@@ -500,7 +513,11 @@ public class QueryServlet {
         logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
         if(errorOccurred != null) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
-            logEntry.setProperty("exceptionmsg", errorOccurred.getMessage());
+            String message = errorOccurred.getMessage();
+            if (message == null) {
+                message = "<no msg>";
+            }
+            logEntry.setProperty("exceptionmsg", message);
         }
 
         // TODO: Log semantic information about the query.
