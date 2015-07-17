@@ -39,6 +39,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
@@ -201,6 +202,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @PostConstruct
     public void init() {
         StatementParser.LOWEST_YEAR_ALLOWED = env.getProperty("lowest.year.allowed", Integer.class, 0);
+    }
+
+    // equivalents for <mvc:resources/> tags
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/metadata/**").addResourceLocations("classpath:/META-INF/public-web-resources/metadata/");
     }
 
     // do we need this?
