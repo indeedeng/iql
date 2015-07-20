@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class SimpleIterate implements Command {
+    public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
     public final String field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
@@ -165,9 +167,9 @@ public class SimpleIterate implements Command {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = groupKey.asList(true);
         for (final String k : keyColumns) {
-            sb.append(k).append('\t');
+            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
-        sb.append(term).append('\t');
+        sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(term).replaceAll("\uFFFD")).append('\t');
         for (final double stat : selectBuffer) {
             if (DoubleMath.isMathematicalInteger(stat)) {
                 sb.append((long)stat).append('\t');

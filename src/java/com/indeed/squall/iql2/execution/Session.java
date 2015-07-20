@@ -71,6 +71,7 @@ import java.util.regex.Pattern;
  * @author jwolfe
  */
 public class Session {
+
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
@@ -116,6 +117,7 @@ public class Session {
     }
 
     public static final String INFINITY_SYMBOL = "∞";
+    public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
 
     public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer) {
         this.sessions = sessions;
@@ -323,7 +325,7 @@ public class Session {
                 for (final GroupStats result : results) {
                     final List<String> keyColumns = result.key.asList(false);
                     for (final String k : keyColumns) {
-                        sb.append(k).append('\t');
+                        sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                     }
                     for (final double stat : result.stats) {
                         if (DoubleMath.isMathematicalInteger(stat)) {
