@@ -1,6 +1,10 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.indeed.squall.iql2.language.compat.Consumer;
+
+import java.util.Map;
+import java.util.Set;
 
 public enum GroupLookupMergeType implements Command {
     SumAll,
@@ -18,5 +22,10 @@ public enum GroupLookupMergeType implements Command {
             }
         }
         throw new IllegalArgumentException("Unknown GroupLookupMergeType: [" + jsonText + "]");
+    }
+
+    @Override
+    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+
     }
 }

@@ -7,10 +7,13 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.actions.Action;
+import com.indeed.squall.iql2.language.compat.Consumer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class ApplyFilterActions implements Command, JsonSerializable {
     public final ImmutableList<Action> actions;
@@ -27,6 +30,13 @@ public class ApplyFilterActions implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+        for (final Action action : actions) {
+            action.validate(datasetToIntFields, datasetToStringFields, errorConsumer);
+        }
     }
 
     @Override

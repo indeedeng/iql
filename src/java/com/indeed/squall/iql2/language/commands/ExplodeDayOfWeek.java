@@ -4,8 +4,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.indeed.squall.iql2.language.compat.Consumer;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 public class ExplodeDayOfWeek implements Command, JsonSerializable {
     @Override
@@ -18,6 +21,11 @@ public class ExplodeDayOfWeek implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+
     }
 
     @Override
