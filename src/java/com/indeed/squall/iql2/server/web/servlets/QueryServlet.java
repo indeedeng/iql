@@ -256,7 +256,7 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset));
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset), getDimensions().get(dataset), getDatasetToIntFields().get(dataset));
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
         } else {
