@@ -8,9 +8,9 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -44,7 +44,7 @@ public class SumAcross implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
     }
 

@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -53,7 +54,7 @@ public class MetricAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
     }
 

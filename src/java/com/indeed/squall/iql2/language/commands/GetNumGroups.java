@@ -6,10 +6,9 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
 
 public class GetNumGroups implements Command, JsonSerializable {
     @Override
@@ -23,7 +22,7 @@ public class GetNumGroups implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
     }
 

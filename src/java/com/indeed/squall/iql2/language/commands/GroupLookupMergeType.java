@@ -2,9 +2,7 @@ package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.indeed.squall.iql2.language.compat.Consumer;
-
-import java.util.Map;
-import java.util.Set;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 public enum GroupLookupMergeType implements Command {
     SumAll,
@@ -25,7 +23,7 @@ public enum GroupLookupMergeType implements Command {
     }
 
     @Override
-    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
     }
 }

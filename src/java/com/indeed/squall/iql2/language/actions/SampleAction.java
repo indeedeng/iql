@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -52,7 +53,7 @@ public class SampleAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
     }
 
