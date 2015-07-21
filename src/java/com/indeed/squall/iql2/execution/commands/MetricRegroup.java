@@ -38,7 +38,7 @@ public class MetricRegroup implements Command {
         final long interval = this.interval;
         final Map<String, ? extends List<String>> perDatasetMetrics = this.perDatasetMetric;
 
-        final int numBuckets = 2 + (int) Math.ceil(((double) max - min) / interval);
+        final int numBuckets = (excludeGutters ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
         // TODO: Do these in parallel?
         for (final Map.Entry<String, ? extends List<String>> entry : perDatasetMetrics.entrySet()) {
@@ -58,9 +58,9 @@ public class MetricRegroup implements Command {
                 final int oldGroup = 1 + (group - 1) / numBuckets;
                 final int innerGroup = (group - 1) % numBuckets;
                 final String key;
-                if (innerGroup == numBuckets - 1) {
+                if (excludeGutters && innerGroup == numBuckets - 1) {
                     key = "[" + (min + interval * (numBuckets - 2)) + ", " + Session.INFINITY_SYMBOL + ")";
-                } else if (innerGroup == numBuckets - 2) {
+                } else if (excludeGutters && innerGroup == numBuckets - 2) {
                     key = "[-" + Session.INFINITY_SYMBOL + ", " + min + ")";
                 } else if (interval == 1) {
                     key = String.valueOf(min + innerGroup);
