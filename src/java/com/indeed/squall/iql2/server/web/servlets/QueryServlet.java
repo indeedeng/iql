@@ -370,6 +370,8 @@ public class QueryServlet {
                         throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
                 }
             }
+
+            builder.addIntField(dataset, "count()");
         }
 
         return builder.build();
