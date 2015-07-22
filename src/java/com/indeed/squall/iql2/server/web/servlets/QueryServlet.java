@@ -15,20 +15,22 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
-import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.squall.iql2.execution.DatasetDescriptor;
+import com.indeed.squall.iql2.execution.FieldDescriptor;
+import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
-import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.execution.Session;
-import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
@@ -347,6 +349,32 @@ public class QueryServlet {
         return queryStartTimestamp;
     }
 
+    private static DatasetsFields getDatasetsFields(Set<String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+        final DatasetsFields.Builder builder = DatasetsFields.builder();
+        for (final String dataset : datasets) {
+            final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
+            final DatasetDimensions dimension = dimensions.get(dataset);
+            final Set<String> intFields = datasetToIntFields.get(dataset);
+
+            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
+
+            for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {
+                switch (fieldDescriptor.getType()) {
+                    case "Integer":
+                        builder.addIntField(dataset, fieldDescriptor.getName());
+                        break;
+                    case "String":
+                        builder.addStringField(dataset, fieldDescriptor.getName());
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
     private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
@@ -356,6 +384,29 @@ public class QueryServlet {
 
         timer.push("compute commands");
         final List<Command> commands = Queries.queryCommands(query);
+        timer.pop();
+
+        timer.push("validate commands");
+        final List<String> errors = new ArrayList<>();
+
+        // Urgh different Consumer types...
+        // TODO: Where in common/ to put this?
+        final com.indeed.squall.iql2.language.compat.Consumer<String> errorConsumer = new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+            @Override
+            public void accept(String s) {
+                errors.add(s);
+            }
+        };
+
+        final DatasetsFields datasetsFields = getDatasetsFields(query.extractDatasetNames(), imhotepClient, getDimensions(), getDatasetToIntFields());
+        for (final Command command : commands) {
+            command.validate(datasetsFields, errorConsumer);
+        }
+
+        if (errors.size() > 0) {
+            throw new IllegalArgumentException("Errors found when validating query: " + errors);
+        }
+
         timer.pop();
 
         timer.push("compute hash");
