@@ -101,6 +101,16 @@ public class DocFilters {
             }
 
             @Override
+            public void enterLegacyDocLuceneFieldIs(@NotNull JQLParser.LegacyDocLuceneFieldIsContext ctx) {
+                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal()));
+                if (ctx.negate == null) {
+                    accept(fieldIs);
+                } else {
+                    accept(new DocFilter.Not(fieldIs));
+                }
+            }
+
+            @Override
             public void enterLegacyDocOr(@NotNull JQLParser.LegacyDocOrContext ctx) {
                 accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseLegacyDocFilter(ctx.legacyDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
@@ -246,6 +256,16 @@ public class DocFilters {
             @Override
             public void enterDocFieldIs(@NotNull JQLParser.DocFieldIsContext ctx) {
                 accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+            }
+
+            @Override
+            public void enterDocLuceneFieldIs(@NotNull JQLParser.DocLuceneFieldIsContext ctx) {
+                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal()));
+                if (ctx.negate == null) {
+                    accept(fieldIs);
+                } else {
+                    accept(new DocFilter.Not(fieldIs));
+                }
             }
 
             @Override
