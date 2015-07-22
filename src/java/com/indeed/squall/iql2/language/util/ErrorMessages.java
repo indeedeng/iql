@@ -1,7 +1,5 @@
 package com.indeed.squall.iql2.language.util;
 
-import com.indeed.squall.iql2.language.commands.ExplodeByAggregatePercentile;
-
 public class ErrorMessages {
     public static String missingStringField(String dataset, String field, Object context) {
         return "Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + context + "]";

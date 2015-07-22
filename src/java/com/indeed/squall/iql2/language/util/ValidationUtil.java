@@ -51,7 +51,7 @@ public class ValidationUtil {
         }
     }
 
-    public static void ensureSubset(DatasetsFields superset, DatasetsFields subset, Consumer<String> errorConsumer, Object source) {
+    public static void ensureSubset(DatasetsFields superset, DatasetsFields subset, Consumer<String> errorConsumer, Object source, boolean allowStringFieldsForInts) {
         for (final String dataset : subset.datasets()) {
             final ImmutableSet<String> expectedStringFields = subset.getStringFields(dataset);
             final ImmutableSet<String> actualStringFields = superset.getStringFields(dataset);
@@ -65,7 +65,9 @@ public class ValidationUtil {
             final ImmutableSet<String> actualIntFields = superset.getIntFields(dataset);
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
-                    errorConsumer.accept("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in ["  + source + "]");
+                    if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {
+                        errorConsumer.accept("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in ["  + source + "]");
+                    }
                 }
             }
         }
