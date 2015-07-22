@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
-public enum GroupLookupMergeType implements Command {
+public enum GroupLookupMergeType {
     SumAll,
     TakeTheOneUniqueValue,
     FailIfPresent;
@@ -20,10 +20,5 @@ public enum GroupLookupMergeType implements Command {
             }
         }
         throw new IllegalArgumentException("Unknown GroupLookupMergeType: [" + jsonText + "]");
-    }
-
-    @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
     }
 }

@@ -34,7 +34,7 @@ public class ApplyFilterActions implements Command, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         for (final Action action : actions) {
-            action.validate(, datasetToIntFields, errorConsumer);
+            action.validate(datasetsFields, errorConsumer);
         }
     }
 

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -39,7 +40,13 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        if (timeField.isPresent()) {
+            for (final String dataset : datasetsFields.datasets()) {
+                if (!datasetsFields.getIntFields(dataset).contains(timeField.get())) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, timeField.get(), this));
+                }
+            }
+        }
     }
 
     @Override

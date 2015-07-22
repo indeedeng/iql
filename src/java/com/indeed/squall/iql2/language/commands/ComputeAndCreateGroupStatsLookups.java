@@ -40,7 +40,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializa
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        for (final Pair<Command, String> pair : namedComputations) {
+            pair.getFirst().validate(datasetsFields, errorConsumer);
+        }
     }
 
     @Override

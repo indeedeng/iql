@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,7 +44,14 @@ public class SampleFields implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
+            final String dataset = entry.getKey();
+            for (final DocFilter.Sample sample : entry.getValue()) {
+                if (!datasetsFields.getAllFields(dataset).contains(sample.field)) {
+                    errorConsumer.accept(ErrorMessages.missingField(dataset, sample.field, this));
+                }
+            }
+        }
     }
 
     @Override

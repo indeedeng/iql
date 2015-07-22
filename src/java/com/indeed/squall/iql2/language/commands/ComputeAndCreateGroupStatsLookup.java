@@ -36,7 +36,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command, JsonSerializab
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        computation.validate(datasetsFields, errorConsumer);
     }
 
     @Override

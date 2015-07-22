@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,7 +42,23 @@ public class SimpleIterate implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        for (final String dataset : datasetsFields.datasets()) {
+            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+            }
+        }
 
+        if (opts.topK.isPresent()) {
+            // TODO: Handle opts.topK
+        }
+
+        if (opts.filter.isPresent()) {
+            // TODO: Handle opts.filter
+        }
+
+        for (final AggregateMetric metric : selecting) {
+            // TODO: Handle metric
+        }
     }
 
     @Override

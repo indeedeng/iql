@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -52,9 +53,8 @@ public class IntOrAction implements Action, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         for (final String dataset : scope) {
-            final Set<String> intFields = datasetToIntFields.get(dataset);
-            if (!intFields.contains(this.field)) {
-                errorConsumer.accept("dataset \"" + dataset + "\" does not contain int field \"" + this.field + "\" but is trying to perform OR regroup on it: " + this.toString());
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
             }
         }
     }

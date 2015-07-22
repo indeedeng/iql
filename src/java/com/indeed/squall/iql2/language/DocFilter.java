@@ -13,6 +13,8 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
+import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
@@ -43,6 +45,8 @@ public interface DocFilter {
     DocMetric asZeroOneMetric(String dataset);
 
     List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
+
+    void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
 
     class FieldIs implements DocFilter {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
@@ -107,6 +111,11 @@ public interface DocFilter {
                 }
             }
             return Collections.<Action>singletonList(new QueryAction(scope, datasetToQuery, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         private List<String> tokenize(String dataset) {
@@ -193,6 +202,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -250,6 +264,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -296,6 +315,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -346,6 +370,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -390,6 +419,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -440,6 +474,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -487,6 +526,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -531,6 +575,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new MetricAction(scope, this, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -593,6 +642,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -649,6 +703,11 @@ public interface DocFilter {
                 groupSupplier.release(newGroup);
             }
             return result;
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -712,6 +771,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -753,6 +817,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return filter.getExecutionActions(scope, target, negative, positive, groupSupplier);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -801,6 +870,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -845,6 +919,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return new Not(new Regex(field, regex)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -897,6 +976,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return filter.getExecutionActions(new HashSet<String>(this.scope), target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -984,6 +1068,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1034,6 +1123,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1077,6 +1171,11 @@ public interface DocFilter {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public int hashCode() {
             return 1;
         }
@@ -1106,6 +1205,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new UnconditionalAction(scope, target, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -1159,6 +1263,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new StringOrAction(scope, field, terms, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -1217,6 +1326,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new IntOrAction(scope, field, terms, target, positive, negative));
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override

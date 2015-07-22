@@ -9,6 +9,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -55,7 +56,9 @@ public class MetricAction implements Action, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        for (final String dataset : scope) {
+            filter.validate(dataset, datasetsFields, errorConsumer);
+        }
     }
 
     @Override

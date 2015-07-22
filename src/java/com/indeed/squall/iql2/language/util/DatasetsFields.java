@@ -9,16 +9,40 @@ import java.util.Map;
 import java.util.Set;
 
 public class DatasetsFields {
-    public final ImmutableMap<String, ImmutableSet<String>> datasetToIntFields;
-    public final ImmutableMap<String, ImmutableSet<String>> datasetToStringFields;
+    private final ImmutableMap<String, ImmutableSet<String>> datasetToIntFields;
+    private final ImmutableMap<String, ImmutableSet<String>> datasetToStringFields;
 
     public DatasetsFields(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields) {
         this.datasetToIntFields = copy(datasetToIntFields);
         this.datasetToStringFields = copy(datasetToStringFields);
     }
+    
+    public ImmutableSet<String> getStringFields(String dataset) {
+        if (!datasetToStringFields.containsKey(dataset)) {
+            return ImmutableSet.of();
+        } else {
+            return datasetToStringFields.get(dataset);
+        }
+    }
+    
+    public ImmutableSet<String> getIntFields(String dataset) {
+        if (!datasetToIntFields.containsKey(dataset)) {
+            return ImmutableSet.of();
+        } else {
+            return datasetToIntFields.get(dataset);
+        }
+    }
+
+    public Set<String> getAllFields(String dataset) {
+        return Sets.union(getStringFields(dataset), getIntFields(dataset));
+    }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Set<String> datasets() {
+        return Sets.union(datasetToIntFields.keySet(), datasetToStringFields.keySet());
     }
 
     public static class Builder {

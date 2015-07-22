@@ -40,7 +40,7 @@ public class FilterDocs implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        // TODO: How to validate List<String>..? Maybe have the DocFilter and scope instead.
     }
 
     @Override

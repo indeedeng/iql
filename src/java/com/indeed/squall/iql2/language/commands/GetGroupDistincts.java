@@ -8,6 +8,7 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -44,7 +45,12 @@ public class GetGroupDistincts implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        for (final String dataset : scope) {
+            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+            }
+        }
+        // TODO: Handle this.filter when present
     }
 
     @Override

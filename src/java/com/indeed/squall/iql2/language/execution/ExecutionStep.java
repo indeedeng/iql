@@ -14,7 +14,6 @@ import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.iql2.language.commands.FieldIterateOpts;
-import com.indeed.squall.iql2.language.commands.FieldLimitingMechanism;
 import com.indeed.squall.iql2.language.commands.IterateAndExplode;
 import com.indeed.squall.iql2.language.commands.MetricRegroup;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
@@ -154,7 +153,7 @@ public interface ExecutionStep {
             } else {
                 withDefaultName = Optional.absent();
             }
-            final Command command = new IterateAndExplode(field, Collections.<AggregateMetric>emptyList(), opts, Optional.<Pair<Integer, FieldLimitingMechanism>>absent(), withDefaultName);
+            final Command command = new IterateAndExplode(field, opts, withDefaultName);
             return Collections.singletonList(command);
         }
 

@@ -16,6 +16,7 @@ public abstract class DocMetric {
 
     protected abstract List<String> getPushes(String dataset);
 
+
     public static class PushableDocMetric extends DocMetric {
         private final DocMetric metric;
 
