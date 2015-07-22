@@ -46,7 +46,7 @@ public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
             }
         }
 
-        // TODO: Validate this.metric
+        metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
     }
 
     @Override

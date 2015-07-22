@@ -7,17 +7,22 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 // TODO: PerGroupConstants, SumChildren, IfThenElse ????
 public interface AggregateMetric {
 
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
+    void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
 
     abstract class Unop implements AggregateMetric, JsonSerializable {
         public final AggregateMetric m1;
@@ -57,6 +62,11 @@ public interface AggregateMetric {
             return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
                     '}';
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
         }
     }
 
@@ -150,6 +160,12 @@ public interface AggregateMetric {
                     "m1=" + m1 +
                     ", m2=" + m2 +
                     '}';
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
         }
     }
 
@@ -267,6 +283,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new IllegalStateException("Cannot serialize Parent metric");
         }
@@ -314,6 +335,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lag(lag, f.apply(metric));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -369,6 +395,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "iterateLag", "delay", lag, "m", metric));
         }
@@ -418,6 +449,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Window(window, f.apply(metric));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -473,6 +509,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize Qualified metrics -- ExtractPrecomputed should remove them!");
         }
@@ -507,9 +548,9 @@ public interface AggregateMetric {
 
     class DocStatsPushes implements AggregateMetric, JsonSerializable {
         public final String dataset;
-        public final List<String> pushes;
+        public final DocMetric.PushableDocMetric pushes;
 
-        public DocStatsPushes(String dataset, List<String> pushes) {
+        public DocStatsPushes(String dataset, DocMetric.PushableDocMetric pushes) {
             this.dataset = dataset;
             this.pushes = pushes;
         }
@@ -525,8 +566,13 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            pushes.validate(dataset, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes, "sessionName", dataset));
+            gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes.getPushes(dataset), "sessionName", dataset));
         }
 
         @Override
@@ -572,6 +618,13 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                metric.validate(dataset, datasetsFields, errorConsumer);
+            }
         }
 
         @Override
@@ -626,6 +679,13 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                docMetric.validate(dataset, datasetsFields, errorConsumer);
+            }
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw ImplicitDocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
         }
@@ -671,6 +731,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override
@@ -724,6 +789,15 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                }
+            }
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw Percentile metrics -- ExtractPrecomputed should remove them!");
         }
@@ -773,6 +847,11 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Running(offset, f.apply(metric));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -836,6 +915,19 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                }
+            }
+
+            if (filter.isPresent()) {
+                filter.get().validate(scope, datasetsFields, errorConsumer);
+            }
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw Distinct metrics -- ExtractPrecomputed should remove them!");
         }
@@ -890,6 +982,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize Named metrics -- RemoveNames should have removed them!");
         }
@@ -940,6 +1037,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "groupStatsLookup", "name", name));
         }
@@ -987,6 +1089,12 @@ public interface AggregateMetric {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new SumAcross(groupBy.traverse1(f), f.apply(metric));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            // TODO: Validate groupBy somehow?
+            metric.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override

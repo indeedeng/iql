@@ -2,7 +2,10 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +19,7 @@ public abstract class DocMetric {
 
     protected abstract List<String> getPushes(String dataset);
 
+    public abstract void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
 
     public static class PushableDocMetric extends DocMetric {
         private final DocMetric metric;
@@ -32,6 +36,24 @@ public abstract class DocMetric {
         @Override
         public List<String> getPushes(String dataset) {
             return ConstantFolding.apply(metric).getPushes(dataset);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(dataset, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PushableDocMetric that = (PushableDocMetric) o;
+            return Objects.equals(metric, that.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric);
         }
     }
 
@@ -50,6 +72,13 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList(field);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            }
         }
 
         @Override
@@ -105,6 +134,11 @@ public abstract class DocMetric {
             return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
                     '}';
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(dataset, datasetsFields, errorConsumer);
         }
     }
 
@@ -215,6 +249,12 @@ public abstract class DocMetric {
                     "m1=" + m1 +
                     ", m2=" + m2 +
                     '}';
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
     }
 
@@ -446,6 +486,13 @@ public abstract class DocMetric {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -487,6 +534,13 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("floatscale " + field + "*" + mult + "+" + add);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
         }
 
         @Override
@@ -532,6 +586,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -569,6 +628,13 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("hasint " + field + ":" + term);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            }
         }
 
         @Override
@@ -614,6 +680,13 @@ public abstract class DocMetric {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            }
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -656,6 +729,13 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             return new PushableDocMetric(new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase))).getPushes(dataset);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            condition.validate(dataset, datasetsFields, errorConsumer);
+            trueCase.validate(dataset, datasetsFields, errorConsumer);
+            falseCase.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override

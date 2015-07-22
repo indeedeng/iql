@@ -13,6 +13,7 @@ import com.indeed.squall.iql2.language.util.ErrorMessages;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;
@@ -49,15 +50,15 @@ public class SimpleIterate implements Command, JsonSerializable {
         }
 
         if (opts.topK.isPresent()) {
-            // TODO: Handle opts.topK
+            opts.topK.get().metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
         }
 
         if (opts.filter.isPresent()) {
-            // TODO: Handle opts.filter
+            opts.filter.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
         }
 
         for (final AggregateMetric metric : selecting) {
-            // TODO: Handle metric
+            metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
         }
     }
 

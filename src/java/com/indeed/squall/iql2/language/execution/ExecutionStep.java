@@ -382,9 +382,9 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, List<String>> perDatasetPushes = new HashMap<>();
+            final Map<String, DocMetric.PushableDocMetric> perDatasetPushes = new HashMap<>();
             for (final String dataset : scope) {
-                perDatasetPushes.put(dataset, new DocMetric.PushableDocMetric(filter.asZeroOneMetric(dataset)).getPushes(dataset));
+                perDatasetPushes.put(dataset, new DocMetric.PushableDocMetric(filter.asZeroOneMetric(dataset)));
             }
             return Collections.<Command>singletonList(new com.indeed.squall.iql2.language.commands.FilterDocs(perDatasetPushes));
         }

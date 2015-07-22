@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.BooleanOp;
@@ -15,6 +16,8 @@ import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
@@ -115,7 +118,15 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (term.isIntTerm) {
+                if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                }
+            } else {
+                if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                }
+            }
         }
 
         private List<String> tokenize(String dataset) {
@@ -203,7 +214,15 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (term.isIntTerm) {
+                if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                }
+            } else {
+                if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                }
+            }
         }
 
         @Override
@@ -265,7 +284,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            }
         }
 
         @Override
@@ -319,7 +340,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -371,7 +393,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -423,7 +446,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -475,7 +499,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -527,7 +552,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -578,8 +604,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+        public void validate(final String dataset, final DatasetsFields datasetsFields, final Consumer<String> errorConsumer) {
+            m1.validate(dataset, datasetsFields, errorConsumer);
+            m2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -643,7 +670,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            f1.validate(dataset, datasetsFields, errorConsumer);
+            f2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -707,7 +735,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            f1.validate(dataset, datasetsFields, errorConsumer);
+            f2.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -772,7 +801,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            for (final DocFilter filter : filters) {
+                filter.validate(dataset, datasetsFields, errorConsumer);
+            }
         }
 
         @Override
@@ -821,7 +852,7 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            filter.validate(dataset, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -871,7 +902,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
         }
 
         @Override
@@ -923,7 +956,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
         }
 
         @Override
@@ -980,7 +1015,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (scope.contains(dataset)) {
+                filter.validate(dataset, datasetsFields, errorConsumer);
+            }
         }
 
         @Override
@@ -1069,7 +1106,7 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, getFlamdexQuery(dataset))), errorConsumer, this, true);
         }
 
         @Override
@@ -1124,7 +1161,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+            }
         }
 
         @Override
@@ -1267,7 +1306,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
         }
 
         @Override
@@ -1330,7 +1371,9 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
         }
 
         @Override

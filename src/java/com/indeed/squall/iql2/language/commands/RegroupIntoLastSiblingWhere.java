@@ -33,7 +33,7 @@ public class RegroupIntoLastSiblingWhere implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        // TODO: Validate this.filter
+        filter.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
     }
 
     @Override

@@ -50,12 +50,12 @@ public class SumAcross implements Command, JsonSerializable {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
                 errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
             }
+        }
+        
+        metric.validate(scope, datasetsFields, errorConsumer);
 
-            // TODO: Validate this.metric
-
-            if (filter.isPresent()) {
-                // TODO: Validate filter.get()
-            }
+        if (filter.isPresent()) {
+            filter.get().validate(scope, datasetsFields, errorConsumer);
         }
     }
 

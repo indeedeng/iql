@@ -6,16 +6,11 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.squall.iql2.language.AggregateFilter;
-import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
-import com.indeed.util.core.Pair;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 public class IterateAndExplode implements Command, JsonSerializable {
@@ -58,14 +53,12 @@ public class IterateAndExplode implements Command, JsonSerializable {
             }
         }
 
-        if (this.fieldOpts.topK.isPresent()) {
-            final TopK topK = this.fieldOpts.topK.get();
-            // TODO: Validate topK.metric
+        if (fieldOpts.topK.isPresent()) {
+            fieldOpts.topK.get().metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
         }
 
-        if (this.fieldOpts.filter.isPresent()) {
-            final AggregateFilter aggregateFilter = this.fieldOpts.filter.get();
-            // TODO: Validate aggregateFilter
+        if (fieldOpts.filter.isPresent()) {
+            fieldOpts.filter.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
         }
     }
 

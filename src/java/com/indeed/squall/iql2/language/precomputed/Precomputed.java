@@ -141,7 +141,7 @@ public interface Precomputed {
         public Precomputation commands(Set<String> scope) {
             AggregateMetric metric = null;
             for (final String dataset : scope) {
-                final AggregateMetric aMetric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric).getPushes(dataset));
+                final AggregateMetric aMetric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
                 if (metric == null) {
                     metric = aMetric;
                 } else {

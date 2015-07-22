@@ -6,16 +6,22 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Set;
 
 public interface AggregateFilter {
 
     AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
 
     AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
+
+    void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
 
     class TermIs implements AggregateFilter, JsonSerializable {
         private final Term term;
@@ -32,6 +38,10 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         }
 
         @Override
@@ -82,6 +92,12 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new MetricIs(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -137,6 +153,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "metricNotEquals", "arg1", m1, "arg2", m2));
         }
@@ -186,6 +208,12 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Gt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -241,6 +269,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "greaterThanOrEquals", "arg1", m1, "arg2", m2));
         }
@@ -290,6 +324,12 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Lt(f.apply(m1), f.apply(m2));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -345,6 +385,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            m1.validate(scope, datasetsFields, errorConsumer);
+            m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "lessThanOrEquals", "arg1", m1, "arg2", m2));
         }
@@ -394,6 +440,12 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new And(f1.traverse1(f), f2.traverse1(f));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            f1.validate(scope, datasetsFields, errorConsumer);
+            f2.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -449,6 +501,12 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            f1.validate(scope, datasetsFields, errorConsumer);
+            f2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "or", "arg1", f1, "arg2", f2));
         }
@@ -496,6 +554,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Not(filter.traverse1(f));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            filter.validate(scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -549,6 +612,15 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                }
+            }
+        }
+
+        @Override
         public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "regex", "field", field, "value", regex));
         }
@@ -593,6 +665,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "always"));
         }
@@ -627,6 +704,11 @@ public interface AggregateFilter {
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
         }
 
         @Override

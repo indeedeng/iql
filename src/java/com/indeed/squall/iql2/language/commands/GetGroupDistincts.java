@@ -50,7 +50,10 @@ public class GetGroupDistincts implements Command, JsonSerializable {
                 errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
             }
         }
-        // TODO: Handle this.filter when present
+
+        if (filter.isPresent()) {
+            filter.get().validate(scope, datasetsFields, errorConsumer);
+        }
     }
 
     @Override

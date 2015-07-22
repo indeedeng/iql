@@ -42,7 +42,9 @@ public class GetGroupStats implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        // TODO: Validate this.metrics
+        for (final AggregateMetric metric : metrics) {
+            metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+        }
     }
 
     @Override

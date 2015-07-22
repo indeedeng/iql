@@ -5,32 +5,39 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public class FilterDocs implements Command, JsonSerializable {
-    public final Map<String, List<String>> perDatasetFilterMetric;
+    public final ImmutableMap<String, DocMetric.PushableDocMetric> perDatasetFilterMetric;
 
-    public FilterDocs(Map<String, List<String>> perDatasetFilterMetric) {
-        final Map<String, List<String>> copy = Maps.newHashMap();
-        for (final Map.Entry<String, List<String>> entry : perDatasetFilterMetric.entrySet()) {
-            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
-        }
-        this.perDatasetFilterMetric = copy;
+    public FilterDocs(Map<String, DocMetric.PushableDocMetric> perDatasetFilterMetric) {
+        this.perDatasetFilterMetric = ImmutableMap.copyOf(perDatasetFilterMetric);
     }
 
     @Override
     public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeStringField("command", "filterDocs");
-        gen.writeObjectField("perDatasetFilter", perDatasetFilterMetric);
+        gen.writeObjectField("perDatasetFilter", getPushesMap());
         gen.writeEndObject();
+    }
+
+    private Map<String, List<String>> getPushesMap() {
+        final Map<String, List<String>> result = new HashMap<>();
+        for (final Map.Entry<String, DocMetric.PushableDocMetric> entry : perDatasetFilterMetric.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().getPushes(entry.getKey()));
+        }
+        return result;
     }
 
     @Override
@@ -40,7 +47,9 @@ public class FilterDocs implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        // TODO: How to validate List<String>..? Maybe have the DocFilter and scope instead.
+        for (final Map.Entry<String, DocMetric.PushableDocMetric> entry : perDatasetFilterMetric.entrySet()) {
+            entry.getValue().validate(entry.getKey(), datasetsFields, errorConsumer);
+        }
     }
 
     @Override
