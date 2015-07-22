@@ -7,10 +7,12 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -510,7 +512,8 @@ public interface AggregateMetric {
 
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+            metric.validate(Sets.newHashSet(this.scope), datasetsFields, errorConsumer);
+            ValidationUtil.validateScope(this.scope, datasetsFields, errorConsumer);
         }
 
         @Override
@@ -568,6 +571,7 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             pushes.validate(dataset, datasetsFields, errorConsumer);
+            ValidationUtil.validateDataset(dataset, datasetsFields, errorConsumer);
         }
 
         @Override

@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 public interface DocFilter {
 
@@ -1010,7 +1009,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Set<String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return filter.getExecutionActions(new HashSet<String>(this.scope), target, positive, negative, groupSupplier);
+            return filter.getExecutionActions(new HashSet<>(this.scope), target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -1018,6 +1017,7 @@ public interface DocFilter {
             if (scope.contains(dataset)) {
                 filter.validate(dataset, datasetsFields, errorConsumer);
             }
+            ValidationUtil.validateScope(scope, datasetsFields, errorConsumer);
         }
 
         @Override

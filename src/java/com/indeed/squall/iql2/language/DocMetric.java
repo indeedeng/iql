@@ -55,6 +55,13 @@ public abstract class DocMetric {
         public int hashCode() {
             return Objects.hash(metric);
         }
+
+        @Override
+        public String toString() {
+            return "PushableDocMetric{" +
+                    "metric=" + metric +
+                    '}';
+        }
     }
 
     public static class Field extends DocMetric {

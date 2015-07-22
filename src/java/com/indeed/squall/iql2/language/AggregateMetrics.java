@@ -3,9 +3,9 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
+import com.indeed.squall.iql2.language.util.ParseUtil;
 import org.antlr.v4.runtime.misc.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,16 +107,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateQualified(@NotNull JQLParser.AggregateQualifiedContext ctx) {
-                final List<String> scope = new ArrayList<>();
-                if (ctx.scope() instanceof JQLParser.SingleScopeContext) {
-                    final JQLParser.SingleScopeContext singleScopeContext = (JQLParser.SingleScopeContext) ctx.scope();
-                    scope.add(singleScopeContext.identifier().getText());
-                } else if (ctx.scope() instanceof JQLParser.MultiScopeContext) {
-                    final JQLParser.MultiScopeContext multiScopeContext = (JQLParser.MultiScopeContext) ctx.scope();
-                    for (final JQLParser.IdentifierContext dataset : multiScopeContext.datasets) {
-                        scope.add(dataset.getText());
-                    }
-                }
+                final List<String> scope = ParseUtil.parseScope(ctx.scope());
                 accept(new AggregateMetric.Qualified(scope, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 

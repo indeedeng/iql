@@ -12,4 +12,8 @@ public class ErrorMessages {
     public static String missingField(String dataset, String field, Object context) {
         return "Dataset \"" + dataset + "\" does not contain expected field \"" + field + "\" in [" + context + "]";
     }
+
+    public static String missingDataset(String dataset) {
+        return "Expected dataset \"" + dataset + "\" does not exist";
+    }
 }

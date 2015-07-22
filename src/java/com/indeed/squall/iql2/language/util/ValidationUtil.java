@@ -2,9 +2,9 @@ package com.indeed.squall.iql2.language.util;
 
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
-import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.compat.Consumer;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class ValidationUtil {
@@ -70,6 +70,20 @@ public class ValidationUtil {
                     }
                 }
             }
+        }
+    }
+
+    public static void validateScope(Collection<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        for (final String s : scope) {
+            if (!datasetsFields.datasets().contains(s)) {
+                errorConsumer.accept(ErrorMessages.missingDataset(s));
+            }
+        }
+    }
+
+    public static void validateDataset(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        if (!datasetsFields.datasets().contains(dataset)) {
+            errorConsumer.accept(ErrorMessages.missingDataset(dataset));
         }
     }
 }
