@@ -92,20 +92,16 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                         groupCounts[lastGroup - 1]++;
                     }
                     groupSeen.clear();
+                } else if (started) {
+                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
+                        groupCounts[lastGroup - 1]++;
+                    }
                 }
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
                 final Session.GroupKey parent = session.groupKeys.get(group).parent;
-                if (filter.isPresent()) {
-                    if (filter.get().allow(term, stats, group)) {
-                        for (int offset = 0; offset < windowSize; offset++) {
-                            if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
-                                groupSeen.set(group + offset);
-                            }
-                        }
-                    }
-                } else {
+                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
                         if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                             groupSeen.set(group + offset);
@@ -131,20 +127,16 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                         groupCounts[lastGroup - 1]++;
                     }
                     groupSeen.clear();
+                } else if (started) {
+                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
+                        groupCounts[lastGroup - 1]++;
+                    }
                 }
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
                 final Session.GroupKey parent = session.groupKeys.get(group).parent;
-                if (filter.isPresent()) {
-                    if (filter.get().allow(term, stats, group)) {
-                        for (int offset = 0; offset < windowSize; offset++) {
-                            if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
-                                groupSeen.set(group + offset);
-                            }
-                        }
-                    }
-                } else {
+                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
                         if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
                             groupSeen.set(group + offset);
