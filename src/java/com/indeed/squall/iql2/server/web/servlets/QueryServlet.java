@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -425,6 +426,8 @@ public class QueryServlet {
         final String cacheFileName = queryHash + ".tsv";
         timer.pop();
 
+        final AtomicBoolean errorOccurred = new AtomicBoolean(false);
+
         try (final Closer closer = Closer.create()) {
             if (queryCache.isEnabled()) {
                 timer.push("cache check");
@@ -446,7 +449,9 @@ public class QueryServlet {
                         public void close() throws IOException {
                             // TODO: Do this stuff asynchronously
                             cacheWriter.close();
-                            queryCache.writeFromFile(cacheFileName, cacheFile);
+                            if (!errorOccurred.get()) {
+                                queryCache.writeFromFile(cacheFileName, cacheFile);
+                            }
                             if (!cacheFile.delete()) {
                                 log.warn("Failed to delete  " + cacheFile);
                             }
@@ -491,7 +496,12 @@ public class QueryServlet {
 
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
-            Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer);
+            try {
+                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer);
+            } catch (Exception e) {
+                errorOccurred.set(true);
+                throw Throwables.propagate(e);
+            }
         }
         timer.pop();
     }
