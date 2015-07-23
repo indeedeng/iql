@@ -134,7 +134,7 @@ jqlAggregateMetric
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
     | DISTINCT '(' identifier (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
-    | DISTINCT_WINDOW '(' INT ',' identifier (HAVING jqlAggregateFilter) ')' # AggregateDistinctWindow
+    | DISTINCT_WINDOW '(' INT ',' identifier (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
     | WINDOW '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
