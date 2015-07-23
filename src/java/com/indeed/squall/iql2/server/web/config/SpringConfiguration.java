@@ -1,6 +1,9 @@
 package com.indeed.squall.iql2.server.web.config;
 
+import com.google.common.base.Strings;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.squall.iql2.server.LocalImhotepDaemon;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
 import com.indeed.squall.iql2.server.web.WebPackageMarker;
@@ -23,6 +26,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import javax.xml.bind.PropertyException;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -37,13 +42,54 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     Environment env;
 
     @Bean(destroyMethod = "close")
-    public ImhotepClient imhotepClient() throws IOException {
-        String zkPath = env.getProperty("imhotep.daemons.zookeeper.path", "");
-        String zkNodes = env.getProperty("imhotep.daemons.zookeeper.quorum", "***REMOVED***");
-        if (zkPath.isEmpty()) {
-            return new ImhotepClient(zkNodes, true);
+    public ImhotepClient imhotepClient() {
+        if(env.getProperty("imhotep.daemons.localmode", Boolean.class, false)) {
+            // when running an imhotep daemon instance in process
+            final String shardsDir = env.getProperty("imhotep.shards.directory");
+            if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
+                final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
+                return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
+            } else {
+                log.warn("Local mode is enabled for the Imhotep Daemon but imhotep.shards.directory is not set to an existing location." +
+                        "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
+            }
+        }
+        // connect to an externally running Imhotep Daemon
+        return getImhotepClient(
+                env.getProperty("imhotep.daemons.zookeeper.quorum"),
+                env.getProperty("imhotep.daemons.zookeeper.path"),
+                env.getProperty("imhotep.daemons.host"),
+                false);
+    }
+
+    @Bean(destroyMethod = "close")
+    public ImhotepClient imhotepInteractiveClient() {
+        final ImhotepClient interactiveClient = getImhotepClient(
+                env.getProperty("imhotep.daemons.interactive.zookeeper.quorum"),
+                env.getProperty("imhotep.daemons.interactive.zookeeper.path"),
+                env.getProperty("imhotep.daemons.interactive.host"),
+                true);
+        if(interactiveClient != null) {
+            return interactiveClient;
         } else {
+            // interactive not provided, reuse the normal client
+            return imhotepClient();
+        }
+    }
+
+    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String host, boolean quiet) {
+        if(!Strings.isNullOrEmpty(host)) {
+            String mergePoint = host.split(",")[0];
+            String[] mergePointParts = mergePoint.split(":");
+            List<Host> hosts = Arrays.asList(new Host(mergePointParts[0], Integer.parseInt(mergePointParts[1])));
+            return new ImhotepClient(hosts);
+        } else if(!Strings.isNullOrEmpty(zkNodes)) {
             return new ImhotepClient(zkNodes, zkPath, true);
+        } else {
+            if(quiet) {
+                return null;
+            }
+            throw new IllegalArgumentException("either imhotep.daemons.zookeeper.quorum or imhotep.daemons.host config properties must be set");
         }
     }
 
