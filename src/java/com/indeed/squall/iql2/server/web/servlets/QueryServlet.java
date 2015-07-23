@@ -359,29 +359,32 @@ public class QueryServlet {
         return queryStartTimestamp;
     }
 
-    private static DatasetsFields getDatasetsFields(Set<String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+    private static DatasetsFields getDatasetsFields(Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
         final DatasetsFields.Builder builder = DatasetsFields.builder();
-        for (final String dataset : datasets) {
+        for (final Map.Entry<String, String> entry : datasets.entrySet()) {
+            final String dataset = entry.getValue();
+
             final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
             final DatasetDimensions dimension = dimensions.get(dataset);
             final Set<String> intFields = datasetToIntFields.get(dataset);
 
             final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
 
+            final String name = entry.getKey();
             for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {
                 switch (fieldDescriptor.getType()) {
                     case "Integer":
-                        builder.addIntField(dataset, fieldDescriptor.getName());
+                        builder.addIntField(name, fieldDescriptor.getName());
                         break;
                     case "String":
-                        builder.addStringField(dataset, fieldDescriptor.getName());
+                        builder.addStringField(name, fieldDescriptor.getName());
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
                 }
             }
 
-            builder.addIntField(dataset, "count()");
+            builder.addIntField(name, "count()");
         }
 
         return builder.build();
@@ -410,7 +413,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = getDatasetsFields(query.extractDatasetNames(), imhotepClient, getDimensions(), getDatasetToIntFields());
+        final DatasetsFields datasetsFields = getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields());
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
