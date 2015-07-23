@@ -13,6 +13,7 @@ import com.indeed.squall.iql2.language.JQLParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -137,6 +138,23 @@ public class Query {
             names.add(name);
         }
         return names;
+    }
+
+    public Map<String, String> nameToIndex() {
+        final Map<String, String> nameToIndex = new HashMap<>();
+        for (final Dataset dataset : datasets) {
+            final String name;
+            if (dataset.alias.isPresent()) {
+                name = dataset.alias.get();
+            } else {
+                name = dataset.dataset;
+            }
+            if (nameToIndex.containsKey(name)) {
+                throw new IllegalArgumentException("Duplicate name encountered: " + name);
+            }
+            nameToIndex.put(name, dataset.dataset);
+        }
+        return nameToIndex;
     }
 
 
