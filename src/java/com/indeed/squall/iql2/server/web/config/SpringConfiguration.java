@@ -64,20 +64,20 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 false);
     }
 
-    @Bean(destroyMethod = "close")
-    public ImhotepClient imhotepInteractiveClient() {
-        final ImhotepClient interactiveClient = getImhotepClient(
-                env.getProperty("imhotep.daemons.interactive.zookeeper.quorum"),
-                env.getProperty("imhotep.daemons.interactive.zookeeper.path"),
-                env.getProperty("imhotep.daemons.interactive.host"),
-                true);
-        if(interactiveClient != null) {
-            return interactiveClient;
-        } else {
-            // interactive not provided, reuse the normal client
-            return imhotepClient();
-        }
-    }
+//    @Bean(destroyMethod = "close")
+//    public ImhotepClient imhotepInteractiveClient() {
+//        final ImhotepClient interactiveClient = getImhotepClient(
+//                env.getProperty("imhotep.daemons.interactive.zookeeper.quorum"),
+//                env.getProperty("imhotep.daemons.interactive.zookeeper.path"),
+//                env.getProperty("imhotep.daemons.interactive.host"),
+//                true);
+//        if(interactiveClient != null) {
+//            return interactiveClient;
+//        } else {
+//            // interactive not provided, reuse the normal client
+//            return imhotepClient();
+//        }
+//    }
 
     private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String host, boolean quiet) {
         if(!Strings.isNullOrEmpty(host)) {
@@ -86,7 +86,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             List<Host> hosts = Arrays.asList(new Host(mergePointParts[0], Integer.parseInt(mergePointParts[1])));
             return new ImhotepClient(hosts);
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
-            return new ImhotepClient(zkNodes, zkPath, true);
+            if (Strings.isNullOrEmpty(zkPath)) {
+                return new ImhotepClient(zkNodes, true);
+            } else {
+                return new ImhotepClient(zkNodes, zkPath, true);
+            }
         } else {
             if(quiet) {
                 return null;
