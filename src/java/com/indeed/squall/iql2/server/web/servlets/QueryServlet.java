@@ -26,6 +26,7 @@ import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
@@ -84,6 +85,7 @@ public class QueryServlet {
     private final ExecutionManager executionManager;
     private final DimensionsLoader dimensionsLoader;
     private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final AccessControl accessControl;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
@@ -94,12 +96,14 @@ public class QueryServlet {
             final QueryCache queryCache,
             final ExecutionManager executionManager,
             final DimensionsLoader dimensionsLoader,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader) {
+            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
+            final AccessControl accessControl) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
         this.dimensionsLoader = dimensionsLoader;
         this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.accessControl = accessControl;
     }
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
@@ -133,6 +137,11 @@ public class QueryServlet {
         final boolean isStream = contentType.contains("text/event-stream");
         // TODO: Check for username and client values
         try {
+            if(Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
+                throw new RuntimeException("IQL query requests have to include parameters 'client' and 'username' for identification");
+            }
+            accessControl.checkAllowedAccess(username);
+
             final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
             final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
             if (describeDatasetMatcher.matches()) {

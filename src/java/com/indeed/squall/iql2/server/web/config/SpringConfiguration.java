@@ -5,6 +5,7 @@ import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.iql2.server.LocalImhotepDaemon;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
 import com.indeed.squall.iql2.server.web.WebPackageMarker;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
@@ -27,6 +28,7 @@ import javax.xml.bind.PropertyException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -120,6 +122,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("keyword-analyzer-whitelist", new File(env.getProperty("ramses.metadata.dir")), imhotepClient);
         executor.scheduleAtFixedRate(keywordAnalyzerWhitelistLoader, 0, 5, TimeUnit.MINUTES);
         return keywordAnalyzerWhitelistLoader;
+    }
+
+    @Bean
+    public AccessControl accessControl() {
+        @SuppressWarnings("unchecked")
+        final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
+        return new AccessControl(bannedUserList);
     }
 
     @Bean
