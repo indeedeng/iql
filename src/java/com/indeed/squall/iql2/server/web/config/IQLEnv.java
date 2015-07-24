@@ -11,10 +11,9 @@ public enum IQLEnv {
     STAGE("stage"),
     QA("qa"),
     INTEGRATION("integration"),
-    DEVELOPER("dev");
+    DEVELOPER("developer");
 
     public final String id;
-
 
     IQLEnv(String id) {
         this.id = id;
