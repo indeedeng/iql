@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
+import com.indeed.squall.iql2.execution.AggregateFilter;
+import com.indeed.squall.iql2.execution.AggregateFilters;
 
 import java.util.List;
 
@@ -78,6 +80,12 @@ public class AggregateMetrics {
             }
             case "sumChildren": {
                 return new SumChildren(value.get());
+            }
+            case "ifThenElse": {
+                final AggregateFilter condition = AggregateFilters.fromJson(node.get("condition"), namedMetricLookup);
+                final AggregateMetric trueCase = fromJson(node.get("trueCase"), namedMetricLookup);
+                final AggregateMetric falseCase = fromJson(node.get("falseCase"), namedMetricLookup);
+                return new IfThenElse(condition, trueCase, falseCase);
             }
         }
         throw new RuntimeException("Oops: " + node);
