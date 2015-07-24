@@ -71,6 +71,54 @@ public class DocMetrics {
                 accept(new DocMetric.Multiply(parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)));
             }
 
+            @Override
+            public void enterLegacyDocEQ(@NotNull JQLParser.LegacyDocEQContext ctx) {
+                accept(new DocMetric.MetricEqual(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
+            @Override
+            public void enterLegacyDocNEQ(@NotNull JQLParser.LegacyDocNEQContext ctx) {
+                accept(new DocMetric.MetricNotEqual(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
+            @Override
+            public void enterLegacyDocGT(@NotNull JQLParser.LegacyDocGTContext ctx) {
+                accept(new DocMetric.MetricGt(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
+            @Override
+            public void enterLegacyDocGTE(@NotNull JQLParser.LegacyDocGTEContext ctx) {
+                accept(new DocMetric.MetricGte(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
+            @Override
+            public void enterLegacyDocLT(@NotNull JQLParser.LegacyDocLTContext ctx) {
+                accept(new DocMetric.MetricLt(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
+            @Override
+            public void enterLegacyDocLTE(@NotNull JQLParser.LegacyDocLTEContext ctx) {
+                accept(new DocMetric.MetricLte(
+                        parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields),
+                        parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields)
+                ));
+            }
+
             public void enterLegacyDocAtom(@NotNull JQLParser.LegacyDocAtomContext ctx) {
                 accept(parseDocMetricAtom(ctx.docMetricAtom()));
             }
@@ -142,6 +190,54 @@ public class DocMetrics {
 
             public void enterDocMult(@NotNull JQLParser.DocMultContext ctx) {
                 accept(new DocMetric.Multiply(parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterDocEQ(@NotNull JQLParser.DocEQContext ctx) {
+                accept(new DocMetric.MetricEqual(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
+            public void enterDocNEQ(@NotNull JQLParser.DocNEQContext ctx) {
+                accept(new DocMetric.MetricNotEqual(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
+            public void enterDocGT(@NotNull JQLParser.DocGTContext ctx) {
+                accept(new DocMetric.MetricGt(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
+            public void enterDocGTE(@NotNull JQLParser.DocGTEContext ctx) {
+                accept(new DocMetric.MetricGte(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
+            public void enterDocLT(@NotNull JQLParser.DocLTContext ctx) {
+                accept(new DocMetric.MetricLt(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
+            public void enterDocLTE(@NotNull JQLParser.DocLTEContext ctx) {
+                accept(new DocMetric.MetricLte(
+                        parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
             }
 
             public void enterDocAtom(@NotNull JQLParser.DocAtomContext ctx) {
