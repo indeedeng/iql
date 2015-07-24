@@ -1134,4 +1134,73 @@ public interface AggregateMetric {
                     '}';
         }
     }
+
+    class IfThenElse implements AggregateMetric, JsonSerializable {
+        public final AggregateFilter condition;
+        public final AggregateMetric trueCase;
+        public final AggregateMetric falseCase;
+
+        public IfThenElse(AggregateFilter condition, AggregateMetric trueCase, AggregateMetric falseCase) {
+            this.condition = condition;
+            this.trueCase = trueCase;
+            this.falseCase = falseCase;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(
+                    new IfThenElse(
+                            condition.transform(f, g, h, i, groupByFunction),
+                            trueCase.transform(f, g, h, i, groupByFunction),
+                            falseCase.transform(f, g, h, i, groupByFunction)
+                    )
+            );
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new IfThenElse(condition.traverse1(f), f.apply(trueCase), f.apply(falseCase));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            condition.validate(scope, datasetsFields, errorConsumer);
+            trueCase.validate(scope, datasetsFields, errorConsumer);
+            falseCase.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "ifThenElse", "condition", condition, "trueCase", trueCase, "falseCase", falseCase));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            IfThenElse that = (IfThenElse) o;
+            return Objects.equals(condition, that.condition) &&
+                    Objects.equals(trueCase, that.trueCase) &&
+                    Objects.equals(falseCase, that.falseCase);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(condition, trueCase, falseCase);
+        }
+
+        @Override
+        public String toString() {
+            return "IfThenElse{" +
+                    "condition=" + condition +
+                    ", trueCase=" + trueCase +
+                    ", falseCase=" + falseCase +
+                    '}';
+        }
+    }
 }

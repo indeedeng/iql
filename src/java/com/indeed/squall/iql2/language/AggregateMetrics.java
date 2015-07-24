@@ -235,6 +235,15 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateIfThenElse(@NotNull JQLParser.AggregateIfThenElseContext ctx) {
+                accept(new AggregateMetric.IfThenElse(
+                        AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        AggregateMetrics.parseJQLAggregateMetric(ctx.trueCase, datasetToKeywordAnalyzerFields, datasetToIntFields),
+                        AggregateMetrics.parseJQLAggregateMetric(ctx.falseCase, datasetToKeywordAnalyzerFields, datasetToIntFields)
+                ));
+            }
+
+            @Override
             public void enterAggregateDocMetricAtom(@NotNull JQLParser.AggregateDocMetricAtomContext ctx) {
                 accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseDocMetricAtom(ctx.docMetricAtom())));
             }

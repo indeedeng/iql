@@ -146,6 +146,7 @@ jqlAggregateMetric
     | jqlSumOverMetric # AggregateSumAcross
     | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
+    | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | docMetricAtom # AggregateDocMetricAtom
     | '[' jqlDocMetric ']' # AggregateSum
     | '-' jqlAggregateMetric # AggregateNegate
