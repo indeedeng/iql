@@ -11,6 +11,8 @@ import com.indeed.squall.iql2.server.web.WebPackageMarker;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.cache.QueryCacheFactory;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
+import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {ConfigurationPackageMarker.class, ServletsPackageMarker.class, WebPackageMarker.class})
+@ComponentScan(basePackageClasses = {ConfigurationPackageMarker.class, ServletsPackageMarker.class, WebPackageMarker.class, HealthcheckPackageMarker.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 
@@ -133,6 +135,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         @SuppressWarnings("unchecked")
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
         return new AccessControl(bannedUserList);
+    }
+
+    @Bean
+    public ImhotepClientPinger imhotepClientPinger() {
+        return new ImhotepClientPinger(imhotepClient());
     }
 
     @Bean
