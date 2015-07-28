@@ -40,6 +40,7 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
@@ -204,10 +205,17 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         StatementParser.LOWEST_YEAR_ALLOWED = env.getProperty("lowest.year.allowed", Integer.class, 0);
     }
 
-    // equivalents for <mvc:resources/> tags
+    // Serve IMS statics
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/metadata/**").addResourceLocations("classpath:/META-INF/public-web-resources/metadata/");
+    }
+
+    // Serve IMS index.html when directory is requested
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/metadata").setViewName("redirect:/metadata/");
+        registry.addViewController("/metadata/").setViewName("forward:/metadata/index.html");
     }
 
     // do we need this?
