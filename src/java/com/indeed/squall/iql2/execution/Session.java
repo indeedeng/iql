@@ -329,7 +329,7 @@ public class Session {
                     }
                     for (final double stat : result.stats) {
                         if (DoubleMath.isMathematicalInteger(stat)) {
-                            sb.append((long) stat).append('\t');
+                            sb.append(String.format("%.0f", stat)).append('\t');
                         } else {
                             sb.append(stat).append('\t');
                         }
