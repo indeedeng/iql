@@ -117,7 +117,7 @@ public class Actions {
         final String field = json.get("field").textValue();
         final boolean isIntField = json.get("isIntField").booleanValue();
         if (isIntField) {
-            return Term.intTerm(field, json.get("intTerm").intValue());
+            return Term.intTerm(field, json.get("intTerm").longValue());
         } else {
             return Term.stringTerm(field, json.get("stringTerm").textValue());
         }
