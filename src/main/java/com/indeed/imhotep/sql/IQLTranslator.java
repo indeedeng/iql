@@ -418,20 +418,6 @@ public final class IQLTranslator {
                     return exp(input.get(0).match(StatMatcher.this), scaleFactor);
                 }
             });
-            builder.put("log", new Function<List<Expression>, Stat>() {
-                public Stat apply(final List<Expression> input) {
-                    int scaleFactor = 1;
-                    if(input.size() == 2) {
-                        scaleFactor = parseInt(input.get(1));
-                    } else if (input.size() != 1) {
-                        throw new UnsupportedOperationException("log() requires 1 or 2 arguments. " +
-                                "e.g. log(ojc, 1) where ojc is a metric and 1 is a scaling factor. " +
-                                "The resulting values are as follows: (Math.log(term) - Math.log(scaleFactor)) * scaleFactor. " +
-                                "Scaling factor defaults to 1.");
-                    }
-                    return log(input.get(0).match(StatMatcher.this), scaleFactor);
-                }
-            });
             builder.put("dynamic", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {

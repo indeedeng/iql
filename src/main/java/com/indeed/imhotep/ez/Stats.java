@@ -220,25 +220,6 @@ public class Stats {
         }
     }
 
-    static class LogStat extends Stat {
-        private final Stat stat;
-        private final int scaleFactor;
-        public LogStat(Stat stat, int scaleFactor) {
-            this.stat = stat;
-            this.scaleFactor = scaleFactor;
-        }
-        @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> prev = Lists.newArrayList(stat.pushes(session));
-            prev.add("log " + scaleFactor);
-            return prev;
-        }
-        @Override
-        public String toString() {
-            return "log("+stat.toString()+", " + scaleFactor + ")";
-        }
-    }
-
     static class HasIntStat extends Stat {
         private final String field;
         private final long value;

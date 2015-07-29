@@ -112,7 +112,6 @@ public class QueryServlet {
     private final ExecutorService executorService;
     private final long imhotepLocalTempFileSizeLimit;
     private final long imhotepDaemonTempFileSizeLimit;
-    private final AccessControl accessControl;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -124,8 +123,7 @@ public class QueryServlet {
                         ExecutorService executorService,
                         Integer rowLimit,
                         Long imhotepLocalTempFileSizeLimit,
-                        Long imhotepDaemonTempFileSizeLimit,
-                        AccessControl accessControl) {
+                        Long imhotepDaemonTempFileSizeLimit) {
         this.imhotepClient = imhotepClient;
         this.imhotepInteractiveClient = imhotepInteractiveClient;
         this.metadata = metadata;
@@ -135,7 +133,6 @@ public class QueryServlet {
         this.executorService = executorService;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
-        this.accessControl = accessControl;
         EZImhotepSession.GROUP_LIMIT = rowLimit;
     }
 
@@ -155,8 +152,6 @@ public class QueryServlet {
             if(Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(userName)) {
                 throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
-            accessControl.checkAllowedAccess(userName);
-
             parsedQuery = StatementParser.parse(query, metadata);
             if(parsedQuery instanceof SelectStatement) {
                 logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
