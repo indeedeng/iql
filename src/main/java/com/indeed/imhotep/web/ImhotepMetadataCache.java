@@ -173,6 +173,7 @@ public class ImhotepMetadataCache {
                 for (MetricsYaml metricYaml : metricsYamls){
                     metrics.put(metricYaml.getName(), YamlMetadataConverter.convertMetricMetadata(metricYaml));
                 }
+                addStandardAliases(newDataset);
             }
         }
 
