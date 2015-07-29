@@ -171,7 +171,23 @@ public class ImhotepMetadataCache {
                 MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
                 Map<String, MetricMetadata> metrics = newDataset.getMetrics();
                 for (MetricsYaml metricYaml : metricsYamls){
-                    metrics.put(metricYaml.getName(), YamlMetadataConverter.convertMetricMetadata(metricYaml));
+                    final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
+                    metrics.put(metricYaml.getName(), metricMetadata);
+                    // try to reuse the metric description on the field it describes
+                    final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
+                    if(relatedField != null) {
+                        if(Strings.isNullOrEmpty(metricMetadata.getExpression())) {
+                            // Having a metric defined with the same name is a marker we use
+                            // for fields that should be treated as Integer
+                            relatedField.setType(FieldType.Integer);
+                        }
+                        if (Strings.isNullOrEmpty(metricMetadata.getExpression()) &&
+                                !Strings.isNullOrEmpty(metricMetadata.getDescription()) &&
+                                Strings.isNullOrEmpty(relatedField.getDescription())) {
+
+                            relatedField.setDescription(metricMetadata.getDescription());
+                        }
+                    }
                 }
                 addStandardAliases(newDataset);
             }
