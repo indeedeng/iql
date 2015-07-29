@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -88,31 +90,6 @@ public class Session {
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
     static {
-        final SimpleModule module = new SimpleModule();
-        module.addSerializer(TermSelects.class, new JsonSerializer<TermSelects>() {
-            @Override
-            public void serialize(TermSelects value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-                jgen.writeStartObject();
-                jgen.writeObjectField("field", value.field);
-                if (value.isIntTerm) {
-                    jgen.writeObjectField("intTerm", value.intTerm);
-                } else {
-                    jgen.writeObjectField("stringTerm", value.stringTerm);
-                }
-                jgen.writeObjectField("selects", value.selects);
-                if (value.groupKey != null) {
-                    jgen.writeObjectField("key", value.groupKey);
-                }
-                jgen.writeEndObject();
-            }
-        });
-        module.addSerializer(GroupKey.class, new JsonSerializer<GroupKey>() {
-            @Override
-            public void serialize(GroupKey value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-                jgen.writeObject(value.asList(false));
-            }
-        });
-        MAPPER.registerModule(module);
         MAPPER.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
 
@@ -803,7 +780,7 @@ public class Session {
         }
     }
 
-    public static class GroupKey {
+    public static class GroupKey implements JsonSerializable {
         public final String term;
         public final int index;
         public final GroupKey parent;
@@ -812,6 +789,16 @@ public class Session {
             this.term = term;
             this.index = index;
             this.parent = parent;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(this.asList(false));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
 
         public List<String> asList(boolean appendingTerm) {
