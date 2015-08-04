@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.server.web.config;
 import com.google.common.base.Strings;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.squall.iql2.server.LocalImhotepDaemon;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
@@ -10,7 +12,7 @@ import com.indeed.squall.iql2.server.web.CORSInterceptor;
 import com.indeed.squall.iql2.server.web.WebPackageMarker;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.cache.QueryCacheFactory;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
@@ -28,7 +30,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import javax.xml.bind.PropertyException;
 import java.io.File;
-import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -124,10 +126,21 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    public KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader(ScheduledThreadPoolExecutor executor, ImhotepClient imhotepClient) {
-        final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("keyword-analyzer-whitelist", new File(env.getProperty("ramses.metadata.dir")), imhotepClient);
-        executor.scheduleAtFixedRate(keywordAnalyzerWhitelistLoader, 0, 5, TimeUnit.MINUTES);
-        return keywordAnalyzerWhitelistLoader;
+    public ImsClientInterface metadataClient() throws URISyntaxException {
+        return ImsClient.build("***REMOVED***/");
+    }
+
+    @Bean
+    public MetadataCache metadataCache(ScheduledThreadPoolExecutor executor, ImhotepClient imhotepClient, ImsClientInterface metadataClient) {
+        final MetadataCache metadataCache =
+                new MetadataCache(
+                        "keyword-analyzer-whitelist",
+                        imhotepClient,
+                        metadataClient,
+                        env.getProperty("disabled.fields", "")
+                );
+        executor.scheduleAtFixedRate(metadataCache, 0, 5, TimeUnit.MINUTES);
+        return metadataCache;
     }
 
     @Bean

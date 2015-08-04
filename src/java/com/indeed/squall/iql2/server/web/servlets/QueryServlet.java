@@ -32,7 +32,8 @@ import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.DatasetMetadata;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import org.apache.commons.codec.binary.Base64;
@@ -84,7 +85,7 @@ public class QueryServlet {
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
     private final DimensionsLoader dimensionsLoader;
-    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final MetadataCache metadataCache;
     private final AccessControl accessControl;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
@@ -96,22 +97,22 @@ public class QueryServlet {
             final QueryCache queryCache,
             final ExecutionManager executionManager,
             final DimensionsLoader dimensionsLoader,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
+            final MetadataCache metadataCache,
             final AccessControl accessControl) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
         this.dimensionsLoader = dimensionsLoader;
-        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.metadataCache = metadataCache;
         this.accessControl = accessControl;
     }
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist();
+        return (Map<String, Set<String>>) metadataCache.getKeywordAnalyzerWhitelist();
     }
 
     private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getDatasetToIntFields();
+        return (Map<String, Set<String>>) metadataCache.getDatasetToIntFields();
     }
 
     private Map<String, DatasetDimensions> getDimensions() {
@@ -217,19 +218,14 @@ public class QueryServlet {
     }
 
     private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
-        final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
-        final Set<String> datasets = new TreeSet<>();
-        for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
-            for (final DatasetInfo datasetInfo : datasetInfos) {
-                datasets.add(datasetInfo.getDataset());
-            }
-        }
-        final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
-        for (final String dataset : datasets) {
-            datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
+        final Map<String, DatasetMetadata> metadata = metadataCache.getMetadata();
+
+        final List<Map<String, String>> datasets = new ArrayList<>();
+        for (final Map.Entry<String, DatasetMetadata> entry : metadata.entrySet()) {
+            datasets.add(ImmutableMap.of("name", entry.getKey(), "description", Strings.nullToEmpty(entry.getValue().getDescription())));
         }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasets)));
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
         }
@@ -548,7 +544,7 @@ public class QueryServlet {
             sha1.update(pair.getFirst().getBytes(Charsets.UTF_8));
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
-        return Base64.encodeBase64URLSafeString(sha1.digest());
+        return new String(Base64.encodeBase64(sha1.digest()), Charsets.UTF_8);
     }
 
     private static final int QUERY_LENGTH_LIMIT = 55000; // trying to not cause the logentry to overflow from being larger than 2^16
