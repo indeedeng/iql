@@ -9,6 +9,8 @@ import com.google.common.collect.Sets;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups;
+import com.indeed.squall.iql2.execution.commands.GetFieldMax;
+import com.indeed.squall.iql2.execution.commands.GetFieldMin;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
 import com.indeed.squall.iql2.execution.commands.SampleFields;
@@ -139,10 +141,7 @@ public class Commands {
                 return new CreateGroupStatsLookup(stats, name);
             }
             case "getGroupDistincts": {
-                final Set<String> scope = Sets.newHashSet();
-                for (final JsonNode node : command.get("scope")) {
-                    scope.add(node.textValue());
-                }
+                final Set<String> scope = parseScope(command);
                 final String field = command.get("field").textValue();
                 final JsonNode filterNode = command.get("filter");
                 final int windowSize = command.get("windowSize").intValue();
@@ -157,10 +156,7 @@ public class Commands {
             }
             case "getGroupPercentiles": {
                 final String field = command.get("field").textValue();
-                final Set<String> scope = Sets.newHashSet();
-                for (final JsonNode node : command.get("scope")) {
-                    scope.add(node.textValue());
-                }
+                final Set<String> scope = parseScope(command);
                 final JsonNode percentilesNode = command.get("percentiles");
                 final double[] percentiles = new double[percentilesNode.size()];
                 for (int i = 0; i < percentilesNode.size(); i++) {
@@ -285,10 +281,7 @@ public class Commands {
                 return new ExplodePerDocPercentile(field, numBuckets);
             }
             case "sumAcross": {
-                final Set<String> scope = Sets.newHashSet();
-                for (final JsonNode node : command.get("scope")) {
-                    scope.add(node.textValue());
-                }
+                final Set<String> scope = parseScope(command);
                 final String field = command.get("field").textValue();
                 final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
                 final Optional<AggregateFilter> filter;
@@ -351,12 +344,26 @@ public class Commands {
                 }
                 return new ApplyFilterActions(actions);
             }
+            case "computeFieldMax": {
+                return new GetFieldMax(parseScope(command), command.get("field").textValue());
+            }
+            case "computeFieldMin": {
+                return new GetFieldMin(parseScope(command), command.get("field").textValue());
+            }
         }
         throw new RuntimeException("oops:" + command);
     }
 
+    public static Set<String> parseScope(JsonNode command) {
+        final Set<String> scope = Sets.newHashSet();
+        for (final JsonNode node : command.get("scope")) {
+            scope.add(node.textValue());
+        }
+        return scope;
+    }
+
     private static void validatePrecomputedCommand(Object computation) {
-        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
+        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross || computation instanceof GetFieldMin || computation instanceof GetFieldMax) {
         } else if (computation instanceof GetGroupPercentiles) {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
             if (getGroupPercentiles.percentiles.length != 1) {
@@ -368,7 +375,7 @@ public class Commands {
                 throw new IllegalArgumentException("Cannot handle multiple metrics in ComputeAndCreateGroupStatsLookup");
             }
         } else {
-            throw new IllegalArgumentException("Can only do group distincts, sum across, group percentiles, or group stats!");
+            throw new IllegalArgumentException("Can only do group distincts, sum across, get field min, get field max, group percentiles, or group stats!");
         }
     }
 

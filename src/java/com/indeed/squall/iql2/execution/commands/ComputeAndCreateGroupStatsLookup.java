@@ -32,7 +32,10 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             }
         });
         double[] results;
-        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross) {
+        if (computation instanceof GetGroupDistincts
+                || computation instanceof SumAcross
+                || computation instanceof GetFieldMin
+                || computation instanceof GetFieldMax) {
             results = Session.MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
         } else if (computation instanceof GetGroupPercentiles) {
             final List<double[]> intellijDoesntLikeInlining = Session.MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});
@@ -45,7 +48,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
                 results[i] = groupStats.get(i).stats[0];
             }
         } else {
-            throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser.");
+            throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }
         new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session, out);
     }

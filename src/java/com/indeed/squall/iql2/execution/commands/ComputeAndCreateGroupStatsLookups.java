@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,22 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                     public void accept(String s) {
                     }
                 });
+            } else if (computation instanceof GetFieldMax) {
+                final GetFieldMax getFieldMax = (GetFieldMax) computation;
+                fields.add(getFieldMax.field);
+                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
+                    public double[] apply(long[] input) {
+                        return longToDouble(input);
+                    }
+                }, getFieldMax.iterateHandler(session), name));
+            } else if (computation instanceof GetFieldMin) {
+                final GetFieldMin getFieldMin = (GetFieldMin) computation;
+                fields.add(getFieldMin.field);
+                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
+                    public double[] apply(long[] input) {
+                        return longToDouble(input);
+                    }
+                }, getFieldMin.iterateHandler(session), name));
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }
