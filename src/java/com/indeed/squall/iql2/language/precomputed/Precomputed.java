@@ -207,6 +207,30 @@ public interface Precomputed {
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new PrecomputedSumAcross(field, f.apply(metric), Optionals.traverse1(filter, f));
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedSumAcross that = (PrecomputedSumAcross) o;
+            return Objects.equals(field, that.field) &&
+                    Objects.equals(metric, that.metric) &&
+                    Objects.equals(filter, that.filter);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, metric, filter);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedSumAcross{" +
+                    "field='" + field + '\'' +
+                    ", metric=" + metric +
+                    ", filter=" + filter +
+                    '}';
+        }
     }
 
     class PrecomputedSumAcrossGroupBy implements Precomputed {
@@ -235,6 +259,28 @@ public interface Precomputed {
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new PrecomputedSumAcrossGroupBy(groupBy.traverse1(f), metric.traverse1(f));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedSumAcrossGroupBy that = (PrecomputedSumAcrossGroupBy) o;
+            return Objects.equals(groupBy, that.groupBy) &&
+                    Objects.equals(metric, that.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(groupBy, metric);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedSumAcrossGroupBy{" +
+                    "groupBy=" + groupBy +
+                    ", metric=" + metric +
+                    '}';
         }
     }
 
