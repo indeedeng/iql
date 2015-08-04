@@ -63,6 +63,9 @@
         <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp"/>
         <exclude org="spring" module="spring-asm" conf="webapp"/>
 
+        <exclude org="hadoop" module="hadoop-yarn.*"/>
+        <!-- Jersey conflicts with RESTEasy -->
+        <exclude org="com.sun.jersey" module="*"/>
         <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
     </dependencies>
 </ivy-module>
