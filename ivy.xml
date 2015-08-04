@@ -24,8 +24,8 @@
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
-        <!-- TODO: Hack (rev="latest.integration") because javadev doesn't have ims-rest-client -->
-        <dependency org="com.indeed" name="ims-rest-client" rev="latest.integration"/>
+        <!-- TODO: Hack (rev="1.0.4") because javadev doesn't have ims-rest-client -->
+        <dependency org="com.indeed" name="ims-rest-client" rev="1.0.4"/>
 
         <dependency org="indeed" name="iql2-language" rev="${iql2-language.version}"/>
         <dependency org="indeed" name="iql2-execution" rev="${iql2-execution.version}"/>
