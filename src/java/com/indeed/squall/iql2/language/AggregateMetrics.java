@@ -247,6 +247,16 @@ public class AggregateMetrics {
             public void enterAggregateDocMetricAtom(@NotNull JQLParser.AggregateDocMetricAtomContext ctx) {
                 accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseDocMetricAtom(ctx.docMetricAtom())));
             }
+
+            @Override
+            public void enterAggregateFieldMin(@NotNull JQLParser.AggregateFieldMinContext ctx) {
+                accept(new AggregateMetric.FieldMin(ctx.identifier().getText()));
+            }
+
+            @Override
+            public void enterAggregateFieldMax(@NotNull JQLParser.AggregateFieldMaxContext ctx) {
+                accept(new AggregateMetric.FieldMax(ctx.identifier().getText()));
+            }
         });
 
         if (ref[0] == null) {

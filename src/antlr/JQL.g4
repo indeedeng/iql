@@ -57,6 +57,8 @@ FLOATSCALE : 'FLOATSCALE' ;
 SIGNUM : 'SIGNUM' ;
 LIMIT : 'LIMIT';
 HAVING : 'HAVING';
+FIELD_MIN : 'FIELD_MIN';
+FIELD_MAX : 'FIELD_MAX';
 
 Y : 'Y' ;
 
@@ -85,12 +87,14 @@ DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
+// TODO: How to keep this up to date with new lexer tokens..?
 identifier
     : TIME_UNIT | Y | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
     | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
+    | FIELD_MIN | FIELD_MAX
     ;
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -143,6 +147,8 @@ jqlAggregateMetric
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
+    | FIELD_MIN '(' identifier ')' # AggregateFieldMin
+    | FIELD_MAX '(' identifier ')' # AggregateFieldMax
     | jqlSumOverMetric # AggregateSumAcross
     | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified

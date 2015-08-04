@@ -148,6 +148,7 @@ public class GroupIterations {
             this.field = field;
         }
 
+        // TODO: Make this a visitor to avoid being able to forget handling new ones
         public static PrecomputedContext create(ExecutionStep.ComputePrecomputed computePrecomputed) {
             final Set<String> scope = computePrecomputed.scope;
             final Precomputed computation = computePrecomputed.computation;
@@ -165,6 +166,12 @@ public class GroupIterations {
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
                 final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
                 return new PrecomputedContext(scope, Optional.<String>absent());
+            } else if (computation instanceof Precomputed.PrecomputedFieldMax) {
+                final Precomputed.PrecomputedFieldMax precomputedFieldMax = (Precomputed.PrecomputedFieldMax) computation;
+                return new PrecomputedContext(scope, Optional.of(precomputedFieldMax.field));
+            } else if (computation instanceof Precomputed.PrecomputedFieldMin) {
+                final Precomputed.PrecomputedFieldMin precomputedFieldMin = (Precomputed.PrecomputedFieldMin) computation;
+                return new PrecomputedContext(scope, Optional.of(precomputedFieldMin.field));
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }

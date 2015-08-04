@@ -1203,4 +1203,118 @@ public interface AggregateMetric {
                     '}';
         }
     }
+    
+    class FieldMin implements AggregateMetric, JsonSerializable {
+        public final String field;
+
+        public FieldMin(String field) {
+            this.field = field;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                }
+            }
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot serialize FieldMin -- should be removed by ExtractPrecomputed!");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldMin fieldMin = (FieldMin) o;
+            return Objects.equals(field, fieldMin.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldMin{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+    
+    class FieldMax implements AggregateMetric, JsonSerializable {
+        public final String field;
+
+        public FieldMax(String field) {
+            this.field = field;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final String dataset : scope) {
+                if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                }
+            }
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot serialize FieldMax -- should be removed by ExtractPrecomputed!");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldMax fieldMax = (FieldMax) o;
+            return Objects.equals(field, fieldMax.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldMax{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
 }

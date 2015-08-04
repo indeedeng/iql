@@ -7,6 +7,8 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.commands.ComputeFieldMax;
+import com.indeed.squall.iql2.language.commands.ComputeFieldMin;
 import com.indeed.squall.iql2.language.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.language.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.language.commands.GetGroupStats;
@@ -280,6 +282,92 @@ public interface Precomputed {
             return "PrecomputedSumAcrossGroupBy{" +
                     "groupBy=" + groupBy +
                     ", metric=" + metric +
+                    '}';
+        }
+    }
+
+    class PrecomputedFieldMin implements Precomputed {
+        public final String field;
+
+        public PrecomputedFieldMin(String field) {
+            this.field = field;
+        }
+
+        @Override
+        public Precomputation commands(Set<String> scope) {
+            return Precomputation.noContext(new ComputeFieldMin(scope, field));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(this);
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedFieldMin that = (PrecomputedFieldMin) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedFieldMin{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+    class PrecomputedFieldMax implements Precomputed {
+        public final String field;
+
+        public PrecomputedFieldMax(String field) {
+            this.field = field;
+        }
+
+        @Override
+        public Precomputation commands(Set<String> scope) {
+            return Precomputation.noContext(new ComputeFieldMax(scope, field));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(this);
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedFieldMax that = (PrecomputedFieldMax) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedFieldMax{" +
+                    "field='" + field + '\'' +
                     '}';
         }
     }

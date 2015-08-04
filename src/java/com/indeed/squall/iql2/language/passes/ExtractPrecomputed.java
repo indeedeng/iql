@@ -170,6 +170,12 @@ public class ExtractPrecomputed {
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 }
+            } else if (input instanceof AggregateMetric.FieldMin){
+                final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field));
+            } else if (input instanceof AggregateMetric.FieldMax){
+                final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field));
             } else {
                 return input.traverse1(this);
             }
