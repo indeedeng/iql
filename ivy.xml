@@ -24,8 +24,6 @@
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
-        <!-- TODO: Hack (rev="latest.integration") because javadev doesn't have ims-rest-client -->
-        <dependency org="com.indeed" name="ims-rest-client" rev="latest.integration"/>
 
         <dependency org="indeed" name="iql2-language" rev="${iql2-language.version}"/>
         <dependency org="indeed" name="iql2-execution" rev="${iql2-execution.version}"/>
@@ -33,16 +31,15 @@
         <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
         <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
 
-        <dependency org="spring" name="spring-beans" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-context" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-core" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-jdbc" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-web" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-webmvc" rev="${spring.version}"/>
-        <dependency org="spring" name="spring-test" rev="${spring.version}" />
+        <dependency org="spring" name="spring-beans" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-context" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-core" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-jdbc" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-web" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-webmvc" rev="3.2.4.RELEASE"/>
+        <dependency org="spring" name="spring-test" rev="3.2.4.RELEASE" />
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
-        <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
         <dependency org="google" name="gag" rev="${gag.version}"/>
 
@@ -65,6 +62,8 @@
         <exclude org="javax.servlet" module="servlet-api" conf="webapp"/>
         <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp"/>
         <exclude org="spring" module="spring-asm" conf="webapp"/>
+
+        <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
     </dependencies>
 </ivy-module>
 
