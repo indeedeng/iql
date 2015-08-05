@@ -50,8 +50,8 @@ public class ExplodePerDocPercentile implements Command {
             public void term(long term, long[] stats, int group) {
                 runningCounts[group] += stats[0];
                 final int fraction = (int) Math.floor((double) numBuckets * runningCounts[group] / counts[group]);
-                for (int i = soFar[group] + 1; i < fraction; i++) {
-                    cutoffs[group][i] = term;
+                for (int i = soFar[group] + 1; i <= fraction; i++) {
+                    cutoffs[group][i - 1] = term;
                     soFar[group] = i;
                 }
             }
