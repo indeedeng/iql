@@ -29,13 +29,23 @@ public class MetricAction implements Action {
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         if (targetGroup == 1 && positiveGroup == 1 && negativeGroup == 0 && session.numGroups == 1) {
+            // TODO: Parallelize
             for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
                 if (scope.contains(entry.getKey())) {
                     final Session.ImhotepSessionInfo v = entry.getValue();
                     final List<String> pushes = perDatasetPushes.get(entry.getKey());
+
+                    session.timer.push("pushStats");
                     v.session.pushStats(pushes);
+                    session.timer.pop();
+
+                    session.timer.push("metricFilter");
                     v.session.metricFilter(0, 1, 1, false);
+                    session.timer.pop();
+
+                    session.timer.push("popStat");
                     v.session.popStat();
+                    session.timer.pop();
                 }
             }
         } else {

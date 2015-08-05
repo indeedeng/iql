@@ -29,6 +29,7 @@ public class IntOrAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
+        session.timer.push("sort terms");
         final long[] terms = new long[this.terms.size()];
         int i = 0;
         for (final long term : this.terms) {
@@ -36,12 +37,16 @@ public class IntOrAction implements Action {
             i++;
         }
         Arrays.sort(terms);
+        session.timer.pop();
+        // TODO: Parallelize
+        session.timer.push("intOrRegroup");
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final ImhotepSession s = entry.getValue().session;
                 s.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
             }
         }
+        session.timer.pop();
     }
 
     @Override

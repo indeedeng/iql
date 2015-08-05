@@ -28,14 +28,20 @@ public class StringOrAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
+        session.timer.push("sort terms");
         final String[] termsArr = terms.toArray(new String[terms.size()]);
         Arrays.sort(termsArr);
+        session.timer.pop();
+
+        session.timer.push("stringOrRegroup");
+        // TODO: Parallelize
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
                 v.session.stringOrRegroup(field, termsArr, targetGroup, negativeGroup, positiveGroup);
             }
         }
+        session.timer.pop();
     }
 
     @Override

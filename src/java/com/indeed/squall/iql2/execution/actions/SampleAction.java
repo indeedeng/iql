@@ -29,6 +29,8 @@ public class SampleAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
+        session.timer.push("randomRegroup");
+        // TODO: Parallelize
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
@@ -36,6 +38,7 @@ public class SampleAction implements Action {
                 v.session.randomRegroup(field, isIntField, seed, probability, targetGroup, positiveGroup, negativeGroup);
             }
         }
+        session.timer.pop();
     }
 
     @Override

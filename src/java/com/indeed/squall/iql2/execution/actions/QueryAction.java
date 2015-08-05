@@ -27,6 +27,8 @@ public class QueryAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
+        session.timer.push("regroup");
+        // TODO: Parallelize
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             if (scope.contains(entry.getKey())) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
@@ -34,6 +36,7 @@ public class QueryAction implements Action {
                 v.session.regroup(new QueryRemapRule(targetGroup, query, negativeGroup, positiveGroup));
             }
         }
+        session.timer.pop();
     }
 
     @Override
