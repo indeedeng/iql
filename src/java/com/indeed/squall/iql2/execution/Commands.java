@@ -23,7 +23,6 @@ import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLooku
 import com.indeed.squall.iql2.execution.commands.CreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
-import com.indeed.squall.iql2.execution.commands.ExplodeGroups;
 import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodePerGroup;
@@ -44,7 +43,6 @@ import com.indeed.squall.iql2.execution.commands.TimeRegroup;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -87,33 +85,6 @@ public class Commands {
                     perDatasetFilterMetric.put(filterName, pushes);
                 }
                 return new FilterDocs(perDatasetFilterMetric);
-            }
-            case "explodeGroups": {
-                final String field = command.get("field").textValue();
-                final Optional<String> defaultName = parseExplodeOpts(command.get("opts"));
-                if (command.has("strings")) {
-                    final List<List<String>> allGroupTerms = Lists.newArrayList();
-                    for (final JsonNode group : command.get("strings")) {
-                        final List<String> groupTerms = Lists.newArrayListWithCapacity(group.size());
-                        for (final JsonNode term : group) {
-                            groupTerms.add(term.textValue());
-                        }
-                        allGroupTerms.add(groupTerms);
-                    }
-                    return new ExplodeGroups(field, allGroupTerms, null, defaultName);
-                } else if (command.has("ints")) {
-                    final List<LongArrayList> allGroupTerms = Lists.newArrayList();
-                    for (final JsonNode group : command.get("ints")) {
-                        final LongArrayList groupTerms = new LongArrayList(group.size());
-                        for (final JsonNode term : group) {
-                            groupTerms.add(term.longValue());
-                        }
-                        allGroupTerms.add(groupTerms);
-                    }
-                    return new ExplodeGroups(field, null, allGroupTerms, defaultName);
-                } else {
-                    throw new IllegalArgumentException("uhh?:" + command);
-                }
             }
             case "getGroupStats": {
                 final List<AggregateMetric> metrics = Lists.newArrayListWithCapacity(command.get("metrics").size());
