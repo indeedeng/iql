@@ -260,7 +260,7 @@ jqlDocMetric
 termVal [boolean useLegacy]
     : INT # IntTerm
     | STRING_LITERAL # StringTerm
-    | {$ctx.useLegacy} identifier # StringTerm
+    | {$ctx.useLegacy}? identifier # StringTerm
     ;
 
 // DUPLICATION OF docFilter IS A HACK to work around https://github.com/antlr/antlr4/issues/773 , which does not seem fixed
