@@ -24,7 +24,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         // TODO: Seriously? Serializing to JSON and then back? To the same program?
         final AtomicReference<String> reference = new AtomicReference<>();
         final Object computation = this.computation;
-        System.out.println("computation = " + computation);
         ((Command) computation).execute(session, new Consumer<String>() {
             @Override
             public void accept(String s) {

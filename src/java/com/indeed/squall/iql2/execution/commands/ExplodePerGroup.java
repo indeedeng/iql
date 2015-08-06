@@ -7,8 +7,8 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Commands;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.util.List;
 
@@ -21,6 +21,7 @@ public class ExplodePerGroup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        session.timer.push("form rules");
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         int nextGroup = 1;
         final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList((Session.GroupKey) null);
@@ -59,10 +60,15 @@ public class ExplodePerGroup implements Command {
             }
             rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
         }
+        session.timer.pop();
+
+        session.timer.push("regroup");
         // TODO: Parallelize
         for (final ImhotepSession s : session.getSessionsMapRaw().values()) {
             s.regroup(rules);
         }
+        session.timer.pop();
+
         session.numGroups = nextGroup - 1;
         session.groupKeys = nextGroupKeys;
         session.currentDepth += 1;

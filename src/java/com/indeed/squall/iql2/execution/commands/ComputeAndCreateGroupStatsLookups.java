@@ -10,9 +10,10 @@ import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     public void execute(Session session, Consumer<String> ignored) throws ImhotepOutOfMemoryException, IOException {
         final List<IterateHandler<Void>> handlerables = Lists.newArrayListWithCapacity(namedComputations.size());
         final Set<String> fields = Sets.newHashSet();
+        session.timer.push("get IterateHandlers");
         for (final Pair<Command, String> namedComputation : namedComputations) {
             final Object computation = namedComputation.getFirst();
             final String name = namedComputation.getSecond();
@@ -89,6 +91,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }
         }
+        session.timer.pop();
         if (!handlerables.isEmpty()) {
             if (fields.size() != 1) {
                 throw new IllegalStateException("Invalid number of fields seen: " + fields.size());
@@ -98,7 +101,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 theField = field;
                 break;
             }
+            session.timer.push("IterateHandlers.executeMulti");
             IterateHandlers.executeMulti(session, theField, handlerables);
+            session.timer.pop();
         }
     }
 

@@ -8,12 +8,13 @@ import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.DenseInt2ObjectMap;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.AggregateFilter;
+import com.indeed.squall.iql2.execution.DenseInt2ObjectMap;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TermSelects;
+import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -56,6 +57,7 @@ public class SimpleIterate implements Command {
     }
 
     public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        session.timer.push("push and register metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
         if (opts.topK.isPresent()) {
@@ -75,7 +77,9 @@ public class SimpleIterate implements Command {
         if (opts.filter.isPresent()) {
             opts.filter.get().register(metricIndexes, session.groupKeys);
         }
+        session.timer.pop();
 
+        session.timer.push("prepare for iteration");
         final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
         if (opts.topK.isPresent()) {
             // TODO: Share this with Iterate. Or delete Iterate.
@@ -116,6 +120,7 @@ public class SimpleIterate implements Command {
             topKMetricOrNull = null;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
+        session.timer.pop();
 
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback;
@@ -124,7 +129,9 @@ public class SimpleIterate implements Command {
             } else {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
+            session.timer.push("iterateMultiInt");
             Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, field, callback);
+            session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
             if (streamResult) {
@@ -132,7 +139,9 @@ public class SimpleIterate implements Command {
             } else {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
+            session.timer.push("iterateMultiString");
             Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field, callback);
+            session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
         }
@@ -143,6 +152,7 @@ public class SimpleIterate implements Command {
             out.accept("");
             return Collections.emptyList();
         } else {
+            session.timer.push("convert results");
             final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
             for (int group = 1; group <= session.numGroups; group++) {
                 final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
@@ -159,10 +169,12 @@ public class SimpleIterate implements Command {
                 }
                 allTermSelects.add(groupTermSelects);
             }
+            session.timer.pop();
             return allTermSelects;
         }
     }
 
+    // TODO: Move this
     public static String createRow(Session.GroupKey groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = groupKey.asList(true);
@@ -183,6 +195,7 @@ public class SimpleIterate implements Command {
         return sb.toString();
     }
 
+    // TODO: Move this
     public static String createRow(Session.GroupKey groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = groupKey.asList(true);

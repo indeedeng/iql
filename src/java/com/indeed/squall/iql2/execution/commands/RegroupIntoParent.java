@@ -4,9 +4,9 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -20,6 +20,7 @@ public class RegroupIntoParent implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        session.timer.push("compute remapping");
         int maxIndex = 0;
         for (int i = 1; i < session.groupKeys.size(); i++) {
             maxIndex = Math.max(maxIndex, session.groupKeys.get(i).parent.index);
@@ -64,6 +65,9 @@ public class RegroupIntoParent implements Command {
             }
         }
         session.savedGroupStats.putAll(newSavedGroupStatsEntries);
+        session.timer.pop();
+
+        session.timer.push("create rules");
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         final RegroupCondition[] fakeConditions = new RegroupCondition[]{new RegroupCondition("fakeField", true, 1, null, false)};
         final Session.GroupKey[] newGroupKeys = new Session.GroupKey[maxIndex + 1];
@@ -73,9 +77,13 @@ public class RegroupIntoParent implements Command {
             rules[group - 1] = new GroupMultiRemapRule(group, group, new int[]{newGroup}, fakeConditions);
             newGroupKeys[groupKey.parent.index] = groupKey.parent;
         }
+        session.timer.pop();
+        session.timer.push("regroup");
+        // TODO: Parallelize
         for (final Session.ImhotepSessionInfo imhotepSessionInfo : session.sessions.values()) {
             imhotepSessionInfo.session.regroup(rules);
         }
+        session.timer.pop();
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
         session.groupKeys = Arrays.asList(newGroupKeys);

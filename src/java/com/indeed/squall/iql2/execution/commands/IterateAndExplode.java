@@ -5,11 +5,13 @@ import com.google.common.collect.Lists;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TermSelects;
+import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.squall.iql2.execution.commands.misc.FieldLimitingMechanism;
+import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import java.io.IOException;
 import java.util.Collections;

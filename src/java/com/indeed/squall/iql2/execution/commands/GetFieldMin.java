@@ -3,6 +3,9 @@ package com.indeed.squall.iql2.execution.commands;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import org.apache.log4j.Logger;
 

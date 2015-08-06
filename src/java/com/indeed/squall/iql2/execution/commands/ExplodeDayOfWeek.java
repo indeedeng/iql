@@ -8,8 +8,8 @@ import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.TimeUnit;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 import org.joda.time.DateTime;
 
 import java.util.List;
@@ -21,7 +21,11 @@ public class ExplodeDayOfWeek implements Command {
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
+        session.timer.push("daily regroup");
         final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.<String>absent());
+        session.timer.pop();
+
+        session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
@@ -33,10 +37,13 @@ public class ExplodeDayOfWeek implements Command {
             rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+        session.timer.pop();
         final int oldNumGroups = session.numGroups;
+        session.timer.push("shuffle regroup");
         for (final Session.ImhotepSessionInfo sessionInfo : session.sessions.values()) {
             sessionInfo.session.regroup(rulesArray);
         }
+        session.timer.pop();
         session.assumeDense(new Function<Integer, Pair<String, Session.GroupKey>>() {
             public Pair<String, Session.GroupKey> apply(Integer group) {
                 final int originalGroup = 1 + (group - 1) / dayKeys.length;

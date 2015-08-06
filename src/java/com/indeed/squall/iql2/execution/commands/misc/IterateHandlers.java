@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.execution.commands;
+package com.indeed.squall.iql2.execution.commands.misc;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -18,6 +18,8 @@ import java.util.Set;
 
 public class IterateHandlers {
     public static <T> List<T> executeMulti(Session session, String field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
+        session.timer.push("IterateHandlers.executeMulti");
+
         if (iterateHandlers.isEmpty()) {
             throw new IllegalArgumentException("Must have at least 1 IterateHandler");
         }
@@ -35,11 +37,15 @@ public class IterateHandlers {
             throw new IllegalArgumentException("Must be given at least 1 handler!");
         }
 
+        session.timer.push("get subset");
         final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
         for (final String s : scope) {
             // session session sessions session
             sessionsSubset.put(s, session.sessions.get(s).session);
         }
+        session.timer.pop();
+
+        session.timer.push("push and register metrics");
         final Set<QualifiedPush> pushes = Sets.newHashSet();
         for (final IterateHandler<T> handler : iterateHandlers) {
             pushes.addAll(handler.requires());
@@ -50,6 +56,7 @@ public class IterateHandlers {
         for (final IterateHandler<T> handler : iterateHandlers) {
             handler.register(metricIndexes, session.groupKeys);
         }
+        session.timer.pop();
 
         if (session.isIntField(field)) {
             final List<Session.IntIterateCallback> intCallbacks = Lists.newArrayList();
@@ -57,14 +64,18 @@ public class IterateHandlers {
                 intCallbacks.add(handler.intIterateCallback());
             }
             final Session.IntIterateCallback callback = new MultiIntIterateCallback(intCallbacks);
+            session.timer.push("iterateMultiInt");
             Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, field, callback);
+            session.timer.pop();
         } else if (session.isStringField(field)) {
             final List<Session.StringIterateCallback> stringCallbacks = Lists.newArrayList();
             for (final IterateHandler<T> handler : iterateHandlers) {
                 stringCallbacks.add(handler.stringIterateCallback());
             }
             final Session.StringIterateCallback callback = new MultiStringIterateCallback(stringCallbacks);
+            session.timer.push("iterateMultiString");
             Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
+            session.timer.pop();
         } else {
             for (final Map.Entry<String, Session.ImhotepSessionInfo> s : session.sessions.entrySet()) {
                 final String name = s.getKey();
@@ -75,12 +86,16 @@ public class IterateHandlers {
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);
         }
 
+        session.timer.push("IterateHandler::finish");
         final List<T> result = Lists.newArrayListWithCapacity(iterateHandlers.size());
         for (final IterateHandler<T> iterateHandler : iterateHandlers) {
             result.add(iterateHandler.finish());
         }
+        session.timer.pop();
 
         session.popStats();
+
+        session.timer.pop();
 
         return result;
     }

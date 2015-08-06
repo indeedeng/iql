@@ -5,8 +5,8 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
@@ -29,6 +29,7 @@ public class ExplodePerDocPercentile implements Command {
         final String field = this.field;
         final int numBuckets = this.numBuckets;
 
+        session.timer.push("get counts");
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
             s.session.pushStat("count()");
@@ -37,6 +38,7 @@ public class ExplodePerDocPercentile implements Command {
                 counts[i] += stats[i];
             }
         }
+        session.timer.pop();
 
         final long[] runningCounts = new long[session.numGroups + 1];
         final long[][] cutoffs = new long[session.numGroups + 1][numBuckets];
@@ -45,6 +47,7 @@ public class ExplodePerDocPercentile implements Command {
         for (final String k : session.sessions.keySet()) {
             metricIndexes.put(k, new IntArrayList(new int[]{0}));
         }
+        session.timer.push("compute cutoffs (iterateMultiInt)");
         Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, field, new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
@@ -56,6 +59,7 @@ public class ExplodePerDocPercentile implements Command {
                 }
             }
         });
+        session.timer.pop();
 
         for (int group = 1; group <= session.numGroups; group++) {
             for (int idx = soFar[group] + 1; idx < numBuckets; idx++) {
@@ -63,6 +67,7 @@ public class ExplodePerDocPercentile implements Command {
             }
         }
 
+        session.timer.push("compute bucket remaps");
         final List<GroupMultiRemapRule> rules = Lists.newArrayList();
         final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList();
         nextGroupKeys.add(null);
@@ -86,10 +91,17 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
+        session.timer.pop();
 
+        // TODO: Parallelize
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
+            session.timer.push("regroup");
             s.session.regroup(rulesArr);
+            session.timer.pop();
+
+            session.timer.push("popStat");
             s.session.popStat();
+            session.timer.pop();
         }
 
         session.numGroups = nextGroupKeys.size() - 1;

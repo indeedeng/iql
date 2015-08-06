@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.execution.commands;
+package com.indeed.squall.iql2.execution.commands.misc;
 
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 

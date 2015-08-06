@@ -5,6 +5,9 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -34,6 +37,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
     @Override
     public IterateHandler<long[][]> iterateHandler(Session session) throws ImhotepOutOfMemoryException {
+        session.timer.push("compute counts");
         final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
         for (final String sessionName : scope) {
@@ -45,6 +49,9 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
             }
             s.popStat();
         }
+        session.timer.pop();
+
+        session.timer.push("compute boundaries");
         final double[][] requiredCounts = new double[counts.length][];
         for (int i = 1; i < counts.length; i++) {
             requiredCounts[i] = new double[percentiles.length];
@@ -52,6 +59,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
                 requiredCounts[i][j] = (percentiles[j] / 100.0) * (double)counts[i];
             }
         }
+        session.timer.pop();
         return new IterateHandlerImpl(session.numGroups, requiredCounts);
     }
 

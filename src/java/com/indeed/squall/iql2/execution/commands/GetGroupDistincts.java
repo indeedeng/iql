@@ -2,10 +2,13 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.AggregateFilter;
+import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
+import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.io.IOException;
 import java.util.BitSet;

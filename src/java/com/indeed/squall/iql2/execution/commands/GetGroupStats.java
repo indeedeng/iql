@@ -102,9 +102,7 @@ public class GetGroupStats implements Command {
         }
         session.timer.pop();
 
-        session.timer.push("popStat");
         session.popStats();
-        session.timer.pop();
 
         return groupStats;
     }

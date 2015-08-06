@@ -6,8 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.util.List;
 import java.util.Map;
@@ -49,8 +49,14 @@ public class MetricRegroup implements Command {
             if (numStats != 1) {
                 throw new IllegalStateException("Pushed more than one stat!: " + pushes);
             }
+
+            session.timer.push("metricRegroup");
             s.metricRegroup(0, min, max, interval, excludeGutters);
+            session.timer.pop();
+
+            session.timer.push("popStat");
             s.popStat();
+            session.timer.pop();
         }
 
         session.densify(new Function<Integer, Pair<String, Session.GroupKey>>() {

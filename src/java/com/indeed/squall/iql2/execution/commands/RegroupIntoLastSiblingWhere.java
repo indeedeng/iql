@@ -4,13 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.squall.iql2.execution.AggregateFilter;
+import com.indeed.squall.iql2.execution.GroupLookupMergeType;
+import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.Constant;
 import com.indeed.squall.iql2.execution.metrics.aggregate.IfThenElse;
-import com.indeed.squall.iql2.execution.AggregateFilter;
-import com.indeed.squall.iql2.execution.GroupLookupMergeType;
-import com.indeed.squall.iql2.execution.Session;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 import java.util.Arrays;
@@ -27,9 +27,13 @@ public class RegroupIntoLastSiblingWhere implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, JsonProcessingException {
-        // TODO: This could be made way more efficient, but I think this should way.
+        // TODO: This could be made way more efficient, but I think this should work.
+        session.timer.push("GetGroupStats(IfThenElse(filter, 1, 0))");
         final GetGroupStats getGroupStats = new GetGroupStats(Arrays.<AggregateMetric>asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
         final List<Session.GroupStats> theStats = getGroupStats.evaluate(session);
+        session.timer.pop();
+
+        session.timer.push("calculate re-merges");
         final boolean[] remerge = new boolean[session.numGroups + 1];
         for (int i = 0; i < session.numGroups; i++) {
             remerge[i + 1] = theStats.get(i).stats[0] > 0.5;
@@ -58,6 +62,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         for (final int lastChildIndex : parentIndexToLastChildIndex.values()) {
             remerge[lastChildIndex] = false;
         }
+        session.timer.pop();
 
         boolean anyStatsAtDepth = false;
         for (final Session.SavedGroupStats s : session.savedGroupStats.values()) {
@@ -67,6 +72,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
             }
         }
 
+        session.timer.push("build rules");
         final RegroupCondition theCondition = new RegroupCondition("foo", true, 0, null, false);
         final GroupRemapRule[] rules = new GroupRemapRule[session.numGroups];
         int numRemerged = 0;
@@ -93,11 +99,15 @@ public class RegroupIntoLastSiblingWhere implements Command {
             }
             rules[i - 1] = new GroupRemapRule(i, theCondition, newGroup, newGroup);
         }
+        session.timer.pop();
+
         if (numRemerged > 0) {
-            System.out.println("numRemerged = " + numRemerged);
+            session.timer.push("regroup");
+            // TODO: Parallelize
             for (final Session.ImhotepSessionInfo sessionInfo : session.sessions.values()) {
                 sessionInfo.session.regroup(rules);
             }
+            session.timer.pop();
         }
 
         // TODO: Use a bitset?

@@ -425,7 +425,9 @@ public class Session {
     }
 
     public int performTimeRegroup(long start, long end, long unitSize, final Optional<String> fieldOverride) throws ImhotepOutOfMemoryException {
+        timer.push("performTimeRegroup");
         final int oldNumGroups = this.numGroups;
+        // TODO: Parallelize
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             final ImhotepSession session = sessionInfo.session;
             final String fieldName;
@@ -434,26 +436,48 @@ public class Session {
             } else {
                 fieldName = sessionInfo.timeFieldName;
             }
+
+            timer.push("pushStat");
             session.pushStat(fieldName);
+            timer.pop();
+
+            timer.push("metricRegroup");
             session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
+            timer.pop();
+
+            timer.push("popStat");
             session.popStat();
+            timer.pop();
         }
-        return (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
+        final int result = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
+        timer.pop();
+        return result;
     }
 
     public void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
+        timer.push("densify");
         final BitSet anyPresent = new BitSet();
+        // TODO: Parallelize?
         for (final ImhotepSession session : getSessionsMapRaw().values()) {
+            timer.push("push counts");
             session.pushStat("count()");
+            timer.pop();
+
+            timer.push("get counts");
             final long[] counts = session.getGroupStats(0);
+            timer.pop();
             for (int i = 0; i < counts.length; i++) {
                 if (counts[i] > 0L) {
                     anyPresent.set(i);
                 }
             }
+
+            timer.push("pop counts");
             session.popStat();
+            timer.pop();
         }
 
+        timer.push("form rules");
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         boolean anyNonIdentity = false;
@@ -468,7 +492,9 @@ public class Session {
                 }
             }
         }
+        timer.pop();
 
+        timer.push("regroup");
         if (anyNonIdentity) {
             final GroupRemapRule[] ruleArray = rules.toArray(new GroupRemapRule[rules.size()]);
             // TODO: Parallelize?
@@ -476,12 +502,16 @@ public class Session {
                 session.regroup(ruleArray);
             }
         }
+        timer.pop();
 
         numGroups = nextGroupKeys.size() - 1;
         groupKeys = nextGroupKeys;
+
+        timer.pop();
     }
 
     public void assumeDense(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider, int newNumGroups) throws ImhotepOutOfMemoryException {
+        timer.push("assumeDense");
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         for (int i = 1; i <= newNumGroups; i++) {
@@ -493,6 +523,7 @@ public class Session {
 
         numGroups = nextGroupKeys.size() - 1;
         groupKeys = nextGroupKeys;
+        timer.pop();
     }
 
     public Map<String, ImhotepSession> getSessionsMapRaw() {

@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.execution.commands;
+package com.indeed.squall.iql2.execution.commands.misc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
