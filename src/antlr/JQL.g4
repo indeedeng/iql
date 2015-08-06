@@ -129,9 +129,6 @@ aggregateMetric [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlAggregateMetric
     ;
 
-// THIS IS A HACK to work around https://github.com/antlr/antlr4/issues/773
-jqlSumOverMetric : SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' ;
-
 jqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
     | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
@@ -149,7 +146,7 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' identifier ')' # AggregateFieldMin
     | FIELD_MAX '(' identifier ')' # AggregateFieldMax
-    | jqlSumOverMetric # AggregateSumAcross
+    | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
     | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse

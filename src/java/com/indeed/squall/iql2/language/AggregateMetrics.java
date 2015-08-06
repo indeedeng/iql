@@ -215,8 +215,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateSumAcross(@NotNull JQLParser.AggregateSumAcrossContext ctx) {
-                final JQLParser.JqlSumOverMetricContext x = ctx.jqlSumOverMetric();
-                accept(new AggregateMetric.SumAcross(GroupBys.parseGroupBy(x.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(x.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+                accept(new AggregateMetric.SumAcross(GroupBys.parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
