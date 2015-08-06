@@ -45,7 +45,9 @@ public class MetricRegroup implements Command {
             final String name = entry.getKey();
             final List<String> pushes = entry.getValue();
             final ImhotepSession s = session.sessions.get(name).session;
+            session.timer.push("pushStats");
             final int numStats = s.pushStats(pushes);
+            session.timer.pop();
             if (numStats != 1) {
                 throw new IllegalStateException("Pushed more than one stat!: " + pushes);
             }
