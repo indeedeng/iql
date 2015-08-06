@@ -179,7 +179,7 @@ aggregateFilter [boolean useLegacy]
 jqlAggregateFilter
     : field=identifier '=~' STRING_LITERAL # AggregateRegex
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
-    | 'TERM()' '=' termVal # AggregateTermIs
+    | 'TERM()' '=' termVal[false] # AggregateTermIs
     | jqlAggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlAggregateMetric # AggregateMetricInequality
     | '!' jqlAggregateFilter # AggregateNot
     | NOT '(' jqlAggregateFilter ')' # AggregateNot
@@ -257,10 +257,10 @@ jqlDocMetric
     | INT # DocInt
     ;
 
-termVal
+termVal [boolean useLegacy]
     : INT # IntTerm
     | STRING_LITERAL # StringTerm
-    | identifier # StringTerm
+    | {$ctx.useLegacy} identifier # StringTerm
     ;
 
 // DUPLICATION OF docFilter IS A HACK to work around https://github.com/antlr/antlr4/issues/773 , which does not seem fixed
@@ -273,10 +273,10 @@ docFilter [boolean useLegacy]
 legacyDocFilter
     : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
     | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
-    | field=identifier '=' termVal # LegacyDocFieldIs
-    | (negate='-')? field=identifier ':' termVal # LegacyDocLuceneFieldIs
-    | field=identifier '!=' termVal # LegacyDocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # LegacyDocFieldIn
+    | field=identifier '=' termVal[true] # LegacyDocFieldIs
+    | (negate='-')? field=identifier ':' termVal[true] # LegacyDocLuceneFieldIs
+    | field=identifier '!=' termVal[true] # LegacyDocFieldIsnt
+    | field=identifier not=NOT? IN '(' (terms += termVal[true])? (',' terms += termVal[true])* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # LegacyDocBetween
@@ -293,10 +293,10 @@ legacyDocFilter
 jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
-    | field=identifier '=' termVal # DocFieldIs
-    | (negate='-')? field=identifier ':' termVal # DocLuceneFieldIs
-    | field=identifier '!=' termVal # DocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' # DocFieldIn
+    | field=identifier '=' termVal[false] # DocFieldIs
+    | (negate='-')? field=identifier ':' termVal[false] # DocLuceneFieldIs
+    | field=identifier '!=' termVal[false] # DocFieldIsnt
+    | field=identifier not=NOT? IN '(' (terms += termVal[false])? (',' terms += termVal[false])* ')' # DocFieldIn
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
@@ -315,7 +315,7 @@ groupByElement [boolean useLegacy]
     : DAYOFWEEK # DayOfWeekGroupBy
     | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
-    | field=identifier not=NOT? IN '(' (terms += termVal)? (',' terms += termVal)* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
+    | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime # TimeGroupBy
