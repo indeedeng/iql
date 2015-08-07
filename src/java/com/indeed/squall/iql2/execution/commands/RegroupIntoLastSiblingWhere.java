@@ -102,12 +102,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         session.timer.pop();
 
         if (numRemerged > 0) {
-            session.timer.push("regroup");
-            // TODO: Parallelize
-            for (final Session.ImhotepSessionInfo sessionInfo : session.sessions.values()) {
-                sessionInfo.session.regroup(rules);
-            }
-            session.timer.pop();
+            session.regroup(rules);
         }
 
         // TODO: Use a bitset?

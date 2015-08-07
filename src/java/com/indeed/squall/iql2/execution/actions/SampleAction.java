@@ -29,16 +29,15 @@ public class SampleAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("randomRegroup");
-        // TODO: Parallelize
-        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            if (scope.contains(entry.getKey())) {
-                final Session.ImhotepSessionInfo v = entry.getValue();
-                final boolean isIntField = v.intFields.contains(field);
-                v.session.randomRegroup(field, isIntField, seed, probability, targetGroup, positiveGroup, negativeGroup);
-            }
+        final boolean isIntField;
+        if (session.isIntField(field)) {
+            isIntField = true;
+        } else if (session.isStringField(field)) {
+            isIntField = false;
+        } else {
+            throw new IllegalArgumentException("field is not valid: " + field);
         }
-        session.timer.pop();
+        session.randomRegroup(field, isIntField, seed, probability, targetGroup, positiveGroup, negativeGroup, scope);
     }
 
     @Override

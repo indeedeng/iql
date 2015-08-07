@@ -7,7 +7,9 @@ import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.util.core.TreeTimer;
 
 import java.util.List;
 import java.util.Map;
@@ -40,26 +42,31 @@ public class MetricRegroup implements Command {
 
         final int numBuckets = (excludeGutters ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
-        // TODO: Do these in parallel?
-        for (final Map.Entry<String, ? extends List<String>> entry : perDatasetMetrics.entrySet()) {
-            final String name = entry.getKey();
-            final List<String> pushes = entry.getValue();
-            final ImhotepSession s = session.sessions.get(name).session;
-            session.timer.push("pushStats");
-            final int numStats = s.pushStats(pushes);
-            session.timer.pop();
-            if (numStats != 1) {
-                throw new IllegalStateException("Pushed more than one stat!: " + pushes);
+        session.process(new SessionCallback() {
+            @Override
+            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+                if (!perDatasetMetrics.containsKey(name)) {
+                    return;
+                }
+                final List<String> pushes = perDatasetMetrics.get(name);
+
+                timer.push("pushStats");
+                final int numStats = session.pushStats(pushes);
+                timer.pop();
+
+                if (numStats != 1) {
+                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
+                }
+
+                timer.push("metricRegroup");
+                session.metricRegroup(0, min, max, interval, excludeGutters);
+                timer.pop();
+
+                timer.push("popStat");
+                session.popStat();
+                timer.pop();
             }
-
-            session.timer.push("metricRegroup");
-            s.metricRegroup(0, min, max, interval, excludeGutters);
-            session.timer.pop();
-
-            session.timer.push("popStat");
-            s.popStat();
-            session.timer.pop();
-        }
+        });
 
         session.densify(new Function<Integer, Pair<String, Session.GroupKey>>() {
             public Pair<String, Session.GroupKey> apply(Integer group) {

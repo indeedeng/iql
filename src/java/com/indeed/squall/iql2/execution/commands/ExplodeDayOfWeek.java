@@ -40,9 +40,7 @@ public class ExplodeDayOfWeek implements Command {
         session.timer.pop();
         final int oldNumGroups = session.numGroups;
         session.timer.push("shuffle regroup");
-        for (final Session.ImhotepSessionInfo sessionInfo : session.sessions.values()) {
-            sessionInfo.session.regroup(rulesArray);
-        }
+        session.regroup(rulesArray);
         session.timer.pop();
         session.assumeDense(new Function<Integer, Pair<String, Session.GroupKey>>() {
             public Pair<String, Session.GroupKey> apply(Integer group) {

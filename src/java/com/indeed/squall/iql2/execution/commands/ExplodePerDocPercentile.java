@@ -5,8 +5,11 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
@@ -93,16 +96,18 @@ public class ExplodePerDocPercentile implements Command {
         final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
         session.timer.pop();
 
-        // TODO: Parallelize
-        for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            session.timer.push("regroup");
-            s.session.regroup(rulesArr);
-            session.timer.pop();
+        session.process(new SessionCallback() {
+            @Override
+            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+                timer.push("regroup");
+                session.regroup(rulesArr);
+                timer.pop();
 
-            session.timer.push("popStat");
-            s.session.popStat();
-            session.timer.pop();
-        }
+                timer.push("popStat");
+                session.popStat();
+                timer.pop();
+            }
+        });
 
         session.numGroups = nextGroupKeys.size() - 1;
         session.groupKeys = nextGroupKeys;

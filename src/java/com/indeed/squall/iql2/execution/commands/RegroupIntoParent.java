@@ -78,12 +78,7 @@ public class RegroupIntoParent implements Command {
             newGroupKeys[groupKey.parent.index] = groupKey.parent;
         }
         session.timer.pop();
-        session.timer.push("regroup");
-        // TODO: Parallelize
-        for (final Session.ImhotepSessionInfo imhotepSessionInfo : session.sessions.values()) {
-            imhotepSessionInfo.session.regroup(rules);
-        }
-        session.timer.pop();
+        session.regroup(rules);
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
         session.groupKeys = Arrays.asList(newGroupKeys);

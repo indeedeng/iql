@@ -15,6 +15,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -26,6 +27,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.DatasetInfo;
+import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
@@ -593,6 +595,99 @@ public class Session {
             }
         }
         timer.pop();
+    }
+
+    public void regroup(GroupMultiRemapRule[] rules) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regroup");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            sessionInfo.session.regroup(rules);
+        }
+        timer.pop();
+    }
+
+    public void regroup(GroupRemapRule[] rules) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regroup");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            sessionInfo.session.regroup(rules);
+        }
+        timer.pop();
+    }
+
+    public void popStat() {
+        // TODO: Parallelize
+        timer.push("popStat");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            sessionInfo.session.popStat();
+        }
+        timer.pop();
+    }
+
+    public void intOrRegroup(String field, long[] terms, int targetGroup, int negativeGroup, int positiveGroup, Set<String> scope) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("intOrRegroup");
+        for (final String s : scope) {
+            if (sessions.containsKey(s)) {
+                final ImhotepSessionInfo sessionInfo = sessions.get(s);
+                sessionInfo.session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
+            }
+        }
+        timer.pop();
+    }
+
+    public void stringOrRegroup(String field, String[] terms, int targetGroup, int negativeGroup, int positiveGroup, Set<String> scope) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("stringOrRegroup");
+        for (final String s : scope) {
+            if (sessions.containsKey(s)) {
+                final ImhotepSessionInfo sessionInfo = sessions.get(s);
+                sessionInfo.session.stringOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
+            }
+        }
+        timer.pop();
+    }
+
+    public void regroup(QueryRemapRule rule, Set<String> scope) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regroup");
+        for (final String s : scope) {
+            if (sessions.containsKey(s)) {
+                sessions.get(s).session.regroup(rule);
+            }
+        }
+        timer.pop();
+    }
+
+    public void regexRegroup(String field, String regex, int targetGroup, int negativeGroup, int positiveGroup, ImmutableSet<String> scope) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regexRegroup");
+        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : sessions.entrySet()) {
+            if (scope.contains(entry.getKey())) {
+                final Session.ImhotepSessionInfo v = entry.getValue();
+                v.session.regexRegroup(field, regex, targetGroup, negativeGroup, positiveGroup);
+            }
+        }
+        timer.pop();
+    }
+
+    public void randomRegroup(String field, boolean isIntField, String seed, double probability, int targetGroup, int positiveGroup, int negativeGroup, ImmutableSet<String> scope) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        session.timer.push("randomRegroup");
+        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
+            if (scope.contains(entry.getKey())) {
+                entry.getValue().session.randomRegroup(field, isIntField, seed, probability, targetGroup, negativeGroup, positiveGroup);
+            }
+        }
+        timer.pop();
+    }
+
+    public void process(SessionCallback sessionCallback) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize, use different timers per thread and somehow merge them back into the parent without
+        //       overcounting parallel time?
+        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
+            sessionCallback.handle(timer, entry.getKey(), entry.getValue().session);
+        }
     }
 
     private static class SessionIntIterationState {

@@ -4,7 +4,10 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.SessionCallback;
+import com.indeed.util.core.TreeTimer;
 
 import java.util.Map;
 import java.util.Set;
@@ -27,16 +30,20 @@ public class QueryAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.timer.push("regroup");
         // TODO: Parallelize
-        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            if (scope.contains(entry.getKey())) {
-                final Session.ImhotepSessionInfo v = entry.getValue();
-                final Query query = perDatasetQuery.get(entry.getKey());
-                v.session.regroup(new QueryRemapRule(targetGroup, query, negativeGroup, positiveGroup));
+        session.process(new SessionCallback() {
+            @Override
+            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+                if (!scope.contains(name)) {
+                    return;
+                }
+
+                timer.push("regroup");
+                final Query query = perDatasetQuery.get(name);
+                session.regroup(new QueryRemapRule(targetGroup, query, negativeGroup, positiveGroup));
+                timer.pop();
             }
-        }
-        session.timer.pop();
+        });
     }
 
     @Override

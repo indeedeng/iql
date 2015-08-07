@@ -3,7 +3,10 @@ package com.indeed.squall.iql2.execution.actions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.SessionCallback;
+import com.indeed.util.core.TreeTimer;
 
 import java.util.List;
 import java.util.Map;
@@ -30,24 +33,26 @@ public class MetricAction implements Action {
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         if (targetGroup == 1 && positiveGroup == 1 && negativeGroup == 0 && session.numGroups == 1) {
             // TODO: Parallelize
-            for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-                if (scope.contains(entry.getKey())) {
-                    final Session.ImhotepSessionInfo v = entry.getValue();
-                    final List<String> pushes = perDatasetPushes.get(entry.getKey());
+            session.process(new SessionCallback() {
+                @Override
+                public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+                    if (scope.contains(name)) {
+                        final List<String> pushes = perDatasetPushes.get(name);
 
-                    session.timer.push("pushStats");
-                    v.session.pushStats(pushes);
-                    session.timer.pop();
+                        timer.push("pushStats");
+                        session.pushStats(pushes);
+                        timer.pop();
 
-                    session.timer.push("metricFilter");
-                    v.session.metricFilter(0, 1, 1, false);
-                    session.timer.pop();
+                        timer.push("metricFilter");
+                        session.metricFilter(0, 1, 1, false);
+                        timer.pop();
 
-                    session.timer.push("popStat");
-                    v.session.popStat();
-                    session.timer.pop();
+                        timer.push("popStat");
+                        session.popStat();
+                        timer.pop();
+                    }
                 }
-            }
+            });
         } else {
             throw new UnsupportedOperationException("Can only do MetricAction filters when targetGroup=positiveGroup=1 and negativeGroup=0 and numGroups=1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
         }

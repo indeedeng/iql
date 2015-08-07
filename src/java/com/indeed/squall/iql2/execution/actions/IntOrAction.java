@@ -38,15 +38,7 @@ public class IntOrAction implements Action {
         }
         Arrays.sort(terms);
         session.timer.pop();
-        // TODO: Parallelize
-        session.timer.push("intOrRegroup");
-        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            if (scope.contains(entry.getKey())) {
-                final ImhotepSession s = entry.getValue().session;
-                s.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
-            }
-        }
-        session.timer.pop();
+        session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup, scope);
     }
 
     @Override
