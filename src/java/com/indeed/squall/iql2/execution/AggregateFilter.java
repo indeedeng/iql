@@ -426,14 +426,9 @@ public interface AggregateFilter extends Pushable{
     }
 
     class RegexFilter implements AggregateFilter {
-        private final String field;
-        private final String regex;
-
         private final Pattern pattern;
 
-        public RegexFilter(String field, String regex) {
-            this.field = field;
-            this.regex = regex;
+        public RegexFilter(String regex) {
             this.pattern = Pattern.compile(regex);
         }
 

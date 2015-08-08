@@ -37,7 +37,7 @@ public class AggregateFilters {
             case "not":
                 return new AggregateFilter.Not(fromJson(node.get("value"), namedMetricLookup));
             case "regex":
-                return new AggregateFilter.RegexFilter(node.get("field").textValue(), node.get("value").textValue());
+                return new AggregateFilter.RegexFilter(node.get("value").textValue());
             case "metricEquals":
                 return new AggregateFilter.MetricEquals(m1.get(), m2.get());
             case "metricNotEquals":
