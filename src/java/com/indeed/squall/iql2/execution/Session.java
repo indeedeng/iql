@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
@@ -36,6 +39,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
@@ -148,20 +152,32 @@ public class Session {
         return ret;
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException {
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String dataset = elem.get("dataset").textValue();
             final String start = elem.get("start").textValue();
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : dataset;
+            final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {});
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardList");
             final DatasetInfo datasetInfo = getDatasetShardList(client, dataset);
             treeTimer.pop();
-            final Collection<String> sessionIntFields = datasetInfo.getIntFields();
-            final Collection<String> sessionStringFields = datasetInfo.getStringFields();
+            final Collection<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
+            final Collection<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
+
+            for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
+                if (sessionIntFields.contains(entry.getValue())) {
+                    sessionIntFields.add(entry.getKey());
+                } else if (sessionStringFields.contains(entry.getValue())) {
+                    sessionStringFields.add(entry.getKey());
+                } else {
+                    throw new IllegalStateException();
+                }
+            }
+
             final DateTime startDateTime = parseDateTime(start);
             final DateTime endDateTime = parseDateTime(end);
             treeTimer.pop();
@@ -176,7 +192,7 @@ public class Session {
             final ImhotepSession build = sessionBuilder.build();
             treeTimer.pop();
             final DatasetDimensions datasetDimensions = dimensions.containsKey(dataset) ? dimensions.get(dataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
-            final ImhotepSession session = closer.register(new DimensionsTranslator(build, datasetDimensions));
+            final ImhotepSession session = closer.register(new FieldAliasingImhotepSession(new DimensionsTranslator(build, datasetDimensions), fieldAliases));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
