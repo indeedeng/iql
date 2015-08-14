@@ -152,48 +152,53 @@ public class ImhotepMetadataCache {
 
 
 //       now load the metadata from the IMS
-        DatasetYaml[] datasetYamls = metadataClient.getDatasets();
-        for (final DatasetYaml datasetYaml : datasetYamls) {
-            if(newDatasets.containsKey(datasetYaml.getName())){
-                DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
-                newDataset.setDescription(datasetYaml.getDescription());
+        try {
+            DatasetYaml[] datasetYamls = metadataClient.getDatasets();
+            for (final DatasetYaml datasetYaml : datasetYamls) {
+                if (newDatasets.containsKey(datasetYaml.getName())) {
+                    DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
+                    newDataset.setDescription(datasetYaml.getDescription());
 
-                FieldsYaml[] fieldsYamls = datasetYaml.getFields();
-                for(FieldsYaml fieldYaml : fieldsYamls){
-                    FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
-                    if (fieldMetadata !=null){
-                        fieldMetadata.setDescription(fieldYaml.getDescription());
-                        fieldMetadata.setHidden(fieldYaml.getHidden());
-                        fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
+                    FieldsYaml[] fieldsYamls = datasetYaml.getFields();
+                    for (FieldsYaml fieldYaml : fieldsYamls) {
+                        FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
+                        if (fieldMetadata != null) {
+                            fieldMetadata.setDescription(fieldYaml.getDescription());
+                            fieldMetadata.setHidden(fieldYaml.getHidden());
+                            fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
 
-                    }
-                }
-                MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
-                Map<String, MetricMetadata> metrics = newDataset.getMetrics();
-                for (MetricsYaml metricYaml : metricsYamls){
-                    final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
-                    metrics.put(metricYaml.getName(), metricMetadata);
-                    // try to reuse the metric description on the field it describes
-                    final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
-                    if(relatedField != null) {
-                        if(Strings.isNullOrEmpty(metricMetadata.getExpression())) {
-                            // Having a metric defined with the same name is a marker we use
-                            // for fields that should be treated as Integer
-                            relatedField.setType(FieldType.Integer);
-                        }
-                        if (Strings.isNullOrEmpty(metricMetadata.getExpression()) &&
-                                !Strings.isNullOrEmpty(metricMetadata.getDescription()) &&
-                                Strings.isNullOrEmpty(relatedField.getDescription())) {
-
-                            relatedField.setDescription(metricMetadata.getDescription());
                         }
                     }
+                    MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
+                    Map<String, MetricMetadata> metrics = newDataset.getMetrics();
+                    for (MetricsYaml metricYaml : metricsYamls) {
+                        final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
+                        metrics.put(metricYaml.getName(), metricMetadata);
+                        // try to reuse the metric description on the field it describes
+                        final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
+                        if (relatedField != null) {
+                            if (Strings.isNullOrEmpty(metricMetadata.getExpression())) {
+                                // Having a metric defined with the same name is a marker we use
+                                // for fields that should be treated as Integer
+                                relatedField.setType(FieldType.Integer);
+                            }
+                            if (Strings.isNullOrEmpty(metricMetadata.getExpression()) &&
+                                    !Strings.isNullOrEmpty(metricMetadata.getDescription()) &&
+                                    Strings.isNullOrEmpty(relatedField.getDescription())) {
+
+                                relatedField.setDescription(metricMetadata.getDescription());
+                            }
+                        }
+                    }
                 }
-                addStandardAliases(newDataset);
             }
+        }
+        catch (Exception e){
+            log.error("An error occurred when receiving metadata from IMS", e);
         }
 
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
+            addStandardAliases(datasetMetadata);
             datasetMetadata.finishLoading();
         }
 
