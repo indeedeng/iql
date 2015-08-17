@@ -241,7 +241,11 @@ public class ImhotepMetadataCache {
 
     @Scheduled(fixedRate = 60000)
     private void updateKeywordAnalyzerWhitelist() {
-        datasetToKeywordAnaylzerWhitelist = metadataClient.getWhitelist();//newKeywordAnaylzerWhitelist;
+        try {
+            datasetToKeywordAnaylzerWhitelist = metadataClient.getWhitelist();//newKeywordAnaylzerWhitelist;
+        } catch (Exception e) {
+            log.error("Failed to load the keyword analyzer whitelist from IMS", e);
+        }
 
     }
 
