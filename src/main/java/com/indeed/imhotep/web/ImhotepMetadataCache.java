@@ -81,15 +81,11 @@ public class ImhotepMetadataCache {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
                        Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
-            String hostname = InetAddress.getLocalHost().getHostName();
-            InetAddress[] addresses = InetAddress.getAllByName(hostname);
             ArrayList<String> ports = new ArrayList<String>();
-            for (Iterator<ObjectName> i = objs.iterator(); i.hasNext();) {
-                ObjectName obj = i.next();
+            for (ObjectName obj : objs) {
                 String port = obj.getKeyProperty("port");
                 ports.add(port);
             }
-            ///
             String url = "http://localhost:" + ports.get(0)+"/iql/";
             metadataClient = ImsClient.build(url);
         } catch (URISyntaxException e) {
