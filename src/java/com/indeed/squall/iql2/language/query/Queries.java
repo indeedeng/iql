@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language.query;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -125,12 +126,19 @@ public class Queries {
 
     public static List<Map<String, String>> createDatasetMap(Query query) {
         final List<Map<String, String>> result = new ArrayList<>();
+        final ObjectMapper objectMapper = new ObjectMapper();
         for (final Dataset dataset : query.datasets) {
             final Map<String, String> m = new HashMap<>();
             m.put("dataset", dataset.dataset);
             m.put("start", dataset.startInclusive.toString());
             m.put("end", dataset.endExclusive.toString());
             m.put("name", dataset.alias.or(dataset.dataset));
+            try {
+                m.put("fieldAliases", objectMapper.writeValueAsString(dataset.fieldAliases));
+            } catch (JsonProcessingException e) {
+                // We really shouldn't have a problem serializing a Map<String, String> to a String...
+                throw Throwables.propagate(e);
+            }
             result.add(m);
         }
         return result;

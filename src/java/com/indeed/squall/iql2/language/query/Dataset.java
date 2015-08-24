@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
@@ -11,7 +12,10 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Dataset {
     static {
@@ -22,12 +26,14 @@ public class Dataset {
     public final DateTime startInclusive;
     public final DateTime endExclusive;
     public final Optional<String> alias;
+    public final ImmutableMap<String, String> fieldAliases;
 
-    public Dataset(String dataset, DateTime startInclusive, DateTime endExclusive, Optional<String> alias) {
+    public Dataset(String dataset, DateTime startInclusive, DateTime endExclusive, Optional<String> alias, Map<String, String> fieldAliases) {
         this.dataset = dataset;
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
         this.alias = alias;
+        this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
     public static List<Dataset> parseDatasets(JQLParser.FromContentsContext fromContentsContext) {
@@ -50,7 +56,8 @@ public class Dataset {
         } else {
             name = Optional.absent();
         }
-        return new Dataset(dataset, start, end, name);
+        final Map<String, String> fieldAliases = parseFieldAliases(datasetContext.aliases());
+        return new Dataset(dataset, start, end, name, fieldAliases);
     }
 
     public static Dataset parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext) {
@@ -76,7 +83,8 @@ public class Dataset {
                 } else {
                     name = Optional.absent();
                 }
-                accept(new Dataset(dataset, defaultStart, defaultEnd, name));
+                final Map<String, String> fieldAliases = parseFieldAliases(ctx.aliases());
+                accept(new Dataset(dataset, defaultStart, defaultEnd, name, fieldAliases));
             }
         });
 
@@ -85,6 +93,19 @@ public class Dataset {
         }
 
         return ref[0];
+    }
+
+    private static Map<String, String> parseFieldAliases(JQLParser.AliasesContext aliases) {
+        if (aliases == null) {
+            return Collections.emptyMap();
+        }
+        final Map<String, String> result = new HashMap<>();
+        for (int i = 0; i < aliases.virtual.size(); i++) {
+            final String actual = aliases.actual.get(i).getText();
+            final String virtual = aliases.virtual.get(i).getText();
+            result.put(virtual, actual);
+        }
+        return result;
     }
 
     public static DateTime parseDateTime(JQLParser.DateTimeContext dateTimeContext) {

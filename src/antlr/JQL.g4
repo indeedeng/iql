@@ -59,6 +59,7 @@ LIMIT : 'LIMIT';
 HAVING : 'HAVING';
 FIELD_MIN : 'FIELD_MIN';
 FIELD_MAX : 'FIELD_MAX';
+ALIASING : 'ALIASING';
 
 Y : 'Y' ;
 
@@ -94,7 +95,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX
+    | FIELD_MIN | FIELD_MAX | ALIASING
     ;
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -385,13 +386,17 @@ dateTime
     | Y
     ;
 
+aliases
+    : ALIASING '(' actual+=identifier AS virtual+=identifier (',' actual+=identifier AS virtual+=identifier)* ')'
+    ;
+
 dataset
-    : index=identifier start=dateTime end=dateTime (AS name=identifier)?
+    : index=identifier start=dateTime end=dateTime (AS name=identifier)? aliases?
     ;
 
 datasetOptTime
     : dataset # FullDataset
-    | index=identifier (AS name=identifier)? # PartialDataset
+    | index=identifier (AS name=identifier)? aliases? # PartialDataset
     ;
 
 fromContents

@@ -41,6 +41,21 @@ public class DatasetsFields {
         return new Builder();
     }
 
+    public static Builder builderFrom(DatasetsFields datasetsFields) {
+        final Builder builder = new Builder();
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToIntFields.entrySet()) {
+            for (final String field : entry.getValue()) {
+                builder.addIntField(entry.getKey(), field);
+            }
+        }
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToStringFields.entrySet()) {
+            for (final String field : entry.getValue()) {
+                builder.addStringField(entry.getKey(), field);
+            }
+        }
+        return builder;
+    }
+
     public Set<String> datasets() {
         return Sets.union(datasetToIntFields.keySet(), datasetToStringFields.keySet());
     }
