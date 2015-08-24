@@ -426,6 +426,8 @@ public class QueryServlet {
 
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
+        // TODO: Save the chosenShards and use them during execution, otherwise we have a race condition
+        //       where the shard lists can be updated after hashing and we'll cache it under the wrong shards.
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
             final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(dataset.dataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
