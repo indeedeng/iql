@@ -7,7 +7,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
@@ -413,7 +416,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields());
+        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
@@ -518,6 +521,31 @@ public class QueryServlet {
             }
         }
         timer.pop();
+    }
+
+    private DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
+        final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
+        for (final Dataset dataset : datasets) {
+            aliasToDataset.put(dataset.alias.or(dataset.dataset), dataset);
+        }
+
+        final DatasetsFields.Builder builder = DatasetsFields.builderFrom(datasetsFields);
+        for (final String dataset : datasetsFields.datasets()) {
+            final ImmutableSet<String> intFields = datasetsFields.getIntFields(dataset);
+            final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
+            final Map<String, String> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
+            for (final Map.Entry<String, String> entry : aliasToActual.entrySet()) {
+                if (intFields.contains(entry.getValue())) {
+                    builder.addIntField(dataset, entry.getKey());
+                } else if (stringFields.contains(entry.getValue())) {
+                    builder.addStringField(dataset, entry.getKey());
+                } else {
+                    throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
+                }
+            }
+        }
+
+        return builder.build();
     }
 
     private void sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit) throws IOException {
