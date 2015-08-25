@@ -6,9 +6,9 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
 public class ExplodeTimeBuckets implements Command {
-    private final int numBuckets;
-    private final Optional<String> timeField;
-    private final Optional<String> timeFormat;
+    public final int numBuckets;
+    public final Optional<String> timeField;
+    public final Optional<String> timeFormat;
 
     public ExplodeTimeBuckets(int numBuckets, Optional<String> timeField, Optional<String> timeFormat) {
         this.numBuckets = numBuckets;

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SampleFields implements Command {
-    private final Map<String, List<SampleDefinition>> perDatasetSamples;
+    public final Map<String, List<SampleDefinition>> perDatasetSamples;
 
     public SampleFields(Map<String, List<SampleDefinition>> perDatasetSamples) {
         this.perDatasetSamples = perDatasetSamples;

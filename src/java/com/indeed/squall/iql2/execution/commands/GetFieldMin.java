@@ -19,7 +19,7 @@ import java.util.Set;
 public class GetFieldMin implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMin.class);
 
-    private final Set<String> scope;
+    public final Set<String> scope;
     public final String field;
 
     public GetFieldMin(Set<String> scope, String field) {

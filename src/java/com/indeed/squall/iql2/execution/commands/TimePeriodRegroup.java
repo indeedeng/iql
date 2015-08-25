@@ -9,9 +9,9 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import org.joda.time.DateTime;
 
 public class TimePeriodRegroup implements Command {
-    private final long periodMillis;
-    private final Optional<String> timeField;
-    private final Optional<String> timeFormat;
+    public final long periodMillis;
+    public final Optional<String> timeField;
+    public final Optional<String> timeFormat;
 
     public TimePeriodRegroup(long periodMillis, Optional<String> timeField, Optional<String> timeFormat) {
         this.periodMillis = periodMillis;

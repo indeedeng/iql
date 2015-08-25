@@ -17,8 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class RegroupIntoLastSiblingWhere implements Command {
-    private final AggregateFilter filter;
-    private final GroupLookupMergeType mergeType;
+    public final AggregateFilter filter;
+    public final GroupLookupMergeType mergeType;
 
     public RegroupIntoLastSiblingWhere(AggregateFilter filter, GroupLookupMergeType mergeType) {
         this.filter = filter;

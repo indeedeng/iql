@@ -19,7 +19,7 @@ import java.util.Set;
 public class GetFieldMax implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMax.class);
 
-    private final Set<String> scope;
+    public final Set<String> scope;
     public final String field;
 
     public GetFieldMax(Set<String> scope, String field) {

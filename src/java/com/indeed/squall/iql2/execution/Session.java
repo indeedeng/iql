@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
@@ -973,6 +974,7 @@ public class Session {
         }
     }
 
+    // TODO: JsonSerializable..?
     public static class GroupStats {
         public final GroupKey key;
         public final double[] stats;
@@ -1043,7 +1045,8 @@ public class Session {
         public final DateTime endTime;
         public final String timeFieldName;
 
-        private ImhotepSessionInfo(ImhotepSession session, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        @VisibleForTesting
+        ImhotepSessionInfo(ImhotepSession session, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
             this.datasetDimensions = datasetDimensions;
             this.intFields = Collections.unmodifiableCollection(intFields);

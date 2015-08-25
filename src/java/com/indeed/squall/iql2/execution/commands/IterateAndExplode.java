@@ -21,14 +21,12 @@ public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;
     public final FieldIterateOpts fieldOpts;
-    public final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits;
     public final Optional<String> explodeDefaultName;
 
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits, Optional<String> explodeDefaultName) {
+    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;
-        this.fieldLimits = fieldLimits;
         this.explodeDefaultName = explodeDefaultName;
     }
 

@@ -39,7 +39,6 @@ import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
-import com.indeed.squall.iql2.execution.commands.misc.FieldLimitingMechanism;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -208,9 +207,9 @@ public class Commands {
 
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final FieldIterateOpts fieldOpts = new FieldIterateOpts();
-                final Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits = parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
+                parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
 
-                return new IterateAndExplode(field, selecting, fieldOpts, fieldLimits, explodeDefaultName);
+                return new IterateAndExplode(field, selecting, fieldOpts, explodeDefaultName);
             }
             case "computeAndCreateGroupStatsLookup": {
                 final Command computation = parseCommand(command.get("computation"), namedMetricLookup);
@@ -341,7 +340,7 @@ public class Commands {
         }
     }
 
-    private static Optional<String> getOptionalName(JsonNode command) {
+    public static Optional<String> getOptionalName(JsonNode command) {
         final Optional<String> name;
         if (command.has("name")) {
             name = Optional.fromNullable(command.get("name").textValue());
@@ -351,8 +350,7 @@ public class Commands {
         return name;
     }
 
-    private static Optional<Pair<Integer, FieldLimitingMechanism>> parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, FieldIterateOpts defaultOpts, JsonNode globalOpts) {
-        Optional<Pair<Integer, FieldLimitingMechanism>> fieldLimits = Optional.absent();
+    public static void parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, FieldIterateOpts defaultOpts, JsonNode globalOpts) {
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
@@ -361,23 +359,15 @@ public class Commands {
                     }
                     break;
                 }
-                case "limitingFields": {
-                    fieldLimits = Optional.of(Pair.of(
-                            globalOpt.get("numFields").intValue(),
-                            FieldLimitingMechanism.valueOf(globalOpt.get("by").textValue())
-                    ));
-                    break;
-                }
                 case "defaultedFieldOpts": {
                     defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup);
                     break;
                 }
             }
         }
-        return fieldLimits;
     }
 
-    private static Optional<String> parseExplodeOpts(JsonNode opts) {
+    public static Optional<String> parseExplodeOpts(JsonNode opts) {
         if (opts == null) {
             return Optional.absent();
         }

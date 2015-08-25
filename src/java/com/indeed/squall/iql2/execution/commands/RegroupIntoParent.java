@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 public class RegroupIntoParent implements Command {
-    private final GroupLookupMergeType mergeType;
+    public final GroupLookupMergeType mergeType;
 
     public RegroupIntoParent(GroupLookupMergeType mergeType) {
         this.mergeType = mergeType;
