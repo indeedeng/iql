@@ -292,7 +292,7 @@ jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier '=' termVal[false] # DocFieldIs
-    | (negate='-')? field=identifier ':' termVal[false] # DocLuceneFieldIs
+//    | (negate='-')? field=identifier ':' termVal[false] # DocLuceneFieldIs
     | field=identifier '!=' termVal[false] # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += termVal[false])? (',' terms += termVal[false])* ')' # DocFieldIn
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality

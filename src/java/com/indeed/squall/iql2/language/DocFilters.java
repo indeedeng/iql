@@ -261,16 +261,6 @@ public class DocFilters {
             }
 
             @Override
-            public void enterDocLuceneFieldIs(@NotNull JQLParser.DocLuceneFieldIsContext ctx) {
-                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal()));
-                if (ctx.negate == null) {
-                    accept(fieldIs);
-                } else {
-                    accept(new DocFilter.Not(fieldIs));
-                }
-            }
-
-            @Override
             public void enterDocOr(@NotNull JQLParser.DocOrContext ctx) {
                 accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
