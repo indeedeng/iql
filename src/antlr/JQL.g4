@@ -316,7 +316,7 @@ groupByElement [boolean useLegacy]
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
-    | groupByTime # TimeGroupBy
+    | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     ;
 
@@ -333,15 +333,15 @@ topTermsGroupByElem [boolean useLegacy]
     ;
 
 groupByMetric [boolean useLegacy]
-    : (BUCKETS | BUCKET) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
+    : (BUCKET | ({$ctx.useLegacy}? BUCKETS)) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
     ;
 
 groupByMetricEnglish [boolean useLegacy]
     : docMetric[$ctx.useLegacy] FROM min=INT TO max=INT BY interval=INT
     ;
 
-groupByTime
-    : (TIME | TIMEBUCKETS) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? ')')?
+groupByTime [boolean useLegacy]
+    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? ')')?
     ;
 
 groupByField [boolean useLegacy]
