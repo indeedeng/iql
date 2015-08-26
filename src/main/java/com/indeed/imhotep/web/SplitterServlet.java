@@ -58,11 +58,11 @@ public class SplitterServlet {
 
             FromClause fromClause = null;
             try {
-                fromClause = StatementParser.parseFromClause(parts.from);
+                fromClause = StatementParser.parseFromClause(parts.from, true);
             } catch (Exception ignored) { }
             json.put("dataset", fromClause != null ? fromClause.getDataset() : "");
-            json.put("start", fromClause != null ? fromClause.getStart().toString(dateTimeFormatter) : "");
-            json.put("end", fromClause != null ? fromClause.getEnd().toString(dateTimeFormatter) : "");
+            json.put("start", fromClause != null && fromClause.getStart() != null ? fromClause.getStart().toString(dateTimeFormatter) : "");
+            json.put("end", fromClause != null && fromClause.getEnd() != null ? fromClause.getEnd().toString(dateTimeFormatter) : "");
             json.put("startRawString", fromClause != null ? fromClause.getStartRawString() : "");
             json.put("endRawString", fromClause != null ? fromClause.getEndRawString() : "");
         }
