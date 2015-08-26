@@ -28,10 +28,10 @@ public class Term implements JsonSerializable {
         return new Term(null, term, true);
     }
 
-    public static Term parseTerm(JQLParser.TermValContext termValContext) {
+    public static Term parseJqlTerm(JQLParser.JqlTermValContext jqlTermValContext) {
         final Term[] ref = new Term[1];
 
-        termValContext.enterRule(new JQLBaseListener() {
+        jqlTermValContext.enterRule(new JQLBaseListener() {
             private void accept(Term value) {
                 if (ref[0] != null) {
                     throw new IllegalArgumentException("Can't accept multiple times!");
@@ -39,11 +39,40 @@ public class Term implements JsonSerializable {
                 ref[0] = value;
             }
 
-            public void enterIntTerm(@NotNull JQLParser.IntTermContext ctx) {
+            public void enterJqlIntTerm(@NotNull JQLParser.JqlIntTermContext ctx) {
                 accept(term(Long.parseLong(ctx.INT().getText())));
             }
 
-            public void enterStringTerm(@NotNull JQLParser.StringTermContext ctx) {
+            public void enterJqlStringTerm(@NotNull JQLParser.JqlStringTermContext ctx) {
+                if (ctx.STRING_LITERAL() != null) {
+                    accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                }
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled term value: [" + jqlTermValContext.getText() + "]");
+        }
+
+        return ref[0];
+    }
+
+    private static Term parseLegacyTerm(JQLParser.LegacyTermValContext legacyTermValContext) {
+        final Term[] ref = new Term[1];
+
+        legacyTermValContext.enterRule(new JQLBaseListener() {
+            private void accept(Term value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            public void enterLegacyIntTerm(@NotNull JQLParser.LegacyIntTermContext ctx) {
+                accept(term(Long.parseLong(ctx.INT().getText())));
+            }
+
+            public void enterLegacyStringTerm(@NotNull JQLParser.LegacyStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
                     accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
                 } else if (ctx.identifier() != null) {
@@ -53,10 +82,20 @@ public class Term implements JsonSerializable {
         });
 
         if (ref[0] == null) {
-            throw new UnsupportedOperationException("Unhandled term value: [" + termValContext.getText() + "]");
+            throw new UnsupportedOperationException("Unhandled term value: [" + legacyTermValContext.getText() + "]");
         }
 
         return ref[0];
+    }
+
+    public static Term parseTerm(JQLParser.TermValContext termValContext) {
+        if (termValContext.jqlTermVal() != null) {
+            return parseJqlTerm(termValContext.jqlTermVal());
+        } else if (termValContext.legacyTermVal() != null) {
+            return parseLegacyTerm(termValContext.legacyTermVal());
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
     @Override

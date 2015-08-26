@@ -188,23 +188,27 @@ jqlAggregateFilter
     | FALSE # AggregateFalse
     ;
 
+syntacticallyAtomicDocMetricAtom [boolean useLegacy]
+    /* TODO: identifier */
+    : {$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # DocMetricAtomHasString2
+    | {!$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
+    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
+    | HASINT '(' field=identifier ',' term=INT ')' # DocMetricAtomHasInt2
+    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
+    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
+    | identifier # DocMetricAtomRawField
+    ;
+
 docMetricAtom [boolean useLegacy]
     /* TODO: identifier */
     : {$ctx.useLegacy}? field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasString
     | {!$ctx.useLegacy}? field=identifier '=' term=STRING_LITERAL # DocMetricAtomHasString
     /* TODO: identifier */
-    | {$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # DocMetricAtomHasString
-    | {!$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=STRING_LITERAL ')' # DocMetricAtomHasString
-    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
-    /* TODO: identifier */
     | {$ctx.useLegacy}? field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasntString
     | {!$ctx.useLegacy}? field=identifier '!=' term=STRING_LITERAL # DocMetricAtomHasntString
     | field=identifier '=' term=INT # DocMetricAtomHasInt
-    | HASINT '(' field=identifier ',' term=INT ')' # DocMetricAtomHasInt
-    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
     | field=identifier '!=' INT # DocMetricAtomHasntInt
-    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
-    | identifier # DocMetricAtomRawField
+    | syntacticallyAtomicDocMetricAtom[$ctx.useLegacy] # SyntacticallyAtomicDecMetricAtom
     ;
 
 docMetric [boolean useLegacy]
@@ -256,9 +260,19 @@ jqlDocMetric
     ;
 
 termVal [boolean useLegacy]
-    : INT # IntTerm
-    | STRING_LITERAL # StringTerm
-    | {$ctx.useLegacy}? identifier # StringTerm
+    : {$ctx.useLegacy}? legacyTermVal
+    | {!$ctx.useLegacy}? jqlTermVal
+    ;
+
+legacyTermVal
+    : INT # LegacyIntTerm
+    | STRING_LITERAL # LegacyStringTerm
+    | identifier # LegacyStringTerm
+    ;
+
+jqlTermVal
+    : INT # JqlIntTerm
+    | STRING_LITERAL # JqlStringTerm
     ;
 
 // DUPLICATION OF docFilter IS A HACK to work around https://github.com/antlr/antlr4/issues/773 , which does not seem fixed
@@ -291,7 +305,7 @@ legacyDocFilter
 jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
-    | field=identifier '=' termVal[false] # DocFieldIs
+    | field=identifier '=' jqlTermVal # DocFieldIs
 //    | (negate='-')? field=identifier ':' termVal[false] # DocLuceneFieldIs
     | field=identifier '!=' termVal[false] # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += termVal[false])? (',' terms += termVal[false])* ')' # DocFieldIn

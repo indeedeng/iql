@@ -1,11 +1,21 @@
 package com.indeed.squall.iql2.language;
 
+import com.indeed.squall.iql2.language.query.Queries;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 public class DocMetrics {
+    public static void main(String[] args) {
+        final JQLParser parser = Queries.parserForString("oji=ojc");
+        final JQLParser.JqlDocFilterContext ctx = parser.jqlDocFilter();
+        System.out.println("parser.getNumberOfSyntaxErrors() = " + parser.getNumberOfSyntaxErrors());
+        final DocFilter docFilter = DocFilters.parseJQLDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
+        System.out.println("docFilter = " + docFilter);
+    }
+
     public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         if (metricContext.jqlDocMetric() != null) {
             return parseJQLDocMetric(metricContext.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -251,6 +261,61 @@ public class DocMetrics {
         return ref[0];
     }
 
+    public static DocMetric parseSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
+        final DocMetric[] ref = new DocMetric[1];
+
+        ctx.enterRule(new JQLBaseListener() {
+            private void accept(DocMetric value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            public void enterDocMetricAtomFloatScale(@NotNull JQLParser.DocMetricAtomFloatScaleContext ctx) {
+                final String field = ctx.field.getText();
+                final double mult = Double.parseDouble(ctx.mult.getText());
+                final double add = Double.parseDouble(ctx.add.getText());
+                accept(new DocMetric.FloatScale(field, mult, add));
+            }
+
+            public void enterDocMetricAtomHasStringQuoted(@NotNull JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                accept(new DocMetric.HasString(hasTermQuote.getField(), hasTermQuote.getTerm()));
+            }
+
+            public void enterDocMetricAtomRawField(@NotNull JQLParser.DocMetricAtomRawFieldContext ctx) {
+                final String field = ctx.identifier().getText();
+                if (field.equals("counts")) {
+                    accept(new DocMetric.Field("count()"));
+                } else {
+                    accept(new DocMetric.Field(field));
+                }
+            }
+
+            public void enterDocMetricAtomHasIntQuoted(@NotNull JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                final long termInt = Long.parseLong(hasTermQuote.getTerm());
+                accept(new DocMetric.HasInt(hasTermQuote.getField(), termInt));
+            }
+
+            public void enterDocMetricAtomHasString2(@NotNull JQLParser.DocMetricAtomHasString2Context ctx) {
+                accept(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText())));
+            }
+
+            public void enterDocMetricAtomHasInt2(@NotNull JQLParser.DocMetricAtomHasInt2Context ctx) {
+                final String field = ctx.field.getText();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(new DocMetric.HasInt(field, term));
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled syntactically atomic doc metric: [" + ctx.getText() + "]");
+        }
+        return ref[0];
+    }
+
     public static DocMetric parseDocMetricAtom(JQLParser.DocMetricAtomContext docMetricAtomContext) {
         final DocMetric[] ref = new DocMetric[1];
 
@@ -272,20 +337,8 @@ public class DocMetrics {
                 accept(negateMetric(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText()))));
             }
 
-            public void enterDocMetricAtomFloatScale(@NotNull JQLParser.DocMetricAtomFloatScaleContext ctx) {
-                final String field = ctx.field.getText();
-                final double mult = Double.parseDouble(ctx.mult.getText());
-                final double add = Double.parseDouble(ctx.add.getText());
-                accept(new DocMetric.FloatScale(field, mult, add));
-            }
-
             public void enterDocMetricAtomHasString(@NotNull JQLParser.DocMetricAtomHasStringContext ctx) {
                 accept(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText())));
-            }
-
-            public void enterDocMetricAtomHasStringQuoted(@NotNull JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                accept(new DocMetric.HasString(hasTermQuote.getField(), hasTermQuote.getTerm()));
             }
 
             public void enterDocMetricAtomHasInt(@NotNull JQLParser.DocMetricAtomHasIntContext ctx) {
@@ -294,19 +347,9 @@ public class DocMetrics {
                 accept(new DocMetric.HasInt(field, term));
             }
 
-            public void enterDocMetricAtomRawField(@NotNull JQLParser.DocMetricAtomRawFieldContext ctx) {
-                final String field = ctx.identifier().getText();
-                if (field.equals("counts")) {
-                    accept(new DocMetric.Field("count()"));
-                } else {
-                    accept(new DocMetric.Field(field));
-                }
-            }
-
-            public void enterDocMetricAtomHasIntQuoted(@NotNull JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(new DocMetric.HasInt(hasTermQuote.getField(), termInt));
+            @Override
+            public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
+                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
             }
         });
 

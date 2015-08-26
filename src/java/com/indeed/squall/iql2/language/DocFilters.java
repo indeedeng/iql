@@ -257,7 +257,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIs(@NotNull JQLParser.DocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
             @Override
