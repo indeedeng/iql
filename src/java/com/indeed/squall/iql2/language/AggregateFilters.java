@@ -54,7 +54,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateTermIs(@NotNull JQLParser.AggregateTermIsContext ctx) {
-                accept(new AggregateFilter.TermIs(Term.parseTerm(ctx.termVal())));
+                accept(new AggregateFilter.TermIs(Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
             public void enterAggregateNotRegex(@NotNull JQLParser.AggregateNotRegexContext ctx) {

@@ -177,7 +177,7 @@ aggregateFilter [boolean useLegacy]
 jqlAggregateFilter
     : field=identifier '=~' STRING_LITERAL # AggregateRegex
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
-    | 'TERM()' '=' termVal[false] # AggregateTermIs
+    | 'TERM()' '=' jqlTermVal # AggregateTermIs
     | jqlAggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlAggregateMetric # AggregateMetricInequality
     | '!' jqlAggregateFilter # AggregateNot
     | NOT '(' jqlAggregateFilter ')' # AggregateNot
@@ -285,10 +285,10 @@ docFilter [boolean useLegacy]
 legacyDocFilter
     : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
     | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
-    | field=identifier '=' termVal[true] # LegacyDocFieldIs
-    | (negate='-')? field=identifier ':' termVal[true] # LegacyDocLuceneFieldIs
-    | field=identifier '!=' termVal[true] # LegacyDocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += termVal[true])? (',' terms += termVal[true])* ')' # LegacyDocFieldIn
+    | field=identifier '=' legacyTermVal # LegacyDocFieldIs
+    | (negate='-')? field=identifier ':' legacyTermVal # LegacyDocLuceneFieldIs
+    | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt
+    | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # LegacyDocBetween
@@ -306,9 +306,9 @@ jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier '=' jqlTermVal # DocFieldIs
-//    | (negate='-')? field=identifier ':' termVal[false] # DocLuceneFieldIs
-    | field=identifier '!=' termVal[false] # DocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += termVal[false])? (',' terms += termVal[false])* ')' # DocFieldIn
+//    | (negate='-')? field=identifier ':' jqlTermVal # DocLuceneFieldIs
+    | field=identifier '!=' jqlTermVal # DocFieldIsnt
+    | field=identifier not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween

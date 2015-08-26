@@ -57,7 +57,7 @@ public class Term implements JsonSerializable {
         return ref[0];
     }
 
-    private static Term parseLegacyTerm(JQLParser.LegacyTermValContext legacyTermValContext) {
+    public static Term parseLegacyTerm(JQLParser.LegacyTermValContext legacyTermValContext) {
         final Term[] ref = new Term[1];
 
         legacyTermValContext.enterRule(new JQLBaseListener() {

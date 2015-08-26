@@ -1,6 +1,5 @@
 package com.indeed.squall.iql2.language;
 
-import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.util.ParseUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.misc.NotNull;
@@ -58,14 +57,18 @@ public class DocFilters {
             @Override
             public void enterLegacyDocFieldIn(@NotNull JQLParser.LegacyDocFieldInContext ctx) {
                 String field = ctx.field.getText();
-                final List<JQLParser.TermValContext> terms = ctx.terms;
+                final List<JQLParser.LegacyTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                accept(docInHelper(datasetToKeywordAnalyzerFields, field, terms, negate));
+                final ArrayList<Term> termsList = new ArrayList<>();
+                for (final JQLParser.LegacyTermValContext term : terms) {
+                    termsList.add(Term.parseLegacyTerm(term));
+                }
+                accept(docInHelper(datasetToKeywordAnalyzerFields, field, negate, termsList));
             }
 
             @Override
             public void enterLegacyDocFieldIsnt(@NotNull JQLParser.LegacyDocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
@@ -99,12 +102,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIs(@NotNull JQLParser.LegacyDocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
             public void enterLegacyDocLuceneFieldIs(@NotNull JQLParser.LegacyDocLuceneFieldIsContext ctx) {
-                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal()));
+                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal()));
                 if (ctx.negate == null) {
                     accept(fieldIs);
                 } else {
@@ -216,14 +219,18 @@ public class DocFilters {
             @Override
             public void enterDocFieldIn(@NotNull JQLParser.DocFieldInContext ctx) {
                 String field = ctx.field.getText();
-                final List<JQLParser.TermValContext> terms = ctx.terms;
+                final List<JQLParser.JqlTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                accept(docInHelper(datasetToKeywordAnalyzerFields, field, terms, negate));
+                final ArrayList<Term> termsList = new ArrayList<>();
+                for (final JQLParser.JqlTermValContext term : terms) {
+                    termsList.add(Term.parseJqlTerm(term));
+                }
+                accept(docInHelper(datasetToKeywordAnalyzerFields, field, negate, termsList));
             }
 
             @Override
             public void enterDocFieldIsnt(@NotNull JQLParser.DocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseTerm(ctx.termVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
             @Override
@@ -344,11 +351,7 @@ public class DocFilters {
         return ref[0];
     }
 
-    public static DocFilter docInHelper(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, List<JQLParser.TermValContext> terms, boolean negate) {
-        final List<Term> termsList = new ArrayList<>();
-        for (final JQLParser.TermValContext term : terms) {
-            termsList.add(Term.parseTerm(term));
-        }
+    public static DocFilter docInHelper(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, boolean negate, List<Term> termsList) {
         final boolean isStringField = anyIsString(termsList);
         final DocFilter filter;
         if (isStringField) {
