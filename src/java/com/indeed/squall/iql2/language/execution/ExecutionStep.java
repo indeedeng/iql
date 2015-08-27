@@ -7,7 +7,6 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -18,7 +17,6 @@ import com.indeed.squall.iql2.language.commands.IterateAndExplode;
 import com.indeed.squall.iql2.language.commands.MetricRegroup;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.commands.TimePeriodRegroup;
-import com.indeed.squall.iql2.language.commands.TimeRegroup;
 import com.indeed.squall.iql2.language.commands.TopK;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
@@ -220,40 +218,6 @@ public interface ExecutionStep {
                     ", interval=" + interval +
                     ", scope=" + scope +
                     ", excludeGutters=" + excludeGutters +
-                    '}';
-        }
-    }
-
-    class ExplodeTime implements ExecutionStep {
-        private final long value;
-        private final TimeUnit timeUnit;
-        private final Optional<String> timeField;
-        private final Optional<String> timeFormat;
-
-        public ExplodeTime(long value, TimeUnit timeUnit, Optional<String> timeField, Optional<String> timeFormat) {
-            this.value = value;
-            this.timeUnit = timeUnit;
-            this.timeField = timeField;
-            this.timeFormat = timeFormat;
-        }
-
-        @Override
-        public List<Command> commands() {
-            return Collections.<Command>singletonList(new TimeRegroup(value, timeUnit.character, 0, timeField));
-        }
-
-        @Override
-        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ExplodeTime{" +
-                    "value=" + value +
-                    ", timeUnit=" + timeUnit +
-                    ", timeField=" + timeField +
-                    ", timeFormat=" + timeFormat +
                     '}';
         }
     }
