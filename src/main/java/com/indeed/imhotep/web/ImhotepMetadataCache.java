@@ -68,14 +68,12 @@ public class ImhotepMetadataCache {
     // TODO: integrate into the metadata above?
     private volatile Map<String, Set<String>> datasetToKeywordAnaylzerWhitelist = Maps.newHashMap();
     private final ImhotepClient imhotepClient;
-    private String ramsesMetadataPath;
     private final List<Pattern> disabledFields = Lists.newArrayList();
     private ImsClientInterface metadataClient;
 
 
-    public ImhotepMetadataCache(ImhotepClient client, String ramsesMetadataPath, String disabledFields) {
+    public ImhotepMetadataCache(ImhotepClient client, String disabledFields) {
         imhotepClient = client;
-        this.ramsesMetadataPath = ramsesMetadataPath;
         try {
             ///A way to get the port from tomcat without a request
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -243,36 +241,6 @@ public class ImhotepMetadataCache {
             log.error("Failed to load the keyword analyzer whitelist from IMS", e);
         }
 
-    }
-
-    private boolean loadMetadataFromFiles(LinkedHashMap<String, DatasetMetadata> newDatasetToAliases) {
-        File ramsesDir = new File(ramsesMetadataPath);
-        if(!ramsesDir.exists() || !ramsesDir.isDirectory()) {
-            log.error("Directory not found at " + ramsesMetadataPath);
-            return false;
-        }
-        File[] files = ramsesDir.listFiles();
-        if(files == null) {
-            log.error("Failed to stat directory at " + ramsesMetadataPath);
-            return false;
-        }
-        for(File indexDir : files) {
-            if(!indexDir.isDirectory()) {
-                continue;
-            }
-            final String indexName = indexDir.getName();
-
-            final DatasetMetadata datasetMetadata = newDatasetToAliases.get(indexName);
-            if(datasetMetadata == null) {
-                log.trace("Found dimensions data for unknown dataset: " + indexName);
-                continue;
-            }
-
-            loadDimensions(indexDir, datasetMetadata);
-
-            loadSuggestions(indexDir, datasetMetadata);
-        }
-        return true;
     }
 
     // aliases applicable to all indexes
