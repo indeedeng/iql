@@ -39,7 +39,6 @@ import com.indeed.squall.iql2.execution.commands.MetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
-import com.indeed.squall.iql2.execution.commands.TimeRegroup;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -166,19 +165,6 @@ public class Commands {
                         command.get("interval").longValue(),
                         excludeGutters
                 );
-            }
-            case "timeRegroup": {
-                final Optional<String> timeField;
-                if (command.has("timeField")) {
-                    timeField = Optional.fromNullable(command.get("timeField").textValue());
-                } else {
-                    timeField = Optional.absent();
-                }
-                return new TimeRegroup(
-                        command.get("value").longValue(),
-                        command.get("unit").textValue().charAt(0),
-                        command.get("offsetMinutes").longValue(),
-                        timeField);
             }
             case "getNumGroups": {
                 return new GetNumGroups();
