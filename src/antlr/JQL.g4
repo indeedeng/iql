@@ -131,8 +131,8 @@ aggregateMetric [boolean useLegacy]
     ;
 
 jqlAggregateMetric
-    : scope ':' '(' metric=jqlAggregateMetric ')' # AggregateQualified
-    | scope ':' metric=syntacticallyAtomicJqlAggregateMetric # AggregateQualified
+    : scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
+    | scope ':' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | docMetricAtom[false] # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
