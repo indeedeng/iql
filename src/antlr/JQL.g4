@@ -131,6 +131,22 @@ aggregateMetric [boolean useLegacy]
     ;
 
 jqlAggregateMetric
+    : scope ':' '(' metric=jqlAggregateMetric ')' # AggregateQualified
+    | scope ':' metric=syntacticallyAtomicJqlAggregateMetric # AggregateQualified
+    | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
+    | docMetricAtom[false] # AggregateDocMetricAtom
+    | '-' jqlAggregateMetric # AggregateNegate
+    | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
+    | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
+    | jqlAggregateMetric '/' jqlAggregateMetric # AggregateDiv
+    | jqlAggregateMetric '%' jqlAggregateMetric # AggregateMod
+    | jqlAggregateMetric '+' jqlAggregateMetric # AggregatePlus
+    | jqlAggregateMetric '-' jqlAggregateMetric # AggregateMinus
+    | jqlAggregateMetric AS name=identifier # AggregateNamed
+    | syntacticallyAtomicJqlAggregateMetric # SyntacticallyAtomicAggregateMetric
+    ;
+
+syntacticallyAtomicJqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
     | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
@@ -149,20 +165,10 @@ jqlAggregateMetric
     | FIELD_MAX '(' identifier ')' # AggregateFieldMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
     | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
-    | scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
-    | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
-    | docMetricAtom[false] # AggregateDocMetricAtom
     | '[' jqlDocMetric ']' # AggregateSum
-    | '-' jqlAggregateMetric # AggregateNegate
-    | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
-    | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
-    | jqlAggregateMetric '/' jqlAggregateMetric # AggregateDiv
-    | jqlAggregateMetric '%' jqlAggregateMetric # AggregateMod
-    | jqlAggregateMetric '+' jqlAggregateMetric # AggregatePlus
-    | jqlAggregateMetric '-' jqlAggregateMetric # AggregateMinus
     | '(' jqlAggregateMetric ')' # AggregateParens
     | number # AggregateConstant
-    | jqlAggregateMetric AS name=identifier # AggregateNamed
+    | syntacticallyAtomicDocMetricAtom[false] # AggregateDocMetricAtom2
     ;
 
 scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' # MultiScope
