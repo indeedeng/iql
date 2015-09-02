@@ -2,6 +2,8 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.language.DocFilter;
+import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
@@ -16,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Dataset {
     static {
@@ -36,17 +39,17 @@ public class Dataset {
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
-    public static List<Dataset> parseDatasets(JQLParser.FromContentsContext fromContentsContext) {
-        final List<Dataset> result = new ArrayList<>();
-        final Dataset ds1 = parseDataset(fromContentsContext.dataset());
+    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
+        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.startInclusive, ds1.endExclusive, dataset));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields));
         }
         return result;
     }
 
-    public static Dataset parseDataset(JQLParser.DatasetContext datasetContext) {
+    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         final String dataset = datasetContext.index.getText();
         final DateTime start = parseDateTime(datasetContext.start);
         final DateTime end = parseDateTime(datasetContext.end);
@@ -57,14 +60,24 @@ public class Dataset {
             name = Optional.absent();
         }
         final Map<String, String> fieldAliases = parseFieldAliases(datasetContext.aliases());
-        return new Dataset(dataset, start, end, name, fieldAliases);
+        final Optional<DocFilter> initializerFilter;
+        if (datasetContext.whereContents() != null) {
+            final List<DocFilter> filters = new ArrayList<>();
+            for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
+            initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
+        } else {
+            initializerFilter = Optional.absent();
+        }
+        return Pair.of(new Dataset(dataset, start, end, name, fieldAliases), initializerFilter);
     }
 
-    public static Dataset parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext) {
-        final Dataset[] ref = new Dataset[1];
+    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
+        final Object[] ref = new Object[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
-            private void accept(Dataset value) {
+            private void accept(Pair<Dataset, Optional<DocFilter>> value) {
                 if (ref[0] != null) {
                     throw new IllegalArgumentException("Can't accept multiple times!");
                 }
@@ -72,7 +85,7 @@ public class Dataset {
             }
 
             public void enterFullDataset(@NotNull JQLParser.FullDatasetContext ctx) {
-                accept(parseDataset(ctx.dataset()));
+                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             public void enterPartialDataset(@NotNull JQLParser.PartialDatasetContext ctx) {
@@ -83,8 +96,21 @@ public class Dataset {
                 } else {
                     name = Optional.absent();
                 }
+
                 final Map<String, String> fieldAliases = parseFieldAliases(ctx.aliases());
-                accept(new Dataset(dataset, defaultStart, defaultEnd, name, fieldAliases));
+
+                final Optional<DocFilter> initializerFilter;
+                if (ctx.whereContents() != null) {
+                    final List<DocFilter> filters = new ArrayList<>();
+                    for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                    }
+                    initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
+                } else {
+                    initializerFilter = Optional.absent();
+                }
+
+                accept(Pair.of(new Dataset(dataset, defaultStart, defaultEnd, name, fieldAliases), initializerFilter));
             }
         });
 
@@ -92,7 +118,7 @@ public class Dataset {
             throw new UnsupportedOperationException("Unhandled partialDataset: " + datasetOptTimeContext.getText());
         }
 
-        return ref[0];
+        return (Pair<Dataset, Optional<DocFilter>>) ref[0];
     }
 
     private static Map<String, String> parseFieldAliases(JQLParser.AliasesContext aliases) {

@@ -10,6 +10,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.util.core.Pair;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,21 +36,26 @@ public class Query {
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
-        final List<com.indeed.squall.iql2.language.query.Dataset> datasets = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(queryContext.fromContents());
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(queryContext.fromContents(), datasetToKeywordAnalyzerFields, datasetToIntFields);
 
-        final Optional<DocFilter> whereFilter;
+        final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
+        final List<DocFilter> allFilters = new ArrayList<>();
+        for (final Pair<Dataset, Optional<DocFilter>> dataset : datasetsWithFilters) {
+            if (dataset.getSecond().isPresent()) {
+                allFilters.add(dataset.getSecond().get());
+            }
+            datasets.add(dataset.getFirst());
+        }
         if (queryContext.whereContents() != null) {
-            final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : queryContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                allFilters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
-            if (filters.isEmpty()) {
-                whereFilter = Optional.absent();
-            } else {
-                whereFilter = Optional.of(DocFilters.and(filters));
-            }
-        } else {
+        }
+        final Optional<DocFilter> whereFilter;
+        if (allFilters.isEmpty()) {
             whereFilter = Optional.absent();
+        } else {
+            whereFilter = Optional.of(DocFilters.and(allFilters));
         }
 
         final List<com.indeed.squall.iql2.language.query.GroupBy> groupBys;

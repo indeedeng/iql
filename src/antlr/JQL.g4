@@ -404,17 +404,17 @@ aliases
     : ALIASING '(' actual+=identifier AS virtual+=identifier (',' actual+=identifier AS virtual+=identifier)* ')'
     ;
 
-dataset
-    : index=identifier start=dateTime end=dateTime (AS name=identifier)? aliases?
+dataset [boolean useLegacy]
+    : index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? start=dateTime end=dateTime (AS name=identifier)? aliases?
     ;
 
-datasetOptTime
-    : dataset # FullDataset
-    | index=identifier (AS name=identifier)? aliases? # PartialDataset
+datasetOptTime [boolean useLegacy]
+    : dataset[$ctx.useLegacy] # FullDataset
+    | index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? (AS name=identifier)? aliases? # PartialDataset
     ;
 
-fromContents
-    : dataset (',' datasetOptTime)*
+fromContents [boolean useLegacy]
+    : dataset[$ctx.useLegacy] (',' datasetOptTime[$ctx.useLegacy])*
     ;
 
 whereContents [boolean useLegacy]
@@ -431,7 +431,7 @@ selectContents [boolean useLegacy]
 
 query [boolean useLegacy]
     : (SELECT selects+=selectContents[$ctx.useLegacy])?
-      FROM fromContents
+      FROM fromContents[$ctx.useLegacy]
       (WHERE whereContents[$ctx.useLegacy])?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
