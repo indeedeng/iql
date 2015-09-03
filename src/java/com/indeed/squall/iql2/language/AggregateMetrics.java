@@ -287,6 +287,11 @@ public class AggregateMetrics {
             public void enterAggregateDocMetricAtom(@NotNull JQLParser.AggregateDocMetricAtomContext ctx) {
                 accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseDocMetricAtom(ctx.docMetricAtom())));
             }
+
+            @Override
+            public void enterSyntacticallyAtomicAggregateMetric(JQLParser.SyntacticallyAtomicAggregateMetricContext ctx) {
+                accept(parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
         });
 
         if (ref[0] == null) {
