@@ -84,11 +84,11 @@ public class Dataset {
                 ref[0] = value;
             }
 
-            public void enterFullDataset(@NotNull JQLParser.FullDatasetContext ctx) {
+            public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
                 accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
-            public void enterPartialDataset(@NotNull JQLParser.PartialDatasetContext ctx) {
+            public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
                 final String dataset = ctx.index.getText();
                 final Optional<String> name;
                 if (ctx.name != null) {

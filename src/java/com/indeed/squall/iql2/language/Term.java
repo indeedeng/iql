@@ -39,11 +39,11 @@ public class Term implements JsonSerializable {
                 ref[0] = value;
             }
 
-            public void enterJqlIntTerm(@NotNull JQLParser.JqlIntTermContext ctx) {
+            public void enterJqlIntTerm(JQLParser.JqlIntTermContext ctx) {
                 accept(term(Long.parseLong(ctx.INT().getText())));
             }
 
-            public void enterJqlStringTerm(@NotNull JQLParser.JqlStringTermContext ctx) {
+            public void enterJqlStringTerm(JQLParser.JqlStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
                     accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
                 }
@@ -68,11 +68,11 @@ public class Term implements JsonSerializable {
                 ref[0] = value;
             }
 
-            public void enterLegacyIntTerm(@NotNull JQLParser.LegacyIntTermContext ctx) {
+            public void enterLegacyIntTerm(JQLParser.LegacyIntTermContext ctx) {
                 accept(term(Long.parseLong(ctx.INT().getText())));
             }
 
-            public void enterLegacyStringTerm(@NotNull JQLParser.LegacyStringTermContext ctx) {
+            public void enterLegacyStringTerm(JQLParser.LegacyStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
                     accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
                 } else if (ctx.identifier() != null) {

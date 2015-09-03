@@ -45,35 +45,35 @@ public class AggregateFilters {
                 ref[0] = value;
             }
 
-            public void enterAggregateRegex(@NotNull JQLParser.AggregateRegexContext ctx) {
+            public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
                 accept(new AggregateFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
-            public void enterAggregateFalse(@NotNull JQLParser.AggregateFalseContext ctx) {
+            public void enterAggregateFalse(JQLParser.AggregateFalseContext ctx) {
                 accept(new AggregateFilter.Never());
             }
 
-            public void enterAggregateTermIs(@NotNull JQLParser.AggregateTermIsContext ctx) {
+            public void enterAggregateTermIs(JQLParser.AggregateTermIsContext ctx) {
                 accept(new AggregateFilter.TermIs(Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
-            public void enterAggregateNotRegex(@NotNull JQLParser.AggregateNotRegexContext ctx) {
+            public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
                 accept(new AggregateFilter.Not(new AggregateFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
-            public void enterAggregateTrue(@NotNull JQLParser.AggregateTrueContext ctx) {
+            public void enterAggregateTrue(JQLParser.AggregateTrueContext ctx) {
                 accept(new AggregateFilter.Always());
             }
 
-            public void enterAggregateFilterParens(@NotNull JQLParser.AggregateFilterParensContext ctx) {
+            public void enterAggregateFilterParens(JQLParser.AggregateFilterParensContext ctx) {
                 accept(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
-            public void enterAggregateAnd(@NotNull JQLParser.AggregateAndContext ctx) {
+            public void enterAggregateAnd(JQLParser.AggregateAndContext ctx) {
                 accept(new AggregateFilter.And(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
-            public void enterAggregateMetricInequality(@NotNull JQLParser.AggregateMetricInequalityContext ctx) {
+            public void enterAggregateMetricInequality(JQLParser.AggregateMetricInequalityContext ctx) {
                 final String operation = ctx.op.getText();
                 final AggregateMetric arg1 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 final AggregateMetric arg2 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -109,11 +109,11 @@ public class AggregateFilters {
                 accept(result);
             }
 
-            public void enterAggregateNot(@NotNull JQLParser.AggregateNotContext ctx) {
+            public void enterAggregateNot(JQLParser.AggregateNotContext ctx) {
                 accept(new AggregateFilter.Not(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
-            public void enterAggregateOr(@NotNull JQLParser.AggregateOrContext ctx) {
+            public void enterAggregateOr(JQLParser.AggregateOrContext ctx) {
                 accept(new AggregateFilter.Or(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
         });

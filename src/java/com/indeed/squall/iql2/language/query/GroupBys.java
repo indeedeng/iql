@@ -45,17 +45,17 @@ public class GroupBys {
             }
 
             @Override
-            public void enterDayOfWeekGroupBy(@NotNull JQLParser.DayOfWeekGroupByContext ctx) {
+            public void enterDayOfWeekGroupBy(JQLParser.DayOfWeekGroupByContext ctx) {
                 accept(new GroupBy.GroupByDayOfWeek());
             }
 
             @Override
-            public void enterQuantilesGroupBy(@NotNull JQLParser.QuantilesGroupByContext ctx) {
+            public void enterQuantilesGroupBy(JQLParser.QuantilesGroupByContext ctx) {
                 accept(new GroupBy.GroupByQuantiles(ctx.field.getText(), Integer.parseInt(ctx.INT().getText())));
             }
 
             @Override
-            public void enterTopTermsGroupBy(@NotNull JQLParser.TopTermsGroupByContext ctx) {
+            public void enterTopTermsGroupBy(JQLParser.TopTermsGroupByContext ctx) {
                 final JQLParser.TopTermsGroupByElemContext ctx2 = ctx.topTermsGroupByElem();
                 final String field = ctx2.field.getText();
                 final Optional<Long> limit;
@@ -79,13 +79,13 @@ public class GroupBys {
             }
 
             @Override
-            public void enterGroupByFieldIn(@NotNull JQLParser.GroupByFieldInContext ctx) {
+            public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
                 final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, ctx.not != null);
                 accept(new GroupBy.GroupByField(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
             }
 
             @Override
-            public void enterMetricGroupBy(@NotNull JQLParser.MetricGroupByContext ctx) {
+            public void enterMetricGroupBy(JQLParser.MetricGroupByContext ctx) {
                 final DocMetric metric;
                 final long min;
                 final long max;
@@ -119,7 +119,7 @@ public class GroupBys {
             }
 
             @Override
-            public void enterTimeGroupBy(@NotNull JQLParser.TimeGroupByContext ctx) {
+            public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
                 final Optional<String> timeField;
                 if (ctx.groupByTime().timeField != null) {
                     timeField = Optional.of(ctx.groupByTime().timeField.getText());
@@ -171,7 +171,7 @@ public class GroupBys {
             }
 
             @Override
-            public void enterFieldGroupBy(@NotNull JQLParser.FieldGroupByContext ctx) {
+            public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
                 final String field = ctx2.field.getText();
                 final boolean reverseOrder;
