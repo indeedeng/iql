@@ -102,7 +102,7 @@ timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #Time
 
 WS : [ \t\r\n]+ -> channel(HIDDEN) ;
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
-LINE_COMMENT : '//' .*? ~[\r\n]* -> channel(HIDDEN) ;
+LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 
 number : INT | DOUBLE ;
 
