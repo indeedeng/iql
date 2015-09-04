@@ -340,6 +340,7 @@ groupByElement [boolean useLegacy]
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     ;
 
+// TODO: Make TOPTERMS a valid identifier
 topTermsGroupByElem [boolean useLegacy]
     : 'TOPTERMS'
         '('
