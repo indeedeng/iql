@@ -149,7 +149,7 @@ public interface AggregateFilter {
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new MetricIs(f.apply(m1), f.apply(m2));
+            return new MetricIsnt(f.apply(m1), f.apply(m2));
         }
 
         @Override
