@@ -81,6 +81,21 @@ public abstract class DocMetric {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         }
+
+        @Override
+        public boolean equals(Object o) {
+            return getClass() == o.getClass();
+        }
+
+        @Override
+        public int hashCode() {
+            return 611953;
+        }
+
+        @Override
+        public String toString() {
+            return "Count{}";
+        }
     }
 
     public static class Field extends DocMetric {
