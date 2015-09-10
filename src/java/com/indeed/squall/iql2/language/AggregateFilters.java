@@ -46,7 +46,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
-                accept(new AggregateFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new AggregateFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             public void enterAggregateFalse(JQLParser.AggregateFalseContext ctx) {
@@ -58,7 +58,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
-                accept(new AggregateFilter.Not(new AggregateFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new AggregateFilter.Not(new AggregateFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             public void enterAggregateTrue(JQLParser.AggregateTrueContext ctx) {

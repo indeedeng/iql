@@ -59,7 +59,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDistinct(JQLParser.LegacyAggregateDistinctContext ctx) {
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText(), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
+                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
             }
 
             @Override
@@ -103,7 +103,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), new AggregateMetric.DocStats(new DocMetric.Field("count()"))));
+                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), new AggregateMetric.DocStats(new DocMetric.Count())));
             }
 
             public void enterAggregateLog(JQLParser.AggregateLogContext ctx) {
@@ -148,11 +148,11 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
                 }
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText(), filter, Optional.of(Integer.parseInt(ctx.INT().getText()))));
+                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), filter, Optional.of(Integer.parseInt(ctx.INT().getText()))));
             }
 
             public void enterAggregatePercentile(JQLParser.AggregatePercentileContext ctx) {
-                accept(new AggregateMetric.Percentile(ctx.identifier().getText(), Double.parseDouble(ctx.number().getText())));
+                accept(new AggregateMetric.Percentile(ctx.identifier().getText().toUpperCase(), Double.parseDouble(ctx.number().getText())));
             }
 
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
@@ -160,7 +160,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateCounts(JQLParser.AggregateCountsContext ctx) {
-                accept(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+                accept(new AggregateMetric.DocStats(new DocMetric.Count()));
             }
 
             public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {
@@ -170,7 +170,7 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
                 }
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText(), filter, Optional.<Integer>absent()));
+                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), filter, Optional.<Integer>absent()));
             }
 
             @Override
@@ -186,21 +186,22 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.absent();
                 }
-                final GroupBy groupBy = new GroupBy.GroupByField(ctx.field.getText(), filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                final String field = ctx.field.getText().toUpperCase();
+                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
                 accept(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)),
-                        new AggregateMetric.Distinct(ctx.field.getText(), filter, Optional.<Integer>absent())
+                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
                 ));
             }
 
             @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
-                accept(new AggregateMetric.FieldMin(ctx.identifier().getText()));
+                accept(new AggregateMetric.FieldMin(ctx.identifier().getText().toUpperCase()));
             }
 
             @Override
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
-                accept(new AggregateMetric.FieldMax(ctx.identifier().getText()));
+                accept(new AggregateMetric.FieldMax(ctx.identifier().getText().toUpperCase()));
             }
 
             @Override
@@ -270,7 +271,7 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateNamed(JQLParser.AggregateNamedContext ctx) {
                 final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
-                final String name = ctx.name.getText();
+                final String name = ctx.name.getText().toUpperCase();
                 accept(new AggregateMetric.Named(metric, name));
             }
 
@@ -303,9 +304,9 @@ public class AggregateMetrics {
 
     public static AggregateMetric variance(DocMetric docMetric) {
         // [m * m] / count()
-        final AggregateMetric firstHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)), new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+        final AggregateMetric firstHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)), new AggregateMetric.DocStats(new DocMetric.Count()));
         // [m] / count()
-        final AggregateMetric halfOfSecondHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(docMetric), new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+        final AggregateMetric halfOfSecondHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(docMetric), new AggregateMetric.DocStats(new DocMetric.Count()));
         // ([m] / count()) ^ 2
         final AggregateMetric secondHalf = new AggregateMetric.Multiply(halfOfSecondHalf, halfOfSecondHalf);
         // E(m^2) - E(m)^2

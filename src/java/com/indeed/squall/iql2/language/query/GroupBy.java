@@ -184,7 +184,7 @@ public interface GroupBy {
             this.filter = filter;
             this.limit = limit;
             this.forceNonStreaming = forceNonStreaming;
-            this.metric = metric.or(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+            this.metric = metric.or(new AggregateMetric.DocStats(new DocMetric.Count()));
             this.withDefault = withDefault;
         }
 

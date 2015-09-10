@@ -64,6 +64,25 @@ public abstract class DocMetric {
         }
     }
 
+    public static class Count extends DocMetric {
+        public Count() {
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            return Collections.singletonList("count()");
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        }
+    }
+
     public static class Field extends DocMetric {
         public final String field;
 

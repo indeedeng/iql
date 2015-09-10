@@ -38,7 +38,7 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocCounts(JQLParser.LegacyDocCountsContext ctx) {
-                accept(new DocMetric.Field("count()"));
+                accept(new DocMetric.Count());
             }
 
             public void enterLegacyDocSignum(JQLParser.LegacyDocSignumContext ctx) {
@@ -152,7 +152,7 @@ public class DocMetrics {
             }
 
             public void enterDocCounts(JQLParser.DocCountsContext ctx) {
-                accept(new DocMetric.Field("count()"));
+                accept(new DocMetric.Count());
             }
 
             public void enterDocSignum(JQLParser.DocSignumContext ctx) {
@@ -273,7 +273,7 @@ public class DocMetrics {
             }
 
             public void enterDocMetricAtomFloatScale(JQLParser.DocMetricAtomFloatScaleContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final double mult = Double.parseDouble(ctx.mult.getText());
                 final double add = Double.parseDouble(ctx.add.getText());
                 accept(new DocMetric.FloatScale(field, mult, add));
@@ -281,30 +281,25 @@ public class DocMetrics {
 
             public void enterDocMetricAtomHasStringQuoted(JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                accept(new DocMetric.HasString(hasTermQuote.getField(), hasTermQuote.getTerm()));
+                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
             }
 
             public void enterDocMetricAtomRawField(JQLParser.DocMetricAtomRawFieldContext ctx) {
-                final String field = ctx.identifier().getText();
-                if (field.equals("counts")) {
-                    accept(new DocMetric.Field("count()"));
-                } else {
-                    accept(new DocMetric.Field(field));
-                }
+                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
             }
 
             public void enterDocMetricAtomHasIntQuoted(JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
                 final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(new DocMetric.HasInt(hasTermQuote.getField(), termInt));
+                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
             }
 
             public void enterDocMetricAtomHasString2(JQLParser.DocMetricAtomHasString2Context ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText())));
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
             }
 
             public void enterDocMetricAtomHasInt2(JQLParser.DocMetricAtomHasInt2Context ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long term = Long.parseLong(ctx.INT().getText());
                 accept(new DocMetric.HasInt(field, term));
             }
@@ -328,21 +323,21 @@ public class DocMetrics {
             }
 
             public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long term = Long.parseLong(ctx.INT().getText());
                 accept(negateMetric(new DocMetric.HasInt(field, term)));
             }
 
             public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText()))));
+                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
             }
 
             public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText(), ParserCommon.unquote(ctx.term.getText())));
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
             }
 
             public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long term = Long.parseLong(ctx.INT().getText());
                 accept(new DocMetric.HasInt(field, term));
             }
@@ -375,7 +370,7 @@ public class DocMetrics {
         public static HasTermQuote create(String s) {
             final String unquoted = ParserCommon.unquote(s);
             final int colon = unquoted.indexOf(':');
-            final String field = unquoted.substring(0, colon);
+            final String field = unquoted.substring(0, colon).toUpperCase();
             final String term = unquoted.substring(colon + 1);
             return new HasTermQuote(field, term);
         }

@@ -48,7 +48,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
                 accept(new DocFilter.Between(field, lowerBound, upperBound));
@@ -56,7 +56,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIn(JQLParser.LegacyDocFieldInContext ctx) {
-                String field = ctx.field.getText();
+                String field = ctx.field.getText().toUpperCase();
                 final List<JQLParser.LegacyTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
                 final ArrayList<Term> termsList = new ArrayList<>();
@@ -68,12 +68,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIsnt(JQLParser.LegacyDocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
             public void enterLegacyDocSample(JQLParser.LegacyDocSampleContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -97,17 +97,17 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocRegex(JQLParser.LegacyDocRegexContext ctx) {
-                accept(new DocFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
             public void enterLegacyDocFieldIs(JQLParser.LegacyDocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
             public void enterLegacyDocLuceneFieldIs(JQLParser.LegacyDocLuceneFieldIsContext ctx) {
-                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseLegacyTerm(ctx.legacyTermVal()));
+                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal()));
                 if (ctx.negate == null) {
                     accept(fieldIs);
                 } else {
@@ -174,7 +174,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocNotRegex(JQLParser.LegacyDocNotRegexContext ctx) {
-                accept(new DocFilter.NotRegex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.NotRegex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
@@ -210,7 +210,7 @@ public class DocFilters {
 
             @Override
             public void enterDocBetween(JQLParser.DocBetweenContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
                 accept(new DocFilter.Between(field, lowerBound, upperBound));
@@ -218,7 +218,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIn(JQLParser.DocFieldInContext ctx) {
-                String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final List<JQLParser.JqlTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
                 final ArrayList<Term> termsList = new ArrayList<>();
@@ -230,12 +230,12 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseJqlTerm(ctx.jqlTermVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
             @Override
             public void enterDocSample(JQLParser.DocSampleContext ctx) {
-                final String field = ctx.field.getText();
+                final String field = ctx.field.getText().toUpperCase();
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -259,12 +259,12 @@ public class DocFilters {
 
             @Override
             public void enterDocRegex(JQLParser.DocRegexContext ctx) {
-                accept(new DocFilter.Regex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
             public void enterDocFieldIs(JQLParser.DocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText(), Term.parseJqlTerm(ctx.jqlTermVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
             @Override
@@ -326,7 +326,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNotRegex(JQLParser.DocNotRegexContext ctx) {
-                accept(new DocFilter.NotRegex(ctx.field.getText(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.NotRegex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override

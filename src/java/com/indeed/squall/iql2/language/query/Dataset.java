@@ -50,12 +50,12 @@ public class Dataset {
     }
 
     public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
-        final String dataset = datasetContext.index.getText();
+        final String dataset = datasetContext.index.getText().toUpperCase();
         final DateTime start = parseDateTime(datasetContext.start);
         final DateTime end = parseDateTime(datasetContext.end);
         final Optional<String> name;
         if (datasetContext.name != null) {
-            name = Optional.of(datasetContext.name.getText());
+            name = Optional.of(datasetContext.name.getText().toUpperCase());
         } else {
             name = Optional.absent();
         }
@@ -89,10 +89,10 @@ public class Dataset {
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
-                final String dataset = ctx.index.getText();
+                final String dataset = ctx.index.getText().toUpperCase();
                 final Optional<String> name;
                 if (ctx.name != null) {
-                    name = Optional.of(ctx.name.getText());
+                    name = Optional.of(ctx.name.getText().toUpperCase());
                 } else {
                     name = Optional.absent();
                 }
@@ -127,8 +127,8 @@ public class Dataset {
         }
         final Map<String, String> result = new HashMap<>();
         for (int i = 0; i < aliases.virtual.size(); i++) {
-            final String actual = aliases.actual.get(i).getText();
-            final String virtual = aliases.virtual.get(i).getText();
+            final String actual = aliases.actual.get(i).getText().toUpperCase();
+            final String virtual = aliases.virtual.get(i).getText().toUpperCase();
             result.put(virtual, actual);
         }
         return result;
@@ -168,11 +168,11 @@ public class Dataset {
     }
 
     private static DateTime parseWordDate(String textValue) {
-        if ("yesterday".startsWith(textValue)) {
+        if ("yesterday".startsWith(textValue.toLowerCase())) {
             return DateTime.now().withTimeAtStartOfDay().minusDays(1);
-        } else if (textValue.length() >= 3 && "today".startsWith(textValue)) {
+        } else if (textValue.length() >= 3 && "today".startsWith(textValue.toLowerCase())) {
             return DateTime.now().withTimeAtStartOfDay();
-        } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue)) {
+        } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue.toLowerCase())) {
             return DateTime.now().withTimeAtStartOfDay().plusDays(1);
         }
         return null;

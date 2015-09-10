@@ -68,7 +68,7 @@ public class Query {
         final List<AggregateMetric> selects;
         if (queryContext.selects != null) {
             if (queryContext.selects.size() == 0) {
-                selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+                selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
             } else if (queryContext.selects.size() == 1) {
                 final JQLParser.SelectContentsContext selectSet = queryContext.selects.get(0);
                 final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
@@ -80,7 +80,7 @@ public class Query {
                 throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());
             }
         } else {
-            selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Field("count()")));
+            selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
         }
 
         final Optional<Integer> rowLimit;

@@ -1130,6 +1130,7 @@ public interface DocFilter {
 
     class Lucene implements DocFilter {
         public final String query;
+        // TODO: Ensure capitalization
         private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
         private final Map<String, Set<String>> datasetToIntFields;
 
@@ -1177,6 +1178,7 @@ public interface DocFilter {
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
+            // TODO: Uppercase all of the fields.
             return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
         }
 

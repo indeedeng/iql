@@ -83,16 +83,14 @@ public class ConstantFolding {
                     final DocMetric.Abs innerAbs = (DocMetric.Abs) abs.m1;
                     return innerAbs;
                 }
+            } else if (input instanceof DocMetric.Count) {
+                return new DocMetric.Constant(1);
             } else if (input instanceof DocMetric.Field) {
                 final DocMetric.Field field = (DocMetric.Field) input;
-                if ("count()".equals(field.field)) {
-                    return new DocMetric.Constant(1);
-                } else {
-                    try {
-                        final long v = Long.parseLong(field.field);
-                        return new DocMetric.Constant(v);
-                    } catch (NumberFormatException e) {
-                    }
+                try {
+                    final long v = Long.parseLong(field.field);
+                    return new DocMetric.Constant(v);
+                } catch (NumberFormatException e) {
                 }
             } else if (input instanceof DocMetric.IfThenElse) {
                 final DocMetric.IfThenElse ifThenElse = (DocMetric.IfThenElse) input;

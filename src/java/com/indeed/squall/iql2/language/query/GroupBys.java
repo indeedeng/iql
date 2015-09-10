@@ -51,13 +51,13 @@ public class GroupBys {
 
             @Override
             public void enterQuantilesGroupBy(JQLParser.QuantilesGroupByContext ctx) {
-                accept(new GroupBy.GroupByQuantiles(ctx.field.getText(), Integer.parseInt(ctx.INT().getText())));
+                accept(new GroupBy.GroupByQuantiles(ctx.field.getText().toUpperCase(), Integer.parseInt(ctx.INT().getText())));
             }
 
             @Override
             public void enterTopTermsGroupBy(JQLParser.TopTermsGroupByContext ctx) {
                 final JQLParser.TopTermsGroupByElemContext ctx2 = ctx.topTermsGroupByElem();
-                final String field = ctx2.field.getText();
+                final String field = ctx2.field.getText().toUpperCase();
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
@@ -81,7 +81,7 @@ public class GroupBys {
             @Override
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
                 final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, ctx.not != null);
-                accept(new GroupBy.GroupByField(ctx.field.getText(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
+                accept(new GroupBy.GroupByField(ctx.field.getText().toUpperCase(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
             }
 
             @Override
@@ -122,7 +122,7 @@ public class GroupBys {
             public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
                 final Optional<String> timeField;
                 if (ctx.groupByTime().timeField != null) {
-                    timeField = Optional.of(ctx.groupByTime().timeField.getText());
+                    timeField = Optional.of(ctx.groupByTime().timeField.getText().toUpperCase());
                 } else {
                     timeField = Optional.absent();
                 }
@@ -173,7 +173,7 @@ public class GroupBys {
             @Override
             public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
-                final String field = ctx2.field.getText();
+                final String field = ctx2.field.getText().toUpperCase();
                 final boolean reverseOrder;
                 if (ctx2.order != null && ctx2.order.getText().equals("bottom")) {
                     reverseOrder = true;
