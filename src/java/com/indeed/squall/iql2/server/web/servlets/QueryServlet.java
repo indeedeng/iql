@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
@@ -67,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -363,9 +363,18 @@ public class QueryServlet {
     }
 
     private static DatasetsFields getDatasetsFields(Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+        final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
+        for (final String dataset : Session.getDatasets(imhotepClient)) {
+            final String normalized = dataset.toUpperCase();
+            if (datasetUpperCaseToActual.containsKey(normalized)) {
+                throw new IllegalStateException("Multiple datasets with same uppercase name!");
+            }
+            datasetUpperCaseToActual.put(normalized, dataset);
+        }
+
         final DatasetsFields.Builder builder = DatasetsFields.builder();
         for (final Map.Entry<String, String> entry : datasets.entrySet()) {
-            final String dataset = entry.getValue();
+            final String dataset = datasetUpperCaseToActual.get(entry.getValue());
 
             final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
             final DatasetDimensions dimension = dimensions.get(dataset);
@@ -373,14 +382,14 @@ public class QueryServlet {
 
             final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
 
-            final String name = entry.getKey();
+            final String name = entry.getKey().toUpperCase();
             for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {
                 switch (fieldDescriptor.getType()) {
                     case "Integer":
-                        builder.addIntField(name, fieldDescriptor.getName());
+                        builder.addIntField(name, fieldDescriptor.getName().toUpperCase());
                         break;
                     case "String":
-                        builder.addStringField(name, fieldDescriptor.getName());
+                        builder.addStringField(name, fieldDescriptor.getName().toUpperCase());
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
@@ -416,7 +425,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
+        final DatasetsFields datasetsFields = upperCaseEverything(addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields())));
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
@@ -523,7 +532,26 @@ public class QueryServlet {
         timer.pop();
     }
 
-    private DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
+    private static DatasetsFields upperCaseEverything(DatasetsFields datasetsFields) {
+        final DatasetsFields.Builder builder = DatasetsFields.builder();
+        final Set<String> seenDatasets = new HashSet<>();
+        for (final String dataset : datasetsFields.datasets()) {
+            if (seenDatasets.contains(dataset)) {
+                throw new IllegalArgumentException("Duplicate dataset when case-normalized: " + dataset);
+            }
+            final String normalized = dataset.toUpperCase();
+            seenDatasets.add(normalized);
+            for (final String intField : datasetsFields.getIntFields(dataset)) {
+                builder.addIntField(normalized, intField.toUpperCase());
+            }
+            for (final String stringField : datasetsFields.getStringFields(dataset)) {
+                builder.addStringField(normalized, stringField.toUpperCase());
+            }
+        }
+        return builder.build();
+    }
+
+    private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
         final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
         for (final Dataset dataset : datasets) {
             aliasToDataset.put(dataset.alias.or(dataset.dataset), dataset);
