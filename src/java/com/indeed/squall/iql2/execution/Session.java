@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializable;
@@ -40,6 +39,7 @@ import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
+import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
@@ -65,6 +65,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +137,16 @@ public class Session {
         }
     }
 
+    public static Set<String> getDatasets(ImhotepClient client) {
+        final Set<String> result = new HashSet<>();
+        for (final Map.Entry<Host, List<DatasetInfo>> entry : client.getShardList().entrySet()) {
+            for (final DatasetInfo datasetInfo : entry.getValue()) {
+                result.add(datasetInfo.getDataset());
+            }
+        }
+        return result;
+    }
+
     public static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
         final Map<Host, List<DatasetInfo>> shardListMap = client.getShardList();
         final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<ShardInfo>(), new HashSet<String>(), new HashSet<String>(), new HashSet<String>());
@@ -153,26 +164,40 @@ public class Session {
     }
 
     private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
+        final Map<String, String> upperCaseToActualDataset = new HashMap<>();
+        for (final String dataset : Session.getDatasets(client)) {
+            if (upperCaseToActualDataset.containsKey(dataset.toUpperCase())) {
+                throw new IllegalStateException("Duplicated case-normalized dataset: " + dataset);
+            }
+            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
+        }
+
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
-            final String dataset = elem.get("dataset").textValue();
+            final String datasetName = elem.get("dataset").textValue();
+            final String actualDataset = upperCaseToActualDataset.get(datasetName.toUpperCase());
             final String start = elem.get("start").textValue();
             final String end = elem.get("end").textValue();
-            final String name = elem.has("name") ? elem.get("name").textValue() : dataset;
+            final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
             final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {});
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardList");
-            final DatasetInfo datasetInfo = getDatasetShardList(client, dataset);
+            final DatasetInfo datasetInfo = getDatasetShardList(client, actualDataset);
             treeTimer.pop();
-            final Collection<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
-            final Collection<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
+            final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
+            final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
+
+            final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
+            final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
             for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
-                if (sessionIntFields.contains(entry.getValue())) {
+                if (upperCasedIntFields.contains(entry.getValue())) {
                     sessionIntFields.add(entry.getKey());
-                } else if (sessionStringFields.contains(entry.getValue())) {
+                    upperCasedIntFields.add(entry.getKey().toUpperCase());
+                } else if (upperCasedStringFields.contains(entry.getValue())) {
                     sessionStringFields.add(entry.getKey());
+                    upperCasedStringFields.add(entry.getKey().toUpperCase());
                 } else {
                     throw new IllegalStateException();
                 }
@@ -183,7 +208,7 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
-            final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startDateTime, endDateTime);
+            final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(actualDataset, startDateTime, endDateTime);
             treeTimer.pop();
             treeTimer.push("get shards");
             final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
@@ -191,8 +216,9 @@ public class Session {
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
             treeTimer.pop();
-            final DatasetDimensions datasetDimensions = dimensions.containsKey(dataset) ? dimensions.get(dataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
-            final ImhotepSession session = closer.register(new FieldAliasingImhotepSession(new DimensionsTranslator(build, datasetDimensions), fieldAliases));
+            // Don't uppercase for usage in the dimension translator.
+            final DatasetDimensions datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
+            final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, datasetDimensions, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
@@ -214,8 +240,23 @@ public class Session {
                 session.regroup(new QueryRemapRule(1, Query.newRangeQuery(timeField, startDateTime.getMillis() / 1000, endDateTime.getMillis() / 1000, false), 0, 1));
                 treeTimer.pop();
             }
-            sessions.put(name, new ImhotepSessionInfo(session, datasetDimensions, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
+            sessions.put(name, new ImhotepSessionInfo(session, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
         }
+    }
+
+    private static Set<String> upperCase(Collection<String> collection) {
+        final Set<String> result = new HashSet<>(collection.size());
+        for (final String value : collection) {
+            result.add(value.toUpperCase());
+        }
+        return result;
+    }
+
+    private static ImhotepSession wrapSession(Map<String, String> fieldAliases, ImhotepSession build, DatasetDimensions datasetDimensions, Set<String> fieldNames) {
+        final DimensionsTranslator translated = new DimensionsTranslator(build, datasetDimensions);
+        final CaseInsensitiveImhotepSession caseInsensitive = new CaseInsensitiveImhotepSession(translated, fieldNames);
+        final FieldAliasingImhotepSession aliased = new FieldAliasingImhotepSession(caseInsensitive, fieldAliases);
+        return aliased;
     }
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
