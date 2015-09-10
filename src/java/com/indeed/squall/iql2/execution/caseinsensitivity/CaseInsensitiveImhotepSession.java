@@ -37,13 +37,18 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession {
         for (final String fieldName : fieldNames) {
             upperCaseToActual.put(fieldName.toUpperCase(), fieldName);
         }
+        upperCaseToActual.put("UNIXTIME", "unixtime");
+        upperCaseToActual.put("TIME", "time");
         this.upperCaseToActual = upperCaseToActual;
     }
 
     // Real logic
 
     private String rewrite(String field) {
-        return upperCaseToActual.get(field.toUpperCase());
+        if (upperCaseToActual.containsKey(field)) {
+            return upperCaseToActual.get(field.toUpperCase());
+        }
+        return field;
     }
 
     private RegroupCondition rewriteCondition(RegroupCondition condition) {
