@@ -436,16 +436,25 @@ public class QueryServlet {
 
         timer.pop();
 
+        timer.push("compute dataset normalization");
+        final Set<String> datasets = Session.getDatasets(imhotepClient);
+        final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
+        for (final String dataset : datasets) {
+            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
+        }
+        timer.pop();
+
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         // TODO: Save the chosenShards and use them during execution, otherwise we have a race condition
         //       where the shard lists can be updated after hashing and we'll cache it under the wrong shards.
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
-            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(dataset.dataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
+            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
+            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
             timer.pop();
             for (final ShardIdWithVersion chosenShard : chosenShards) {
-                shards.add(Pair.of(dataset.dataset, chosenShard.getShardId()));
+                shards.add(Pair.of(actualDataset, chosenShard.getShardId()));
             }
         }
         final String queryHash = computeQueryHash(commands, shards);
