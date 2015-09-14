@@ -132,8 +132,8 @@ aggregateMetric [boolean useLegacy]
     ;
 
 jqlAggregateMetric
-    : scope ':' '(' jqlAggregateMetric ')' # AggregateQualified
-    | scope ':' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
+    : scope (':'|'.') '(' jqlAggregateMetric ')' # AggregateQualified
+    | scope (':'|'.') syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | docMetricAtom[false] # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
@@ -320,7 +320,7 @@ jqlDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
     | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | scope ':' '(' jqlDocFilter ')' # DocQualified
+    | scope (':'|'.') '(' jqlDocFilter ')' # DocQualified
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
