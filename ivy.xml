@@ -50,6 +50,7 @@
 
         <dependency org="hadoop" name="hadoop-core" rev="${hadoop-core.cdh4.version}"/>
         <dependency org="hadoop" name="hadoop-common" rev="${hadoop-common.cdh4.version}"/>
+        <dependency org="hadoop" name="hadoop-hdfs" rev="${hadoop-hdfs.cdh4.version}"/>
 
         <!-- Elaborations dependencies -->
         <dependency org="indeed" name="common-dbutil" rev="${common-dbutil.version}"/>
