@@ -444,4 +444,5 @@ query [boolean useLegacy]
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?
+      EOF
     ;
