@@ -30,7 +30,7 @@ public class ParseServlet {
         return Collections.emptyMap();
     }
 
-    @RequestMapping(value={"/iql/parse", "/iql2/parse"})
+    @RequestMapping("parse")
     @ResponseBody
     public Object parse(
             final HttpServletRequest request,

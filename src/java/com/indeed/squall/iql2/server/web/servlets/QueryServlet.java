@@ -121,7 +121,7 @@ public class QueryServlet {
         return dimensionsLoader.getDimensions();
     }
 
-    @RequestMapping(value={"/iql/query","/iql2/query"})
+    @RequestMapping("query")
     public void query(
             final HttpServletRequest request,
             final HttpServletResponse response,

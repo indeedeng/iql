@@ -14,7 +14,7 @@ import java.util.HashMap;
 
 @Controller
 public class SplitServlet {
-    @RequestMapping(value={"/iql/split","/iql2/split"})
+    @RequestMapping("split")
     @ResponseBody
     public Object split(
             final HttpServletRequest request,
