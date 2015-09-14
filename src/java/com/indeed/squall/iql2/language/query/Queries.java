@@ -115,9 +115,9 @@ public class Queries {
             final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
             dataset = datasetCtx.index.getText();
             start = parsed.datasets.get(0).startInclusive.toString();
-            startRawString = getText(queryInputStream, datasetCtx.start);
+            startRawString = removeQuotes(getText(queryInputStream, datasetCtx.start));
             end = parsed.datasets.get(0).endExclusive.toString();
-            endRawString = getText(queryInputStream, datasetCtx.end);
+            endRawString = removeQuotes(getText(queryInputStream, datasetCtx.end));
         } else {
             dataset = "";
             start = "";
@@ -127,6 +127,14 @@ public class Queries {
         }
 
         return new SplitQuery(from, where, groupBy, select, "", dataset, start, startRawString, end, endRawString);
+    }
+
+    private static String removeQuotes(String text) {
+        if ((text.startsWith("\"") && text.endsWith("\""))
+                || (text.startsWith("\'") && text.endsWith("\'"))) {
+            return text.substring(1, text.length() - 1);
+        }
+        return text;
     }
 
     public static JQLParser.QueryContext parseQueryContext(String q, boolean useLegacy) {
