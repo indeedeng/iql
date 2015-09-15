@@ -338,7 +338,7 @@ public class AggregateMetrics {
             final List<String> scope;
             if (ctx.manyScope.isEmpty()) {
                 scope = ctx.oneScope != null ? Collections.singletonList(ctx.oneScope.getText().toUpperCase()) : Collections.<String>emptyList();
-            } else if (ctx.manyScope.size() > 0) {
+            } else {
                 scope = Lists.newArrayListWithCapacity(ctx.manyScope.size());
                 for (final JQLParser.IdentifierContext identifier : ctx.manyScope) {
                     scope.add(identifier.getText().toUpperCase());
