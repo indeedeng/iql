@@ -337,8 +337,8 @@ public class AggregateMetrics {
         public static ScopedField parseFrom(JQLParser.ScopedFieldContext ctx) {
             final List<String> scope;
             if (ctx.manyScope.isEmpty()) {
-                scope = Collections.emptyList();
-            } else {
+                scope = ctx.oneScope != null ? Collections.singletonList(ctx.oneScope.getText().toUpperCase()) : Collections.<String>emptyList();
+            } else if (ctx.manyScope.size() > 0) {
                 scope = Lists.newArrayListWithCapacity(ctx.manyScope.size());
                 for (final JQLParser.IdentifierContext identifier : ctx.manyScope) {
                     scope.add(identifier.getText().toUpperCase());
