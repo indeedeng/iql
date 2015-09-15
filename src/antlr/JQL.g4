@@ -147,25 +147,31 @@ jqlAggregateMetric
     | syntacticallyAtomicJqlAggregateMetric # SyntacticallyAtomicAggregateMetric
     ;
 
+scopedField
+    : field=identifier
+    | oneScope=identifier '.' field=identifier
+    | '[' manyScope+=identifier (',' manyScope+=identifier)* ']' '.' field=identifier
+    ;
+
 syntacticallyAtomicJqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
     | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
-    | DISTINCT '(' identifier (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
-    | DISTINCT_WINDOW '(' INT ',' identifier (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
+    | DISTINCT '(' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
+    | DISTINCT_WINDOW '(' INT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
     | WINDOW '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
-    | PERCENTILE '(' identifier ',' number ')' # AggregatePercentile
+    | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
-    | FIELD_MIN '(' identifier ')' # AggregateFieldMin
-    | FIELD_MAX '(' identifier ')' # AggregateFieldMax
+    | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
+    | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
-    | AVG_OVER '(' field=identifier ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | AVG_OVER '(' field=scopedField ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | '[' jqlDocMetric ']' # AggregateSum
     | '(' jqlAggregateMetric ')' # AggregateParens
     | number # AggregateConstant

@@ -1,11 +1,18 @@
 package com.indeed.squall.iql2.language;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
 import com.indeed.squall.iql2.language.util.ParseUtil;
 import org.antlr.v4.runtime.misc.NotNull;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,11 +155,13 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
                 }
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), filter, Optional.of(Integer.parseInt(ctx.INT().getText()))));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.of(Integer.parseInt(ctx.INT().getText())))));
             }
 
             public void enterAggregatePercentile(JQLParser.AggregatePercentileContext ctx) {
-                accept(new AggregateMetric.Percentile(ctx.identifier().getText().toUpperCase(), Double.parseDouble(ctx.number().getText())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Percentile(scopedField.field, Double.parseDouble(ctx.number().getText()))));
             }
 
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
@@ -170,7 +179,8 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
                 }
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), filter, Optional.<Integer>absent()));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())));
             }
 
             @Override
@@ -196,12 +206,14 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
-                accept(new AggregateMetric.FieldMin(ctx.identifier().getText().toUpperCase()));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.FieldMin(scopedField.field)));
             }
 
             @Override
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
-                accept(new AggregateMetric.FieldMax(ctx.identifier().getText().toUpperCase()));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.FieldMax(scopedField.field)));
             }
 
             @Override
@@ -311,5 +323,36 @@ public class AggregateMetrics {
         final AggregateMetric secondHalf = new AggregateMetric.Multiply(halfOfSecondHalf, halfOfSecondHalf);
         // E(m^2) - E(m)^2
         return new AggregateMetric.Subtract(firstHalf, secondHalf);
+    }
+
+    private static class ScopedField {
+        private final List<String> scope;
+        private final String field;
+
+        private ScopedField(List<String> scope, String field) {
+            this.scope = scope;
+            this.field = field;
+        }
+
+        public static ScopedField parseFrom(JQLParser.ScopedFieldContext ctx) {
+            final List<String> scope;
+            if (ctx.manyScope.isEmpty()) {
+                scope = Collections.emptyList();
+            } else {
+                scope = Lists.newArrayListWithCapacity(ctx.manyScope.size());
+                for (final JQLParser.IdentifierContext identifier : ctx.manyScope) {
+                    scope.add(identifier.getText().toUpperCase());
+                }
+            }
+            return new ScopedField(scope, ctx.field.getText().toUpperCase());
+        }
+
+        public AggregateMetric wrap(AggregateMetric metric) {
+            if (scope.isEmpty()) {
+                return metric;
+            } else {
+                return new AggregateMetric.Qualified(scope, metric);
+            }
+        }
     }
 }
