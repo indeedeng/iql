@@ -132,8 +132,7 @@ aggregateMetric [boolean useLegacy]
     ;
 
 jqlAggregateMetric
-    : scope (':'|'.') '(' jqlAggregateMetric ')' # AggregateQualified
-    | scope (':'|'.') syntacticallyAtomicJqlAggregateMetric # AggregateQualified
+    : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | docMetricAtom[false] # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
@@ -177,10 +176,6 @@ syntacticallyAtomicJqlAggregateMetric
     | number # AggregateConstant
     | syntacticallyAtomicDocMetricAtom[false] # AggregateDocMetricAtom2
     ;
-
-scope : '[' datasets+=identifier (',' datasets+=identifier)* ']' # MultiScope
-      | identifier # SingleScope
-      ;
 
 aggregateFilter [boolean useLegacy]
     : {$ctx.useLegacy}? {false}? // No such thing
@@ -319,14 +314,12 @@ jqlDocFilter
     : field=identifier '=~' STRING_LITERAL # DocRegex
     | field=identifier '!=~' STRING_LITERAL # DocNotRegex
     | field=identifier '=' jqlTermVal # DocFieldIs
-//    | (negate='-')? field=identifier ':' jqlTermVal # DocLuceneFieldIs
     | field=identifier '!=' jqlTermVal # DocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
     | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
-    | scope (':'|'.') '(' jqlDocFilter ')' # DocQualified
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd

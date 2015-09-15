@@ -1,18 +1,11 @@
 package com.indeed.squall.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
-import com.indeed.squall.iql2.language.util.ParseUtil;
-import org.antlr.v4.runtime.misc.NotNull;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -240,11 +233,9 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateQualified(JQLParser.AggregateQualifiedContext ctx) {
-                final List<String> scope = ParseUtil.parseScope(ctx.scope());
+                final List<String> scope = Collections.singletonList(ctx.field.getText().toUpperCase());
                 final AggregateMetric metric;
-                if (ctx.jqlAggregateMetric() != null) {
-                    metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
-                } else if (ctx.syntacticallyAtomicJqlAggregateMetric() != null) {
+                if (ctx.syntacticallyAtomicJqlAggregateMetric() != null) {
                     metric = parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 } else {
                     throw new IllegalStateException();

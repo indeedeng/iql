@@ -1,8 +1,6 @@
 package com.indeed.squall.iql2.language;
 
-import com.indeed.squall.iql2.language.util.ParseUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -337,11 +335,6 @@ public class DocFilters {
             @Override
             public void enterDocFalse(JQLParser.DocFalseContext ctx) {
                 accept(new DocFilter.Never());
-            }
-
-            @Override
-            public void enterDocQualified(JQLParser.DocQualifiedContext ctx) {
-                accept(new DocFilter.Qualified(ParseUtil.parseScope(ctx.scope()), parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
         });
 
