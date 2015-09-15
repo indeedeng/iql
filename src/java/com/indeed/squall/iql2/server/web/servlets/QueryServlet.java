@@ -138,6 +138,7 @@ public class QueryServlet {
         long queryStartTimestamp = System.currentTimeMillis();
 
         final boolean isStream = contentType.contains("text/event-stream");
+        String statementType = "invalid";
         // TODO: Check for username and client values
         try {
             if(Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
@@ -150,14 +151,18 @@ public class QueryServlet {
             if (describeDatasetMatcher.matches()) {
                 final String dataset = describeDatasetMatcher.group(4);
                 processDescribeDataset(response, contentType, dataset);
+                statementType = "describe";
             } else if (describeDatasetFieldMatcher.matches()) {
                 final String dataset = describeDatasetFieldMatcher.group(4);
                 final String field = describeDatasetFieldMatcher.group(5);
                 processDescribeField(response, contentType, dataset, field);
+                statementType = "describe";
             } else if (query.trim().toLowerCase().equals("show datasets")) {
                 processShowDatasets(response, contentType);
+                statementType = "show";
             } else {
                 queryStartTimestamp = processSelect(response, query, version, username, timer, isStream);
+                statementType = "select";
             }
         } catch (Throwable e) {
             final boolean isJson = false;
@@ -170,7 +175,7 @@ public class QueryServlet {
                 if (remoteAddr == null) {
                     remoteAddr = request.getRemoteAddr();
                 }
-                logQuery(request, query, username, queryStartTimestamp, errorOccurred, remoteAddr);
+                logQuery(request, query, username, queryStartTimestamp, errorOccurred, remoteAddr, statementType);
             } catch (Throwable ignored) {
                 // Do nothing
             }
@@ -625,7 +630,8 @@ public class QueryServlet {
                           String userName,
                           long queryStartTimestamp,
                           Throwable errorOccurred,
-                          String remoteAddr) {
+                          String remoteAddr,
+                          String statementType) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
@@ -662,9 +668,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", message);
         }
 
-        // TODO: Log semantic information about the query.
-//        final String queryType = logStatementData(parsedQuery, selectExecutionStats, logEntry);
-//        logEntry.setProperty("statement", queryType);
+        logEntry.setProperty("statement", statementType);
 
         dataLog.info(logEntry);
     }
