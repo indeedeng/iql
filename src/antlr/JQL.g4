@@ -174,7 +174,7 @@ syntacticallyAtomicJqlAggregateMetric
     | '[' jqlDocMetric ']' # AggregateSum
     | '(' jqlAggregateMetric ')' # AggregateParens
     | number # AggregateConstant
-    | syntacticallyAtomicDocMetricAtom[false] # AggregateDocMetricAtom2
+    | jqlSyntacticallyAtomicDocMetricAtom # AggregateDocMetricAtom2
     ;
 
 aggregateFilter [boolean useLegacy]
@@ -196,10 +196,17 @@ jqlAggregateFilter
     | FALSE # AggregateFalse
     ;
 
-syntacticallyAtomicDocMetricAtom [boolean useLegacy]
-    /* TODO: identifier */
-    : {$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # DocMetricAtomHasString2
-    | {!$ctx.useLegacy}? HASSTR '(' field=identifier ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
+legacySyntacticallyAtomicDocMetricAtom
+    : HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString2
+    | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
+    | HASINT '(' field=identifier ',' term=INT ')' # LegacyDocMetricAtomHasInt2
+    | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
+    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # LegacyDocMetricAtomFloatScale
+    | identifier # LegacyDocMetricAtomRawField
+    ;
+
+jqlSyntacticallyAtomicDocMetricAtom
+    : HASSTR '(' field=identifier ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
     | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
     | HASINT '(' field=identifier ',' term=INT ')' # DocMetricAtomHasInt2
     | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
@@ -212,7 +219,7 @@ legacyDocMetricAtom
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
     | field=identifier '=' term=INT # LegacyDocMetricAtomHasInt
     | field=identifier '!=' INT # LegacyDocMetricAtomHasntInt
-    | syntacticallyAtomicDocMetricAtom[true] # LegacySyntacticallyAtomicDecMetricAtom
+    | legacySyntacticallyAtomicDocMetricAtom # LegacySyntacticallyAtomicDecMetricAtom
     ;
 
 jqlDocMetricAtom
@@ -220,7 +227,7 @@ jqlDocMetricAtom
     | field=identifier '!=' term=STRING_LITERAL # DocMetricAtomHasntString
     | field=identifier '=' term=INT # DocMetricAtomHasInt
     | field=identifier '!=' INT # DocMetricAtomHasntInt
-    | syntacticallyAtomicDocMetricAtom[false] # SyntacticallyAtomicDecMetricAtom
+    | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDecMetricAtom
     ;
 
 docMetric [boolean useLegacy]

@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.language;
 
 import com.indeed.squall.iql2.language.query.Queries;
-import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.Collections;
 import java.util.Map;
@@ -177,17 +176,129 @@ public class DocMetrics {
 
             @Override
             public void enterLegacySyntacticallyAtomicDecMetricAtom(JQLParser.LegacySyntacticallyAtomicDecMetricAtomContext ctx) {
-                super.enterLegacySyntacticallyAtomicDecMetricAtom(ctx);
+                accept(parseLegacySyntacticallyAtomicDocMetricAtom(ctx.legacySyntacticallyAtomicDocMetricAtom()));
             }
 
             @Override
             public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
-                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
+                accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom()));
             }
         });
 
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled legacy doc metric atom: [" + legacyDocMetricAtomContext.getText() + "]");
+        }
+        return ref[0];
+    }
+
+    public static DocMetric parseLegacySyntacticallyAtomicDocMetricAtom(JQLParser.LegacySyntacticallyAtomicDocMetricAtomContext legacySyntacticallyAtomicDocMetricAtomContext) {
+        final DocMetric[] ref = new DocMetric[1];
+        legacySyntacticallyAtomicDocMetricAtomContext.enterRule(new JQLBaseListener() {
+            private void accept(DocMetric value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+
+            @Override
+            public void enterLegacyDocMetricAtomHasString2(JQLParser.LegacyDocMetricAtomHasString2Context ctx) {
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasStringQuoted(JQLParser.LegacyDocMetricAtomHasStringQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasInt2(JQLParser.LegacyDocMetricAtomHasInt2Context ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(new DocMetric.HasInt(field, term));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasIntQuoted(JQLParser.LegacyDocMetricAtomHasIntQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                final long termInt = Long.parseLong(hasTermQuote.getTerm());
+                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomFloatScale(JQLParser.LegacyDocMetricAtomFloatScaleContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final double mult = Double.parseDouble(ctx.mult.getText());
+                final double add = Double.parseDouble(ctx.add.getText());
+                accept(new DocMetric.FloatScale(field, mult, add));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomRawField(JQLParser.LegacyDocMetricAtomRawFieldContext ctx) {
+                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled legacy syntactically atomic doc metric: [" + legacySyntacticallyAtomicDocMetricAtomContext.getText() + "]");
+        }
+        return ref[0];
+    }
+
+    public static DocMetric parseJQLSyntacticallyAtomicDocMetricAtom(JQLParser.JqlSyntacticallyAtomicDocMetricAtomContext jqlSyntacticallyAtomicDocMetricAtomContext) {
+        final DocMetric[] ref = new DocMetric[1];
+
+        jqlSyntacticallyAtomicDocMetricAtomContext.enterRule(new JQLBaseListener() {
+            private void accept(DocMetric value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            @Override
+            public void enterDocMetricAtomRawField(JQLParser.DocMetricAtomRawFieldContext ctx) {
+                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
+            }
+
+            @Override
+            public void enterDocMetricAtomFloatScale(JQLParser.DocMetricAtomFloatScaleContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final double mult = Double.parseDouble(ctx.mult.getText());
+                final double add = Double.parseDouble(ctx.add.getText());
+                accept(new DocMetric.FloatScale(field, mult, add));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasIntQuoted(JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                final long termInt = Long.parseLong(hasTermQuote.getTerm());
+                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasInt2(JQLParser.DocMetricAtomHasInt2Context ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(new DocMetric.HasInt(field, term));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasStringQuoted(JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasString2(JQLParser.DocMetricAtomHasString2Context ctx) {
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled jql syntactically atomic doc metric: [" + jqlSyntacticallyAtomicDocMetricAtomContext.getText() + "]");
         }
         return ref[0];
     }
@@ -350,62 +461,12 @@ public class DocMetrics {
 
             @Override
             public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
-                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
+                accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom()));
             }
         });
 
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled jql doc metric atom: [" + jqlDocMetricAtomContext.getText() + "]");
-        }
-        return ref[0];
-    }
-
-    public static DocMetric parseSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
-        final DocMetric[] ref = new DocMetric[1];
-
-        ctx.enterRule(new JQLBaseListener() {
-            private void accept(DocMetric value) {
-                if (ref[0] != null) {
-                    throw new IllegalArgumentException("Can't accept multiple times!");
-                }
-                ref[0] = value;
-            }
-
-            public void enterDocMetricAtomFloatScale(JQLParser.DocMetricAtomFloatScaleContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
-                final double mult = Double.parseDouble(ctx.mult.getText());
-                final double add = Double.parseDouble(ctx.add.getText());
-                accept(new DocMetric.FloatScale(field, mult, add));
-            }
-
-            public void enterDocMetricAtomHasStringQuoted(JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
-            }
-
-            public void enterDocMetricAtomRawField(JQLParser.DocMetricAtomRawFieldContext ctx) {
-                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
-            }
-
-            public void enterDocMetricAtomHasIntQuoted(JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
-            }
-
-            public void enterDocMetricAtomHasString2(JQLParser.DocMetricAtomHasString2Context ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
-            }
-
-            public void enterDocMetricAtomHasInt2(JQLParser.DocMetricAtomHasInt2Context ctx) {
-                final String field = ctx.field.getText().toUpperCase();
-                final long term = Long.parseLong(ctx.INT().getText());
-                accept(new DocMetric.HasInt(field, term));
-            }
-        });
-
-        if (ref[0] == null) {
-            throw new UnsupportedOperationException("Unhandled syntactically atomic doc metric: [" + ctx.getText() + "]");
         }
         return ref[0];
     }

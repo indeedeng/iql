@@ -211,7 +211,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom2(JQLParser.AggregateDocMetricAtom2Context ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom())));
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom())));
             }
         });
 
