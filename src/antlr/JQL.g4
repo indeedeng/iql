@@ -201,38 +201,34 @@ jqlAggregateFilter
     | FALSE # AggregateFalse
     ;
 
-legacySyntacticallyAtomicDocMetricAtom
-    : HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString2
+jqlSyntacticallyAtomicDocMetricAtom
+    : singlyScopedField # DocMetricAtomRawField
+    ;
+
+legacyDocMetricAtom
+    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
+    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
+    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
+    | field=identifier '=' term=INT # LegacyDocMetricAtomHasInt
+    | HASINT '(' field=identifier ',' term=INT ')' # LegacyDocMetricAtomHasInt
+    | field=identifier '!=' INT # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
-    | HASINT '(' field=identifier ',' term=INT ')' # LegacyDocMetricAtomHasInt2
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # LegacyDocMetricAtomFloatScale
     | identifier # LegacyDocMetricAtomRawField
     ;
 
-jqlSyntacticallyAtomicDocMetricAtom
-    : HASSTR '(' singlyScopedField ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
-    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
-    | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt2
-    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
-    | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
-    | singlyScopedField # DocMetricAtomRawField
-    ;
-
-legacyDocMetricAtom
-    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
-    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
-    | field=identifier '=' term=INT # LegacyDocMetricAtomHasInt
-    | field=identifier '!=' INT # LegacyDocMetricAtomHasntInt
-    | legacySyntacticallyAtomicDocMetricAtom # LegacySyntacticallyAtomicDecMetricAtom
-    ;
-
 jqlDocMetricAtom
     : singlyScopedField '=' term=STRING_LITERAL # DocMetricAtomHasString
+    | HASSTR '(' singlyScopedField ',' term=STRING_LITERAL ')' # DocMetricAtomHasString
     | singlyScopedField '!=' term=STRING_LITERAL # DocMetricAtomHasntString
     | singlyScopedField '=' term=INT # DocMetricAtomHasInt
+    | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt
     | singlyScopedField '!=' INT # DocMetricAtomHasntInt
-    | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDecMetricAtom
+    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
+    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
+    | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
+    | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 
 docMetric [boolean useLegacy]
