@@ -399,19 +399,6 @@ public class DocMetrics {
             }
 
             @Override
-            public void enterDocMetricAtomHasIntQuoted(JQLParser.DocMetricAtomHasIntQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
-            }
-
-            @Override
-            public void enterDocMetricAtomHasStringQuoted(JQLParser.DocMetricAtomHasStringQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
-            }
-
-            @Override
             public void enterSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
                 accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom()));
             }

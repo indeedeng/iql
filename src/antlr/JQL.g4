@@ -225,8 +225,6 @@ jqlDocMetricAtom
     | singlyScopedField '=' term=INT # DocMetricAtomHasInt
     | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt
     | singlyScopedField '!=' INT # DocMetricAtomHasntInt
-    | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
-    | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
     | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
