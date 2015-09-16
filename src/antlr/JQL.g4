@@ -134,7 +134,7 @@ aggregateMetric [boolean useLegacy]
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
-    | docMetricAtom[false] # AggregateDocMetricAtom
+    | jqlDocMetricAtom # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
     | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
@@ -207,16 +207,20 @@ syntacticallyAtomicDocMetricAtom [boolean useLegacy]
     | identifier # DocMetricAtomRawField
     ;
 
-docMetricAtom [boolean useLegacy]
-    /* TODO: identifier */
-    : {$ctx.useLegacy}? field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasString
-    | {!$ctx.useLegacy}? field=identifier '=' term=STRING_LITERAL # DocMetricAtomHasString
-    /* TODO: identifier */
-    | {$ctx.useLegacy}? field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # DocMetricAtomHasntString
-    | {!$ctx.useLegacy}? field=identifier '!=' term=STRING_LITERAL # DocMetricAtomHasntString
+legacyDocMetricAtom
+    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
+    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
+    | field=identifier '=' term=INT # LegacyDocMetricAtomHasInt
+    | field=identifier '!=' INT # LegacyDocMetricAtomHasntInt
+    | syntacticallyAtomicDocMetricAtom[true] # LegacySyntacticallyAtomicDecMetricAtom
+    ;
+
+jqlDocMetricAtom
+    : field=identifier '=' term=STRING_LITERAL # DocMetricAtomHasString
+    | field=identifier '!=' term=STRING_LITERAL # DocMetricAtomHasntString
     | field=identifier '=' term=INT # DocMetricAtomHasInt
     | field=identifier '!=' INT # DocMetricAtomHasntInt
-    | syntacticallyAtomicDocMetricAtom[$ctx.useLegacy] # SyntacticallyAtomicDecMetricAtom
+    | syntacticallyAtomicDocMetricAtom[false] # SyntacticallyAtomicDecMetricAtom
     ;
 
 docMetric [boolean useLegacy]
@@ -241,7 +245,7 @@ legacyDocMetric
     | legacyDocMetric '=' legacyDocMetric # LegacyDocEQ
     | legacyDocMetric '!=' legacyDocMetric # LegacyDocNEQ
     | '(' legacyDocMetric ')' # LegacyDocMetricParens
-    | docMetricAtom[true] # LegacyDocAtom
+    | legacyDocMetricAtom # LegacyDocAtom
     | INT # LegacyDocInt
     ;
 
@@ -263,7 +267,7 @@ jqlDocMetric
     | jqlDocMetric '=' jqlDocMetric # DocEQ
     | jqlDocMetric '!=' jqlDocMetric # DocNEQ
     | '(' jqlDocMetric ')' # DocMetricParens
-    | docMetricAtom[false] # DocAtom
+    | jqlDocMetricAtom # DocAtom
     | INT # DocInt
     ;
 

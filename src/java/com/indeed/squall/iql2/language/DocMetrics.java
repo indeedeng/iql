@@ -130,12 +130,64 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
-                accept(parseDocMetricAtom(ctx.docMetricAtom()));
+                accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom()));
             }
         });
 
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc metric: [" + legacyDocMetricContext.getText() + "]");
+        }
+        return ref[0];
+    }
+
+    public static DocMetric parseLegacyDocMetricAtom(JQLParser.LegacyDocMetricAtomContext legacyDocMetricAtomContext) {
+        final DocMetric[] ref = new DocMetric[1];
+
+        legacyDocMetricAtomContext.enterRule(new JQLBaseListener() {
+            private void accept(DocMetric value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasString(JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasntString(JQLParser.LegacyDocMetricAtomHasntStringContext ctx) {
+                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(new DocMetric.HasInt(field, term));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomHasntInt(JQLParser.LegacyDocMetricAtomHasntIntContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(negateMetric(new DocMetric.HasInt(field, term)));
+            }
+
+            @Override
+            public void enterLegacySyntacticallyAtomicDecMetricAtom(JQLParser.LegacySyntacticallyAtomicDecMetricAtomContext ctx) {
+                super.enterLegacySyntacticallyAtomicDecMetricAtom(ctx);
+            }
+
+            @Override
+            public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
+                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled legacy doc metric atom: [" + legacyDocMetricAtomContext.getText() + "]");
         }
         return ref[0];
     }
@@ -251,12 +303,59 @@ public class DocMetrics {
             }
 
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
-                accept(parseDocMetricAtom(ctx.docMetricAtom()));
+                accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom()));
             }
         });
 
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc metric: [" + metricContext.getText() + "]");
+        }
+        return ref[0];
+    }
+
+    public static DocMetric parseJQLDocMetricAtom(JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext) {
+        final DocMetric[] ref = new DocMetric[1];
+
+        jqlDocMetricAtomContext.enterRule(new JQLBaseListener() {
+            private void accept(DocMetric value) {
+                if (ref[0] != null) {
+                    throw new IllegalArgumentException("Can't accept multiple times!");
+                }
+                ref[0] = value;
+            }
+
+            @Override
+            public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(negateMetric(new DocMetric.HasInt(field, term)));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
+                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
+                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+            }
+
+            @Override
+            public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
+                final String field = ctx.field.getText().toUpperCase();
+                final long term = Long.parseLong(ctx.INT().getText());
+                accept(new DocMetric.HasInt(field, term));
+            }
+
+            @Override
+            public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
+                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
+            }
+        });
+
+        if (ref[0] == null) {
+            throw new UnsupportedOperationException("Unhandled jql doc metric atom: [" + jqlDocMetricAtomContext.getText() + "]");
         }
         return ref[0];
     }
@@ -307,49 +406,6 @@ public class DocMetrics {
 
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled syntactically atomic doc metric: [" + ctx.getText() + "]");
-        }
-        return ref[0];
-    }
-
-    public static DocMetric parseDocMetricAtom(JQLParser.DocMetricAtomContext docMetricAtomContext) {
-        final DocMetric[] ref = new DocMetric[1];
-
-        docMetricAtomContext.enterRule(new JQLBaseListener() {
-            private void accept(DocMetric value) {
-                if (ref[0] != null) {
-                    throw new IllegalArgumentException("Can't accept multiple times!");
-                }
-                ref[0] = value;
-            }
-
-            public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
-                final long term = Long.parseLong(ctx.INT().getText());
-                accept(negateMetric(new DocMetric.HasInt(field, term)));
-            }
-
-            public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
-            }
-
-            public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
-            }
-
-            public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
-                final long term = Long.parseLong(ctx.INT().getText());
-                accept(new DocMetric.HasInt(field, term));
-            }
-
-            @Override
-            public void enterSyntacticallyAtomicDecMetricAtom(JQLParser.SyntacticallyAtomicDecMetricAtomContext ctx) {
-                accept(parseSyntacticallyAtomicDocMetricAtom(ctx.syntacticallyAtomicDocMetricAtom()));
-            }
-        });
-
-        if (ref[0] == null) {
-            throw new UnsupportedOperationException("Unhandled doc metric: [" + docMetricAtomContext.getText() + "]");
         }
         return ref[0];
     }
