@@ -152,6 +152,11 @@ scopedField
     | '[' manyScope+=identifier (',' manyScope+=identifier)* ']' '.' field=identifier
     ;
 
+singlyScopedField
+    : field=identifier
+    | oneScope=identifier '.' field=identifier
+    ;
+
 syntacticallyAtomicJqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
     | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
@@ -206,12 +211,12 @@ legacySyntacticallyAtomicDocMetricAtom
     ;
 
 jqlSyntacticallyAtomicDocMetricAtom
-    : HASSTR '(' field=identifier ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
+    : HASSTR '(' singlyScopedField ',' term=STRING_LITERAL ')' # DocMetricAtomHasString2
     | HASSTR '(' STRING_LITERAL ')' # DocMetricAtomHasStringQuoted
-    | HASINT '(' field=identifier ',' term=INT ')' # DocMetricAtomHasInt2
+    | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt2
     | HASINT '(' STRING_LITERAL ')' # DocMetricAtomHasIntQuoted
-    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
-    | identifier # DocMetricAtomRawField
+    | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
+    | singlyScopedField # DocMetricAtomRawField
     ;
 
 legacyDocMetricAtom
@@ -223,10 +228,10 @@ legacyDocMetricAtom
     ;
 
 jqlDocMetricAtom
-    : field=identifier '=' term=STRING_LITERAL # DocMetricAtomHasString
-    | field=identifier '!=' term=STRING_LITERAL # DocMetricAtomHasntString
-    | field=identifier '=' term=INT # DocMetricAtomHasInt
-    | field=identifier '!=' INT # DocMetricAtomHasntInt
+    : singlyScopedField '=' term=STRING_LITERAL # DocMetricAtomHasString
+    | singlyScopedField '!=' term=STRING_LITERAL # DocMetricAtomHasntString
+    | singlyScopedField '=' term=INT # DocMetricAtomHasInt
+    | singlyScopedField '!=' INT # DocMetricAtomHasntInt
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDecMetricAtom
     ;
 
@@ -322,15 +327,15 @@ legacyDocFilter
     ;
 
 jqlDocFilter
-    : field=identifier '=~' STRING_LITERAL # DocRegex
-    | field=identifier '!=~' STRING_LITERAL # DocNotRegex
-    | field=identifier '=' jqlTermVal # DocFieldIs
-    | field=identifier '!=' jqlTermVal # DocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
+    : singlyScopedField '=~' STRING_LITERAL # DocRegex
+    | singlyScopedField '!=~' STRING_LITERAL # DocNotRegex
+    | singlyScopedField '=' jqlTermVal # DocFieldIs
+    | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
+    | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
-    | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
-    | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
+    | BETWEEN '(' singlyScopedField ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
+    | SAMPLE '(' singlyScopedField ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd

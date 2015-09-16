@@ -803,4 +803,57 @@ public abstract class DocMetric {
                     '}';
         }
     }
+
+    public static class Qualified extends DocMetric {
+        public final String dataset;
+        public final DocMetric metric;
+
+        public Qualified(String dataset, DocMetric metric) {
+            this.dataset = dataset;
+            this.metric = metric;
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(new Qualified(dataset, metric.transform(g, i)));
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            if (!dataset.equals(this.dataset)) {
+                throw new IllegalStateException("Qualified DocMetric getting pushes for a different dataset! [" + this.dataset + "] != [" + dataset + "]");
+            }
+            return metric.getPushes(dataset);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!dataset.equals(this.dataset)) {
+                errorConsumer.accept("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
+            }
+            metric.validate(dataset, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Qualified qualified = (Qualified) o;
+            return Objects.equals(dataset, qualified.dataset) &&
+                    Objects.equals(metric, qualified.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dataset, metric);
+        }
+
+        @Override
+        public String toString() {
+            return "Qualified{" +
+                    "dataset='" + dataset + '\'' +
+                    ", metric=" + metric +
+                    '}';
+        }
+    }
 }

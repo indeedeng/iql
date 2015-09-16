@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
 
@@ -316,34 +315,4 @@ public class AggregateMetrics {
         return new AggregateMetric.Subtract(firstHalf, secondHalf);
     }
 
-    private static class ScopedField {
-        private final List<String> scope;
-        private final String field;
-
-        private ScopedField(List<String> scope, String field) {
-            this.scope = scope;
-            this.field = field;
-        }
-
-        public static ScopedField parseFrom(JQLParser.ScopedFieldContext ctx) {
-            final List<String> scope;
-            if (ctx.manyScope.isEmpty()) {
-                scope = ctx.oneScope != null ? Collections.singletonList(ctx.oneScope.getText().toUpperCase()) : Collections.<String>emptyList();
-            } else {
-                scope = Lists.newArrayListWithCapacity(ctx.manyScope.size());
-                for (final JQLParser.IdentifierContext identifier : ctx.manyScope) {
-                    scope.add(identifier.getText().toUpperCase());
-                }
-            }
-            return new ScopedField(scope, ctx.field.getText().toUpperCase());
-        }
-
-        public AggregateMetric wrap(AggregateMetric metric) {
-            if (scope.isEmpty()) {
-                return metric;
-            } else {
-                return new AggregateMetric.Qualified(scope, metric);
-            }
-        }
-    }
 }

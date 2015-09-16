@@ -260,15 +260,16 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomRawField(JQLParser.DocMetricAtomRawFieldContext ctx) {
-                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.Field(scopedField.field)));
             }
 
             @Override
             public void enterDocMetricAtomFloatScale(JQLParser.DocMetricAtomFloatScaleContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final double mult = Double.parseDouble(ctx.mult.getText());
                 final double add = Double.parseDouble(ctx.add.getText());
-                accept(new DocMetric.FloatScale(field, mult, add));
+                accept(scopedField.wrap(new DocMetric.FloatScale(scopedField.field, mult, add)));
             }
 
             @Override
@@ -280,9 +281,9 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomHasInt2(JQLParser.DocMetricAtomHasInt2Context ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final long term = Long.parseLong(ctx.INT().getText());
-                accept(new DocMetric.HasInt(field, term));
+                accept(scopedField.wrap(new DocMetric.HasInt(scopedField.field, term)));
             }
 
             @Override
@@ -293,7 +294,8 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomHasString2(JQLParser.DocMetricAtomHasString2Context ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.HasString(scopedField.field, ParserCommon.unquote(ctx.term.getText()))));
             }
         });
 
@@ -437,26 +439,28 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final long term = Long.parseLong(ctx.INT().getText());
-                accept(negateMetric(new DocMetric.HasInt(field, term)));
+                accept(scopedField.wrap(negateMetric(new DocMetric.HasInt(scopedField.field, term))));
             }
 
             @Override
             public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(negateMetric(new DocMetric.HasString(scopedField.field, ParserCommon.unquote(ctx.term.getText())))));
             }
 
             @Override
             public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.HasString(scopedField.field, ParserCommon.unquote(ctx.term.getText()))));
             }
 
             @Override
             public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final long term = Long.parseLong(ctx.INT().getText());
-                accept(new DocMetric.HasInt(field, term));
+                accept(scopedField.wrap(new DocMetric.HasInt(scopedField.field, term)));
             }
 
             @Override

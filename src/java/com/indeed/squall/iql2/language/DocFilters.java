@@ -208,32 +208,33 @@ public class DocFilters {
 
             @Override
             public void enterDocBetween(JQLParser.DocBetweenContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(new DocFilter.Between(field, lowerBound, upperBound));
+                accept(scopedField.wrap(new DocFilter.Between(scopedField.field, lowerBound, upperBound)));
             }
 
             @Override
             public void enterDocFieldIn(JQLParser.DocFieldInContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final List<JQLParser.JqlTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
                 final ArrayList<Term> termsList = new ArrayList<>();
                 for (final JQLParser.JqlTermValContext term : terms) {
                     termsList.add(Term.parseJqlTerm(term));
                 }
-                accept(docInHelper(datasetToKeywordAnalyzerFields, field, negate, termsList));
+                accept(scopedField.wrap(docInHelper(datasetToKeywordAnalyzerFields, scopedField.field, negate, termsList)));
             }
 
             @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseJqlTerm(ctx.jqlTermVal())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
             }
 
             @Override
             public void enterDocSample(JQLParser.DocSampleContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -247,7 +248,7 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(new DocFilter.Sample(field, numerator, denominator, seed));
+                accept(scopedField.wrap(new DocFilter.Sample(scopedField.field, numerator, denominator, seed)));
             }
 
             @Override
@@ -257,12 +258,14 @@ public class DocFilters {
 
             @Override
             public void enterDocRegex(JQLParser.DocRegexContext ctx) {
-                accept(new DocFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocFilter.Regex(scopedField.field, ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             @Override
             public void enterDocFieldIs(JQLParser.DocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseJqlTerm(ctx.jqlTermVal())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
             }
 
             @Override
@@ -324,7 +327,8 @@ public class DocFilters {
 
             @Override
             public void enterDocNotRegex(JQLParser.DocNotRegexContext ctx) {
-                accept(new DocFilter.NotRegex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocFilter.NotRegex(scopedField.field, ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             @Override
