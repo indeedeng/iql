@@ -364,7 +364,7 @@ topTermsGroupByElem [boolean useLegacy]
     ;
 
 groupByMetric [boolean useLegacy]
-    : (BUCKET | ({$ctx.useLegacy}? BUCKETS)) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
+    : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
     ;
 
 groupByMetricEnglish [boolean useLegacy]
