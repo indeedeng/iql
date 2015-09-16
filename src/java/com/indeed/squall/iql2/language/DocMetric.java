@@ -831,7 +831,7 @@ public abstract class DocMetric {
             if (!dataset.equals(this.dataset)) {
                 errorConsumer.accept("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
             }
-            metric.validate(dataset, datasetsFields, errorConsumer);
+            metric.validate(this.dataset, datasetsFields, errorConsumer);
         }
 
         @Override

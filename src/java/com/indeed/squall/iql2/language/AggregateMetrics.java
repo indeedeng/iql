@@ -89,123 +89,14 @@ public class AggregateMetrics {
                 ref[0] = value;
             }
 
-            public void enterAggregateParens(JQLParser.AggregateParensContext ctx) {
-                accept(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
-            }
-
-            public void enterAggregateParent(JQLParser.AggregateParentContext ctx) {
-                accept(new AggregateMetric.Parent(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateLag(JQLParser.AggregateLagContext ctx) {
-                accept(new AggregateMetric.Lag(Integer.parseInt(ctx.INT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), new AggregateMetric.DocStats(new DocMetric.Count())));
-            }
-
-            public void enterAggregateLog(JQLParser.AggregateLogContext ctx) {
-                accept(new AggregateMetric.Log(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateStandardDeviation(JQLParser.AggregateStandardDeviationContext ctx) {
-                accept(new AggregateMetric.Power(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)), new AggregateMetric.Constant(0.5)));
-            }
-
-            public void enterAggregatePDiff(JQLParser.AggregatePDiffContext ctx) {
-                final AggregateMetric actual = parseJQLAggregateMetric(ctx.actual, datasetToKeywordAnalyzerFields, datasetToIntFields);
-                final AggregateMetric expected = parseJQLAggregateMetric(ctx.expected, datasetToKeywordAnalyzerFields, datasetToIntFields);
-                // 100 * (actual - expected) / expected
-                accept(new AggregateMetric.Multiply(new AggregateMetric.Constant(100), new AggregateMetric.Divide(new AggregateMetric.Subtract(actual, expected), expected)));
-            }
-
-            public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
-                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
+            @Override
             public void enterAggregateConstant(JQLParser.AggregateConstantContext ctx) {
                 accept(new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText())));
             }
 
-            public void enterAggregateVariance(JQLParser.AggregateVarianceContext ctx) {
-                accept(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateAbs(JQLParser.AggregateAbsContext ctx) {
-                accept(new AggregateMetric.Abs(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateWindow(JQLParser.AggregateWindowContext ctx) {
-                accept(new AggregateMetric.Window(Integer.parseInt(ctx.INT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateDistinctWindow(JQLParser.AggregateDistinctWindowContext ctx) {
-                final Optional<AggregateFilter> filter;
-                if (ctx.jqlAggregateFilter() == null) {
-                    filter = Optional.absent();
-                } else {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
-                }
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
-                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.of(Integer.parseInt(ctx.INT().getText())))));
-            }
-
-            public void enterAggregatePercentile(JQLParser.AggregatePercentileContext ctx) {
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
-                accept(scopedField.wrap(new AggregateMetric.Percentile(scopedField.field, Double.parseDouble(ctx.number().getText()))));
-            }
-
-            public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
-                accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
+            @Override
             public void enterAggregateCounts(JQLParser.AggregateCountsContext ctx) {
                 accept(new AggregateMetric.DocStats(new DocMetric.Count()));
-            }
-
-            public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {
-                final Optional<AggregateFilter> filter;
-                if (ctx.jqlAggregateFilter() == null) {
-                    filter = Optional.absent();
-                } else {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
-                }
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
-                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())));
-            }
-
-            @Override
-            public void enterAggregateSumAcross(JQLParser.AggregateSumAcrossContext ctx) {
-                accept(new AggregateMetric.SumAcross(GroupBys.parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            @Override
-            public void enterAggregateAverageAcross(JQLParser.AggregateAverageAcrossContext ctx) {
-                final Optional<AggregateFilter> filter;
-                if (ctx.jqlAggregateFilter() != null) {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
-                } else {
-                    filter = Optional.absent();
-                }
-                final String field = ctx.field.getText().toUpperCase();
-                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
-                accept(new AggregateMetric.Divide(
-                        new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)),
-                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
-                ));
-            }
-
-            @Override
-            public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
-                accept(scopedField.wrap(new AggregateMetric.FieldMin(scopedField.field)));
-            }
-
-            @Override
-            public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
-                accept(scopedField.wrap(new AggregateMetric.FieldMax(scopedField.field)));
             }
 
             @Override
@@ -284,6 +175,133 @@ public class AggregateMetrics {
                         AggregateMetrics.parseJQLAggregateMetric(ctx.trueCase, datasetToKeywordAnalyzerFields, datasetToIntFields),
                         AggregateMetrics.parseJQLAggregateMetric(ctx.falseCase, datasetToKeywordAnalyzerFields, datasetToIntFields)
                 ));
+            }
+
+            @Override
+            public void enterAggregateParens(JQLParser.AggregateParensContext ctx) {
+                accept(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
+
+            @Override
+            public void enterAggregateParent(JQLParser.AggregateParentContext ctx) {
+                accept(new AggregateMetric.Parent(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateLag(JQLParser.AggregateLagContext ctx) {
+                accept(new AggregateMetric.Lag(Integer.parseInt(ctx.INT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
+                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), new AggregateMetric.DocStats(new DocMetric.Count())));
+            }
+
+            @Override
+            public void enterAggregateLog(JQLParser.AggregateLogContext ctx) {
+                accept(new AggregateMetric.Log(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateStandardDeviation(JQLParser.AggregateStandardDeviationContext ctx) {
+                accept(new AggregateMetric.Power(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)), new AggregateMetric.Constant(0.5)));
+            }
+
+            @Override
+            public void enterAggregatePDiff(JQLParser.AggregatePDiffContext ctx) {
+                final AggregateMetric actual = parseJQLAggregateMetric(ctx.actual, datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final AggregateMetric expected = parseJQLAggregateMetric(ctx.expected, datasetToKeywordAnalyzerFields, datasetToIntFields);
+                // 100 * (actual - expected) / expected
+                accept(new AggregateMetric.Multiply(new AggregateMetric.Constant(100), new AggregateMetric.Divide(new AggregateMetric.Subtract(actual, expected), expected)));
+            }
+
+            @Override
+            public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateVariance(JQLParser.AggregateVarianceContext ctx) {
+                accept(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateAbs(JQLParser.AggregateAbsContext ctx) {
+                accept(new AggregateMetric.Abs(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateWindow(JQLParser.AggregateWindowContext ctx) {
+                accept(new AggregateMetric.Window(Integer.parseInt(ctx.INT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateDistinctWindow(JQLParser.AggregateDistinctWindowContext ctx) {
+                final Optional<AggregateFilter> filter;
+                if (ctx.jqlAggregateFilter() == null) {
+                    filter = Optional.absent();
+                } else {
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+                }
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.of(Integer.parseInt(ctx.INT().getText())))));
+            }
+
+            @Override
+            public void enterAggregatePercentile(JQLParser.AggregatePercentileContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Percentile(scopedField.field, Double.parseDouble(ctx.number().getText()))));
+            }
+
+            @Override
+            public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
+                accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+
+            @Override
+            public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {
+                final Optional<AggregateFilter> filter;
+                if (ctx.jqlAggregateFilter() == null) {
+                    filter = Optional.absent();
+                } else {
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+                }
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())));
+            }
+
+            @Override
+            public void enterAggregateSumAcross(JQLParser.AggregateSumAcrossContext ctx) {
+                accept(new AggregateMetric.SumAcross(GroupBys.parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            }
+
+            @Override
+            public void enterAggregateAverageAcross(JQLParser.AggregateAverageAcrossContext ctx) {
+                final Optional<AggregateFilter> filter;
+                if (ctx.jqlAggregateFilter() != null) {
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+                } else {
+                    filter = Optional.absent();
+                }
+                final String field = ctx.field.getText().toUpperCase();
+                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                accept(new AggregateMetric.Divide(
+                        new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)),
+                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
+                ));
+            }
+
+            @Override
+            public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.FieldMin(scopedField.field)));
+            }
+
+            @Override
+            public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.FieldMax(scopedField.field)));
             }
 
             @Override
