@@ -323,7 +323,6 @@ public class QueryServlet {
             if (isStream) {
                 outputStream.println(": This is the start of the IQL Query Stream");
                 outputStream.println();
-                outputStream.println("event: resultstream");
             }
             final Consumer<String> out;
             if (isStream) {
@@ -342,7 +341,45 @@ public class QueryServlet {
                     }
                 };
             }
-            executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, queryTracker);
+            executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, queryTracker, new NoOpProgressCallback() {
+                private int completedChunks = 0;
+
+                @Override
+                public void startSession(Optional<Integer> numCommands) {
+                    outputStream.println("event: totalsteps");
+                    outputStream.println("data: " + numCommands.get());
+                    outputStream.println();
+                    outputStream.flush();
+                }
+
+                private void incrementChunksCompleted() {
+                    outputStream.println("event: chunkcomplete");
+                    completedChunks += 1;
+                    outputStream.println("data: " + completedChunks);
+                    outputStream.println();
+                    outputStream.flush();
+                }
+
+                @Override
+                public void startCommand(com.indeed.squall.iql2.execution.commands.Command command, boolean streamingToTSV) {
+                    outputStream.println(": Starting " + command.getClass().getSimpleName());
+                    outputStream.println();
+
+                    if (streamingToTSV) {
+                        incrementChunksCompleted();
+
+                        outputStream.println("event: resultstream");
+                    }
+                }
+
+                @Override
+                public void endCommand(com.indeed.squall.iql2.execution.commands.Command command) {
+                    outputStream.println(": Completed " + command.getClass().getSimpleName());
+                    outputStream.println();
+                    outputStream.flush();
+                    incrementChunksCompleted();
+                }
+            });
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -408,7 +445,7 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker) throws IOException, ImhotepOutOfMemoryException {
+    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
@@ -538,7 +575,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, new NoOpProgressCallback());
+                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback);
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);
