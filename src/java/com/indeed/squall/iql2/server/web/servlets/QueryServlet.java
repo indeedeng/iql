@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.execution.FieldDescriptor;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
+import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Queries;
@@ -537,7 +538,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer);
+                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, new NoOpProgressCallback());
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);
