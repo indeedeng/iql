@@ -415,10 +415,10 @@ public class QueryServlet {
         return queryStartTimestamp;
     }
 
-    private static DatasetsFields getDatasetsFields(Set<String> relevantDatasets, Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+    private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
         final Set<String> relevantUpperCaseDatasets = new HashSet<>();
-        for (final String dataset : relevantDatasets) {
-            relevantUpperCaseDatasets.add(dataset.toUpperCase());
+        for (final Dataset dataset : relevantDatasets) {
+            relevantUpperCaseDatasets.add(dataset.dataset.toUpperCase());
         }
 
         final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
@@ -486,7 +486,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.extractDatasetNames(), query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
+        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
