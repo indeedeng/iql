@@ -362,8 +362,10 @@ public class QueryServlet {
 
                 @Override
                 public void startCommand(com.indeed.squall.iql2.execution.commands.Command command, boolean streamingToTSV) {
-                    outputStream.println(": Starting " + command.getClass().getSimpleName());
-                    outputStream.println();
+                    if (command != null) {
+                        outputStream.println(": Starting " + command.getClass().getSimpleName());
+                        outputStream.println();
+                    }
 
                     if (streamingToTSV) {
                         incrementChunksCompleted();
@@ -514,6 +516,8 @@ public class QueryServlet {
 
                 if (isCached) {
                     timer.push("read cache");
+                    // TODO: Don't have this hack
+                    progressCallback.startCommand(null, true);
                     sendCachedQuery(cacheFileName, out, query.rowLimit);
                     timer.pop();
                     return;
