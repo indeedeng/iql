@@ -723,7 +723,7 @@ public abstract class DocMetric {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
