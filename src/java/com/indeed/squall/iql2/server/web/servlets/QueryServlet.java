@@ -306,7 +306,7 @@ public class QueryServlet {
         return value;
     }
 
-    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, boolean isStream) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
         if (isStream) {
             response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
         } else {
@@ -346,23 +346,27 @@ public class QueryServlet {
 
                 @Override
                 public void startSession(Optional<Integer> numCommands) {
-                    outputStream.println("event: totalsteps");
-                    outputStream.println("data: " + numCommands.get());
-                    outputStream.println();
-                    outputStream.flush();
+                    if (isStream) {
+                        outputStream.println("event: totalsteps");
+                        outputStream.println("data: " + numCommands.get());
+                        outputStream.println();
+                        outputStream.flush();
+                    }
                 }
 
                 private void incrementChunksCompleted() {
-                    outputStream.println("event: chunkcomplete");
                     completedChunks += 1;
-                    outputStream.println("data: " + completedChunks);
-                    outputStream.println();
-                    outputStream.flush();
+                    if (isStream) {
+                        outputStream.println("event: chunkcomplete");
+                        outputStream.println("data: " + completedChunks);
+                        outputStream.println();
+                        outputStream.flush();
+                    }
                 }
 
                 @Override
                 public void startCommand(com.indeed.squall.iql2.execution.commands.Command command, boolean streamingToTSV) {
-                    if (command != null) {
+                    if (command != null && isStream) {
                         outputStream.println(": Starting " + command.getClass().getSimpleName());
                         outputStream.println();
                     }
@@ -370,15 +374,19 @@ public class QueryServlet {
                     if (streamingToTSV) {
                         incrementChunksCompleted();
 
-                        outputStream.println("event: resultstream");
+                        if (isStream) {
+                            outputStream.println("event: resultstream");
+                        }
                     }
                 }
 
                 @Override
                 public void endCommand(com.indeed.squall.iql2.execution.commands.Command command) {
-                    outputStream.println(": Completed " + command.getClass().getSimpleName());
-                    outputStream.println();
-                    outputStream.flush();
+                    if (isStream) {
+                        outputStream.println(": Completed " + command.getClass().getSimpleName());
+                        outputStream.println();
+                        outputStream.flush();
+                    }
                     incrementChunksCompleted();
                 }
             });
