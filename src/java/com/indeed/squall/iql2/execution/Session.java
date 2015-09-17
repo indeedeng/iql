@@ -49,6 +49,7 @@ import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
 import com.indeed.squall.iql2.execution.dimensions.DimensionsTranslator;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
@@ -91,6 +92,7 @@ public class Session {
 
     public final Map<String, ImhotepSessionInfo> sessions;
     public final TreeTimer timer;
+    private final ProgressCallback progressCallback;
     public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
@@ -101,21 +103,33 @@ public class Session {
     public static final String INFINITY_SYMBOL = "∞";
     public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
 
-    public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer) {
+    public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer, ProgressCallback progressCallback) {
         this.sessions = sessions;
         this.timer = timer;
+        this.progressCallback = progressCallback;
     }
 
-    public static Optional<Session> createSession(ImhotepClient client, JsonNode sessionRequest, Closer closer, Consumer<String> out, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
+    public static Optional<Session> createSession(
+            final ImhotepClient client,
+            final JsonNode sessionRequest,
+            final Closer closer,
+            final Consumer<String> out,
+            final Map<String, DatasetDimensions> dimensions,
+            final TreeTimer treeTimer,
+            final ProgressCallback progressCallback) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
         if (sessionRequest.has("commands")) {
-            treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer);
-            treeTimer.pop();
-            final Session session = new Session(sessions, treeTimer);
             treeTimer.push("readCommands");
             final JsonNode commands = sessionRequest.get("commands");
+            progressCallback.startSession(Optional.of(commands.size()));
             treeTimer.pop();
+
+            treeTimer.push("createSubSessions");
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer);
+            progressCallback.sessionsOpened(sessions);
+            treeTimer.pop();
+
+            final Session session = new Session(sessions, treeTimer, progressCallback);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
                 System.out.println("Evaluating command: " + command);
@@ -131,9 +145,11 @@ public class Session {
             }
             return Optional.absent();
         } else {
+            progressCallback.startSession(Optional.<Integer>absent());
             createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer);
+            progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return Optional.of(new Session(sessions, treeTimer));
+            return Optional.of(new Session(sessions, treeTimer, progressCallback));
         }
     }
 
@@ -318,7 +334,12 @@ public class Session {
                     return namedMetricLookup(s);
                 }
             });
-            command.execute(this, out);
+            progressCallback.startCommand(command, false);
+            try {
+                command.execute(this, out);
+            } finally {
+                progressCallback.endCommand(command);
+            }
         } finally {
             timer.pop();
         }
@@ -333,49 +354,54 @@ public class Session {
                     return namedMetricLookup(s);
                 }
             });
-            if (command instanceof SimpleIterate) {
-                final SimpleIterate simpleIterate = (SimpleIterate) command;
-                final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
-                //noinspection StatementWithEmptyBody
-                if (simpleIterate.streamResult) {
-                    // result already sent
-                } else {
-                    for (final List<List<TermSelects>> groupFieldTerms : result) {
-                        final List<TermSelects> groupTerms = groupFieldTerms.get(0);
-                        for (final TermSelects termSelect : groupTerms) {
-                            if (termSelect.isIntTerm) {
-                                out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
-                            } else {
-                                out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
+            try {
+                progressCallback.startCommand(command, true);
+                if (command instanceof SimpleIterate) {
+                    final SimpleIterate simpleIterate = (SimpleIterate) command;
+                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
+                    //noinspection StatementWithEmptyBody
+                    if (simpleIterate.streamResult) {
+                        // result already sent
+                    } else {
+                        for (final List<List<TermSelects>> groupFieldTerms : result) {
+                            final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+                            for (final TermSelects termSelect : groupTerms) {
+                                if (termSelect.isIntTerm) {
+                                    out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
+                                } else {
+                                    out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
+                                }
                             }
                         }
+                        out.accept("");
                     }
-                    out.accept("");
-                }
-            } else if (command instanceof GetGroupStats) {
-                final GetGroupStats getGroupStats = (GetGroupStats) command;
-                final List<GroupStats> results = getGroupStats.evaluate(this);
-                final StringBuilder sb = new StringBuilder();
-                for (final GroupStats result : results) {
-                    final List<String> keyColumns = result.key.asList(false);
-                    for (final String k : keyColumns) {
-                        sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
-                    }
-                    for (final double stat : result.stats) {
-                        if (DoubleMath.isMathematicalInteger(stat)) {
-                            sb.append(String.format("%.0f", stat)).append('\t');
-                        } else {
-                            sb.append(stat).append('\t');
+                } else if (command instanceof GetGroupStats) {
+                    final GetGroupStats getGroupStats = (GetGroupStats) command;
+                    final List<GroupStats> results = getGroupStats.evaluate(this);
+                    final StringBuilder sb = new StringBuilder();
+                    for (final GroupStats result : results) {
+                        final List<String> keyColumns = result.key.asList(false);
+                        for (final String k : keyColumns) {
+                            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                         }
+                        for (final double stat : result.stats) {
+                            if (DoubleMath.isMathematicalInteger(stat)) {
+                                sb.append(String.format("%.0f", stat)).append('\t');
+                            } else {
+                                sb.append(stat).append('\t');
+                            }
+                        }
+                        if (keyColumns.size() + result.stats.length > 0) {
+                            sb.setLength(sb.length() - 1);
+                        }
+                        out.accept(sb.toString());
+                        sb.setLength(0);
                     }
-                    if (keyColumns.size() + result.stats.length > 0) {
-                        sb.setLength(sb.length() - 1);
-                    }
-                    out.accept(sb.toString());
-                    sb.setLength(0);
+                } else {
+                    throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
                 }
-            } else {
-                throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
+            } finally {
+                progressCallback.endCommand(command);
             }
         } finally {
             timer.pop();
