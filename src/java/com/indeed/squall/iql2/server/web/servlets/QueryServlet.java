@@ -478,7 +478,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = upperCaseEverything(query.datasets, addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields())));
+        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
@@ -596,33 +596,6 @@ public class QueryServlet {
         timer.pop();
     }
 
-    private static DatasetsFields upperCaseEverything(List<Dataset> relevantDatasets, DatasetsFields datasetsFields) {
-        final Set<String> relevantUppercaseDatasets = new HashSet<>();
-        for (final Dataset dataset : relevantDatasets) {
-            relevantUppercaseDatasets.add(dataset.dataset.toUpperCase());
-        }
-
-        final DatasetsFields.Builder builder = DatasetsFields.builder();
-        final Set<String> seenDatasets = new HashSet<>();
-        for (final String dataset : datasetsFields.datasets()) {
-            if (!relevantUppercaseDatasets.contains(dataset.toUpperCase())) {
-                continue;
-            }
-            if (seenDatasets.contains(dataset.toUpperCase())) {
-                throw new IllegalArgumentException("Duplicate dataset when case-normalized: " + dataset);
-            }
-            final String normalized = dataset.toUpperCase();
-            seenDatasets.add(normalized);
-            for (final String intField : datasetsFields.getIntFields(dataset)) {
-                builder.addIntField(normalized, intField.toUpperCase());
-            }
-            for (final String stringField : datasetsFields.getStringFields(dataset)) {
-                builder.addStringField(normalized, stringField.toUpperCase());
-            }
-        }
-        return builder.build();
-    }
-
     private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
         final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
         for (final Dataset dataset : datasets) {
@@ -635,10 +608,10 @@ public class QueryServlet {
             final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
             final Map<String, String> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
             for (final Map.Entry<String, String> entry : aliasToActual.entrySet()) {
-                if (intFields.contains(entry.getValue())) {
-                    builder.addIntField(dataset, entry.getKey());
-                } else if (stringFields.contains(entry.getValue())) {
-                    builder.addStringField(dataset, entry.getKey());
+                if (intFields.contains(entry.getValue().toUpperCase())) {
+                    builder.addIntField(dataset, entry.getKey().toUpperCase());
+                } else if (stringFields.contains(entry.getValue().toUpperCase())) {
+                    builder.addStringField(dataset, entry.getKey().toUpperCase());
                 } else {
                     throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
                 }
