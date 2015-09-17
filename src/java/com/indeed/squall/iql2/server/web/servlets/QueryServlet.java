@@ -415,10 +415,18 @@ public class QueryServlet {
         return queryStartTimestamp;
     }
 
-    private static DatasetsFields getDatasetsFields(Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+    private static DatasetsFields getDatasetsFields(Set<String> relevantDatasets, Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+        final Set<String> relevantUpperCaseDatasets = new HashSet<>();
+        for (final String dataset : relevantDatasets) {
+            relevantUpperCaseDatasets.add(dataset.toUpperCase());
+        }
+
         final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
         for (final String dataset : Session.getDatasets(imhotepClient)) {
             final String normalized = dataset.toUpperCase();
+            if (!relevantUpperCaseDatasets.contains(normalized)) {
+                continue;
+            }
             if (datasetUpperCaseToActual.containsKey(normalized)) {
                 throw new IllegalStateException("Multiple datasets with same uppercase name!");
             }
@@ -478,7 +486,7 @@ public class QueryServlet {
             }
         };
 
-        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
+        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.extractDatasetNames(), query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
         for (final Command command : commands) {
             command.validate(datasetsFields, errorConsumer);
         }
