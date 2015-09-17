@@ -597,7 +597,7 @@ public class Session {
 
     public boolean isIntField(String field) {
         for (final ImhotepSessionInfo x : sessions.values()) {
-            if (x.intFields.contains(field) || x.datasetDimensions.contains(field)) {
+            if (x.intFields.contains(field)) {
                 return true;
             }
         }
