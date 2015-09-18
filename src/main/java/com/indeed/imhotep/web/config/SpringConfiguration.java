@@ -135,7 +135,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public ImhotepMetadataCache metadataCache() {
-        return new ImhotepMetadataCache(imhotepClient(), env.getProperty("ramses.metadata.dir"), env.getProperty("disabled.fields"));
+        return new ImhotepMetadataCache(imhotepClient(), env.getProperty("disabled.fields"));
     }
 
     @Bean
