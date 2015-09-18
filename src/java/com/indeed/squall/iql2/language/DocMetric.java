@@ -651,6 +651,98 @@ public abstract class DocMetric {
         }
     }
 
+    public static class HasIntField extends DocMetric {
+        private final String field;
+
+        public HasIntField(String field) {
+            this.field = field;
+        }
+
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            return Collections.singletonList("hasintfield " + field);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getIntFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            HasIntField that = (HasIntField) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "HasIntField{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+    public static class HasStringField extends DocMetric {
+        private final String field;
+
+        public HasStringField(String field) {
+            this.field = field;
+        }
+
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            return Collections.singletonList("hasstrfield " + field);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            if (!datasetsFields.getStringFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            HasStringField that = (HasStringField) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "HasStringField{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
     public static class HasInt extends DocMetric {
         private final String field;
         private final long term;

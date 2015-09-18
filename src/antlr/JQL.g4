@@ -60,6 +60,8 @@ HAVING : 'HAVING';
 FIELD_MIN : 'FIELD_MIN';
 FIELD_MAX : 'FIELD_MAX';
 ALIASING : 'ALIASING';
+HASSTRFIELD : 'HASSTRFIELD' ;
+HASINTFIELD : 'HASINTFIELD' ;
 
 Y : 'Y' ;
 
@@ -95,7 +97,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD
     ;
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -225,6 +227,8 @@ jqlDocMetricAtom
     | singlyScopedField '=' term=INT # DocMetricAtomHasInt
     | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt
     | singlyScopedField '!=' INT # DocMetricAtomHasntInt
+    | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
+    | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
