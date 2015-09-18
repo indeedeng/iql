@@ -2,8 +2,8 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 
 public class ExplodeTimeBuckets implements Command {
     private final int numBuckets;

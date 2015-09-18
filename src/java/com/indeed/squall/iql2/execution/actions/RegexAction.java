@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 
-import java.util.Map;
 import java.util.Set;
 
 public class RegexAction implements Action {

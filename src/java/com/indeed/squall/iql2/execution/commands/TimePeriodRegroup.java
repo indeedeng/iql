@@ -4,8 +4,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.compat.Consumer;
 import org.joda.time.DateTime;
 
 public class TimePeriodRegroup implements Command {

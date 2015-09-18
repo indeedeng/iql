@@ -2,11 +2,9 @@ package com.indeed.squall.iql2.execution.actions;
 
 import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Set;
 
 public class IntOrAction implements Action {

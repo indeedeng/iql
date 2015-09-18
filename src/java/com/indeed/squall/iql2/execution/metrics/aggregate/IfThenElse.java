@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.google.common.collect.Sets;
-import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.AggregateFilter;
+import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 
 import java.util.List;

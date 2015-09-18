@@ -7,7 +7,6 @@ import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 
-import java.util.Map;
 import java.util.Set;
 
 public class UnconditionalAction implements Action {
