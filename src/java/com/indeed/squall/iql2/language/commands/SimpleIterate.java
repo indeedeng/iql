@@ -13,7 +13,6 @@ import com.indeed.squall.iql2.language.util.ErrorMessages;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;

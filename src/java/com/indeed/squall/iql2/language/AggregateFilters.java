@@ -1,7 +1,5 @@
 package com.indeed.squall.iql2.language;
 
-import org.antlr.v4.runtime.misc.NotNull;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

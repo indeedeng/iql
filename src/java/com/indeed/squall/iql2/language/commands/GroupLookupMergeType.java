@@ -1,8 +1,6 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.indeed.squall.iql2.language.compat.Consumer;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 public enum GroupLookupMergeType {
     SumAll,

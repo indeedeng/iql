@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
-import org.antlr.v4.runtime.misc.NotNull;
 
 import java.io.IOException;
 

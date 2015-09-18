@@ -9,7 +9,6 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.util.core.Pair;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
