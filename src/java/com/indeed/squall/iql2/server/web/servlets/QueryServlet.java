@@ -36,6 +36,7 @@ import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import org.apache.commons.codec.binary.Base64;
@@ -90,6 +91,7 @@ public class QueryServlet {
     private final DimensionsLoader dimensionsLoader;
     private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
     private final AccessControl accessControl;
+    private final TopTermsCache topTermsCache;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
@@ -101,13 +103,15 @@ public class QueryServlet {
             final ExecutionManager executionManager,
             final DimensionsLoader dimensionsLoader,
             final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
-            final AccessControl accessControl) {
+            final AccessControl accessControl,
+            final TopTermsCache topTermsCache) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
         this.dimensionsLoader = dimensionsLoader;
         this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
         this.accessControl = accessControl;
+        this.topTermsCache = topTermsCache;
     }
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
@@ -269,7 +273,8 @@ public class QueryServlet {
             result.put("description", "");
             result.put("type", type);
             result.put("imhotepType", imhotepType);
-            result.put("topTerms", Collections.emptyList());
+            final List<String> topTerms = topTermsCache.getTopTerms(dataset, field);
+            result.put("topTerms", topTerms);
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");

@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
+import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -127,6 +128,15 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("keyword-analyzer-whitelist", new File(env.getProperty("ramses.metadata.dir")), imhotepClient);
         executor.scheduleAtFixedRate(keywordAnalyzerWhitelistLoader, 0, 5, TimeUnit.MINUTES);
         return keywordAnalyzerWhitelistLoader;
+    }
+
+    @Bean
+    public TopTermsCache topTermsCache() {
+        return new TopTermsCache(
+                imhotepClient(),
+                env.getProperty("topterms.cache.dir"),
+                IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER
+        );
     }
 
     @Bean
