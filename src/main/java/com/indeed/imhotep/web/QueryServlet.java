@@ -481,6 +481,10 @@ public class QueryServlet {
             if(sb.length() != 0) {
                 sb.append(",");
             }
+            if(sb.length() > 6000) {
+                sb.append("...");   // truncated to not blow past the header size limit in Tomcat
+                break;
+            }
             sb.append(interval.getStart().toString(yyyymmddhh)).append("-").append(interval.getEnd().toString(yyyymmddhh));
         }
         return sb.toString();
