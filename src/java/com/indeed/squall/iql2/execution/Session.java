@@ -182,9 +182,6 @@ public class Session {
     private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, String> upperCaseToActualDataset = new HashMap<>();
         for (final String dataset : Session.getDatasets(client)) {
-            if (upperCaseToActualDataset.containsKey(dataset.toUpperCase())) {
-                throw new IllegalStateException("Duplicated case-normalized dataset: " + dataset);
-            }
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
         }
 
