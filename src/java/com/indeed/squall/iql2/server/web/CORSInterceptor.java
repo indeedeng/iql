@@ -35,8 +35,6 @@ public class CORSInterceptor extends HandlerInterceptorAdapter {
                 log.error("Failed to parse a regex provided in cors.allowed.hosts config property: " + hostMask, e);
             }
         }
-        System.out.println("allowedHostMasks = " + allowedHostMasks);
-        System.out.println("allowedHostRegexes = " + allowedHostRegexes);
     }
 
     @Override

@@ -185,7 +185,7 @@ public class QueryServlet {
                 // Do nothing
             }
         }
-        System.out.println(timer);
+        log.info(timer);
     }
 
     public static void handleError(HttpServletResponse response, boolean isJson, Throwable e, boolean status500, boolean isStream) throws IOException {
