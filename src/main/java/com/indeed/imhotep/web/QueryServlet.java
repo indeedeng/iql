@@ -149,7 +149,7 @@ public class QueryServlet {
 
         final boolean json = req.getParameter("json") != null;
         IQLStatement parsedQuery = null;
-        SelectExecutionStats selectExecutionStats = null;
+        final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
         Throwable errorOccurred = null;
         try {
             if(Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(userName)) {
@@ -169,7 +169,7 @@ public class QueryServlet {
 
                     // actually process
                     final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName);
-                    selectExecutionStats = handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, queryTracker);
+                    handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, queryTracker, selectExecutionStats);
                 } finally {
                     // this must be closed. but we may have to defer it to the async thread finishing query processing
                     if(!queryTracker.isAsynchronousRelease()) {
@@ -270,18 +270,21 @@ public class QueryServlet {
         }
     }
 
-    private SelectExecutionStats handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, final ExecutionManager.QueryTracker queryTracker) throws IOException {
+    private void handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, final ExecutionManager.QueryTracker queryTracker, final @Nonnull SelectExecutionStats selectExecutionStats) throws IOException {
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
                 args.imhotepUserName, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
 
+        selectExecutionStats.shardCount = iqlQuery.getShardVersionList().size();
+
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
+        selectExecutionStats.hashForCaching = queryHash;
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         final boolean isCached = queryCache.isFileCached(cacheFileName);
-
+        selectExecutionStats.cached = isCached;
         final QueryMetadata queryMetadata = new QueryMetadata();
 
         queryMetadata.addItem("IQL-Cached", isCached, true);
@@ -300,7 +303,8 @@ public class QueryServlet {
         queryMetadata.setPendingHeaders(resp);
 
         if (args.headOnly) {
-            return new SelectExecutionStats(true);
+            selectExecutionStats.headOnly = true;
+            return;
         }
         final ServletOutputStream outputStream = resp.getOutputStream();
         if (args.progress) {
@@ -331,7 +335,8 @@ public class QueryServlet {
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
                 outputStream.close();
-                return new SelectExecutionStats(isCached, rowsWritten, false, queryHash, 0);
+                selectExecutionStats.rowsWritten = rowsWritten;
+                return;
             }
             final IQLQuery.WriteResults writeResults;
             final IQLQuery.ExecutionResult executionResult;
@@ -389,7 +394,8 @@ public class QueryServlet {
                 Closeables2.closeQuietly(iqlQuery, log);
             }
             outputStream.close();
-            return new SelectExecutionStats(isCached, writeResults, queryHash, executionResult.getImhotepTempFilesBytesWritten());
+            selectExecutionStats.rowsWritten = writeResults.rowsWritten;
+            selectExecutionStats.imhotepTempFilesBytesWritten = executionResult.getImhotepTempFilesBytesWritten();
         } else {
             // TODO: rework the async case to use the same code path as the sync case above except running under an executor
             if (!isCached && args.cacheWriteDisabled) {
@@ -429,7 +435,6 @@ public class QueryServlet {
             mapper.writeValue(outputStream, ret);
             outputStream.close();
             // we don't know number of rows as it's handled asynchronously
-            return new SelectExecutionStats(isCached, new IQLQuery.WriteResults(0, null, null, 0), queryHash, 0);
         }
     }
 
@@ -511,38 +516,22 @@ public class QueryServlet {
     }
 
     private static class SelectExecutionStats {
-        public final boolean cached;
-        public final int rowsWritten;
-        public final boolean overflowedToDisk;
-        public final String hashForCaching;
-        public final long imhotepTempFilesBytesWritten;
-        public final boolean headOnly;
+        public boolean cached;
+        public int rowsWritten;
+        public boolean overflowedToDisk;
+        public String hashForCaching;
+        public long imhotepTempFilesBytesWritten;
+        public int shardCount;
+        public boolean headOnly;
 
-        private SelectExecutionStats(boolean headOnly) {
-            this.headOnly = headOnly;
+        private SelectExecutionStats() {
+            this.headOnly = false;
             hashForCaching = "";
             overflowedToDisk = false;
             rowsWritten = 0;
             cached = false;
+            shardCount = 0;
             imhotepTempFilesBytesWritten = 0;
-        }
-
-        private SelectExecutionStats(boolean cached, int rowsWritten, boolean overflowedToDisk, String hashForCaching, long imhotepTempFilesBytesWritten) {
-            this.cached = cached;
-            this.rowsWritten = rowsWritten;
-            this.overflowedToDisk = overflowedToDisk;
-            this.hashForCaching = hashForCaching;
-            this.imhotepTempFilesBytesWritten = imhotepTempFilesBytesWritten;
-            this.headOnly = false;
-        }
-
-        private SelectExecutionStats(boolean cached, IQLQuery.WriteResults writeResults, String hashForCaching, long imhotepTempFilesBytesWritten) {
-            this.cached = cached;
-            this.hashForCaching = hashForCaching;
-            this.imhotepTempFilesBytesWritten = imhotepTempFilesBytesWritten;
-            this.rowsWritten = writeResults.rowsWritten;
-            this.overflowedToDisk = writeResults.didOverflowToDisk();
-            this.headOnly = false;
         }
     }
 
@@ -573,7 +562,7 @@ public class QueryServlet {
             field.toJSON(jsonRoot);
 
             final ArrayNode termsArray = mapper.createArrayNode();
-            jsonRoot.put("topTerms", termsArray);
+            jsonRoot.set("topTerms", termsArray);
             for(String term : topTerms) {
                 termsArray.add(term);
             }
@@ -617,7 +606,7 @@ public class QueryServlet {
             final ObjectMapper mapper = new ObjectMapper();
             final ObjectNode jsonRoot = mapper.createObjectNode();
             final ArrayNode array = mapper.createArrayNode();
-            jsonRoot.put("datasets", array);
+            jsonRoot.set("datasets", array);
             for(DatasetMetadata dataset : metadata.getDatasets().values()) {
                 final ObjectNode datasetInfo = mapper.createObjectNode();
                 dataset.toJSON(datasetInfo, mapper, true);
@@ -781,7 +770,7 @@ public class QueryServlet {
                                         QueryLogEntry logEntry) {
         final FromClause from = selectStatement.from;
         final GroupByClause groupBy = selectStatement.groupBy;
-        final SelectClause select=  selectStatement.select;
+        final SelectClause select =  selectStatement.select;
 
         if(from != null) {
             logEntry.setProperty("dataset", from.getDataset());
@@ -807,15 +796,14 @@ public class QueryServlet {
         }
         logEntry.setProperty("groupbycnt", groupByCount);
 
-        if(selectExecutionStats != null) {
-            logEntry.setProperty("cached", selectExecutionStats.cached ? "1" : "0");
-            logEntry.setProperty("rows", selectExecutionStats.rowsWritten);
-            logEntry.setProperty("disk", selectExecutionStats.overflowedToDisk ? "1" : "0");
-            logEntry.setProperty("hash", selectExecutionStats.hashForCaching);
-            logEntry.setProperty("head", selectExecutionStats.headOnly ? "1" : "0");
-            // convert bytes to megabytes
-            logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
-        }
+        logEntry.setProperty("cached", selectExecutionStats.cached ? "1" : "0");
+        logEntry.setProperty("rows", selectExecutionStats.rowsWritten);
+        logEntry.setProperty("shards", selectExecutionStats.shardCount);
+        logEntry.setProperty("disk", selectExecutionStats.overflowedToDisk ? "1" : "0");
+        logEntry.setProperty("hash", selectExecutionStats.hashForCaching);
+        logEntry.setProperty("head", selectExecutionStats.headOnly ? "1" : "0");
+        // convert bytes to megabytes
+        logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
     }
 
     private void logQueryToLog4J(String query, String identification, long timeTaken) {
