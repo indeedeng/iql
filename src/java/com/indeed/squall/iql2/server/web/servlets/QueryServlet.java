@@ -114,15 +114,30 @@ public class QueryServlet {
         this.topTermsCache = topTermsCache;
     }
 
+    private static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
+        final Map<String, Set<String>> upperCased = new HashMap<>();
+        for (final Map.Entry<String, ? extends Set<String>> e : map.entrySet()) {
+            final Set<String> upperCaseTerms = new HashSet<>(e.getValue().size());
+            for (final String term : e.getValue()) {
+                upperCaseTerms.add(term.toUpperCase());
+            }
+            upperCased.put(e.getKey().toUpperCase(), upperCaseTerms);
+        }
+        return upperCased;
+    }
+
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist();
+        // TODO: Don't make a copy per use
+        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist());
     }
 
     private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        return (Map<String, Set<String>>) keywordAnalyzerWhitelistLoader.getDatasetToIntFields();
+        // TODO: Don't make a copy per use
+        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getDatasetToIntFields());
     }
 
     private Map<String, DatasetDimensions> getDimensions() {
+        // TODO: Uppercase it?
         return dimensionsLoader.getDimensions();
     }
 
@@ -420,7 +435,7 @@ public class QueryServlet {
         return queryStartTimestamp;
     }
 
-    private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> datasets, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+    private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
         final Set<String> relevantUpperCaseDatasets = new HashSet<>();
         for (final Dataset dataset : relevantDatasets) {
             relevantUpperCaseDatasets.add(dataset.dataset.toUpperCase());
@@ -439,12 +454,12 @@ public class QueryServlet {
         }
 
         final DatasetsFields.Builder builder = DatasetsFields.builder();
-        for (final Map.Entry<String, String> entry : datasets.entrySet()) {
+        for (final Map.Entry<String, String> entry : nameToUppercaseDataset.entrySet()) {
             final String dataset = datasetUpperCaseToActual.get(entry.getValue());
 
             final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
             final DatasetDimensions dimension = dimensions.get(dataset);
-            final Set<String> intFields = datasetToIntFields.get(dataset);
+            final Set<String> intFields = datasetToIntFields.get(entry.getValue());
 
             final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
 
