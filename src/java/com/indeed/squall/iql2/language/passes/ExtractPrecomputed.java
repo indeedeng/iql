@@ -10,6 +10,7 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.squall.iql2.language.query.GroupBy;
@@ -18,6 +19,8 @@ import com.indeed.squall.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,9 +30,9 @@ import java.util.Set;
 public class ExtractPrecomputed {
     public static Extracted extractPrecomputed(Query query) {
         final Processor processor = new Processor(1, 1, query.extractDatasetNames());
-        final List<GroupBy> groupBys = new ArrayList<>();
+        final List<GroupByMaybeHaving> groupBys = new ArrayList<>();
         for (int i = 0; i < query.groupBys.size(); i++) {
-            final GroupBy groupBy = query.groupBys.get(i);
+            final GroupByMaybeHaving groupBy = query.groupBys.get(i);
             processor.setDepth(i + 1);
             processor.setStartDepth(i + 1);
             groupBys.add(groupBy.traverse1(processor));
@@ -61,11 +64,16 @@ public class ExtractPrecomputed {
         final Map<PrecomputedInfo, String> precomputedNames = extracted.precomputedNames;
         final Map<Integer, List<PrecomputedInfo>> depthToPrecomputations = computationStages(precomputedNames);
         final Map<Integer, ExecutionStep> groupBySteps = new HashMap<>();
-        final List<GroupBy> groupBys = query.groupBys;
+        final Map<Integer, ExecutionStep.FilterGroups> postGroupByFilter = new HashMap<>();
+        final List<GroupByMaybeHaving> groupBys = query.groupBys;
         final Set<String> scope = query.extractDatasetNames();
         for (int i = 0; i < groupBys.size(); i++) {
-            final ExecutionStep step = groupBys.get(i).executionStep(scope);
+            final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(i);
+            final ExecutionStep step = groupByMaybeHaving.groupBy.executionStep(scope);
             groupBySteps.put(i, step);
+            if (groupByMaybeHaving.filter.isPresent()) {
+                postGroupByFilter.put(i, new ExecutionStep.FilterGroups(groupByMaybeHaving.filter.get()));
+            }
         }
         final List<ExecutionStep> resultSteps = new ArrayList<>();
         if (query.filter.isPresent()) {
@@ -82,6 +90,9 @@ public class ExtractPrecomputed {
                 }
                 if (groupBySteps.containsKey(i)) {
                     resultSteps.add(groupBySteps.get(i));
+                }
+                if (postGroupByFilter.containsKey(i)) {
+                    resultSteps.add(postGroupByFilter.get(i));
                 }
             }
         }

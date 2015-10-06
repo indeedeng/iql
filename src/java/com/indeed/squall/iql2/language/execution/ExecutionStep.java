@@ -9,6 +9,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.commands.ApplyFilterActions;
+import com.indeed.squall.iql2.language.commands.ApplyGroupFilter;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookups;
@@ -527,6 +528,31 @@ public interface ExecutionStep {
         public String toString() {
             return "FilterActions{" +
                     "actions=" + actions +
+                    '}';
+        }
+    }
+
+    class FilterGroups implements ExecutionStep {
+        private final AggregateFilter filter;
+
+        public FilterGroups(AggregateFilter filter) {
+            this.filter = filter;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new ApplyGroupFilter(filter));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new FilterGroups(filter.traverse1(f));
+        }
+
+        @Override
+        public String toString() {
+            return "FilterGroups{" +
+                    "filter=" + filter +
                     '}';
         }
     }

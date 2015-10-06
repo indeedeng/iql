@@ -9,6 +9,7 @@ import com.indeed.squall.iql2.language.AggregateMetrics;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 
@@ -23,11 +24,11 @@ import java.util.Set;
 public class Query {
     public final List<com.indeed.squall.iql2.language.query.Dataset> datasets;
     public final Optional<DocFilter> filter;
-    public final List<com.indeed.squall.iql2.language.query.GroupBy> groupBys;
+    public final List<GroupByMaybeHaving> groupBys;
     public final List<AggregateMetric> selects;
     public final Optional<Integer> rowLimit;
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupBy> groupBys, List<AggregateMetric> selects, Optional<Integer> rowLimit) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, Optional<Integer> rowLimit) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
@@ -58,7 +59,7 @@ public class Query {
             whereFilter = Optional.of(DocFilters.and(allFilters));
         }
 
-        final List<com.indeed.squall.iql2.language.query.GroupBy> groupBys;
+        final List<GroupByMaybeHaving> groupBys;
         if (queryContext.groupByContents() != null) {
             groupBys = GroupBys.parseGroupBys(queryContext.groupByContents(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         } else {
@@ -106,8 +107,8 @@ public class Query {
         } else {
             filter = Optional.absent();
         }
-        final List<GroupBy> groupBys = Lists.newArrayList();
-        for (final GroupBy gb : this.groupBys) {
+        final List<GroupByMaybeHaving> groupBys = Lists.newArrayList();
+        for (final GroupByMaybeHaving gb : this.groupBys) {
             groupBys.add(gb.transform(groupBy, f, g, h, i));
         }
         final List<AggregateMetric> selects = Lists.newArrayList();
@@ -118,8 +119,8 @@ public class Query {
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
-        final List<GroupBy> groupBys = Lists.newArrayList();
-        for (final GroupBy gb : this.groupBys) {
+        final List<GroupByMaybeHaving> groupBys = Lists.newArrayList();
+        for (final GroupByMaybeHaving gb : this.groupBys) {
             groupBys.add(gb.traverse1(f));
         }
         final List<AggregateMetric> selects = Lists.newArrayList();

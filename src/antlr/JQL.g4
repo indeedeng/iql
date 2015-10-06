@@ -343,6 +343,10 @@ jqlDocFilter
     | FALSE # DocFalse
     ;
 
+groupByElementWithHaving [boolean useLegacy]
+    : groupByElement[$ctx.useLegacy] ({!$ctx.useLegacy}? HAVING filter=aggregateFilter[$ctx.useLegacy])?
+    ;
+
 groupByElement [boolean useLegacy]
     : DAYOFWEEK # DayOfWeekGroupBy
     | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
@@ -443,7 +447,7 @@ whereContents [boolean useLegacy]
     ;
 
 groupByContents [boolean useLegacy]
-    : (groupByElement[$ctx.useLegacy] (',' groupByElement[$ctx.useLegacy])*)?
+    : (groupByElementWithHaving[$ctx.useLegacy] (',' groupByElementWithHaving[$ctx.useLegacy])*)?
     ;
 
 selectContents [boolean useLegacy]

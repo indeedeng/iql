@@ -8,6 +8,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.AggregateMetrics;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.DocMetrics;
+import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
@@ -23,13 +24,25 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupBy> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
-        final List<JQLParser.GroupByElementContext> elements = groupByContentsContext.groupByElement();
-        final List<GroupBy> result = new ArrayList<>(elements.size());
-        for (final JQLParser.GroupByElementContext element : elements) {
-            result.add(parseGroupBy(element, datasetToKeywordAnalyzerFields, datasetToIntFields));
+    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        final List<JQLParser.GroupByElementWithHavingContext> elements = groupByContentsContext.groupByElementWithHaving();
+        final List<GroupByMaybeHaving> result = new ArrayList<>(elements.size());
+        for (final JQLParser.GroupByElementWithHavingContext element : elements) {
+            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields));
         }
         return result;
+    }
+
+    public static GroupByMaybeHaving parseGroupByMaybeHaving(
+            final JQLParser.GroupByElementWithHavingContext ctx,
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
+            final Map<String, Set<String>> datasetToIntFields) {
+        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+        if (ctx.filter != null) {
+            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields));
+        } else {
+            return GroupByMaybeHaving.of(groupBy);
+        }
     }
 
     public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
