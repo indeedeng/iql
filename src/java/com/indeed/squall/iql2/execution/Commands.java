@@ -11,6 +11,7 @@ import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.Actions;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
+import com.indeed.squall.iql2.execution.commands.ApplyGroupFilter;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups;
@@ -306,6 +307,10 @@ public class Commands {
             }
             case "computeFieldMin": {
                 return new GetFieldMin(parseScope(command), command.get("field").textValue());
+            }
+            case "applyGroupFilter": {
+                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup);
+                return new ApplyGroupFilter(filter);
             }
         }
         throw new RuntimeException("oops:" + command);
