@@ -69,10 +69,13 @@ public class Running implements AggregateMetric {
 
     private double getResult(int group, double val) {
         Double v = groupSums.get(group);
+        final double result;
         if (v != null) {
-            return v + val;
+            result = v + val;
         } else {
-            return val;
+            result = val;
         }
+        groupSums.put(group, result);
+        return result;
     }
 }
