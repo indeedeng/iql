@@ -23,6 +23,8 @@ public interface AggregateFilter {
 
     void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
 
+    boolean isOrdered();
+
     class TermIs implements AggregateFilter, JsonSerializable {
         private final Term term;
 
@@ -42,6 +44,11 @@ public interface AggregateFilter {
 
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override
@@ -98,6 +105,11 @@ public interface AggregateFilter {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             m1.validate(scope, datasetsFields, errorConsumer);
             m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
         }
 
         @Override
@@ -159,6 +171,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "metricNotEquals", "arg1", m1, "arg2", m2));
         }
@@ -214,6 +231,11 @@ public interface AggregateFilter {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             m1.validate(scope, datasetsFields, errorConsumer);
             m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
         }
 
         @Override
@@ -275,6 +297,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "greaterThanOrEquals", "arg1", m1, "arg2", m2));
         }
@@ -330,6 +357,11 @@ public interface AggregateFilter {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             m1.validate(scope, datasetsFields, errorConsumer);
             m2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
         }
 
         @Override
@@ -391,6 +423,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "lessThanOrEquals", "arg1", m1, "arg2", m2));
         }
@@ -446,6 +483,11 @@ public interface AggregateFilter {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             f1.validate(scope, datasetsFields, errorConsumer);
             f2.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return f1.isOrdered() || f2.isOrdered();
         }
 
         @Override
@@ -507,6 +549,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return f1.isOrdered() || f2.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "or", "arg1", f1, "arg2", f2));
         }
@@ -559,6 +606,11 @@ public interface AggregateFilter {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             filter.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return filter.isOrdered();
         }
 
         @Override
@@ -621,6 +673,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "regex", "field", field, "value", regex));
         }
@@ -670,6 +727,11 @@ public interface AggregateFilter {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "always"));
         }
@@ -709,6 +771,11 @@ public interface AggregateFilter {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override

@@ -25,6 +25,7 @@ public interface AggregateMetric {
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
     void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
+    boolean isOrdered();
 
     abstract class Unop implements AggregateMetric, JsonSerializable {
         public final AggregateMetric m1;
@@ -33,6 +34,11 @@ public interface AggregateMetric {
         public Unop(AggregateMetric m1, String jsonType) {
             this.m1 = m1;
             this.jsonType = jsonType;
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered();
         }
 
         @Override
@@ -129,6 +135,11 @@ public interface AggregateMetric {
             this.m1 = m1;
             this.m2 = m2;
             this.jsonType = jsonType;
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered() || m2.isOrdered();
         }
 
         @Override
@@ -290,6 +301,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return metric.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new IllegalStateException("Cannot serialize Parent metric");
         }
@@ -342,6 +358,11 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return true;
         }
 
         @Override
@@ -402,6 +423,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return true;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "iterateLag", "delay", lag, "m", metric));
         }
@@ -456,6 +482,11 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return true;
         }
 
         @Override
@@ -517,6 +548,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return metric.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize Qualified metrics -- ExtractPrecomputed should remove them!");
         }
@@ -575,6 +611,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes.getPushes(dataset), "sessionName", dataset));
         }
@@ -629,6 +670,11 @@ public interface AggregateMetric {
             for (final String dataset : scope) {
                 metric.validate(dataset, datasetsFields, errorConsumer);
             }
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override
@@ -690,6 +736,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw ImplicitDocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
         }
@@ -740,6 +791,11 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override
@@ -802,6 +858,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw Percentile metrics -- ExtractPrecomputed should remove them!");
         }
@@ -856,6 +917,11 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return true;
         }
 
         @Override
@@ -932,6 +998,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize raw Distinct metrics -- ExtractPrecomputed should remove them!");
         }
@@ -991,6 +1062,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return metric.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot / should not serialize Named metrics -- RemoveNames should have removed them!");
         }
@@ -1043,6 +1119,11 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
 
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override
@@ -1099,6 +1180,11 @@ public interface AggregateMetric {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
             // TODO: Validate groupBy somehow?
             metric.validate(scope, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override
@@ -1170,6 +1256,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return condition.isOrdered() || trueCase.isOrdered() || falseCase.isOrdered();
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "ifThenElse", "condition", condition, "trueCase", trueCase, "falseCase", falseCase));
         }
@@ -1231,6 +1322,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             throw new UnsupportedOperationException("Cannot serialize FieldMin -- should be removed by ExtractPrecomputed!");
         }
@@ -1285,6 +1381,11 @@ public interface AggregateMetric {
                     errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
                 }
             }
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
         }
 
         @Override

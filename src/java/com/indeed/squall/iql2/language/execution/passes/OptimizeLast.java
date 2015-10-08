@@ -2,6 +2,8 @@ package com.indeed.squall.iql2.language.execution.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -21,20 +23,30 @@ public class OptimizeLast {
             if (steps.get(steps.size() - 1) instanceof ExecutionStep.GetGroupStats
                     && steps.get(steps.size() - 2) instanceof ExecutionStep.ExplodeAndRegroup) {
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) steps.get(steps.size() - 1);
+                final boolean selectIsOrdered = Iterables.any(getGroupStats.stats, new Predicate<AggregateMetric>() {
+                    @Override
+                    public boolean apply(AggregateMetric input) {
+                        return input.isOrdered();
+                    }
+                });
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) steps.get(steps.size() - 2);
-                final List<ExecutionStep> newSteps = new ArrayList<>();
-                newSteps.addAll(steps);
-                newSteps.remove(newSteps.size() - 1);
-                newSteps.remove(newSteps.size() - 1);
-                newSteps.add(new ExecutionStep.IterateStats(
-                        explodeAndRegroup.field,
-                        explodeAndRegroup.filter,
-                        explodeAndRegroup.limit,
-                        explodeAndRegroup.metric,
-                        fixForIteration(getGroupStats.stats),
-                        explodeAndRegroup.forceNonStreaming
-                ));
-                return newSteps;
+                // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
+                final boolean isReordered = explodeAndRegroup.limit.isPresent();
+                if (!isReordered || !selectIsOrdered) { // If there's a filter and something that depends on order, we can't merge them.
+                    final List<ExecutionStep> newSteps = new ArrayList<>();
+                    newSteps.addAll(steps);
+                    newSteps.remove(newSteps.size() - 1);
+                    newSteps.remove(newSteps.size() - 1);
+                    newSteps.add(new ExecutionStep.IterateStats(
+                            explodeAndRegroup.field,
+                            explodeAndRegroup.filter,
+                            explodeAndRegroup.limit,
+                            explodeAndRegroup.metric,
+                            fixForIteration(getGroupStats.stats),
+                            explodeAndRegroup.forceNonStreaming
+                    ));
+                    return newSteps;
+                }
             }
         }
         return steps;
