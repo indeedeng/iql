@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
@@ -538,7 +539,7 @@ public class QueryServlet {
                 shards.add(Pair.of(actualDataset, chosenShard.getShardId()));
             }
         }
-        final String queryHash = computeQueryHash(commands, shards);
+        final String queryHash = computeQueryHash(commands, shards, 2);
         final String cacheFileName = queryHash + ".tsv";
         timer.pop();
 
@@ -664,7 +665,7 @@ public class QueryServlet {
         }
     }
 
-    private static String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards) {
+    private static String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -672,6 +673,7 @@ public class QueryServlet {
             log.error("Failed to init SHA1", e);
             throw Throwables.propagate(e);
         }
+        sha1.update(Ints.toByteArray(version));
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }
