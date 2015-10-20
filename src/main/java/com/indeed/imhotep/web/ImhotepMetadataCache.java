@@ -135,12 +135,12 @@ public class ImhotepMetadataCache {
             final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
             final LinkedHashMap<String, FieldMetadata> fieldMetadatas = datasetMetadata.getFields();
 
-            for(String stringField : dsStringFields) {
-                fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
-            }
-
             for(String intField : dsIntFields) {
                 fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
+            }
+
+            for(String stringField : dsStringFields) {
+                fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
             }
         }
 
