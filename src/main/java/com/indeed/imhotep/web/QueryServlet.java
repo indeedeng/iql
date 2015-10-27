@@ -25,6 +25,7 @@ import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
+import com.indeed.imhotep.iql.SelectExecutionStats;
 import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
@@ -342,7 +343,7 @@ public class QueryServlet {
             final IQLQuery.ExecutionResult executionResult;
             try {
                 // TODO: should we always get totals? opt out http param?
-                executionResult = iqlQuery.execute(args.progress, outputStream, true);
+                executionResult = iqlQuery.execute(args.progress, outputStream, true, selectExecutionStats);
                 queryMetadata.addItem("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress);
                 queryMetadata.addItem("IQL-Imhotep-Temp-Bytes-Written", executionResult.getImhotepTempFilesBytesWritten(), args.progress);
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
@@ -410,7 +411,7 @@ public class QueryServlet {
                     public Void call() throws Exception {
                         try {
                             // TODO: get totals working with the cache
-                            final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(false, null, false);
+                            final IQLQuery.ExecutionResult executionResult = iqlQuery.execute(false, null, false, selectExecutionStats);
                             final Iterator<GroupStats> groupStats = executionResult.getRows();
 
                             final OutputStream cacheStream = queryCache.getOutputStream(cacheFileName);
@@ -512,26 +513,6 @@ public class QueryServlet {
             }
         } else {    // this should never happen
             log.warn("Results are not available to upload cache to HDFS: " + cachedFileName);
-        }
-    }
-
-    private static class SelectExecutionStats {
-        public boolean cached;
-        public int rowsWritten;
-        public boolean overflowedToDisk;
-        public String hashForCaching;
-        public long imhotepTempFilesBytesWritten;
-        public int shardCount;
-        public boolean headOnly;
-
-        private SelectExecutionStats() {
-            this.headOnly = false;
-            hashForCaching = "";
-            overflowedToDisk = false;
-            rowsWritten = 0;
-            cached = false;
-            shardCount = 0;
-            imhotepTempFilesBytesWritten = 0;
         }
     }
 
@@ -796,6 +777,7 @@ public class QueryServlet {
         }
         logEntry.setProperty("groupbycnt", groupByCount);
 
+        logEntry.setProperty("sessionid", selectExecutionStats.sessionId);
         logEntry.setProperty("cached", selectExecutionStats.cached ? "1" : "0");
         logEntry.setProperty("rows", selectExecutionStats.rowsWritten);
         logEntry.setProperty("shards", selectExecutionStats.shardCount);
