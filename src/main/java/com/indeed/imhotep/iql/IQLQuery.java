@@ -21,6 +21,7 @@ import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.imhotep.ShardInfo;
+import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
@@ -112,13 +113,18 @@ public final class IQLQuery implements Closeable {
     /**
      * Not thread safe due to session reference caching for close().
      */
-    public ExecutionResult execute(boolean progress, OutputStream outputStream, boolean getTotals) throws ImhotepOutOfMemoryException {
+    public ExecutionResult execute(boolean progress, OutputStream outputStream, boolean getTotals, SelectExecutionStats selectExecutionStats) throws ImhotepOutOfMemoryException {
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8)) : null;
 
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
+
+        if(imhotepSession instanceof HasSessionId && selectExecutionStats != null) {
+            selectExecutionStats.sessionId = ((HasSessionId) imhotepSession).getSessionId();
+        }
+
         session = new EZImhotepSession(imhotepSession);
         timer.pop();
 

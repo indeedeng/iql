@@ -140,7 +140,7 @@ public class StatementParser {
         return new WhereClause(whereExpression);
     }
 
-    public static FromClause parseFromClause(String text, final boolean allowMacros) {
+    public static FromClause parseFromClause(String text, final boolean allowIllegalDates) {
         Parser<String> tokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,
                 Terminals.StringLiteral.DOUBLE_QUOTE_TOKENIZER, QuerySplitter.wordParser);
         Parser<FromClause> fromParser = TerminalParser.STRING.atLeast(3).map(new Map<List<String>, FromClause>() {
@@ -199,17 +199,19 @@ public class StatementParser {
                 }
 
 
-                if(startTime == null && (!allowMacros || !start.startsWith("$"))) {
-                    throw new IllegalArgumentException("Start date parsing failed: " + start);
-                }
-                if(endTime == null && (!allowMacros || !end.startsWith("$"))) {
-                    throw new IllegalArgumentException("End date parsing failed: " + end);
-                }
-                if(startTime != null && endTime != null && !startTime.isBefore(endTime)) {
-                    throw new IllegalArgumentException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
-                }
-                if(startTime != null && startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0))) {
-                    throw new IllegalArgumentException("The start date appears to be too low. Check for a typo: " + startTime);
+                if(!allowIllegalDates) {
+                    if (startTime == null) {
+                        throw new IllegalArgumentException("Start date parsing failed: " + start);
+                    }
+                    if (endTime == null) {
+                        throw new IllegalArgumentException("End date parsing failed: " + end);
+                    }
+                    if (!startTime.isBefore(endTime)) {
+                        throw new IllegalArgumentException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
+                    }
+                    if (startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0))) {
+                        throw new IllegalArgumentException("The start date appears to be too low. Check for a typo: " + startTime);
+                    }
                 }
                 return new FromClause(dataset, startTime, endTime, start, end);
             }
