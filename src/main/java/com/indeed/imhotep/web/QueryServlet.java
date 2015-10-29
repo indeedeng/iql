@@ -343,10 +343,13 @@ public class QueryServlet {
             final IQLQuery.ExecutionResult executionResult;
             try {
                 // TODO: should we always get totals? opt out http param?
+                final DateTime execStartTime = DateTime.now();
                 executionResult = iqlQuery.execute(args.progress, outputStream, true, selectExecutionStats);
                 queryMetadata.addItem("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress);
                 queryMetadata.addItem("IQL-Imhotep-Temp-Bytes-Written", executionResult.getImhotepTempFilesBytesWritten(), args.progress);
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
+                queryMetadata.addItem("Imhotep-Session-ID", selectExecutionStats.sessionId);
+                queryMetadata.addItem("IQL-Execution-Time", execStartTime.toString());
 
                 queryMetadata.setPendingHeaders(resp);
                 resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
