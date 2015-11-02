@@ -2,6 +2,8 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
@@ -24,8 +26,14 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
+import com.indeed.squall.iql2.language.AggregateFilter;
+import com.indeed.squall.iql2.language.AggregateMetric;
+import com.indeed.squall.iql2.language.DocFilter;
+import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
+import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
@@ -50,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -491,6 +500,51 @@ public class QueryServlet {
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields);
         timer.pop();
 
+        executeParsedQuery(out, timer, progressCallback, query);
+        timer.pop();
+    }
+
+    private void executeParsedQuery(Consumer<String> out, final TreeTimer timer, NoOpProgressCallback progressCallback, Query query) throws IOException {
+        query = query.transform(
+                Functions.<GroupBy>identity(),
+                Functions.<AggregateMetric>identity(),
+                Functions.<DocMetric>identity(),
+                Functions.<AggregateFilter>identity(),
+                new Function<DocFilter, DocFilter>() {
+                    final Map<Query, Set<String>> queryToResults = new HashMap<>();
+
+                    @Nullable
+                    @Override
+                    public DocFilter apply(DocFilter input) {
+                        if (input instanceof DocFilter.FieldInQuery) {
+                            // TODO: Handle int fields.
+                            final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
+                            final Query q = fieldInQuery.query;
+                            if (!queryToResults.containsKey(q)) {
+                                final Set<String> terms = new HashSet<>();
+                                timer.push("Execute sub-query: \"" + q + "\"");
+                                try {
+                                    executeParsedQuery(new Consumer<String>() {
+                                        @Override
+                                        public void accept(String s) {
+                                            terms.add(s.split("\t")[0]);
+                                        }
+                                    }, timer, new NoOpProgressCallback(), q);
+                                } catch (IOException e) {
+                                    throw Throwables.propagate(e);
+                                }
+                                timer.pop();
+                                queryToResults.put(q, terms);
+                            }
+                            final Set<String> terms = queryToResults.get(q);
+                            final ScopedField scopedField = fieldInQuery.field;
+                            return scopedField.wrap(new DocFilter.StringFieldIn(Collections.<String, Set<String>>emptyMap(), scopedField.field, terms));
+                        }
+                        return input;
+                    }
+                }
+        );
+
         timer.push("compute commands");
         final List<Command> commands = Queries.queryCommands(query);
         timer.pop();
@@ -557,7 +611,6 @@ public class QueryServlet {
                     progressCallback.startCommand(null, true);
                     sendCachedQuery(cacheFileName, out, query.rowLimit);
                     timer.pop();
-                    return;
                 } else {
                     final Consumer<String> oldOut = out;
                     final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -622,7 +675,6 @@ public class QueryServlet {
                 throw Throwables.propagate(e);
             }
         }
-        timer.pop();
     }
 
     private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
