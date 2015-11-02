@@ -62,6 +62,7 @@ FIELD_MAX : 'FIELD_MAX';
 ALIASING : 'ALIASING';
 HASSTRFIELD : 'HASSTRFIELD' ;
 HASINTFIELD : 'HASINTFIELD' ;
+SAME : 'SAME' ;
 
 Y : 'Y' ;
 
@@ -97,7 +98,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME
     ;
 timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -330,6 +331,7 @@ jqlDocFilter
     | singlyScopedField '=' jqlTermVal # DocFieldIs
     | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
     | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
+    | singlyScopedField not=NOT? IN '(' queryNoSelect ')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' singlyScopedField ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
@@ -462,4 +464,10 @@ query [boolean useLegacy]
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (LIMIT limit=INT)?
       EOF
+    ;
+
+queryNoSelect
+    : FROM (same=SAME | fromContents[false])
+      (WHERE whereContents[false])?
+      GROUP BY groupByContents[false]
     ;

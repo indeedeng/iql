@@ -247,6 +247,70 @@ public interface DocFilter {
         }
     }
 
+    class FieldInQuery implements DocFilter {
+        public final com.indeed.squall.iql2.language.query.Query query;
+        public final ScopedField field;
+        public final boolean isNegated; // true if <field> NOT IN <query>
+
+        public FieldInQuery(com.indeed.squall.iql2.language.query.Query query, ScopedField field, boolean isNegated) {
+            this.query = query;
+            this.field = field;
+            this.isNegated = isNegated;
+        }
+
+
+        // TODO: Should this propagate the transformation or just allow `i` to recurse if desired?
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            throw new UnsupportedOperationException("Must transform the FieldInQuery out before doing a .asZeroOneMetric()");
+        }
+
+        @Override
+        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            throw new UnsupportedOperationException("Must transform the FieldInQuery out before doing a .getExecutionActions()");
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            // TODO: Should we do anything here? I don't think so...
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            FieldInQuery that = (FieldInQuery) o;
+
+            if (isNegated != that.isNegated) return false;
+            if (query != null ? !query.equals(that.query) : that.query != null) return false;
+            return !(field != null ? !field.equals(that.field) : that.field != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = query != null ? query.hashCode() : 0;
+            result = 31 * result + (field != null ? field.hashCode() : 0);
+            result = 31 * result + (isNegated ? 1 : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "FieldInQuery{" +
+                    "query=" + query +
+                    ", field='" + field + '\'' +
+                    ", isNegated=" + isNegated +
+                    '}';
+        }
+    }
+
     class Between implements DocFilter {
         public final String field;
         public final long lowerBound;
@@ -1388,6 +1452,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            // TODO: Should this care about the keyword analyzer fields?
             return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field, terms, target, positive, negative));
         }
 

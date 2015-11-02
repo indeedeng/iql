@@ -1,12 +1,10 @@
 package com.indeed.squall.iql2.language;
 
+import com.google.common.base.Optional;
+import com.indeed.squall.iql2.language.query.Query;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class DocFilters {
     public static DocFilter and(List<DocFilter> filters) {
@@ -23,9 +21,9 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, JQLParser.FromContentsContext fromContents) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents);
         }
         if (docFilterContext.legacyDocFilter() != null) {
             return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -195,7 +193,8 @@ public class DocFilters {
     public static DocFilter parseJQLDocFilter(
             JQLParser.JqlDocFilterContext docFilterContext,
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
-            final Map<String, Set<String>> datasetToIntFields) {
+            final Map<String, Set<String>> datasetToIntFields,
+            final JQLParser.FromContentsContext fromContents) {
         final DocFilter[] ref = new DocFilter[1];
 
         docFilterContext.enterRule(new JQLBaseListener() {
@@ -227,6 +226,26 @@ public class DocFilters {
             }
 
             @Override
+            public void enterDocFieldInQuery(JQLParser.DocFieldInQueryContext ctx) {
+                final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
+                final JQLParser.FromContentsContext fromUsed = queryCtx.same == null ? queryCtx.fromContents() : fromContents;
+                if (fromUsed == null) {
+                    throw new IllegalArgumentException("Can't use 'FROM SAME' in initial FROM");
+                }
+                final Query query = Query.parseQuery(
+                        fromUsed,
+                        Optional.fromNullable(queryCtx.whereContents()),
+                        Optional.of(queryCtx.groupByContents()),
+                        Collections.<JQLParser.SelectContentsContext>emptyList(),
+                        null,
+                        datasetToKeywordAnalyzerFields,
+                        datasetToIntFields
+                );
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(new DocFilter.FieldInQuery(query, scopedField, ctx.not != null));
+            }
+
+            @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(scopedField.wrap(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
@@ -253,7 +272,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents)));
             }
 
             @Override
@@ -270,7 +289,7 @@ public class DocFilters {
 
             @Override
             public void enterDocOr(JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents)));
             }
 
             @Override
@@ -317,7 +336,7 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents)));
             }
 
             @Override
@@ -333,7 +352,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents));
             }
 
             @Override

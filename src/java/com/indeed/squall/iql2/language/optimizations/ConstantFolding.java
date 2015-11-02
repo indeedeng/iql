@@ -278,7 +278,7 @@ public class ConstantFolding {
     public static void main(String[] args) {
         final JQLParser parser = Queries.parserForString("sortingTime!=-1");
         final JQLParser.DocFilterContext ctx = parser.docFilter(true);
-        final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
+        final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), null);
         System.out.println("filter = " + filter);
         final DocMetric metric = filter.asZeroOneMetric("recommendedjobsservice");
         System.out.println("metric = " + metric);

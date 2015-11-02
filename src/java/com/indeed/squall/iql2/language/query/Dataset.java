@@ -63,7 +63,7 @@ public class Dataset {
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null));
             }
             initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
         } else {
@@ -102,7 +102,7 @@ public class Dataset {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
                 } else {
@@ -184,6 +184,33 @@ public class Dataset {
             dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
         }
         return dt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Dataset dataset1 = (Dataset) o;
+
+        if (dataset != null ? !dataset.equals(dataset1.dataset) : dataset1.dataset != null) return false;
+        if (startInclusive != null ? !startInclusive.equals(dataset1.startInclusive) : dataset1.startInclusive != null)
+            return false;
+        if (endExclusive != null ? !endExclusive.equals(dataset1.endExclusive) : dataset1.endExclusive != null)
+            return false;
+        if (alias != null ? !alias.equals(dataset1.alias) : dataset1.alias != null) return false;
+        return !(fieldAliases != null ? !fieldAliases.equals(dataset1.fieldAliases) : dataset1.fieldAliases != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = dataset != null ? dataset.hashCode() : 0;
+        result = 31 * result + (startInclusive != null ? startInclusive.hashCode() : 0);
+        result = 31 * result + (endExclusive != null ? endExclusive.hashCode() : 0);
+        result = 31 * result + (alias != null ? alias.hashCode() : 0);
+        result = 31 * result + (fieldAliases != null ? fieldAliases.hashCode() : 0);
+        return result;
     }
 
     @Override

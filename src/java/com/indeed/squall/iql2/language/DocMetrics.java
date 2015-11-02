@@ -7,14 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class DocMetrics {
-    public static void main(String[] args) {
-        final JQLParser parser = Queries.parserForString("oji=ojc");
-        final JQLParser.JqlDocFilterContext ctx = parser.jqlDocFilter();
-        System.out.println("parser.getNumberOfSyntaxErrors() = " + parser.getNumberOfSyntaxErrors());
-        final DocFilter docFilter = DocFilters.parseJQLDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
-        System.out.println("docFilter = " + docFilter);
-    }
-
     public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
         if (metricContext.jqlDocMetric() != null) {
             return parseJQLDocMetric(metricContext.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -280,7 +272,7 @@ public class DocMetrics {
             }
 
             public void enterDocIfThenElse(JQLParser.DocIfThenElseContext ctx) {
-                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, null);
                 final DocMetric trueCase = parseJQLDocMetric(ctx.trueCase, datasetToKeywordAnalyzerFields, datasetToIntFields);
                 final DocMetric falseCase = parseJQLDocMetric(ctx.falseCase, datasetToKeywordAnalyzerFields, datasetToIntFields);
                 accept(new DocMetric.IfThenElse(condition, trueCase, falseCase));

@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,8 +37,16 @@ public class Query {
         this.rowLimit = rowLimit;
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(queryContext.fromContents(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+    public static Query parseQuery(
+            JQLParser.FromContentsContext fromContents,
+            Optional<JQLParser.WhereContentsContext> whereContents,
+            Optional<JQLParser.GroupByContentsContext> groupByContents,
+            List<JQLParser.SelectContentsContext> selects,
+            Token limit,
+            Map<String, Set<String>> datasetToKeywordAnalyzerFields,
+            Map<String, Set<String>> datasetToIntFields
+    ) {
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, datasetToKeywordAnalyzerFields, datasetToIntFields);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();
@@ -47,9 +56,9 @@ public class Query {
             }
             datasets.add(dataset.getFirst());
         }
-        if (queryContext.whereContents() != null) {
-            for (final JQLParser.DocFilterContext ctx : queryContext.whereContents().docFilter()) {
-                allFilters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields));
+        if (whereContents.isPresent()) {
+            for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
+                allFilters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents));
             }
         }
         final Optional<DocFilter> whereFilter;
@@ -60,38 +69,47 @@ public class Query {
         }
 
         final List<GroupByMaybeHaving> groupBys;
-        if (queryContext.groupByContents() != null) {
-            groupBys = GroupBys.parseGroupBys(queryContext.groupByContents(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+        if (groupByContents.isPresent()) {
+            groupBys = GroupBys.parseGroupBys(groupByContents.get(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         } else {
             groupBys = Collections.emptyList();
         }
 
-        final List<AggregateMetric> selects;
-        if (queryContext.selects != null) {
-            if (queryContext.selects.size() == 0) {
-                selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
-            } else if (queryContext.selects.size() == 1) {
-                final JQLParser.SelectContentsContext selectSet = queryContext.selects.get(0);
-                final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
-                selects = new ArrayList<>();
-                for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selects.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields));
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + queryContext.selects.size());
+        final List<AggregateMetric> selectedMetrics;
+        if (selects.isEmpty()) {
+            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+        } else if (selects.size() == 1) {
+            final JQLParser.SelectContentsContext selectSet = selects.get(0);
+            final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
+            selectedMetrics = new ArrayList<>();
+            for (final JQLParser.AggregateMetricContext metric : metrics) {
+                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         } else {
-            selects = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+            throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + selects.size());
         }
 
         final Optional<Integer> rowLimit;
-        if (queryContext.limit == null) {
+        if (limit == null) {
             rowLimit = Optional.absent();
         } else {
-            rowLimit = Optional.of(Integer.parseInt(queryContext.limit.getText()));
+            rowLimit = Optional.of(Integer.parseInt(limit.getText()));
         }
 
-        return new Query(datasets, whereFilter, groupBys, selects, rowLimit);
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, rowLimit);
+
+    }
+
+    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        return parseQuery(
+                queryContext.fromContents(),
+                Optional.fromNullable(queryContext.whereContents()),
+                Optional.fromNullable(queryContext.groupByContents()),
+                queryContext.selects,
+                queryContext.limit,
+                datasetToKeywordAnalyzerFields,
+                datasetToIntFields
+        );
     }
 
     public Query transform(
@@ -164,6 +182,30 @@ public class Query {
         return nameToIndex;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Query query = (Query) o;
+
+        if (datasets != null ? !datasets.equals(query.datasets) : query.datasets != null) return false;
+        if (filter != null ? !filter.equals(query.filter) : query.filter != null) return false;
+        if (groupBys != null ? !groupBys.equals(query.groupBys) : query.groupBys != null) return false;
+        if (selects != null ? !selects.equals(query.selects) : query.selects != null) return false;
+        return !(rowLimit != null ? !rowLimit.equals(query.rowLimit) : query.rowLimit != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = datasets != null ? datasets.hashCode() : 0;
+        result = 31 * result + (filter != null ? filter.hashCode() : 0);
+        result = 31 * result + (groupBys != null ? groupBys.hashCode() : 0);
+        result = 31 * result + (selects != null ? selects.hashCode() : 0);
+        result = 31 * result + (rowLimit != null ? rowLimit.hashCode() : 0);
+        return result;
+    }
 
     @Override
     public String toString() {
