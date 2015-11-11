@@ -199,7 +199,7 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
 
         Preconditions.checkState(aliases.isEmpty());
         for(MetricMetadata metric : metrics.values()) {
-            if(metric.expression != null && !metric.expression.equals(metric.name)) {
+            if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
                 aliases.put(metric.name, metric.expression);
             }
         }
