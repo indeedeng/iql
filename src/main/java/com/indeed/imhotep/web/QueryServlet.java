@@ -93,6 +93,12 @@ public class QueryServlet {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
         GlobalUncaughtExceptionHandler.register();
+        try {
+            hostname = java.net.InetAddress.getLocalHost().getHostName();
+        }
+        catch (java.net.UnknownHostException ex) {
+            hostname = "(unknown)";
+        }
     }
 
     private static final Logger log = Logger.getLogger(QueryServlet.class);
@@ -101,6 +107,7 @@ public class QueryServlet {
     private static final String METADATA_FILE_SUFFIX = ".meta";
     // this can be incremented to invalidate the old cache
     private static final byte VERSION_FOR_HASHING = 1;
+    private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive", "nocache");
 
@@ -697,6 +704,7 @@ public class QueryServlet {
         logEntry.setProperty("username", userName);
         logEntry.setProperty("client", client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
+        logEntry.setProperty("hostname", hostname);
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
         logEntry.setProperty("tottime", (int)timeTaken);
 
