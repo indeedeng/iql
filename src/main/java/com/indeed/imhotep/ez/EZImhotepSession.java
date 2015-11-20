@@ -526,7 +526,7 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroup(rules, false);
+                numGroups = session.regroup(rules, true);
             }
         } else {
             final StringField stringField = (StringField) field;
@@ -551,7 +551,7 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroup(rules, false);
+                numGroups = session.regroup(rules, true);
             }
         }
         return ret;
