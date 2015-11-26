@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
+import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.util.core.Pair;
 
@@ -153,7 +154,7 @@ public class GroupBys {
                     timeFormat = Optional.absent();
                 }
 
-                final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(ctx.groupByTime().timePeriod());
+                final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod());
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
                     final int coeff = pair.getFirst();

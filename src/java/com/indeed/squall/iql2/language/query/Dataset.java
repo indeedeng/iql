@@ -7,7 +7,7 @@ import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
-import com.indeed.squall.iql2.language.TimeUnit;
+import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.util.core.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -152,10 +152,10 @@ public class Dataset {
                     }
                     throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
                 }
-                return timePeriodDateTime(timePeriod);
+                return TimePeriods.timePeriodDateTime(timePeriod);
             }
         } else if (dateTimeContext.timePeriod() != null) {
-            return timePeriodDateTime(dateTimeContext.timePeriod());
+            return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod());
         } else if (dateTimeContext.INT() != null) {
             return new DateTime(Long.parseLong(dateTimeContext.INT().getText()));
         } else {
@@ -175,15 +175,6 @@ public class Dataset {
             return DateTime.now().withTimeAtStartOfDay().plusDays(1);
         }
         return null;
-    }
-
-    private static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext) {
-        final List<Pair<Integer, TimeUnit>> pairs = ParserCommon.parseTimePeriod(timePeriodContext);
-        DateTime dt = DateTime.now().withTimeAtStartOfDay();
-        for (final Pair<Integer, TimeUnit> pair : pairs) {
-            dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
-        }
-        return dt;
     }
 
     @Override

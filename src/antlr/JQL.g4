@@ -68,6 +68,8 @@ Y : 'Y' ;
 
 TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 
+TIME_PERIOD_ATOM : ([0-9]+ (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
+
 INT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
@@ -100,8 +102,9 @@ identifier
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME
     ;
-timePeriod : (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS))+ AGO? #TimePeriodParseable
+timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
+timePeriodTerminal : timePeriod EOF ;
 
 WS : [ \t\r\n]+ -> channel(HIDDEN) ;
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
