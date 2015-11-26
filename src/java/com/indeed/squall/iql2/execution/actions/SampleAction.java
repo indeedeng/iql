@@ -36,7 +36,7 @@ public class SampleAction implements Action {
         } else {
             throw new IllegalArgumentException("field is not valid: " + field);
         }
-        session.randomRegroup(field, isIntField, seed, probability, targetGroup, positiveGroup, negativeGroup, scope);
+        session.randomRegroup(field, isIntField, seed, 1.0 - probability, targetGroup, positiveGroup, negativeGroup, scope);
     }
 
     @Override
