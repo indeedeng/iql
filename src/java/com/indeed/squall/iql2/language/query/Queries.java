@@ -129,8 +129,8 @@ public class Queries {
         return text;
     }
 
-    public static JQLParser.QueryContext parseQueryContext(String q, boolean useLegacy) {
-        final JQLParser parser = parserForString(q);
+    public static <T> T runParser(String input, Function<JQLParser, T> applyParser) {
+        final JQLParser parser = parserForString(input);
         final List<RecognitionException> exceptions = new ArrayList<>();
         parser.setErrorHandler(new DefaultErrorStrategy() {
             @Override
@@ -139,7 +139,7 @@ public class Queries {
                 exceptions.add(e);
             }
         });
-        final JQLParser.QueryContext queryContext = parser.query(useLegacy);
+        final T result = applyParser.apply(parser);
         if (parser.getNumberOfSyntaxErrors() > 0) {
             final String extra;
             if (exceptions.size() > 0) {
@@ -149,9 +149,17 @@ public class Queries {
             } else {
                 extra = "";
             }
-            throw new IllegalArgumentException("Invalid query: [" + q + "]" + extra);
+            throw new IllegalArgumentException("Invalid input: [" + input + "]" + extra);
         }
-        return queryContext;
+        return result;
+    }
+
+    public static JQLParser.QueryContext parseQueryContext(String q, final boolean useLegacy) {
+        return runParser(q, new Function<JQLParser, JQLParser.QueryContext>() {
+            public JQLParser.QueryContext apply(JQLParser input) {
+                return input.query(useLegacy);
+            }
+        });
     }
 
     public static JQLParser parserForString(String q) {

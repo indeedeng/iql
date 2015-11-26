@@ -157,11 +157,8 @@ jqlAggregateMetric
     | jqlDocMetricAtom # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
-    | jqlAggregateMetric '*' jqlAggregateMetric # AggregateMult
-    | jqlAggregateMetric '/' jqlAggregateMetric # AggregateDiv
-    | jqlAggregateMetric '%' jqlAggregateMetric # AggregateMod
-    | jqlAggregateMetric '+' jqlAggregateMetric # AggregatePlus
-    | jqlAggregateMetric '-' jqlAggregateMetric # AggregateMinus
+    | jqlAggregateMetric (multiply='*'|divide='/'|modulus='%') jqlAggregateMetric # AggregateMultiplyOrDivideOrModulus
+    | jqlAggregateMetric (plus='+'|minus='-') jqlAggregateMetric # AggregatePlusOrMinus
     | jqlAggregateMetric AS name=identifier # AggregateNamed
     | '[' jqlDocMetric ']' # AggregateSum
     | '(' jqlAggregateMetric ')' # AggregateParens
@@ -244,17 +241,9 @@ legacyDocMetric
     | ABS '(' legacyDocMetric ')' # LegacyDocAbs
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
     | '-' legacyDocMetric # LegacyDocNegate
-    | legacyDocMetric '*' legacyDocMetric # LegacyDocMult
-    | legacyDocMetric '\\' legacyDocMetric # LegacyDocDiv
-    | legacyDocMetric '%' legacyDocMetric # LegacyDocMod
-    | legacyDocMetric '+' legacyDocMetric # LegacyDocPlus
-    | legacyDocMetric '-' legacyDocMetric # LegacyDocMinus
-    | legacyDocMetric '>=' legacyDocMetric # LegacyDocGTE
-    | legacyDocMetric '>' legacyDocMetric # LegacyDocGT
-    | legacyDocMetric '<=' legacyDocMetric # LegacyDocLTE
-    | legacyDocMetric '<' legacyDocMetric # LegacyDocLT
-    | legacyDocMetric '=' legacyDocMetric # LegacyDocEQ
-    | legacyDocMetric '!=' legacyDocMetric # LegacyDocNEQ
+    | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
+    | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus
+    | legacyDocMetric (gte='>='|gt='>'|lte='<='|lt='<'|eq='='|neq='!=') legacyDocMetric # LegacyDocInequality
     | '(' legacyDocMetric ')' # LegacyDocMetricParens
     | legacyDocMetricAtom # LegacyDocAtom
     | INT # LegacyDocInt
@@ -266,17 +255,9 @@ jqlDocMetric
     | SIGNUM '(' jqlDocMetric ')' # DocSignum
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
-    | jqlDocMetric '*' jqlDocMetric # DocMult
-    | jqlDocMetric '/' jqlDocMetric # DocDiv
-    | jqlDocMetric '%' jqlDocMetric # DocMod
-    | jqlDocMetric '+' jqlDocMetric # DocPlus
-    | jqlDocMetric '-' jqlDocMetric # DocMinus
-    | jqlDocMetric '>=' jqlDocMetric # DocGTE
-    | jqlDocMetric '>' jqlDocMetric # DocGT
-    | jqlDocMetric '<=' jqlDocMetric # DocLTE
-    | jqlDocMetric '<' jqlDocMetric # DocLT
-    | jqlDocMetric '=' jqlDocMetric # DocEQ
-    | jqlDocMetric '!=' jqlDocMetric # DocNEQ
+    | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus
+    | jqlDocMetric (plus='+'|minus='-') jqlDocMetric # DocPlusOrMinus
+    | jqlDocMetric (gte='>='|gt='>'|lte='<='|lt='<'|eq='='|neq='!=') jqlDocMetric # DocInequality
     | '(' jqlDocMetric ')' # DocMetricParens
     | jqlDocMetricAtom # DocAtom
     | INT # DocInt

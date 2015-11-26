@@ -133,28 +133,32 @@ public class AggregateMetrics {
                 accept(new AggregateMetric.Qualified(scope, metric));
             }
 
-            public void enterAggregateDiv(JQLParser.AggregateDivContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
+            @Override
+            public void enterAggregateMultiplyOrDivideOrModulus(JQLParser.AggregateMultiplyOrDivideOrModulusContext ctx) {
+                final AggregateMetric left = parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final AggregateMetric right = parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                if (ctx.divide != null) {
+                    accept(new AggregateMetric.Divide(left, right));
+                } else if (ctx.multiply != null) {
+                    accept(new AggregateMetric.Multiply(left, right));
+                } else if (ctx.modulus != null) {
+                    accept(new AggregateMetric.Modulus(left, right));
+                }
+            }
+
+            @Override
+            public void enterAggregatePlusOrMinus(JQLParser.AggregatePlusOrMinusContext ctx) {
+                final AggregateMetric left = parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final AggregateMetric right = parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                if (ctx.plus != null) {
+                    accept(new AggregateMetric.Add(left, right));
+                } else if (ctx.minus != null) {
+                    accept(new AggregateMetric.Subtract(left, right));
+                }
             }
 
             public void enterAggregatePower(JQLParser.AggregatePowerContext ctx) {
                 accept(new AggregateMetric.Power(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateMod(JQLParser.AggregateModContext ctx) {
-                accept(new AggregateMetric.Modulus(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateMinus(JQLParser.AggregateMinusContext ctx) {
-                accept(new AggregateMetric.Subtract(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregateMult(JQLParser.AggregateMultContext ctx) {
-                accept(new AggregateMetric.Multiply(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
-            }
-
-            public void enterAggregatePlus(JQLParser.AggregatePlusContext ctx) {
-                accept(new AggregateMetric.Add(parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields), parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             public void enterAggregateNegate(JQLParser.AggregateNegateContext ctx) {
