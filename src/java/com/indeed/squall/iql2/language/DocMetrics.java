@@ -92,6 +92,18 @@ public class DocMetrics {
                 }
             }
 
+            @Override
+            public void enterLegacyDocLog(JQLParser.LegacyDocLogContext ctx) {
+                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
+            }
+
+            @Override
+            public void enterLegacyDocExp(JQLParser.LegacyDocExpContext ctx) {
+                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
+            }
+
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
                 accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom()));
             }
@@ -279,6 +291,18 @@ public class DocMetrics {
 
             public void enterDocInt(JQLParser.DocIntContext ctx) {
                 accept(new DocMetric.Constant(Long.parseLong(ctx.INT().getText())));
+            }
+
+            @Override
+            public void enterDocLog(JQLParser.DocLogContext ctx) {
+                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                accept(new DocMetric.Log(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), scaleFactor));
+            }
+
+            @Override
+            public void enterDocExp(JQLParser.DocExpContext ctx) {
+                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                accept(new DocMetric.Exponentiate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), scaleFactor));
             }
 
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {

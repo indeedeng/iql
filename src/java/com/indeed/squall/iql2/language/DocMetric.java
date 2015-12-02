@@ -182,19 +182,111 @@ public abstract class DocMetric {
         }
     }
 
-    public static class Log extends Unop {
-        public Log(DocMetric m1) {
-            super(m1);
+    public static class Log extends DocMetric {
+        public final DocMetric metric;
+        public final int scaleFactor;
+
+        public Log(DocMetric metric, int scaleFactor) {
+            this.metric = metric;
+            this.scaleFactor = scaleFactor;
         }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Log(m1.transform(g, i)));
+            return g.apply(new Log(metric.transform(g, i), scaleFactor));
         }
 
         @Override
         protected List<String> getPushes(String dataset) {
-            return unop(dataset, "log");
+            final List<String> result = new ArrayList<>(metric.getPushes(dataset));
+            result.add("log " + scaleFactor);
+            return result;
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(dataset, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Log log = (Log) o;
+
+            if (scaleFactor != log.scaleFactor) return false;
+            return !(metric != null ? !metric.equals(log.metric) : log.metric != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = metric != null ? metric.hashCode() : 0;
+            result = 31 * result + scaleFactor;
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Log{" +
+                    "metric=" + metric +
+                    ", scaleFactor=" + scaleFactor +
+                    '}';
+        }
+    }
+
+    public static class Exponentiate extends DocMetric {
+        public final DocMetric metric;
+        public final int scaleFactor;
+
+        public Exponentiate(DocMetric metric, int scaleFactor) {
+            this.metric = metric;
+            this.scaleFactor = scaleFactor;
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(new Exponentiate(metric.transform(g, i), scaleFactor));
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            final List<String> result = new ArrayList<>(metric.getPushes(dataset));
+            result.add("exp " + scaleFactor);
+            return result;
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            metric.validate(dataset, datasetsFields, errorConsumer);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Exponentiate that = (Exponentiate) o;
+
+            if (scaleFactor != that.scaleFactor) return false;
+            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = metric != null ? metric.hashCode() : 0;
+            result = 31 * result + scaleFactor;
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Exponentiate{" +
+                    "metric=" + metric +
+                    ", scaleFactor=" + scaleFactor +
+                    '}';
         }
     }
 

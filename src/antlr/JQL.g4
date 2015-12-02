@@ -63,6 +63,7 @@ ALIASING : 'ALIASING';
 HASSTRFIELD : 'HASSTRFIELD' ;
 HASINTFIELD : 'HASINTFIELD' ;
 SAME : 'SAME' ;
+EXP : 'EXP';
 
 Y : 'Y' ;
 
@@ -100,7 +101,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -243,6 +244,8 @@ legacyDocMetric
     : COUNT '(' ')' # LegacyDocCounts
     | ABS '(' legacyDocMetric ')' # LegacyDocAbs
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
+    | LOG '(' legacyDocMetric (',' scaleFactor = INT)? ')' # LegacyDocLog
+    | EXP '(' legacyDocMetric (',' scaleFactor = INT)? ')' # LegacyDocExp
     | '-' legacyDocMetric # LegacyDocNegate
     | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
     | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus
@@ -256,6 +259,8 @@ jqlDocMetric
     : COUNT '(' ')' # DocCounts
     | ABS '(' jqlDocMetric ')' # DocAbs
     | SIGNUM '(' jqlDocMetric ')' # DocSignum
+    | LOG '(' jqlDocMetric (',' scaleFactor = INT)? ')' # DocLog
+    | EXP '(' jqlDocMetric (',' scaleFactor = INT)? ')' # DocExp
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
     | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus

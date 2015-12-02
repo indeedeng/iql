@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.indeed.squall.iql2.language.query.Queries;
+import junit.framework.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -83,5 +84,35 @@ public class DocMetricsTest {
                 aTimesBPlusCTimesD,
                 complex
         );
+    }
+
+    @Test
+    public void testLog() throws Exception {
+        final DocMetric logCount1 = new DocMetric.Log(new DocMetric.Count(), 1);
+        Assert.assertEquals(logCount1, PARSE_LEGACY_DOC_METRIC.apply("log(count())"));
+        Assert.assertEquals(logCount1, PARSE_IQL2_DOC_METRIC.apply("log(count())"));
+
+        final DocMetric logCount100 = new DocMetric.Log(new DocMetric.Count(), 100);
+        Assert.assertEquals(logCount100, PARSE_LEGACY_DOC_METRIC.apply("log(count(), 100)"));
+        Assert.assertEquals(logCount100, PARSE_IQL2_DOC_METRIC.apply("log(count(), 100)"));
+
+        final DocMetric logLogCount = new DocMetric.Log(new DocMetric.Log(new DocMetric.Count(), 1), 1);
+        Assert.assertEquals(logLogCount, PARSE_LEGACY_DOC_METRIC.apply("log(log(count()))"));
+        Assert.assertEquals(logLogCount, PARSE_IQL2_DOC_METRIC.apply("log(log(count()))"));
+    }
+
+    @Test
+    public void testExp() throws Exception {
+        final DocMetric expCount1 = new DocMetric.Exponentiate(new DocMetric.Count(), 1);
+        Assert.assertEquals(expCount1, PARSE_LEGACY_DOC_METRIC.apply("exp(count())"));
+        Assert.assertEquals(expCount1, PARSE_IQL2_DOC_METRIC.apply("exp(count())"));
+
+        final DocMetric expCount100 = new DocMetric.Exponentiate(new DocMetric.Count(), 100);
+        Assert.assertEquals(expCount100, PARSE_LEGACY_DOC_METRIC.apply("exp(count(), 100)"));
+        Assert.assertEquals(expCount100, PARSE_IQL2_DOC_METRIC.apply("exp(count(), 100)"));
+
+        final DocMetric expExpCount = new DocMetric.Exponentiate(new DocMetric.Exponentiate(new DocMetric.Count(), 1), 1);
+        Assert.assertEquals(expExpCount, PARSE_LEGACY_DOC_METRIC.apply("exp(exp(count()))"));
+        Assert.assertEquals(expExpCount, PARSE_IQL2_DOC_METRIC.apply("exp(exp(count()))"));
     }
 }

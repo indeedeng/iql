@@ -106,8 +106,15 @@ public class ConstantFolding {
                 }
             } else if (input instanceof DocMetric.Log) {
                 final DocMetric.Log log = (DocMetric.Log) input;
-                if (isConstant(log.m1)) {
-                    return new DocMetric.Constant((long) Math.log(getConstant(log.m1)));
+                if (isConstant(log.metric)) {
+                    return new DocMetric.Constant((long) ((Math.log(getConstant(log.metric)) - Math.log(log.scaleFactor)) * log.scaleFactor));
+                }
+            } else if (input instanceof DocMetric.Exponentiate) {
+                final DocMetric.Exponentiate exp = (DocMetric.Exponentiate) input;
+                if (isConstant(exp.metric)) {
+                    double x = getConstant(exp.metric) / (double) exp.scaleFactor;
+                    double result = Math.exp(x);
+                    return new DocMetric.Constant((long) (result * exp.scaleFactor));
                 }
             } else if (input instanceof DocMetric.Max) {
                 final DocMetric.Max max = (DocMetric.Max) input;
