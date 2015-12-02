@@ -152,4 +152,14 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return "GetGroupDistincts{" +
+                "scope=" + scope +
+                ", field='" + field + '\'' +
+                ", filter=" + filter +
+                ", windowSize=" + windowSize +
+                '}';
+    }
 }

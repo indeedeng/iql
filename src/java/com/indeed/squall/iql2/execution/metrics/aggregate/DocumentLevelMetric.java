@@ -46,4 +46,13 @@ public class DocumentLevelMetric implements AggregateMetric {
     public double apply(long term, long[] stats, int group) {
         return stats[index];
     }
+
+    @Override
+    public String toString() {
+        return "DocumentLevelMetric{" +
+                "sessionName='" + sessionName + '\'' +
+                ", pushes=" + pushes +
+                ", index=" + index +
+                '}';
+    }
 }

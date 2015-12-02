@@ -106,4 +106,12 @@ public class GetGroupStats implements Command {
 
         return groupStats;
     }
+
+    @Override
+    public String toString() {
+        return "GetGroupStats{" +
+                "metrics=" + metrics +
+                ", returnGroupKeys=" + returnGroupKeys +
+                '}';
+    }
 }
