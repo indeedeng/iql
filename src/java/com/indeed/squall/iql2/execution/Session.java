@@ -788,17 +788,15 @@ public class Session {
             final FTGSIterator it = closer.register(session.getFTGSIterator(new String[]{field}, new String[0]));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
-            if (!it.nextField()) {
-                return Optional.absent();
+            while (it.nextField()) {
+                while (it.nextTerm()) {
+                    while (it.nextGroup()) {
+                        it.groupStats(statsBuff);
+                        return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, statsBuff, it.termIntVal(), it.group()));
+                    }
+                }
             }
-            if (!it.nextTerm()) {
-                return Optional.absent();
-            }
-            if (!it.nextGroup()) {
-                return Optional.absent();
-            }
-            it.groupStats(statsBuff);
-            return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, statsBuff, it.termIntVal(), it.group()));
+            return Optional.absent();
         }
     }
 
@@ -858,11 +856,16 @@ public class Session {
             state.nextGroup = iterator.group();
             iterator.groupStats(state.statsBuff);
             pq.add(state);
-        } else if (iterator.nextTerm() && iterator.nextGroup()) {
-            state.nextTerm = iterator.termIntVal();
-            state.nextGroup = iterator.group();
-            iterator.groupStats(state.statsBuff);
-            pq.add(state);
+        } else {
+            while (iterator.nextTerm()) {
+                while (iterator.nextGroup()) {
+                    state.nextTerm = iterator.termIntVal();
+                    state.nextGroup = iterator.group();
+                    iterator.groupStats(state.statsBuff);
+                    pq.add(state);
+                    return;
+                }
+            }
         }
     }
 
@@ -891,17 +894,15 @@ public class Session {
             final FTGSIterator it = closer.register(session.getFTGSIterator(new String[0], new String[]{field}));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
-            if (!it.nextField()) {
-                return Optional.absent();
+            while (it.nextField()) {
+                while (it.nextTerm()) {
+                    while (it.nextGroup()) {
+                        it.groupStats(statsBuff);
+                        return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, statsBuff, it.termStringVal(), it.group()));
+                    }
+                }
             }
-            if (!it.nextTerm()) {
-                return Optional.absent();
-            }
-            if (!it.nextGroup()) {
-                return Optional.absent();
-            }
-            it.groupStats(statsBuff);
-            return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, statsBuff, it.termStringVal(), it.group()));
+            return Optional.absent();
         }
     }
 
@@ -960,11 +961,16 @@ public class Session {
             state.nextGroup = iterator.group();
             iterator.groupStats(state.statsBuff);
             pq.add(state);
-        } else if (iterator.nextTerm() && iterator.nextGroup()) {
-            state.nextTerm = iterator.termStringVal();
-            state.nextGroup = iterator.group();
-            iterator.groupStats(state.statsBuff);
-            pq.add(state);
+        } else {
+            while (iterator.nextTerm()) {
+                while (iterator.nextGroup()) {
+                    state.nextTerm = iterator.termStringVal();
+                    state.nextGroup = iterator.group();
+                    iterator.groupStats(state.statsBuff);
+                    pq.add(state);
+                    return;
+                }
+            }
         }
     }
 
