@@ -55,6 +55,31 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByMetric that = (GroupByMetric) o;
+
+            if (min != that.min) return false;
+            if (max != that.max) return false;
+            if (interval != that.interval) return false;
+            if (excludeGutters != that.excludeGutters) return false;
+            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = metric != null ? metric.hashCode() : 0;
+            result = 31 * result + (int) (min ^ (min >>> 32));
+            result = 31 * result + (int) (max ^ (max >>> 32));
+            result = 31 * result + (int) (interval ^ (interval >>> 32));
+            result = 31 * result + (excludeGutters ? 1 : 0);
+            return result;
+        }
+
+        @Override
         public String toString() {
             return "GroupByMetric{" +
                     "metric=" + metric +
@@ -90,6 +115,27 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByTime that = (GroupByTime) o;
+
+            if (periodMillis != that.periodMillis) return false;
+            if (field != null ? !field.equals(that.field) : that.field != null) return false;
+            return !(format != null ? !format.equals(that.format) : that.format != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = (int) (periodMillis ^ (periodMillis >>> 32));
+            result = 31 * result + (field != null ? field.hashCode() : 0);
+            result = 31 * result + (format != null ? format.hashCode() : 0);
+            return result;
         }
 
         @Override
@@ -129,6 +175,27 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByTimeBuckets that = (GroupByTimeBuckets) o;
+
+            if (numBuckets != that.numBuckets) return false;
+            if (field != null ? !field.equals(that.field) : that.field != null) return false;
+            return !(format != null ? !format.equals(that.format) : that.format != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = numBuckets;
+            result = 31 * result + (field != null ? field.hashCode() : 0);
+            result = 31 * result + (format != null ? format.hashCode() : 0);
+            return result;
+        }
+
+        @Override
         public String toString() {
             return "GroupByTimeBuckets{" +
                     "numBuckets=" + numBuckets +
@@ -160,6 +227,25 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeMonthOfYear();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByMonth that = (GroupByMonth) o;
+
+            if (field != null ? !field.equals(that.field) : that.field != null) return false;
+            return !(format != null ? !format.equals(that.format) : that.format != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = field != null ? field.hashCode() : 0;
+            result = 31 * result + (format != null ? format.hashCode() : 0);
+            return result;
         }
 
         @Override
@@ -218,6 +304,33 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByField that = (GroupByField) o;
+
+            if (withDefault != that.withDefault) return false;
+            if (forceNonStreaming != that.forceNonStreaming) return false;
+            if (field != null ? !field.equals(that.field) : that.field != null) return false;
+            if (filter != null ? !filter.equals(that.filter) : that.filter != null) return false;
+            if (limit != null ? !limit.equals(that.limit) : that.limit != null) return false;
+            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = field != null ? field.hashCode() : 0;
+            result = 31 * result + (filter != null ? filter.hashCode() : 0);
+            result = 31 * result + (limit != null ? limit.hashCode() : 0);
+            result = 31 * result + (metric != null ? metric.hashCode() : 0);
+            result = 31 * result + (withDefault ? 1 : 0);
+            result = 31 * result + (forceNonStreaming ? 1 : 0);
+            return result;
+        }
+
+        @Override
         public String toString() {
             return "GroupByField{" +
                     "field='" + field + '\'' +
@@ -246,6 +359,16 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean equals(Object obj) {
+            return obj instanceof GroupByDayOfWeek;
+        }
+
+        @Override
+        public int hashCode() {
+            return 5843;
+        }
+
+        @Override
         public String toString() {
             return "GroupByDayOfWeek{}";
         }
@@ -265,6 +388,16 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeSessionNames();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof GroupBySessionName;
+        }
+
+        @Override
+        public int hashCode() {
+            return 5903;
         }
 
         @Override
@@ -295,6 +428,25 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            GroupByQuantiles that = (GroupByQuantiles) o;
+
+            if (numBuckets != that.numBuckets) return false;
+            return !(field != null ? !field.equals(that.field) : that.field != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = field != null ? field.hashCode() : 0;
+            result = 31 * result + numBuckets;
+            return result;
         }
 
         @Override
