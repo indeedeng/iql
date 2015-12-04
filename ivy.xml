@@ -23,6 +23,7 @@
     <dependencies>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
+        <dependency org="indeed" name="squall-hadoopcommon" rev="${squall-hadoopcommon.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
 
         <dependency org="indeed" name="iql2-language" rev="${iql2-language.version}"/>
@@ -68,6 +69,7 @@
         <!-- Jersey conflicts with RESTEasy -->
         <exclude org="com.sun.jersey" module="*"/>
         <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
+        <conflict org="google" module="protobuf-java" rev="2.4.1"/>
     </dependencies>
 </ivy-module>
 

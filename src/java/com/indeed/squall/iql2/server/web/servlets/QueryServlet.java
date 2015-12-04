@@ -48,6 +48,7 @@ import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
@@ -161,7 +162,13 @@ public class QueryServlet {
         final String contentType = request.getHeader("Accept");
         final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
         final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
-        final TreeTimer timer = new TreeTimer();
+        final TreeTimer timer = new TreeTimer() {
+            @Override
+            public void push(String s) {
+                super.push(s);
+                log.info(s);
+            }
+        };
 
         Throwable errorOccurred = null;
 
@@ -198,6 +205,7 @@ public class QueryServlet {
             final boolean isJson = false;
             final boolean status500 = true;
             handleError(response, isJson, e, status500, isStream);
+            log.error("Error occurred", e);
             errorOccurred = e;
         } finally {
             try {
@@ -511,7 +519,7 @@ public class QueryServlet {
                 Functions.<DocMetric>identity(),
                 Functions.<AggregateFilter>identity(),
                 new Function<DocFilter, DocFilter>() {
-                    final Map<Query, Set<String>> queryToResults = new HashMap<>();
+                    final Map<Query, Set<Long>> queryToResults = new HashMap<>();
 
                     @Nullable
                     @Override
@@ -521,13 +529,16 @@ public class QueryServlet {
                             final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
                             final Query q = fieldInQuery.query;
                             if (!queryToResults.containsKey(q)) {
-                                final Set<String> terms = new HashSet<>();
+                                final Set<Long> terms = new LongOpenHashSet();
                                 timer.push("Execute sub-query: \"" + q + "\"");
                                 try {
                                     executeParsedQuery(new Consumer<String>() {
                                         @Override
                                         public void accept(String s) {
-                                            terms.add(s.split("\t")[0]);
+                                            try {
+                                                terms.add(Long.parseLong(s.split("\t")[0]));
+                                            } catch (NumberFormatException e) {
+                                            }
                                         }
                                     }, timer, new NoOpProgressCallback(), q);
                                 } catch (IOException e) {
@@ -536,9 +547,9 @@ public class QueryServlet {
                                 timer.pop();
                                 queryToResults.put(q, terms);
                             }
-                            final Set<String> terms = queryToResults.get(q);
+                            final Set<Long> terms = queryToResults.get(q);
                             final ScopedField scopedField = fieldInQuery.field;
-                            return scopedField.wrap(new DocFilter.StringFieldIn(Collections.<String, Set<String>>emptyMap(), scopedField.field, terms));
+                            return scopedField.wrap(new DocFilter.IntFieldIn(scopedField.field, terms));
                         }
                         return input;
                     }
@@ -611,6 +622,7 @@ public class QueryServlet {
                     progressCallback.startCommand(null, true);
                     sendCachedQuery(cacheFileName, out, query.rowLimit);
                     timer.pop();
+                    return;
                 } else {
                     final Consumer<String> oldOut = out;
                     final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -651,15 +663,15 @@ public class QueryServlet {
             }
 
             final ObjectMapper objectMapper = new ObjectMapper();
-            if (log.isTraceEnabled()) {
-                log.trace("commands = " + commands);
+            if (log.isDebugEnabled()) {
+                log.debug("commands = " + commands);
                 for (final Command command : commands) {
-                    log.trace("command = " + command);
+                    log.debug("command = " + command);
                     final String s = objectMapper.writeValueAsString(command);
-                    log.trace("s = " + s);
+                    log.debug("s = " + s);
                 }
                 final String commandList = objectMapper.writeValueAsString(commands);
-                log.trace("commandList = " + commandList);
+                log.debug("commandList = " + commandList);
             }
 
             final Map<String, Object> request = new HashMap<>();
