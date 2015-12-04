@@ -76,7 +76,6 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -379,6 +378,7 @@ public class QueryServlet {
                     }
                 };
             }
+            final Set<String> warnings = new HashSet<>();
             executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, queryTracker, new NoOpProgressCallback() {
                 private int completedChunks = 0;
 
@@ -427,6 +427,11 @@ public class QueryServlet {
                     }
                     incrementChunksCompleted();
                 }
+            }, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    warnings.add(s);
+                }
             });
             if (isStream) {
                 outputStream.println();
@@ -440,6 +445,14 @@ public class QueryServlet {
                 headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
                 headerMap.put("IQL-Totals", "[]");
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+
+                if (!warnings.isEmpty()) {
+                    outputStream.println();
+                    outputStream.println("event: warnings");
+                    for (final String warning : warnings) {
+                        outputStream.println("data: " + warning);
+                    }
+                }
 
                 outputStream.println();
                 outputStream.println("event: complete");
@@ -501,11 +514,11 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback) throws IOException, ImhotepOutOfMemoryException {
+    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
-        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields);
+        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn);
         timer.pop();
 
         executeParsedQuery(out, timer, progressCallback, query);
