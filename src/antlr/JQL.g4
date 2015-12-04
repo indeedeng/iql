@@ -63,7 +63,8 @@ ALIASING : 'ALIASING';
 HASSTRFIELD : 'HASSTRFIELD' ;
 HASINTFIELD : 'HASINTFIELD' ;
 SAME : 'SAME' ;
-EXP : 'EXP';
+EXP : 'EXP' ;
+WINDOW_SUM : 'WINDOW_SUM' ;
 
 Y : 'Y' ;
 
@@ -101,7 +102,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -146,7 +147,7 @@ jqlAggregateMetric
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
     | DISTINCT '(' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
     | DISTINCT_WINDOW '(' INT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
-    | WINDOW '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
+    | (old=WINDOW | WINDOW_SUM) '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg

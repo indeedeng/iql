@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.TimeUnit;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
 
 import java.util.ArrayList;
@@ -25,11 +26,11 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
         final List<JQLParser.GroupByElementWithHavingContext> elements = groupByContentsContext.groupByElementWithHaving();
         final List<GroupByMaybeHaving> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByElementWithHavingContext element : elements) {
-            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields));
+            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
         }
         return result;
     }
@@ -37,16 +38,18 @@ public class GroupBys {
     public static GroupByMaybeHaving parseGroupByMaybeHaving(
             final JQLParser.GroupByElementWithHavingContext ctx,
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
-            final Map<String, Set<String>> datasetToIntFields) {
-        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final Map<String, Set<String>> datasetToIntFields,
+            final Consumer<String> warn
+    ) {
+        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
         if (ctx.filter != null) {
-            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields));
+            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
         } else {
             return GroupByMaybeHaving.of(groupBy);
         }
     }
 
-    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
+    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn) {
         final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
@@ -79,7 +82,7 @@ public class GroupBys {
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
                 } else {
                     metric = Optional.absent();
                 }
@@ -106,7 +109,7 @@ public class GroupBys {
                 final boolean excludeGutters;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -120,7 +123,7 @@ public class GroupBys {
                     }
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -201,7 +204,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields);
+                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
                     if (reverseOrder) {
                         theMetric = new AggregateMetric.Negate(theMetric);
                     }
@@ -211,7 +214,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
                 } else {
                     filter = Optional.absent();
                 }

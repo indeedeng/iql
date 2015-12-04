@@ -8,6 +8,7 @@ import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.TimePeriods;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -38,17 +39,17 @@ public class Dataset {
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
-    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
         final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
-        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
         }
         return result;
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
         final String dataset = datasetContext.index.getText().toUpperCase();
         final DateTime start = parseDateTime(datasetContext.start);
         final DateTime end = parseDateTime(datasetContext.end);
@@ -63,7 +64,7 @@ public class Dataset {
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn));
             }
             initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
         } else {
@@ -72,7 +73,7 @@ public class Dataset {
         return Pair.of(new Dataset(dataset, start, end, name, fieldAliases), initializerFilter);
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
+    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn) {
         final Object[] ref = new Object[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -84,7 +85,7 @@ public class Dataset {
             }
 
             public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
-                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
@@ -102,7 +103,7 @@ public class Dataset {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
                 } else {

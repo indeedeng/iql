@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.indeed.squall.iql2.language.DocMetric.Field;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import org.junit.Test;
 
@@ -27,7 +28,12 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(false);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    System.out.println("PARSE WARNING: " + s);
+                }
+            });
         }
     };
     public static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
@@ -39,7 +45,12 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(true);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    System.out.println("PARSE WARNING: " + s);
+                }
+            });
         }
     };
 

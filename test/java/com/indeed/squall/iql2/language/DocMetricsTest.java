@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import junit.framework.Assert;
 import org.junit.Test;
@@ -27,7 +28,12 @@ public class DocMetricsTest {
                     return input.docMetric(true);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    System.out.println("PARSE WARNING: " + s);
+                }
+            });
         }
     };
 
@@ -40,7 +46,12 @@ public class DocMetricsTest {
                     return input.docMetric(false);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    System.out.println("PARSE WARNING: " + s);
+                }
+            });
         }
     };
 

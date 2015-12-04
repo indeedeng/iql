@@ -5,6 +5,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 
@@ -285,7 +286,12 @@ public class ConstantFolding {
     public static void main(String[] args) {
         final JQLParser parser = Queries.parserForString("sortingTime!=-1");
         final JQLParser.DocFilterContext ctx = parser.docFilter(true);
-        final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), null);
+        final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), null, new Consumer<String>() {
+            @Override
+            public void accept(String s) {
+                System.out.println("WARNING: " + s);
+            }
+        });
         System.out.println("filter = " + filter);
         final DocMetric metric = filter.asZeroOneMetric("recommendedjobsservice");
         System.out.println("metric = " + metric);

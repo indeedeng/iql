@@ -11,6 +11,7 @@ import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
 
@@ -44,9 +45,10 @@ public class Query {
             List<JQLParser.SelectContentsContext> selects,
             Token limit,
             Map<String, Set<String>> datasetToKeywordAnalyzerFields,
-            Map<String, Set<String>> datasetToIntFields
+            Map<String, Set<String>> datasetToIntFields,
+            Consumer<String> warn
     ) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, datasetToKeywordAnalyzerFields, datasetToIntFields);
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();
@@ -58,7 +60,7 @@ public class Query {
         }
         if (whereContents.isPresent()) {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
-                allFilters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents));
+                allFilters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn));
             }
         }
         final Optional<DocFilter> whereFilter;
@@ -70,7 +72,7 @@ public class Query {
 
         final List<GroupByMaybeHaving> groupBys;
         if (groupByContents.isPresent()) {
-            groupBys = GroupBys.parseGroupBys(groupByContents.get(), datasetToKeywordAnalyzerFields, datasetToIntFields);
+            groupBys = GroupBys.parseGroupBys(groupByContents.get(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
         } else {
             groupBys = Collections.emptyList();
         }
@@ -83,7 +85,7 @@ public class Query {
             final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
             selectedMetrics = new ArrayList<>();
             for (final JQLParser.AggregateMetricContext metric : metrics) {
-                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields));
+                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
             }
         } else {
             throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + selects.size());
@@ -100,7 +102,7 @@ public class Query {
 
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
         return parseQuery(
                 queryContext.fromContents(),
                 Optional.fromNullable(queryContext.whereContents()),
@@ -108,7 +110,8 @@ public class Query {
                 queryContext.selects,
                 queryContext.limit,
                 datasetToKeywordAnalyzerFields,
-                datasetToIntFields
+                datasetToIntFields,
+                warn
         );
     }
 

@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.execution.passes.FixDistinctFilterRunning;
 import com.indeed.squall.iql2.language.execution.passes.GroupIterations;
@@ -64,8 +65,17 @@ public class Queries {
     }
 
     public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        return parseQuery(q, useLegacy, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+            @Override
+            public void accept(String s) {
+
+            }
+        });
+    }
+
+    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields);
+        return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context) {
