@@ -19,6 +19,7 @@ import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.util.core.TreeTimer;
 import org.joda.time.DateTime;
 import org.junit.Assert;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Ignore
 public class TestUtil {
     public static void testOne(final List<Document> documents, final List<Command> commands, DateTime start, DateTime end) throws IOException, ImhotepOutOfMemoryException {
         try (final Closer closer = Closer.create()) {
