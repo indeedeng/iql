@@ -604,7 +604,7 @@ public class QueryServlet {
                 shards.add(Pair.of(actualDataset, chosenShard.getShardId()));
             }
         }
-        final String queryHash = computeQueryHash(commands, shards, 2);
+        final String queryHash = computeQueryHash(commands, shards, 3);
         final String cacheFileName = queryHash + ".tsv";
         timer.pop();
 
