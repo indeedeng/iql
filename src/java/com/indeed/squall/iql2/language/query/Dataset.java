@@ -157,8 +157,8 @@ public class Dataset {
             }
         } else if (dateTimeContext.timePeriod() != null) {
             return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod());
-        } else if (dateTimeContext.INT() != null) {
-            return new DateTime(Long.parseLong(dateTimeContext.INT().getText()));
+        } else if (dateTimeContext.NAT() != null) {
+            return new DateTime(Long.parseLong(dateTimeContext.NAT().getText()));
         } else {
             final String textValue = dateTimeContext.getText();
             final DateTime dt = parseWordDate(textValue);

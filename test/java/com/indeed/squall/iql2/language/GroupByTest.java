@@ -48,6 +48,6 @@ public class GroupByTest {
         final GroupByMaybeHaving withNegatives = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), -10, 10, 1, false), Optional.<AggregateFilter>absent());
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL2_GROUP_BY));
-        Assert.assertEquals(withNegatives, Queries.runParser("oji FROM -10 TO 10 BY 1)", PARSE_IQL2_GROUP_BY));
+        Assert.assertEquals(withNegatives, Queries.runParser("oji FROM -10 TO 10 BY 1", PARSE_IQL2_GROUP_BY));
     }
 }

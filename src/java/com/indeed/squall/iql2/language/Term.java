@@ -39,7 +39,7 @@ public class Term implements JsonSerializable {
             }
 
             public void enterJqlIntTerm(JQLParser.JqlIntTermContext ctx) {
-                accept(term(Long.parseLong(ctx.INT().getText())));
+                accept(term(Long.parseLong(ctx.integer().getText())));
             }
 
             public void enterJqlStringTerm(JQLParser.JqlStringTermContext ctx) {
@@ -68,7 +68,7 @@ public class Term implements JsonSerializable {
             }
 
             public void enterLegacyIntTerm(JQLParser.LegacyIntTermContext ctx) {
-                accept(term(Long.parseLong(ctx.INT().getText())));
+                accept(term(Long.parseLong(ctx.integer().getText())));
             }
 
             public void enterLegacyStringTerm(JQLParser.LegacyStringTermContext ctx) {

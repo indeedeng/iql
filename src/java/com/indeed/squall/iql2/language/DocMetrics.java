@@ -72,7 +72,7 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocInt(JQLParser.LegacyDocIntContext ctx) {
-                accept(new DocMetric.Constant(Long.parseLong(ctx.INT().getText())));
+                accept(new DocMetric.Constant(Long.parseLong(ctx.integer().getText())));
             }
 
             @Override
@@ -96,13 +96,13 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocLog(JQLParser.LegacyDocLogContext ctx) {
-                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
             }
 
             @Override
             public void enterLegacyDocExp(JQLParser.LegacyDocExpContext ctx) {
-                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
             }
 
@@ -141,14 +141,14 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
                 final String field = ctx.field.getText().toUpperCase();
-                final long term = Long.parseLong(ctx.INT().getText());
+                final long term = Long.parseLong(ctx.integer().getText());
                 accept(new DocMetric.HasInt(field, term));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasntInt(JQLParser.LegacyDocMetricAtomHasntIntContext ctx) {
                 final String field = ctx.field.getText().toUpperCase();
-                final long term = Long.parseLong(ctx.INT().getText());
+                final long term = Long.parseLong(ctx.integer().getText());
                 accept(negateMetric(new DocMetric.HasInt(field, term)));
             }
 
@@ -292,18 +292,18 @@ public class DocMetrics {
             }
 
             public void enterDocInt(JQLParser.DocIntContext ctx) {
-                accept(new DocMetric.Constant(Long.parseLong(ctx.INT().getText())));
+                accept(new DocMetric.Constant(Long.parseLong(ctx.integer().getText())));
             }
 
             @Override
             public void enterDocLog(JQLParser.DocLogContext ctx) {
-                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Log(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn), scaleFactor));
             }
 
             @Override
             public void enterDocExp(JQLParser.DocExpContext ctx) {
-                final int scaleFactor = ctx.INT() == null ? 1 : Integer.parseInt(ctx.INT().getText());
+                final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Exponentiate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn), scaleFactor));
             }
 
@@ -332,7 +332,7 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                final long term = Long.parseLong(ctx.INT().getText());
+                final long term = Long.parseLong(ctx.integer().getText());
                 accept(scopedField.wrap(negateMetric(new DocMetric.HasInt(scopedField.field, term))));
             }
 
@@ -351,7 +351,7 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                final long term = Long.parseLong(ctx.INT().getText());
+                final long term = Long.parseLong(ctx.integer().getText());
                 accept(scopedField.wrap(new DocMetric.HasInt(scopedField.field, term)));
             }
 

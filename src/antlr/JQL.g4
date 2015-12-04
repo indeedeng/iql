@@ -72,7 +72,7 @@ TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'
 
 TIME_PERIOD_ATOM : ([0-9]+ (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
 
-INT : [0-9]+ ;
+NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
@@ -104,7 +104,7 @@ identifier
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM
     ;
-timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=INT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
+timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
 timePeriodTerminal : timePeriod EOF ;
 
@@ -112,7 +112,9 @@ WS : [ \t\r\n]+ -> channel(HIDDEN) ;
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 
-number : INT | DOUBLE ;
+integer : neg='-'? NAT ;
+
+number : NAT | DOUBLE ;
 
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
@@ -142,12 +144,12 @@ aggregateMetric [boolean useLegacy]
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
-    | LAG '(' INT ',' jqlAggregateMetric ')' # AggregateLag
+    | LAG '(' NAT ',' jqlAggregateMetric ')' # AggregateLag
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
     | DISTINCT '(' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
-    | DISTINCT_WINDOW '(' INT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
-    | (old=WINDOW | WINDOW_SUM) '(' INT ',' jqlAggregateMetric ')' # AggregateWindow
+    | DISTINCT_WINDOW '(' NAT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
+    | (old=WINDOW | WINDOW_SUM) '(' NAT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
@@ -214,12 +216,12 @@ legacyDocMetricAtom
     : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
     | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
-    | field=identifier '=' term=INT # LegacyDocMetricAtomHasInt
-    | HASINT '(' field=identifier ',' term=INT ')' # LegacyDocMetricAtomHasInt
-    | field=identifier '!=' INT # LegacyDocMetricAtomHasntInt
+    | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
+    | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
+    | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
-    | FLOATSCALE '(' field=identifier ',' mult=INT ',' add=INT ')' # LegacyDocMetricAtomFloatScale
+    | FLOATSCALE '(' field=identifier ',' mult=number ',' add=number ')' # LegacyDocMetricAtomFloatScale
     | identifier # LegacyDocMetricAtomRawField
     ;
 
@@ -227,12 +229,12 @@ jqlDocMetricAtom
     : singlyScopedField '=' term=STRING_LITERAL # DocMetricAtomHasString
     | HASSTR '(' singlyScopedField ',' term=STRING_LITERAL ')' # DocMetricAtomHasString
     | singlyScopedField '!=' term=STRING_LITERAL # DocMetricAtomHasntString
-    | singlyScopedField '=' term=INT # DocMetricAtomHasInt
-    | HASINT '(' singlyScopedField ',' term=INT ')' # DocMetricAtomHasInt
-    | singlyScopedField '!=' INT # DocMetricAtomHasntInt
+    | singlyScopedField '=' term=integer # DocMetricAtomHasInt
+    | HASINT '(' singlyScopedField ',' term=integer ')' # DocMetricAtomHasInt
+    | singlyScopedField '!=' integer # DocMetricAtomHasntInt
     | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
-    | FLOATSCALE '(' singlyScopedField ',' mult=INT ',' add=INT ')' # DocMetricAtomFloatScale
+    | FLOATSCALE '(' singlyScopedField ',' mult=number ',' add=number ')' # DocMetricAtomFloatScale
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 
@@ -245,23 +247,23 @@ legacyDocMetric
     : COUNT '(' ')' # LegacyDocCounts
     | ABS '(' legacyDocMetric ')' # LegacyDocAbs
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
-    | LOG '(' legacyDocMetric (',' scaleFactor = INT)? ')' # LegacyDocLog
-    | EXP '(' legacyDocMetric (',' scaleFactor = INT)? ')' # LegacyDocExp
+    | LOG '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocLog
+    | EXP '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocExp
     | '-' legacyDocMetric # LegacyDocNegate
     | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
     | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus
     | legacyDocMetric (gte='>='|gt='>'|lte='<='|lt='<'|eq='='|neq='!=') legacyDocMetric # LegacyDocInequality
     | '(' legacyDocMetric ')' # LegacyDocMetricParens
     | legacyDocMetricAtom # LegacyDocAtom
-    | INT # LegacyDocInt
+    | integer # LegacyDocInt
     ;
 
 jqlDocMetric
     : COUNT '(' ')' # DocCounts
     | ABS '(' jqlDocMetric ')' # DocAbs
     | SIGNUM '(' jqlDocMetric ')' # DocSignum
-    | LOG '(' jqlDocMetric (',' scaleFactor = INT)? ')' # DocLog
-    | EXP '(' jqlDocMetric (',' scaleFactor = INT)? ')' # DocExp
+    | LOG '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocLog
+    | EXP '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocExp
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
     | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus
@@ -269,7 +271,7 @@ jqlDocMetric
     | jqlDocMetric (gte='>='|gt='>'|lte='<='|lt='<'|eq='='|neq='!=') jqlDocMetric # DocInequality
     | '(' jqlDocMetric ')' # DocMetricParens
     | jqlDocMetricAtom # DocAtom
-    | INT # DocInt
+    | integer # DocInt
     ;
 
 termVal [boolean useLegacy]
@@ -278,13 +280,13 @@ termVal [boolean useLegacy]
     ;
 
 legacyTermVal
-    : INT # LegacyIntTerm
+    : integer # LegacyIntTerm
     | STRING_LITERAL # LegacyStringTerm
     | identifier # LegacyStringTerm
     ;
 
 jqlTermVal
-    : INT # JqlIntTerm
+    : integer # JqlIntTerm
     | STRING_LITERAL # JqlStringTerm
     ;
 
@@ -304,8 +306,8 @@ legacyDocFilter
     | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
-    | BETWEEN '(' field=identifier ',' lowerBound=INT ',' upperBound=INT ')' # LegacyDocBetween
-    | SAMPLE '(' field=identifier ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # LegacyDocSample
+    | BETWEEN '(' field=identifier ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
+    | SAMPLE '(' field=identifier ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # LegacyDocSample
     | '!' legacyDocFilter # LegacyDocNot
     | NOT '(' legacyDocFilter ')' # LegacyDocNot
     | legacyDocFilter (AND|'&&') legacyDocFilter # LegacyDocAnd
@@ -324,8 +326,8 @@ jqlDocFilter
     | singlyScopedField not=NOT? IN '(' queryNoSelect ')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
-    | BETWEEN '(' singlyScopedField ',' lowerBound=INT ',' upperBound=INT ')' # DocBetween
-    | SAMPLE '(' singlyScopedField ',' numerator=INT (',' denominator=INT (',' seed=(STRING_LITERAL | INT))?)? ')' # DocSample
+    | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
+    | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
@@ -341,7 +343,7 @@ groupByElementWithHaving [boolean useLegacy]
 
 groupByElement [boolean useLegacy]
     : DAYOFWEEK # DayOfWeekGroupBy
-    | QUANTILES '(' field=identifier ',' INT ')' # QuantilesGroupBy
+    | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
@@ -355,7 +357,7 @@ topTermsGroupByElem [boolean useLegacy]
     : 'TOPTERMS'
         '('
             field=identifier
-            (',' limit=INT
+            (',' limit=NAT
                 (',' metric=aggregateMetric[$ctx.useLegacy]
                     (',' order=(BOTTOM | DESCENDING | DESC | TOP | ASCENDING | ASC))?
                 )?
@@ -364,11 +366,11 @@ topTermsGroupByElem [boolean useLegacy]
     ;
 
 groupByMetric [boolean useLegacy]
-    : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=INT ',' max=INT ',' interval=INT (',' (gutterID=identifier | gutterNumber=number))? ')'
+    : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=integer ',' max=integer ',' interval=NAT (',' (gutterID=identifier | gutterNumber=number))? ')'
     ;
 
 groupByMetricEnglish [boolean useLegacy]
-    : docMetric[$ctx.useLegacy] FROM min=INT TO max=INT BY interval=INT
+    : docMetric[$ctx.useLegacy] FROM min=integer TO max=integer BY interval=NAT
     ;
 
 groupByTime [boolean useLegacy]
@@ -379,7 +381,7 @@ groupByField [boolean useLegacy]
     : field=identifier
         (   ('['
                 order=(TOP | BOTTOM)?
-                limit=INT?
+                limit=NAT?
                 (BY metric=aggregateMetric[$ctx.useLegacy])?
                 (HAVING filter=aggregateFilter[$ctx.useLegacy])?
              ']'
@@ -394,7 +396,7 @@ dateTime
     : DATETIME_TOKEN
     | DATE_TOKEN
     | STRING_LITERAL
-    | INT // This is for unix timestamps.
+    | NAT // This is for unix timestamps.
     | timePeriod
     // Oh god I hate myself:
     | 'TODAY'
@@ -452,7 +454,7 @@ query [boolean useLegacy]
       (WHERE whereContents[$ctx.useLegacy])?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
-      (LIMIT limit=INT)?
+      (LIMIT limit=NAT)?
       EOF
     ;
 

@@ -67,7 +67,7 @@ public class GroupBys {
 
             @Override
             public void enterQuantilesGroupBy(JQLParser.QuantilesGroupByContext ctx) {
-                accept(new GroupBy.GroupByQuantiles(ctx.field.getText().toUpperCase(), Integer.parseInt(ctx.INT().getText())));
+                accept(new GroupBy.GroupByQuantiles(ctx.field.getText().toUpperCase(), Integer.parseInt(ctx.NAT().getText())));
             }
 
             @Override
