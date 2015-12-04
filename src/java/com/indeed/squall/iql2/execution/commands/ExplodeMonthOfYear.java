@@ -29,7 +29,7 @@ public class ExplodeMonthOfYear implements Command {
         final long timeOffsetMinutes = 0L;
         final DateTimeZone zone = DateTimeZone.forOffsetHoursMinutes((int) timeOffsetMinutes / 60, (int) timeOffsetMinutes % 60);
         final long realStart = new DateTime(earliestStart, zone).getMillis();
-        final long shardsEnd = new DateTime(latestEnd).getMillis();
+        final long shardsEnd = new DateTime(latestEnd, zone).getMillis();
         final long difference = shardsEnd - realStart;
         final long realEnd;
         if (difference % timeUnit.millis == 0) {
@@ -42,8 +42,8 @@ public class ExplodeMonthOfYear implements Command {
         session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent());
         final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
         final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
-        final DateTime startMonth = new DateTime(earliestStart).withDayOfMonth(1).withTimeAtStartOfDay();
-        final DateTime endMonthExclusive = new DateTime(latestEnd).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
+        final DateTime startMonth = new DateTime(earliestStart, zone).withDayOfMonth(1).withTimeAtStartOfDay();
+        final DateTime endMonthExclusive = new DateTime(latestEnd, zone).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
         final int numMonths = Months.monthsBetween(
                 startMonth,
                 endMonthExclusive
