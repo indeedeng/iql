@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -20,16 +21,16 @@ public class TermSelects implements JsonSerializable {
 
     public final double[] selects;
     public double topMetric;
-    public final Session.GroupKey groupKey;
+    public final int group;
 
-    public TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, Session.GroupKey groupKey) {
+    public TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, int group) {
         this.field = field;
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
         this.isIntTerm = isIntTerm;
         this.selects = selects;
         this.topMetric = topMetric;
-        this.groupKey = groupKey;
+        this.group = group;
     }
 
     @Override
@@ -42,9 +43,7 @@ public class TermSelects implements JsonSerializable {
             jgen.writeObjectField("stringTerm", stringTerm);
         }
         jgen.writeObjectField("selects", selects);
-        if (groupKey != null) {
-            jgen.writeObjectField("key", groupKey);
-        }
+        jgen.writeNumberField("group", group);
         jgen.writeEndObject();
     }
 
@@ -61,7 +60,7 @@ public class TermSelects implements JsonSerializable {
                 ", intTerm=" + intTerm +
                 ", selects=" + Arrays.toString(selects) +
                 ", topMetric=" + topMetric +
-                ", groupKey=" + groupKey +
+                ", group=" + group +
                 '}';
     }
 }

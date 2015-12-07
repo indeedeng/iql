@@ -10,10 +10,10 @@ import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,10 +80,10 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            metric.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            metric.register(metricIndexes, groupKeySet);
             if (filter.isPresent()) {
-                filter.get().register(metricIndexes, groupKeys);
+                filter.get().register(metricIndexes, groupKeySet);
             }
         }
 

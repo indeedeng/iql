@@ -1,7 +1,7 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +24,7 @@ public class DocumentLevelMetric implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         this.index = metricIndexes.get(new QualifiedPush(sessionName, pushes));
     }
 

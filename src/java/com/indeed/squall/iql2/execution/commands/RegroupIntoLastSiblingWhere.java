@@ -8,6 +8,7 @@ import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.Constant;
 import com.indeed.squall.iql2.execution.metrics.aggregate.IfThenElse;
@@ -39,20 +40,19 @@ public class RegroupIntoLastSiblingWhere implements Command {
             remerge[i + 1] = theStats.get(i).stats[0] > 0.5;
         }
 
-        final List<Session.GroupKey> groupKeys = session.groupKeys;
+        final GroupKeySet groupKeySet = session.groupKeySet;
 
         final Int2IntOpenHashMap parentIndexToLastChildIndex = new Int2IntOpenHashMap();
-        for (final Session.GroupKey groupKey : groupKeys) {
-            if (groupKey != null) {
-                parentIndexToLastChildIndex.put(groupKey.parent.index, groupKey.index);
+        for (int i = 0; i < groupKeySet.groupKeys.size(); i++) {
+            if (groupKeySet.groupKeys.get(i) != null) {
+                parentIndexToLastChildIndex.put(groupKeySet.groupParents[i], i);
             }
         }
 
         // Cascade until the end of that parent.
         for (int i = 1; i <= session.numGroups; i++) {
             if (remerge[i]) {
-                final Session.GroupKey groupKey = groupKeys.get(i);
-                final int end = parentIndexToLastChildIndex.get(groupKey.parent.index);
+                final int end = parentIndexToLastChildIndex.get(groupKeySet.groupParents[i]);
                 for (int j = i; j < end; j++) {
                     remerge[j] = true;
                 }
@@ -79,7 +79,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         for (int i = 1; i <= session.numGroups; i++) {
             final int newGroup;
             if (remerge[i]) {
-                newGroup = parentIndexToLastChildIndex.get(groupKeys.get(i).parent.index);
+                newGroup = parentIndexToLastChildIndex.get(groupKeySet.previous.groupKeys.get(groupKeySet.groupParents[i]));
                 if (anyStatsAtDepth) {
                     switch (mergeType) {
                         case SumAll: {

@@ -9,7 +9,10 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.util.core.TreeTimer;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.io.IOException;
@@ -17,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 public class ApplyGroupFilter implements Command {
@@ -33,7 +35,7 @@ public class ApplyGroupFilter implements Command {
         final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
         session.pushMetrics(requires, metricIndexes, sessionMetricIndexes);
-        filter.register(metricIndexes, session.groupKeys);
+        filter.register(metricIndexes, session.groupKeySet);
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
@@ -57,13 +59,16 @@ public class ApplyGroupFilter implements Command {
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
         final List<GroupRemapRule> rules = new ArrayList<>();
         final RegroupCondition fakeCondition = new RegroupCondition("foo", true, 0, null, false);
-        final List<Session.GroupKey> newGroupKeys = new ArrayList<>();
+        final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
+        final IntList newGroupParents = new IntArrayList();
+        newGroupParents.add(-1);
         for (int i = 1; i < rules.size(); i++) {
             final int newGroup = keep[i] ? i : 0;
             rules.add(new GroupRemapRule(i, fakeCondition, newGroup, newGroup));
             if (keep[i]) {
-                newGroupKeys.add(session.groupKeys.get(i));
+                newGroupKeys.add(session.groupKeySet.groupKeys.get(i));
+                newGroupParents.add(i);
             }
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
@@ -73,7 +78,7 @@ public class ApplyGroupFilter implements Command {
                 session.regroup(rulesArray);
             }
         });
-        session.groupKeys = newGroupKeys;
+        session.groupKeySet = GroupKeySet.create(session.groupKeySet, newGroupParents.toIntArray(), newGroupKeys);
         out.accept("done");
     }
 }

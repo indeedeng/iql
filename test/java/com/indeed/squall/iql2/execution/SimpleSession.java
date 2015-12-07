@@ -334,7 +334,7 @@ public class SimpleSession {
             for (int j = 0; j < metrics.size(); j++) {
                 stats[j] = selects[j][i];
             }
-            groupStatses.add(new Session.GroupStats(null, stats));
+            groupStatses.add(new Session.GroupStats(i, stats));
         }
         out.accept(OBJECT_MAPPER.writeValueAsString(groupStatses));
     }

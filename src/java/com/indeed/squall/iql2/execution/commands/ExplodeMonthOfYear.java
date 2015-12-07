@@ -1,22 +1,25 @@
 package com.indeed.squall.iql2.execution.commands;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.indeed.common.util.Pair;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ExplodeMonthOfYear implements Command {
     @Override
@@ -68,13 +71,22 @@ public class ExplodeMonthOfYear implements Command {
 
         session.regroup(rulesArray);
 
-        final Function<Integer, Pair<String, Session.GroupKey>> groupMapper = new Function<Integer, Pair<String, Session.GroupKey>>() {
+        final Map<DateTime, GroupKey> yearMonthToGroupKey = new HashMap<>();
+
+        final GroupKeyCreator groupMapper = new GroupKeyCreator() {
             @Override
-            public Pair<String, Session.GroupKey> apply(Integer group) {
-                final int originalGroup = 1 + (group - 1) / numMonths;
+            public int parent(int group) {
+                return 1 + (group - 1) / numMonths;
+            }
+
+            @Override
+            public GroupKey forIndex(int group) {
                 final int monthOffset = (group - 1) % numMonths;
-                final String key = formatter.print(startMonth.plusMonths(monthOffset));
-                return Pair.of(key, session.groupKeys.get(originalGroup));
+                final DateTime month = startMonth.plusMonths(monthOffset);
+                if (!yearMonthToGroupKey.containsKey(month)) {
+                    yearMonthToGroupKey.put(month, new DumbGroupKey(formatter.print(month)));
+                }
+                return yearMonthToGroupKey.get(month);
             }
         };
         if (oldNumGroups == 1) {

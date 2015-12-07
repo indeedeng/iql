@@ -2,9 +2,8 @@ package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,9 +22,9 @@ public class Modulus implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        x.register(metricIndexes, groupKeys);
-        y.register(metricIndexes, groupKeys);
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        x.register(metricIndexes, groupKeySet);
+        y.register(metricIndexes, groupKeySet);
     }
 
     @Override

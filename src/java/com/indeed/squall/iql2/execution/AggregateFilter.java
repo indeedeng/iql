@@ -1,11 +1,11 @@
 package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Sets;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -32,7 +32,7 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         }
 
         @Override
@@ -64,8 +64,8 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            f.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            f.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -104,9 +104,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -146,9 +146,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -188,9 +188,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -230,9 +230,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -272,9 +272,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -314,9 +314,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            m1.register(metricIndexes, groupKeys);
-            m2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            m1.register(metricIndexes, groupKeySet);
+            m2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -356,9 +356,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            f1.register(metricIndexes, groupKeys);
-            f2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            f1.register(metricIndexes, groupKeySet);
+            f2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -398,9 +398,9 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            f1.register(metricIndexes, groupKeys);
-            f2.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            f1.register(metricIndexes, groupKeySet);
+            f2.register(metricIndexes, groupKeySet);
         }
 
         @Override
@@ -438,7 +438,7 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         }
 
         @Override
@@ -470,7 +470,7 @@ public interface AggregateFilter extends Pushable{
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         }
 
         @Override

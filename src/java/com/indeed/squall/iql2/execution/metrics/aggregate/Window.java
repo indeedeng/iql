@@ -1,10 +1,9 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,7 +17,7 @@ public class Window implements AggregateMetric {
     private int lastGroup = 0;
 
     private double[] groupToWindowSum;
-    private List<Session.GroupKey> groupKeys;
+    private GroupKeySet groupKeySet;
 
     public Window(int size, AggregateMetric inner) {
         this.size = size;
@@ -31,10 +30,10 @@ public class Window implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        inner.register(metricIndexes, groupKeys);
-        groupToWindowSum = new double[groupKeys.size()];
-        this.groupKeys = groupKeys;
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        inner.register(metricIndexes, groupKeySet);
+        groupToWindowSum = new double[groupKeySet.groupKeys.size()];
+        this.groupKeySet = groupKeySet;
     }
 
     @Override
@@ -42,10 +41,10 @@ public class Window implements AggregateMetric {
         final double[] innerResult = inner.getGroupStats(stats, numGroups);
         final double[] result = new double[numGroups + 1];
         double sum = 0;
-        Session.GroupKey currentParent = null;
+        int currentParent = -1;
         int count = 0;
         for (int i = 1; i <= numGroups; i++) {
-            final Session.GroupKey parent = groupKeys.get(i).parent;
+            final int parent = groupKeySet.groupParents[i];
             if (parent != currentParent) {
                 currentParent = parent;
                 sum = 0;
@@ -92,9 +91,9 @@ public class Window implements AggregateMetric {
 
     private double handle(int group, double value) {
         iterationStarted = true;
-        final Session.GroupKey parent = groupKeys.get(group).parent;
+        final int parentGroup = groupKeySet.groupParents[group];
         for (int offset = 0; offset < size; offset++) {
-            if (group + offset < groupKeys.size() && groupKeys.get(group + offset).parent == parent) {
+            if (group + offset < groupKeySet.groupKeys.size() && groupKeySet.groupParents[group + offset] == parentGroup) {
                 groupToWindowSum[group + offset] += value;
             }
         }

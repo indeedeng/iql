@@ -9,6 +9,9 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -72,8 +75,10 @@ public class ExplodePerDocPercentile implements Command {
 
         session.timer.push("compute bucket remaps");
         final List<GroupMultiRemapRule> rules = Lists.newArrayList();
-        final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList();
+        final List<GroupKey> nextGroupKeys = Lists.newArrayList();
+        final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
+        groupParents.add(-1);
         for (int group = 1; group <= session.numGroups; group++) {
             final IntArrayList positiveGroups = new IntArrayList();
             final List<RegroupCondition> conditions = Lists.newArrayList();
@@ -84,7 +89,9 @@ public class ExplodePerDocPercentile implements Command {
                 final int end = ArrayUtils.lastIndexOf(cutoffs[group], cutoffs[group][bucket]);
                 final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (end + 1) / numBuckets + ")";
                 final int newGroup = nextGroupKeys.size();
-                nextGroupKeys.add(new Session.GroupKey(keyTerm, nextGroupKeys.size(), session.groupKeys.get(group)));
+                // TODO: Not use DumbGroupKey this.
+                nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                groupParents.add(group);
                 positiveGroups.add(newGroup);
                 conditions.add(new RegroupCondition(field, true, cutoffs[group][bucket], null, true));
             }
@@ -110,7 +117,7 @@ public class ExplodePerDocPercentile implements Command {
         });
 
         session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeys = nextGroupKeys;
+        session.groupKeySet = GroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 
         out.accept("ExplodedPerDocPercentile");

@@ -32,7 +32,6 @@ public class GetGroupStats implements Command {
     }
 
     public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {
-        final List<Session.GroupKey> groupKeys = session.groupKeys;
         final Map<String, ImhotepSession> sessions = session.getSessionsMapRaw();
         final int numGroups = session.numGroups;
 
@@ -61,7 +60,7 @@ public class GetGroupStats implements Command {
         session.timer.pop();
         session.timer.push("registering stats");
         for (final AggregateMetric metric : this.metrics) {
-            metric.register(metricIndexes, groupKeys);
+            metric.register(metricIndexes, session.groupKeySet);
         }
         session.timer.pop();
 
@@ -92,13 +91,7 @@ public class GetGroupStats implements Command {
         session.timer.push("creating result");
         final List<Session.GroupStats> groupStats = Lists.newArrayList();
         for (int i = 0; i < numGroups; i++) {
-            final Session.GroupKey groupKey;
-            if (returnGroupKeys) {
-                groupKey = groupKeys.get(i + 1);
-            } else {
-                groupKey = null;
-            }
-            groupStats.add(new Session.GroupStats(groupKey, results[i]));
+            groupStats.add(new Session.GroupStats(i + 1, results[i]));
         }
         session.timer.pop();
 

@@ -54,7 +54,7 @@ public class IterateHandlers {
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
         for (final IterateHandler<T> handler : iterateHandlers) {
-            handler.register(metricIndexes, session.groupKeys);
+            handler.register(metricIndexes, session.groupKeySet);
         }
         session.timer.pop();
 

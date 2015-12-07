@@ -9,11 +9,11 @@ import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -61,9 +61,9 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             }
         }
 
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
             if (filter.isPresent()) {
-                filter.get().register(metricIndexes, groupKeys);
+                filter.get().register(metricIndexes, groupKeySet);
             }
         }
 
@@ -103,10 +103,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final Session.GroupKey parent = session.groupKeys.get(group).parent;
+                final int parent = session.groupKeySet.groupParents[group];
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
+                        if (group + offset < session.groupKeySet.groupKeys.size() && session.groupKeySet.groupParents[group + offset] == parent) {
                             groupSeen.set(group + offset);
                         }
                     }
@@ -138,10 +138,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final Session.GroupKey parent = session.groupKeys.get(group).parent;
+                final int parent = session.groupKeySet.groupParents[group];
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset < session.groupKeys.size() && session.groupKeys.get(group + offset).parent == parent) {
+                        if (group + offset < session.groupKeySet.groupKeys.size() && session.groupKeySet.groupParents[group + offset] == parent) {
                             groupSeen.set(group + offset);
                         }
                     }

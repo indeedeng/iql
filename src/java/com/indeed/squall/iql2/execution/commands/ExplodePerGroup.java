@@ -9,8 +9,16 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ExplodePerGroup implements Command {
     public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
@@ -24,7 +32,12 @@ public class ExplodePerGroup implements Command {
         session.timer.push("form rules");
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         int nextGroup = 1;
-        final List<Session.GroupKey> nextGroupKeys = Lists.newArrayList((Session.GroupKey) null);
+        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
+        final IntList nextGroupParents = new IntArrayList();
+        nextGroupParents.add(-1);
+
+        final Map<String, GroupKey> stringTermGroupKeys = new HashMap<>();
+
         for (int group = 1; group <= session.numGroups; group++) {
             final Commands.TermsWithExplodeOpts termsWithExplodeOpts = this.termsWithExplodeOpts.get(group);
 
@@ -39,10 +52,15 @@ public class ExplodePerGroup implements Command {
             for (final Term term : terms) {
                 if (term.isIntField()) {
                     regroupConditionsList.add(new RegroupCondition(term.getFieldName(), true, term.getTermIntVal(), null, false));
-                    nextGroupKeys.add(new Session.GroupKey(String.valueOf(term.getTermIntVal()), nextGroupKeys.size(), session.groupKeys.get(group)));
+                    nextGroupKeys.add(new IntTermGroupKey(term.getTermIntVal()));
+                    nextGroupParents.add(group);
                 } else {
                     regroupConditionsList.add(new RegroupCondition(term.getFieldName(), false, 0, term.getTermStringVal(), false));
-                    nextGroupKeys.add(new Session.GroupKey(term.getTermStringVal(), nextGroupKeys.size(), session.groupKeys.get(group)));
+                    if (!stringTermGroupKeys.containsKey(term.getTermStringVal())) {
+                        stringTermGroupKeys.put(term.getTermStringVal(), new DumbGroupKey(term.getTermStringVal()));
+                    }
+                    nextGroupKeys.add(stringTermGroupKeys.get(term.getTermStringVal()));
+                    nextGroupParents.add(group);
                 }
             }
 
@@ -54,7 +72,9 @@ public class ExplodePerGroup implements Command {
             final int negativeGroup;
             if (termsWithExplodeOpts.defaultName.isPresent()) {
                 negativeGroup = nextGroup++;
-                nextGroupKeys.add(new Session.GroupKey(termsWithExplodeOpts.defaultName.get(), nextGroupKeys.size(), session.groupKeys.get(group)));
+                // TODO: Memoize this?
+                nextGroupKeys.add(new DumbGroupKey(termsWithExplodeOpts.defaultName.get()));
+                nextGroupParents.add(group);
             } else {
                 negativeGroup = 0;
             }
@@ -70,7 +90,7 @@ public class ExplodePerGroup implements Command {
         session.timer.pop();
 
         session.numGroups = nextGroup - 1;
-        session.groupKeys = nextGroupKeys;
+        session.groupKeySet = GroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 
         out.accept("success");

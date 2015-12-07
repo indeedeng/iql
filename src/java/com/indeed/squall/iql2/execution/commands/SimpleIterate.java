@@ -15,6 +15,7 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TermSelects;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -52,7 +53,7 @@ public class SimpleIterate implements Command {
     public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final List<List<List<TermSelects>>> result = this.evaluate(session, out);
         final StringBuilder sb = new StringBuilder();
-        Session.writeTermSelectsJson(result, sb);
+        Session.writeTermSelectsJson(session.groupKeySet, result, sb);
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
     }
 
@@ -75,7 +76,7 @@ public class SimpleIterate implements Command {
         session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
         session.registerMetrics(metricIndexes, metrics, Arrays.<AggregateFilter>asList());
         if (opts.filter.isPresent()) {
-            opts.filter.get().register(metricIndexes, session.groupKeys);
+            opts.filter.get().register(metricIndexes, session.groupKeySet);
         }
         session.timer.pop();
 
@@ -115,7 +116,7 @@ public class SimpleIterate implements Command {
         final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
             topKMetricOrNull = opts.topK.get().metric;
-            topKMetricOrNull.register(metricIndexes, session.groupKeys);
+            topKMetricOrNull.register(metricIndexes, session.groupKeySet);
         } else {
             topKMetricOrNull = null;
         }
@@ -175,9 +176,9 @@ public class SimpleIterate implements Command {
     }
 
     // TODO: Move this
-    public static String createRow(Session.GroupKey groupKey, String term, double[] selectBuffer) {
+    public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKey.asList(true);
+        final List<String> keyColumns = groupKeySet.asList(groupKey, true);
         for (final String k : keyColumns) {
             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
@@ -196,9 +197,9 @@ public class SimpleIterate implements Command {
     }
 
     // TODO: Move this
-    public static String createRow(Session.GroupKey groupKey, long term, double[] selectBuffer) {
+    public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKey.asList(true);
+        final List<String> keyColumns = groupKeySet.asList(groupKey, true);
         for (final String k : keyColumns) {
             sb.append(k).append('\t');
         }
@@ -227,7 +228,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                out.accept(createRow(session.groupKeys.get(group), term, selectBuffer));
+                out.accept(createRow(session.groupKeySet, group, term, selectBuffer));
             }
         };
     }
@@ -249,7 +250,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, session.groupKeys.get(group)));
+                pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, group));
             }
         };
     }
@@ -266,7 +267,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                out.accept(createRow(session.groupKeys.get(group), term, selectBuffer));
+                out.accept(createRow(session.groupKeySet, group, term, selectBuffer));
             }
         };
     }
@@ -288,7 +289,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, session.groupKeys.get(group)));
+                pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
             }
         };
     }

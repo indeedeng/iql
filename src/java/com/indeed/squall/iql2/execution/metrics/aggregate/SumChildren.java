@@ -1,17 +1,16 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class SumChildren implements AggregateMetric {
     private final AggregateMetric metric;
 
-    private List<Session.GroupKey> groupKeys;
+    private GroupKeySet groupKeySet;
 
     public SumChildren(AggregateMetric metric) {
         this.metric = metric;
@@ -23,20 +22,20 @@ public class SumChildren implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        this.groupKeys = groupKeys;
-        metric.register(metricIndexes, groupKeys);
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        this.groupKeySet = groupKeySet;
+        metric.register(metricIndexes, groupKeySet);
     }
 
     @Override
     public double[] getGroupStats(long[][] stats, int numGroups) {
         final double[] innerStats = metric.getGroupStats(stats, numGroups);
         final double[] result = new double[numGroups + 1];
-        Session.GroupKey currentParent = null;
+        int currentParent = -1;
         int start = 1;
         double sum = 0;
         for (int i = 1; i <= numGroups; i++) {
-            final Session.GroupKey parent = groupKeys.get(i).parent;
+            final int parent = groupKeySet.groupParents[i];
             if (parent != currentParent) {
                 if (start != -1) {
                     Arrays.fill(result, start, i, sum);

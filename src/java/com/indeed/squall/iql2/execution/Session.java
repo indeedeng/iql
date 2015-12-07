@@ -5,10 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -25,7 +22,6 @@ import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
@@ -48,6 +44,9 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
 import com.indeed.squall.iql2.execution.dimensions.DimensionsTranslator;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
@@ -87,7 +86,7 @@ public class Session {
 
     private static final Logger log = Logger.getLogger(Session.class);
 
-    public List<GroupKey> groupKeys = Lists.newArrayList(null, new GroupKey(null, 1, null));
+    public GroupKeySet groupKeySet = GroupKeySet.create();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
 
@@ -365,9 +364,9 @@ public class Session {
                             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
                             for (final TermSelects termSelect : groupTerms) {
                                 if (termSelect.isIntTerm) {
-                                    out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.intTerm, termSelect.selects));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects));
                                 } else {
-                                    out.accept(SimpleIterate.createRow(termSelect.groupKey, termSelect.stringTerm, termSelect.selects));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.stringTerm, termSelect.selects));
                                 }
                             }
                         }
@@ -378,7 +377,7 @@ public class Session {
                     final List<GroupStats> results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
                     for (final GroupStats result : results) {
-                        final List<String> keyColumns = result.key.asList(false);
+                        final List<String> keyColumns = groupKeySet.asList(result.group, false);
                         for (final String k : keyColumns) {
                             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                         }
@@ -406,11 +405,11 @@ public class Session {
         }
     }
 
-    public static void writeTermSelectsJson(List<List<List<TermSelects>>> results, StringBuilder sb) {
+    public static void writeTermSelectsJson(GroupKeySet groupKeySet, List<List<List<TermSelects>>> results, StringBuilder sb) {
         for (final List<List<TermSelects>> groupFieldTerms : results) {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
-                final List<String> keyColumns = termSelects.groupKey.asList(true);
+                final List<String> keyColumns = groupKeySet.asList(termSelects.group, true);
                 for (final String k : keyColumns) {
                     sb.append(k).append('\t');
                 }
@@ -465,10 +464,10 @@ public class Session {
 
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         for (final AggregateMetric metric : metrics) {
-            metric.register(metricIndexes, groupKeys);
+            metric.register(metricIndexes, groupKeySet);
         }
         for (final AggregateFilter filter : filters) {
-            filter.register(metricIndexes, groupKeys);
+            filter.register(metricIndexes, groupKeySet);
         }
     }
 
@@ -535,7 +534,7 @@ public class Session {
         return result;
     }
 
-    public void densify(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider) throws ImhotepOutOfMemoryException {
+    public void densify(GroupKeyCreator groupKeyCreator) throws ImhotepOutOfMemoryException {
         timer.push("densify");
         final BitSet anyPresent = new BitSet();
         // TODO: Parallelize?
@@ -562,11 +561,13 @@ public class Session {
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final List<GroupRemapRule> rules = Lists.newArrayList();
         boolean anyNonIdentity = false;
+        final IntList parents = new IntArrayList();
+        parents.add(-1);
         for (int i = 0; i < anyPresent.size(); i++) {
             if (anyPresent.get(i)) {
                 final int newGroup = nextGroupKeys.size();
-                final Pair<String, GroupKey> p = indexedInfoProvider.apply(i);
-                nextGroupKeys.add(new GroupKey(p.getFirst(), newGroup, p.getSecond()));
+                parents.add(groupKeyCreator.parent(i));
+                nextGroupKeys.add(groupKeyCreator.forIndex(i));
                 rules.add(new GroupRemapRule(i, new RegroupCondition("fakeField", true, 23L, null, false), newGroup, newGroup));
                 if (newGroup != i) {
                     anyNonIdentity = true;
@@ -586,22 +587,27 @@ public class Session {
         timer.pop();
 
         numGroups = nextGroupKeys.size() - 1;
-        groupKeys = nextGroupKeys;
+        log.debug("numGroups = " + numGroups);
+        groupKeySet = GroupKeySet.create(groupKeySet, parents.toIntArray(), nextGroupKeys);
 
         timer.pop();
     }
 
-    public void assumeDense(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider, int newNumGroups) throws ImhotepOutOfMemoryException {
+    public void assumeDense(GroupKeyCreator groupKeyCreator, int newNumGroups) throws ImhotepOutOfMemoryException {
         timer.push("assumeDense");
-        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
+        final List<GroupKey> nextGroupKeys = Lists.newArrayListWithCapacity(newNumGroups + 1);
+        nextGroupKeys.add(null);
+        final int[] parents = new int[newNumGroups + 1];
+        parents[0] = -1;
         for (int i = 1; i <= newNumGroups; i++) {
             final int newGroup = nextGroupKeys.size();
-            final Pair<String, GroupKey> p = indexedInfoProvider.apply(i);
-            nextGroupKeys.add(new GroupKey(p.getFirst(), newGroup, p.getSecond()));
+            parents[i] = groupKeyCreator.parent(i);
+            nextGroupKeys.add(groupKeyCreator.forIndex(i));
         }
 
         numGroups = nextGroupKeys.size() - 1;
-        groupKeys = nextGroupKeys;
+        log.debug("numGroups = " + numGroups);
+        groupKeySet = GroupKeySet.create(groupKeySet, parents, nextGroupKeys);
         timer.pop();
     }
 
@@ -643,11 +649,13 @@ public class Session {
         final int depthChange = currentDepth - savedStat.depth;
         final double[] stats = new double[numGroups + 1];
         for (int group = 1; group <= numGroups; group++) {
-            GroupKey key = groupKeys.get(group);
+            GroupKeySet groupKeySet = this.groupKeySet;
+            int index = group;
             for (int i = 0; i < depthChange; i++) {
-                key = key.parent;
+                index = groupKeySet.groupParents[index];
+                groupKeySet = groupKeySet.previous;
             }
-            stats[group] = savedStat.stats[key.index];
+            stats[group] = savedStat.stats[index];
         }
         return new PerGroupConstant(stats);
     }
@@ -980,49 +988,13 @@ public class Session {
 
     // TODO: JsonSerializable..?
     public static class GroupStats {
-        public final GroupKey key;
+        public final int group;
         public final double[] stats;
 
         @JsonCreator
-        public GroupStats(@JsonProperty("key") GroupKey key, @JsonProperty("stats") double[] stats) {
-            this.key = key;
+        public GroupStats(@JsonProperty("group") int group, @JsonProperty("stats") double[] stats) {
+            this.group = group;
             this.stats = stats;
-        }
-    }
-
-    public static class GroupKey implements JsonSerializable {
-        public final String term;
-        public final int index;
-        public final GroupKey parent;
-
-        public GroupKey(String term, int index, GroupKey parent) {
-            this.term = term;
-            this.index = index;
-            this.parent = parent;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(this.asList(false));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        public List<String> asList(boolean appendingTerm) {
-            if (term == null && !appendingTerm) {
-                return Collections.singletonList("");
-            } else {
-                final List<String> keys = Lists.newArrayList();
-                GroupKey node = this;
-                while (node != null && node.term != null) {
-                    keys.add(node.term);
-                    node = node.parent;
-                }
-                return Lists.reverse(keys);
-            }
         }
     }
 

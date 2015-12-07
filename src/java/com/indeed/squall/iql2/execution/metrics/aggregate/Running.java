@@ -1,10 +1,9 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,15 +24,17 @@ public class Running implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        inner.register(metricIndexes, groupKeys);
-        this.groupToRealGroup = new int[groupKeys.size()];
-        for (int group = 1; group < groupKeys.size(); group++) {
-            Session.GroupKey groupKey = groupKeys.get(group);
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        inner.register(metricIndexes, groupKeySet);
+        this.groupToRealGroup = new int[groupKeySet.groupKeys.size()];
+        for (int group = 1; group < groupKeySet.groupKeys.size(); group++) {
+            GroupKeySet keyset = groupKeySet;
+            int index = group;
             for (int i = 0; i < offset; i++) {
-                groupKey = groupKey.parent;
+                index = keyset.groupParents[index];
+                keyset = keyset.previous;
             }
-            groupToRealGroup[group] = groupKey.index;
+            groupToRealGroup[group] = index;
         }
     }
 

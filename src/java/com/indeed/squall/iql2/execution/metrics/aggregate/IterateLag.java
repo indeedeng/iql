@@ -1,12 +1,11 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,8 +27,8 @@ public class IterateLag implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        metric.register(metricIndexes, groupKeys);
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        metric.register(metricIndexes, groupKeySet);
     }
 
     @Override

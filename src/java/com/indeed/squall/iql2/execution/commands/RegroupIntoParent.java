@@ -8,7 +8,6 @@ import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
-import java.util.Arrays;
 import java.util.Map;
 
 public class RegroupIntoParent implements Command {
@@ -22,8 +21,8 @@ public class RegroupIntoParent implements Command {
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         session.timer.push("compute remapping");
         int maxIndex = 0;
-        for (int i = 1; i < session.groupKeys.size(); i++) {
-            maxIndex = Math.max(maxIndex, session.groupKeys.get(i).parent.index);
+        for (final int parent : session.groupKeySet.groupParents) {
+            maxIndex = Math.max(maxIndex, parent);
         }
         final Map<String, Session.SavedGroupStats> newSavedGroupStatsEntries = Maps.newHashMap();
         for (final Map.Entry<String, Session.SavedGroupStats> entry : session.savedGroupStats.entrySet()) {
@@ -34,8 +33,7 @@ public class RegroupIntoParent implements Command {
                 final double[] oldStats = v.stats;
                 final boolean[] anyFound = new boolean[maxIndex + 1];
                 for (int i = 1; i < oldStats.length; i++) {
-                    final Session.GroupKey groupKey = session.groupKeys.get(i);
-                    final int index = groupKey.parent.index;
+                    final int index = session.groupKeySet.groupParents[i];
                     switch (mergeType) {
                         case SumAll: {
                             mergedStats[index] += oldStats[i];
@@ -70,18 +68,15 @@ public class RegroupIntoParent implements Command {
         session.timer.push("create rules");
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         final RegroupCondition[] fakeConditions = new RegroupCondition[]{new RegroupCondition("fakeField", true, 1, null, false)};
-        final Session.GroupKey[] newGroupKeys = new Session.GroupKey[maxIndex + 1];
         for (int group = 1; group <= session.numGroups; group++) {
-            final Session.GroupKey groupKey = session.groupKeys.get(group);
-            final int newGroup = groupKey.parent.index;
+            final int newGroup = session.groupKeySet.groupParents[group];
             rules[group - 1] = new GroupMultiRemapRule(group, group, new int[]{newGroup}, fakeConditions);
-            newGroupKeys[groupKey.parent.index] = groupKey.parent;
         }
         session.timer.pop();
         session.regroup(rules);
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
-        session.groupKeys = Arrays.asList(newGroupKeys);
+        session.groupKeySet = session.groupKeySet.previous;
 
         out.accept("RegroupedIntoParent");
     }

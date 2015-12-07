@@ -7,12 +7,12 @@ import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -77,7 +77,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         }
     }
 }

@@ -1,16 +1,22 @@
 package com.indeed.squall.iql2.execution.commands;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.common.util.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
+import com.indeed.squall.iql2.execution.groupkeys.HighGutterGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.LowGutterGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.RangeGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.SingleValueGroupKey;
 import com.indeed.util.core.TreeTimer;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -68,23 +74,36 @@ public class MetricRegroup implements Command {
             }
         });
 
-        session.densify(new Function<Integer, Pair<String, Session.GroupKey>>() {
-            public Pair<String, Session.GroupKey> apply(Integer group) {
-                final int oldGroup = 1 + (group - 1) / numBuckets;
+        final long start = min + interval * (numBuckets - 2);
+        final HighGutterGroupKey highGroupKey = new HighGutterGroupKey(start);
+        final LowGutterGroupKey lowGroupKey = new LowGutterGroupKey(min);
+        final Map<Integer, GroupKey> innerGroupToGroupKey = new Int2ObjectOpenHashMap<>();
+
+        session.densify(new GroupKeyCreator() {
+            @Override
+            public int parent(int group) {
+                return 1 + (group - 1) / numBuckets;
+            }
+
+            @Override
+            public GroupKey forIndex(int group) {
                 final int innerGroup = (group - 1) % numBuckets;
-                final String key;
                 if (!excludeGutters && innerGroup == numBuckets - 1) {
-                    key = "[" + (min + interval * (numBuckets - 2)) + ", " + Session.INFINITY_SYMBOL + ")";
+                    return highGroupKey;
                 } else if (!excludeGutters && innerGroup == numBuckets - 2) {
-                    key = "[-" + Session.INFINITY_SYMBOL + ", " + min + ")";
-                } else if (interval == 1) {
-                    key = String.valueOf(min + innerGroup);
+                    return lowGroupKey;
                 } else {
-                    final long minInclusive = min + innerGroup * interval;
-                    final long maxExclusive = min + (innerGroup + 1) * interval;
-                    key = "[" + minInclusive + ", " + maxExclusive + ")";
+                    if (!innerGroupToGroupKey.containsKey(innerGroup)) {
+                        if (interval == 1) {
+                            innerGroupToGroupKey.put(innerGroup, new SingleValueGroupKey(min + innerGroup));
+                        } else {
+                            final long minInclusive = min + innerGroup * interval;
+                            final long maxExclusive = min + (innerGroup + 1) * interval;
+                            return new RangeGroupKey(minInclusive, maxExclusive);
+                        }
+                    }
+                    return innerGroupToGroupKey.get(innerGroup);
                 }
-                return Pair.of(key, session.groupKeys.get(oldGroup));
             }
         });
 

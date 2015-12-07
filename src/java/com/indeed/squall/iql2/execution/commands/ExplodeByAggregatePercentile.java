@@ -7,8 +7,12 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
@@ -40,10 +44,12 @@ public class ExplodeByAggregatePercentile implements Command {
         final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
         session.pushMetrics(metric.requires(), metricIndexes, sessionMetricIndexes);
-        metric.register(metricIndexes, session.groupKeys);
+        metric.register(metricIndexes, session.groupKeySet);
 
-        final List<Session.GroupKey> nextGroupKeys = Lists.newArrayListWithCapacity(1 + session.numGroups * numBuckets);
+        final List<GroupKey> nextGroupKeys = Lists.newArrayListWithCapacity(1 + session.numGroups * numBuckets);
         nextGroupKeys.add(null);
+        final IntList nextGroupParents = new IntArrayList();
+        nextGroupParents.add(-1);
 
         if (session.isIntField(field)) {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
@@ -93,7 +99,9 @@ public class ExplodeByAggregatePercentile implements Command {
                         }
                     }
                     final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                    nextGroupKeys.add(new Session.GroupKey(keyTerm, nextGroupKeys.size(), session.groupKeys.get(group)));
+                    // TODO: Not use DumbGroupKey
+                    nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                    nextGroupParents.add(group);
                 }
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
@@ -145,7 +153,9 @@ public class ExplodeByAggregatePercentile implements Command {
                         }
                     }
                     final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                    nextGroupKeys.add(new Session.GroupKey(keyTerm, nextGroupKeys.size(), session.groupKeys.get(group)));
+                    // TODO: Not use DumbGroupKey
+                    nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                    nextGroupParents.add(group);
                 }
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
@@ -158,7 +168,7 @@ public class ExplodeByAggregatePercentile implements Command {
         session.popStats();
 
         session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeys = nextGroupKeys;
+        session.groupKeySet = GroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 
         out.accept("ExplodedByAggregatePercentile");

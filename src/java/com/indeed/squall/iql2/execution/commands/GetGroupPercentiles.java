@@ -9,12 +9,12 @@ import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -90,7 +90,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
             for (final String name : scope) {
                 relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()"))));
             }

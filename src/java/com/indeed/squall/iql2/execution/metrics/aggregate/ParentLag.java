@@ -1,10 +1,9 @@
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
 import com.indeed.squall.iql2.execution.QualifiedPush;
-import com.indeed.squall.iql2.execution.Session;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,9 +16,9 @@ public class ParentLag implements AggregateMetric {
     private final AggregateMetric metric;
 
     private final ArrayDeque<Double> prevScores; // dear god this is terrible
-    private final ArrayDeque<Session.GroupKey> prevGroupKeys; // Less terrible.
+    private final ArrayDeque<Integer> prevGroupKeys; // really bad..
 
-    private List<Session.GroupKey> groupKeys = null;
+    private GroupKeySet groupKeySet;
 
     public ParentLag(int delay, AggregateMetric metric) {
         this.delay = delay;
@@ -34,9 +33,9 @@ public class ParentLag implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-        metric.register(metricIndexes, groupKeys);
-        this.groupKeys = groupKeys;
+    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        metric.register(metricIndexes, groupKeySet);
+        this.groupKeySet = groupKeySet;
     }
 
     @Override
@@ -59,21 +58,21 @@ public class ParentLag implements AggregateMetric {
         return handle(group, metric.apply(term, stats, group));
     }
 
+    // TODO: This doesn't seem right...
     private double handle(int group, double metricResult) {
-        final Session.GroupKey groupKey = groupKeys.get(group);
-        final Session.GroupKey parent = groupKey.parent;
-        Session.GroupKey targetGroupKey = null;
-        for (final Session.GroupKey key : prevGroupKeys) {
-            if (key.parent == parent && key.index == groupKey.index - delay) {
+        final int parent = groupKeySet.groupParents[group];
+        int targetGroupKey = -1;
+        for (final int key : prevGroupKeys) {
+            if (groupKeySet.groupParents[key] == parent && key == group - delay) {
                 targetGroupKey = key;
                 break;
             }
         }
 
         double result = 0.0;
-        if (targetGroupKey != null) {
+        if (targetGroupKey != -1) {
             while (true) {
-                final Session.GroupKey key = prevGroupKeys.removeFirst();
+                final int key = prevGroupKeys.removeFirst();
                 final double score = prevScores.removeFirst();
                 if (key == targetGroupKey) {
                     result = score;
@@ -83,7 +82,7 @@ public class ParentLag implements AggregateMetric {
         }
 
         prevScores.addLast(metricResult);
-        prevGroupKeys.addLast(groupKey);
+        prevGroupKeys.addLast(group);
         if (prevScores.size() > delay) {
             prevScores.removeFirst();
             prevGroupKeys.removeFirst();

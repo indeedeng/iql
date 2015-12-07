@@ -13,6 +13,7 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 
 import java.io.IOException;
 import java.util.List;
@@ -163,8 +164,8 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, List<Session.GroupKey> groupKeys) {
-            inner.register(metricIndexes, groupKeys);
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+            inner.register(metricIndexes, groupKeySet);
         }
     }
 }
