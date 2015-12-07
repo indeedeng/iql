@@ -594,12 +594,10 @@ public class Session {
     public void assumeDense(Function<Integer, Pair<String, GroupKey>> indexedInfoProvider, int newNumGroups) throws ImhotepOutOfMemoryException {
         timer.push("assumeDense");
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-        final List<GroupRemapRule> rules = Lists.newArrayList();
         for (int i = 1; i <= newNumGroups; i++) {
             final int newGroup = nextGroupKeys.size();
             final Pair<String, GroupKey> p = indexedInfoProvider.apply(i);
             nextGroupKeys.add(new GroupKey(p.getFirst(), newGroup, p.getSecond()));
-            rules.add(new GroupRemapRule(i, new RegroupCondition("fakeField", true, 23L, null, false), newGroup, newGroup));
         }
 
         numGroups = nextGroupKeys.size() - 1;
