@@ -68,6 +68,7 @@ public class Document {
         }
     }
 
+    // TODO: This is probably stupid expensive, but who cares?
     public boolean queryMatches(final Query query) {
         try (final ImhotepSession session = makeImhotepSession()) {
             session.regroup(new QueryRemapRule(1, query, 0, 1));
