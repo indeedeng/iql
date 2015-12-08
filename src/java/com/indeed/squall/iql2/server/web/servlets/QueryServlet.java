@@ -204,7 +204,24 @@ public class QueryServlet {
                 processShowDatasets(response, contentType);
                 statementType = "show";
             } else {
-                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream, "1".equals(request.getParameter("skipValidation")));
+                final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
+                final Integer groupLimit;
+                if (request.getParameter("groupLimit") != null) {
+                    groupLimit = Integer.parseInt(request.getParameter("groupLimit"));
+                } else {
+                    groupLimit = null;
+                }
+                queryStartTimestamp =
+                        processSelect(
+                                response,
+                                query,
+                                version,
+                                username,
+                                timer,
+                                isStream,
+                                skipValidation,
+                                groupLimit
+                        );
                 statementType = "select";
             }
         } catch (Throwable e) {
@@ -350,7 +367,7 @@ public class QueryServlet {
         return value;
     }
 
-    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation, Integer groupLimit) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
         if (isStream) {
             response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
         } else {
@@ -439,7 +456,7 @@ public class QueryServlet {
                 public void accept(String s) {
                     warnings.add(s);
                 }
-            }, skipValidation);
+            }, skipValidation, groupLimit);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -521,18 +538,25 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn, boolean skipValidation) throws IOException, ImhotepOutOfMemoryException {
+    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn, boolean skipValidation, Integer groupLimit) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn);
         timer.pop();
 
-        executeParsedQuery(out, timer, progressCallback, query, skipValidation);
+        executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit);
         timer.pop();
     }
 
-    private void executeParsedQuery(Consumer<String> out, final TreeTimer timer, NoOpProgressCallback progressCallback, Query query, final boolean skipValidation) throws IOException {
+    private void executeParsedQuery(
+            Consumer<String> out,
+            final TreeTimer timer,
+            NoOpProgressCallback progressCallback,
+            Query query,
+            final boolean skipValidation,
+            final @Nullable Integer initialGroupLimit
+    ) throws IOException {
         query = query.transform(
                 Functions.<GroupBy>identity(),
                 Functions.<AggregateMetric>identity(),
@@ -560,7 +584,7 @@ public class QueryServlet {
                                             } catch (NumberFormatException e) {
                                             }
                                         }
-                                    }, timer, new NoOpProgressCallback(), q, skipValidation);
+                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit);
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
                                 }
@@ -699,6 +723,14 @@ public class QueryServlet {
             final Map<String, Object> request = new HashMap<>();
             request.put("datasets", Queries.createDatasetMap(query));
             request.put("commands", commands);
+
+            final Integer groupLimit;
+            if (initialGroupLimit == null) {
+                groupLimit = 1000000;
+            } else {
+                groupLimit = initialGroupLimit;
+            }
+            request.put("groupLimit", groupLimit);
 
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
