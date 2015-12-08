@@ -48,6 +48,8 @@ public class MetricRegroup implements Command {
 
         final int numBuckets = (excludeGutters ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
+        session.checkGroupLimit(numBuckets * session.numGroups);
+
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {

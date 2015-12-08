@@ -27,6 +27,8 @@ public class ExplodeDayOfWeek implements Command {
 
     @Override
     public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        session.checkGroupLimit(session.numGroups * 7);
+
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
         session.timer.push("daily regroup");

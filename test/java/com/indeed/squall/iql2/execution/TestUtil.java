@@ -54,7 +54,7 @@ public class TestUtil {
                 sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, dimensions, datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
             }
 
-            final Session session = new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback());
+            final Session session = new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null);
             final SimpleSession simpleSession = new SimpleSession(documents, start, end);
 
             for (final Command command : commands) {

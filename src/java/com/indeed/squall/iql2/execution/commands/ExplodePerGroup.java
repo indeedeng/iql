@@ -29,6 +29,8 @@ public class ExplodePerGroup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        checkNumGroups(session);
+
         session.timer.push("form rules");
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         int nextGroup = 1;
@@ -94,5 +96,16 @@ public class ExplodePerGroup implements Command {
         session.currentDepth += 1;
 
         out.accept("success");
+    }
+
+    private void checkNumGroups(Session session) {
+        int numGroups = 0;
+        for (final Commands.TermsWithExplodeOpts termsWithExplodeOpt : this.termsWithExplodeOpts) {
+            numGroups += termsWithExplodeOpt.terms.size();
+            if (termsWithExplodeOpt.defaultName.isPresent()) {
+                numGroups += 1;
+            }
+        }
+        session.checkGroupLimit(numGroups);
     }
 }

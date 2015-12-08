@@ -51,6 +51,8 @@ public class ExplodeByAggregatePercentile implements Command {
         final IntList nextGroupParents = new IntArrayList();
         nextGroupParents.add(-1);
 
+        session.checkGroupLimit(this.numBuckets * session.numGroups);
+
         if (session.isIntField(field)) {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, field,

@@ -35,6 +35,8 @@ public class ExplodePerDocPercentile implements Command {
         final String field = this.field;
         final int numBuckets = this.numBuckets;
 
+        session.checkGroupLimit(numBuckets * session.numGroups);
+
         session.timer.push("get counts");
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {

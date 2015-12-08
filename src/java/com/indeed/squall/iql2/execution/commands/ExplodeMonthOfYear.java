@@ -42,7 +42,7 @@ public class ExplodeMonthOfYear implements Command {
         }
 
         final int oldNumGroups = session.numGroups;
-        session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent());
+
         final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
         final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
         final DateTime startMonth = new DateTime(earliestStart, zone).withDayOfMonth(1).withTimeAtStartOfDay();
@@ -51,6 +51,10 @@ public class ExplodeMonthOfYear implements Command {
                 startMonth,
                 endMonthExclusive
         ).getMonths();
+
+        session.checkGroupLimit(numMonths * session.numGroups);
+
+        session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent());
 
         session.timer.push("compute month remapping");
         final List<GroupRemapRule> rules = Lists.newArrayList();

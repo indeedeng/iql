@@ -93,6 +93,8 @@ public class Session {
     public final Map<String, ImhotepSessionInfo> sessions;
     public final TreeTimer timer;
     private final ProgressCallback progressCallback;
+    public final int groupLimit;
+
     public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
@@ -103,10 +105,11 @@ public class Session {
     public static final String INFINITY_SYMBOL = "∞";
     public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
 
-    public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer, ProgressCallback progressCallback) {
+    public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer, ProgressCallback progressCallback, @Nullable Integer groupLimit) {
         this.sessions = sessions;
         this.timer = timer;
         this.progressCallback = progressCallback;
+        this.groupLimit = groupLimit == null ? -1 : groupLimit;
     }
 
     public static Optional<Session> createSession(
@@ -132,7 +135,7 @@ public class Session {
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
-            final Session session = new Session(sessions, treeTimer, progressCallback);
+            final Session session = new Session(sessions, treeTimer, progressCallback, null);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
                 log.debug("Evaluating command: " + command);
@@ -152,7 +155,7 @@ public class Session {
             createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return Optional.of(new Session(sessions, treeTimer, progressCallback));
+            return Optional.of(new Session(sessions, treeTimer, progressCallback, null));
         }
     }
 
@@ -671,6 +674,12 @@ public class Session {
         } catch (final Throwable t) {
             log.error("unchecked error", t);
             throw Throwables.propagate(t);
+        }
+    }
+
+    public void checkGroupLimit(int numGroups) {
+        if (groupLimit > 0 && numGroups > groupLimit) {
+            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 

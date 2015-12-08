@@ -32,8 +32,11 @@ public class TimePeriodRegroup implements Command {
         } else {
             realEnd = shardEnd + periodMillis - (shardEnd - earliestStart) % periodMillis;
         }
-        final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final int numBuckets = (int) ((realEnd - earliestStart) / periodMillis);
+
+        session.checkGroupLimit(numBuckets * session.numGroups);
+
+        final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
 
         final Map<Integer, GroupKey> groupOffsetToGroupKey = new Int2ObjectOpenHashMap<>();
