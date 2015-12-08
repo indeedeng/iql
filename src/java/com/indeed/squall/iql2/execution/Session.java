@@ -124,6 +124,14 @@ public class Session {
             final Long imhotepDaemonTempFileSizeLimit
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
+
+        final Integer groupLimit;
+        if (sessionRequest.has("groupLimit")) {
+            groupLimit = sessionRequest.get("groupLimit").intValue();
+        } else {
+            groupLimit = null;
+        }
+
         if (sessionRequest.has("commands")) {
             treeTimer.push("readCommands");
             final JsonNode commands = sessionRequest.get("commands");
@@ -135,7 +143,7 @@ public class Session {
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
-            final Session session = new Session(sessions, treeTimer, progressCallback, null);
+            final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
                 log.debug("Evaluating command: " + command);
@@ -155,7 +163,7 @@ public class Session {
             createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return Optional.of(new Session(sessions, treeTimer, progressCallback, null));
+            return Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit));
         }
     }
 
