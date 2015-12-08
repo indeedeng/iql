@@ -20,6 +20,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Must keep all documents in groups {0, 1}, because if done otherwise it breaks invariants that hold in normal execution.
+ *
+ * The main invariant being that ApplyFilterActions starts with all documents in groups {0, 1} and ends with them in
+ * {0, 1} and thus does not need to do any updates to GroupKeySets and whatnot.
+ */
 public class TestActions {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
