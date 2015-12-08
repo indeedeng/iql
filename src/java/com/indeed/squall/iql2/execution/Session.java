@@ -116,7 +116,10 @@ public class Session {
             final Consumer<String> out,
             final Map<String, DatasetDimensions> dimensions,
             final TreeTimer treeTimer,
-            final ProgressCallback progressCallback) throws ImhotepOutOfMemoryException, IOException {
+            final ProgressCallback progressCallback,
+            final Long imhotepLocalTempFileSizeLimit,
+            final Long imhotepDaemonTempFileSizeLimit
+    ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
         if (sessionRequest.has("commands")) {
             treeTimer.push("readCommands");
@@ -125,7 +128,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer);
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -146,7 +149,7 @@ public class Session {
             return Optional.absent();
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer);
+            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return Optional.of(new Session(sessions, treeTimer, progressCallback));
@@ -179,7 +182,7 @@ public class Session {
         return ret;
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer) throws ImhotepOutOfMemoryException, IOException {
+    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer, Long imhotepLocalTempFileSizeLimit, Long imhotepDaemonTempFileSizeLimit) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, String> upperCaseToActualDataset = new HashMap<>();
         for (final String dataset : Session.getDatasets(client)) {
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
@@ -221,7 +224,10 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
-            final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(actualDataset, startDateTime, endDateTime);
+            final ImhotepClient.SessionBuilder sessionBuilder =
+                    client.sessionBuilder(actualDataset, startDateTime, endDateTime)
+                          .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
+                          .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit);
             treeTimer.pop();
             treeTimer.push("get shards");
             final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
