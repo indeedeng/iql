@@ -32,21 +32,15 @@ public class TestActions {
             documents.add(Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis()).addTerm("field", (long) i).build());
         }
 
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
-
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
 
         // Mis-targeted action that does nothing.
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new IntOrAction(Collections.<String>emptySet(), "field", Collections.<Long>emptySet(), 1, 0, 0))));
-        commands.addAll(verificationCommands);
 
         // Real actions
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new IntOrAction(Collections.singleton("organic"), "field", ImmutableSet.of(1L, 3L, 7L, 50L, 125L), 1, 1, 0))));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new IntOrAction(Collections.singleton("organic"), "field", ImmutableSet.of(1L, 3L), 1, 1, 0))));
-        commands.addAll(verificationCommands);
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
@@ -58,21 +52,15 @@ public class TestActions {
             documents.add(Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis()).addTerm("intfield", (long) i).addTerm("strfield", String.valueOf(i)).build());
         }
 
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
-
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
 
         // Mis-targeted action that does nothing.
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new StringOrAction(Collections.<String>emptySet(), "strfield", Collections.<String>emptySet(), 1, 0, 0))));
-        commands.addAll(verificationCommands);
 
         // Real actions
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new StringOrAction(Collections.singleton("organic"), "strfield", ImmutableSet.of("1", "3", "7", "50", "125"), 1, 1, 0))));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(new StringOrAction(Collections.singleton("organic"), "strfield", ImmutableSet.of("1", "3"), 1, 1, 0))));
-        commands.addAll(verificationCommands);
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
@@ -92,10 +80,7 @@ public class TestActions {
             }
         }
 
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
-
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new MetricAction(
@@ -104,7 +89,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new MetricAction(
@@ -113,7 +97,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new MetricAction(
@@ -122,7 +105,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new MetricAction(
@@ -131,7 +113,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
@@ -147,10 +128,7 @@ public class TestActions {
             documents.add(doc.build());
         }
 
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
-
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new RegexAction(
@@ -160,7 +138,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new RegexAction(
@@ -170,7 +147,6 @@ public class TestActions {
                         1, 1, 0
                 )
         )));
-        commands.addAll(verificationCommands);
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }

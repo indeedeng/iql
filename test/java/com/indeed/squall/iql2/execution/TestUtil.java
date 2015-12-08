@@ -57,27 +57,44 @@ public class TestUtil {
             final Session session = new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null);
             final SimpleSession simpleSession = new SimpleSession(documents, start, end);
 
+            final List<Command> verificationCommands = makeVerificationCommands(documents);
+
+            verify(session, simpleSession, verificationCommands);
+
             for (final Command command : commands) {
-                System.out.println("Running " + command);
-
-                final SavingConsumer<String> out1 = new SavingConsumer<>();
-                command.execute(session, out1);
-
-                final SavingConsumer<String> out2 = new SavingConsumer<>();
-                simpleSession.handleCommand(command, out2);
-
-                final List<String> results1 = out1.getElements();
-                final List<String> results2 = out2.getElements();
-                Assert.assertEquals(results2, results1);
-
-                System.out.println(results1);
-
-                // TODO: Do some non-effectful operations to measure more equivalences.
+                testCommand(session, simpleSession, command);
+                verify(session, simpleSession, verificationCommands);
             }
         }
     }
 
-    static List<Command> makeVerificationCommands(List<Document> documents) {
+    private static void verify(Session session, SimpleSession simpleSession, List<Command> verificationCommands) throws ImhotepOutOfMemoryException, IOException {
+        for (final Command command : verify(verificationCommands)) {
+            testCommand(session, simpleSession, command);
+        }
+    }
+
+    private static List<Command> verify(List<Command> verificationCommands) {
+        return verificationCommands;
+    }
+
+    private static void testCommand(Session session, SimpleSession simpleSession, Command command) throws ImhotepOutOfMemoryException, IOException {
+        System.out.println("Running " + command);
+
+        final SavingConsumer<String> out1 = new SavingConsumer<>();
+        command.execute(session, out1);
+
+        final SavingConsumer<String> out2 = new SavingConsumer<>();
+        simpleSession.handleCommand(command, out2);
+
+        final List<String> results1 = out1.getElements();
+        final List<String> results2 = out2.getElements();
+        Assert.assertEquals(results2, results1);
+
+        System.out.println(results1);
+    }
+
+    private static List<Command> makeVerificationCommands(List<Document> documents) {
         final Map<String, Set<String>> datasetIntFields = new HashMap<>();
         final Map<String, Set<String>> datasetStringFields = new HashMap<>();
         for (final Document document : documents) {

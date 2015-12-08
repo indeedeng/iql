@@ -24,9 +24,7 @@ public class TestIt {
             Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis())
                     .build()
         );
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
 
@@ -36,11 +34,8 @@ public class TestIt {
         for (int i = 0; i < 24; i++) {
             documents.add(Document.builder("organic", new DateTime(2015, 1, 1, i, 0).getMillis()).build());
         }
-        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
         final List<Command> commands = new ArrayList<>();
-        commands.addAll(verificationCommands);
         commands.add(new TimePeriodRegroup(1000 * 60 * 60 /* 1 h */, Optional.<String>absent(), Optional.<String>absent()));
-        commands.addAll(verificationCommands);
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
 
