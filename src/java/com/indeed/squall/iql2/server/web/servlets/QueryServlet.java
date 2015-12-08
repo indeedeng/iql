@@ -204,7 +204,7 @@ public class QueryServlet {
                 processShowDatasets(response, contentType);
                 statementType = "show";
             } else {
-                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream);
+                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream, request.getParameter("skipValidation").equals("1"));
                 statementType = "select";
             }
         } catch (Throwable e) {
@@ -350,7 +350,7 @@ public class QueryServlet {
         return value;
     }
 
-    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
         if (isStream) {
             response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
         } else {
@@ -439,7 +439,7 @@ public class QueryServlet {
                 public void accept(String s) {
                     warnings.add(s);
                 }
-            });
+            }, skipValidation);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -521,18 +521,18 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn) throws IOException, ImhotepOutOfMemoryException {
+    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn, boolean skipValidation) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn);
         timer.pop();
 
-        executeParsedQuery(out, timer, progressCallback, query);
+        executeParsedQuery(out, timer, progressCallback, query, skipValidation);
         timer.pop();
     }
 
-    private void executeParsedQuery(Consumer<String> out, final TreeTimer timer, NoOpProgressCallback progressCallback, Query query) throws IOException {
+    private void executeParsedQuery(Consumer<String> out, final TreeTimer timer, NoOpProgressCallback progressCallback, Query query, final boolean skipValidation) throws IOException {
         query = query.transform(
                 Functions.<GroupBy>identity(),
                 Functions.<AggregateMetric>identity(),
@@ -560,7 +560,7 @@ public class QueryServlet {
                                             } catch (NumberFormatException e) {
                                             }
                                         }
-                                    }, timer, new NoOpProgressCallback(), q);
+                                    }, timer, new NoOpProgressCallback(), q, skipValidation);
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
                                 }
@@ -593,8 +593,10 @@ public class QueryServlet {
         };
 
         final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
-        for (final Command command : commands) {
-            command.validate(datasetsFields, errorConsumer);
+        if (!skipValidation) {
+            for (final Command command : commands) {
+                command.validate(datasetsFields, errorConsumer);
+            }
         }
 
         if (errors.size() > 0) {
