@@ -102,6 +102,8 @@ public class QueryServlet {
     private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
+    private final Long imhotepLocalTempFileSizeLimit;
+    private final Long imhotepDaemonTempFileSizeLimit;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
@@ -114,7 +116,10 @@ public class QueryServlet {
             final DimensionsLoader dimensionsLoader,
             final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
             final AccessControl accessControl,
-            final TopTermsCache topTermsCache) {
+            final TopTermsCache topTermsCache,
+            final Long imhotepLocalTempFileSizeLimit,
+            final Long imhotepDaemonTempFileSizeLimit
+    ) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
@@ -122,6 +127,8 @@ public class QueryServlet {
         this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
+        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
+        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
     }
 
     private static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -694,7 +701,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback);
+                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);
