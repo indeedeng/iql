@@ -6,6 +6,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.IntOrAction;
 import com.indeed.squall.iql2.execution.actions.MetricAction;
+import com.indeed.squall.iql2.execution.actions.RegexAction;
 import com.indeed.squall.iql2.execution.actions.StringOrAction;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -127,6 +128,45 @@ public class TestActions {
                 new MetricAction(
                         ImmutableSet.of("organic", "sponsored"),
                         ImmutableMap.of("sponsored", Collections.singletonList("0"), "organic", Collections.singletonList("0")),
+                        1, 1, 0
+                )
+        )));
+        commands.addAll(verificationCommands);
+
+        TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
+    }
+
+    @Test
+    public void testRegexAction() throws Exception {
+        final List<Document> documents = new ArrayList<>();
+        for (int i = 0; i <= 100; i++) {
+            final Document.Builder doc = Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis());
+            doc.addTerm("string", String.valueOf(i));
+            // TODO: Make 'int' an int field after making MemoryFlamdex::getStringTermIterator() work on int fields.
+            doc.addTerm("int", String.valueOf(i));
+            documents.add(doc.build());
+        }
+
+        final List<Command> verificationCommands = TestUtil.makeVerificationCommands(documents);
+
+        final List<Command> commands = new ArrayList<>();
+        commands.addAll(verificationCommands);
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new RegexAction(
+                        Collections.singleton("organic"),
+                        "string",
+                        ".*1.*",
+                        1, 1, 0
+                )
+        )));
+        commands.addAll(verificationCommands);
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new RegexAction(
+                        Collections.singleton("organic"),
+                        "int",
+                        ".*2.*",
                         1, 1, 0
                 )
         )));
