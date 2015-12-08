@@ -606,7 +606,6 @@ public class Session {
         final int[] parents = new int[newNumGroups + 1];
         parents[0] = -1;
         for (int i = 1; i <= newNumGroups; i++) {
-            final int newGroup = nextGroupKeys.size();
             parents[i] = groupKeyCreator.parent(i);
             nextGroupKeys.add(groupKeyCreator.forIndex(i));
         }
