@@ -492,7 +492,7 @@ public class EZImhotepSession implements Closeable {
         checkGroupLimit(newNumGroups);
     }
 
-    private void checkGroupLimit(double newNumGroups) {
+    private static void checkGroupLimit(double newNumGroups) {
         if(newNumGroups > GROUP_LIMIT) {
             DecimalFormat df = new DecimalFormat("###,###");
             throw new IllegalArgumentException("Number of groups " + df.format(newNumGroups) + " exceeds the limit " + df.format(GROUP_LIMIT)+
@@ -782,12 +782,15 @@ public class EZImhotepSession implements Closeable {
 
         final TIntObjectHashMap<TLongArrayList> intTermListsMap = new TIntObjectHashMap<TLongArrayList>();
         final TIntObjectHashMap<List<String>> stringTermListsMap = new TIntObjectHashMap<List<String>>();
+        private int rowCount = 0;
+
 
         public GetGroupTermsCallback(final int numStats) {
             super(numStats);
         }
 
         public void intTermGroup(final String field, final long term, int group) {
+            checkGroupLimit(rowCount++);
             if (!intTermListsMap.containsKey(group)) {
                 intTermListsMap.put(group, new TLongArrayList());
             }
@@ -795,6 +798,7 @@ public class EZImhotepSession implements Closeable {
         }
 
         public void stringTermGroup(final String field, final String term, int group) {
+            checkGroupLimit(rowCount++);
             if (!stringTermListsMap.containsKey(group)) {
                 stringTermListsMap.put(group, Lists.<String>newArrayList());
             }
