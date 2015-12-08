@@ -30,7 +30,7 @@ public class TimePeriodRegroup implements Command {
         if ((shardEnd - earliestStart) % periodMillis == 0) {
             realEnd = shardEnd;
         } else {
-            realEnd = shardEnd + periodMillis + (earliestStart - shardEnd) % periodMillis;
+            realEnd = shardEnd + periodMillis - (shardEnd - earliestStart) % periodMillis;
         }
         final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final int numBuckets = (int) ((realEnd - earliestStart) / periodMillis);
