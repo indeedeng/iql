@@ -74,7 +74,7 @@ public class Document {
             session.regroup(new QueryRemapRule(1, query, 0, 1));
             session.pushStat("count()");
             final long[] groupStats = session.getGroupStats(0);
-            return groupStats[1] == 1;
+            return groupStats.length == 2 && groupStats[1] == 1;
         } catch (final ImhotepOutOfMemoryException e) {
             throw Throwables.propagate(e);
         }

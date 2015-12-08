@@ -2,10 +2,13 @@ package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.indeed.flamdex.query.*;
+import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.IntOrAction;
 import com.indeed.squall.iql2.execution.actions.MetricAction;
+import com.indeed.squall.iql2.execution.actions.QueryAction;
 import com.indeed.squall.iql2.execution.actions.RegexAction;
 import com.indeed.squall.iql2.execution.actions.SampleAction;
 import com.indeed.squall.iql2.execution.actions.StringOrAction;
@@ -26,6 +29,8 @@ import java.util.List;
  *
  * The main invariant being that ApplyFilterActions starts with all documents in groups {0, 1} and ends with them in
  * {0, 1} and thus does not need to do any updates to GroupKeySets and whatnot.
+ *
+ * TODO: Do more with multi-sessions on all of these.
  */
 public class TestActions {
     static {
@@ -181,6 +186,67 @@ public class TestActions {
 
         commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
                 new SampleAction(Collections.singleton("organic"), "string", 0.25, "once more with feeling", 1, 1, 0)
+        )));
+
+        TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
+    }
+
+    @Test
+    public void testQueryAction() throws Exception {
+        final List<Document> documents = new ArrayList<>();
+        for (int i = 0; i <= 100; i++) {
+            final Document.Builder doc = Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis());
+            doc.addTerm("string", String.valueOf(i));
+            doc.addTerm("int", i);
+            documents.add(doc.build());
+        }
+
+        final List<Query> divBy3Clauses = new ArrayList<>();
+        final List<Query> divBy5Clauses = new ArrayList<>();
+        final List<Query> divBy7Clauses = new ArrayList<>();
+        for (int i = 0; i <= 100; i++) {
+            if (i % 3 == 0) {
+                divBy3Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm("string", String.valueOf(i))));
+                divBy3Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm("int", i)));
+            }
+            if (i % 5 == 0) {
+                divBy5Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm("string", String.valueOf(i))));
+                divBy5Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm("int", i)));
+            }
+            if (i % 7 == 0) {
+                divBy7Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm("string", String.valueOf(i))));
+                divBy7Clauses.add(Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm("int", i)));
+            }
+        }
+
+        final Query divBy3 = Query.newBooleanQuery(BooleanOp.OR, divBy3Clauses);
+        final Query divBy5 = Query.newBooleanQuery(BooleanOp.OR, divBy5Clauses);
+        final Query divBy7 = Query.newBooleanQuery(BooleanOp.OR, divBy7Clauses);
+
+        final List<Command> commands = new ArrayList<>();
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new QueryAction(
+                        Collections.singleton("organic"),
+                        ImmutableMap.of("organic", Query.newRangeQuery("int", 0, 50, true)),
+                        1, 1, 0
+                )
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new QueryAction(
+                        Collections.singleton("organic"),
+                        ImmutableMap.of("organic", Query.newBooleanQuery(BooleanOp.OR, Arrays.asList(divBy3, divBy5, divBy7))),
+                        1, 1, 0
+                )
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new QueryAction(
+                        Collections.singleton("organic"),
+                        ImmutableMap.of("organic", Query.newBooleanQuery(BooleanOp.AND, Arrays.asList(divBy3, divBy5, divBy7))),
+                        1, 1, 0
+                )
         )));
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
