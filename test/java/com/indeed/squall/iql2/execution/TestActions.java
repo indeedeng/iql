@@ -7,6 +7,7 @@ import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.IntOrAction;
 import com.indeed.squall.iql2.execution.actions.MetricAction;
 import com.indeed.squall.iql2.execution.actions.RegexAction;
+import com.indeed.squall.iql2.execution.actions.SampleAction;
 import com.indeed.squall.iql2.execution.actions.StringOrAction;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -152,6 +153,34 @@ public class TestActions {
                         ".*2.*",
                         1, 1, 0
                 )
+        )));
+
+        TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
+    }
+
+    @Test
+    public void testSampleAction() throws Exception {
+        final List<Document> documents = new ArrayList<>();
+        for (int i = 0; i <= 100; i++) {
+            final Document.Builder doc = Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis());
+            doc.addTerm("string", String.valueOf(i));
+            // TODO: Make 'int' an int field after making MemoryFlamdex::getStringTermIterator() work on int fields.
+            doc.addTerm("int", String.valueOf(i));
+            documents.add(doc.build());
+        }
+
+        final List<Command> commands = new ArrayList<>();
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new SampleAction(Collections.singleton("organic"), "string", 0.5, "abcdef", 1, 1, 0)
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new SampleAction(Collections.singleton("organic"), "int", 0.5, "abcdefghijk", 1, 1, 0)
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new SampleAction(Collections.singleton("organic"), "string", 0.25, "once more with feeling", 1, 1, 0)
         )));
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
