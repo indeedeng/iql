@@ -204,7 +204,7 @@ public class QueryServlet {
                 processShowDatasets(response, contentType);
                 statementType = "show";
             } else {
-                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream, request.getParameter("skipValidation").equals("1"));
+                queryStartTimestamp = processSelect(response, query, version, username, timer, isStream, "1".equals(request.getParameter("skipValidation")));
                 statementType = "select";
             }
         } catch (Throwable e) {
