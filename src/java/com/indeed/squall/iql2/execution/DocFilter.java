@@ -47,7 +47,6 @@ public interface DocFilter {
             } else {
                 throw new IllegalArgumentException("Field not present in intFields or stringFields: " + field);
             }
-            System.out.println("rules = " + rules);
             session.session.regroup(rules);
         }
     }

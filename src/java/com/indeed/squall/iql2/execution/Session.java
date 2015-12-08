@@ -135,7 +135,7 @@ public class Session {
             final Session session = new Session(sessions, treeTimer, progressCallback);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
-                System.out.println("Evaluating command: " + command);
+                log.debug("Evaluating command: " + command);
                 final boolean isLast = i == commands.size() - 1;
                 if (isLast) {
                     session.evaluateCommandToTSV(command, out);

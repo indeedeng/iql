@@ -8,6 +8,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -17,6 +18,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class IterateHandlers {
+    private static final Logger log = Logger.getLogger(IterateHandlers.class);
+
     public static <T> List<T> executeMulti(Session session, String field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("IterateHandlers.executeMulti");
 
@@ -77,11 +80,13 @@ public class IterateHandlers {
             Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, field, callback);
             session.timer.pop();
         } else {
-            for (final Map.Entry<String, Session.ImhotepSessionInfo> s : session.sessions.entrySet()) {
-                final String name = s.getKey();
-                final boolean isIntField = s.getValue().intFields.contains(field);
-                final boolean isStringField = s.getValue().stringFields.contains(field);
-                System.out.println("name = " + name + ", isIntField=" + isIntField + ", isStringField=" + isStringField);
+            if (log.isDebugEnabled()) {
+                for (final Map.Entry<String, Session.ImhotepSessionInfo> s : session.sessions.entrySet()) {
+                    final String name = s.getKey();
+                    final boolean isIntField = s.getValue().intFields.contains(field);
+                    final boolean isStringField = s.getValue().stringFields.contains(field);
+                    log.debug("name = " + name + ", isIntField=" + isIntField + ", isStringField=" + isStringField);
+                }
             }
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);
         }
