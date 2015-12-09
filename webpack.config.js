@@ -12,7 +12,8 @@ var config = {
       {
         test: /\.jsx?$/,
         exclude: /(node_modules|bower_components|gen-src)/,
-        loader: 'babel'
+        loader: 'babel',
+        query: {stage: 0}
       }
     ]
   },
