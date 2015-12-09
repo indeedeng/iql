@@ -101,9 +101,11 @@ public class ExplodePerGroup implements Command {
     private void checkNumGroups(Session session) {
         int numGroups = 0;
         for (final Commands.TermsWithExplodeOpts termsWithExplodeOpt : this.termsWithExplodeOpts) {
-            numGroups += termsWithExplodeOpt.terms.size();
-            if (termsWithExplodeOpt.defaultName.isPresent()) {
-                numGroups += 1;
+            if (termsWithExplodeOpt != null) {
+                numGroups += termsWithExplodeOpt.terms.size();
+                if (termsWithExplodeOpt.defaultName.isPresent()) {
+                    numGroups += 1;
+                }
             }
         }
         session.checkGroupLimit(numGroups);
