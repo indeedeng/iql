@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.execution.actions.QueryAction;
 import com.indeed.squall.iql2.execution.actions.RegexAction;
 import com.indeed.squall.iql2.execution.actions.SampleAction;
 import com.indeed.squall.iql2.execution.actions.StringOrAction;
+import com.indeed.squall.iql2.execution.actions.UnconditionalAction;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.execution.commands.Command;
 import org.joda.time.DateTime;
@@ -250,5 +251,31 @@ public class TestActions {
         )));
 
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
+    }
+
+    @Test
+    public void testUnconditionalAction() throws Exception {
+        final List<Document> documents = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            documents.add(Document.builder("organic", new DateTime(2015, 1, 1, 0, 0).getMillis()).build());
+            documents.add(Document.builder("sponsored", new DateTime(2015, 1, 1, 0, 0).getMillis()).build());
+        }
+
+        final List<Command> commands = new ArrayList<>();
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new UnconditionalAction(Collections.singleton("organic"), 1, 2)
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new UnconditionalAction(Collections.singleton("sponsored"), 1, 2)
+        )));
+
+        commands.add(new ApplyFilterActions(Collections.<Action>singletonList(
+                new UnconditionalAction(ImmutableSet.of("organic", "sponsored"), 2, 1)
+        )));
+
+        // TODO: Re-enable after MemoryFlamdex doesn't give NPE on non-existent fields.
+        //TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
 }
