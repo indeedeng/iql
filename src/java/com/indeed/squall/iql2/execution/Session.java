@@ -580,12 +580,13 @@ public class Session {
         boolean anyNonIdentity = false;
         final IntList parents = new IntArrayList();
         parents.add(-1);
+        final RegroupCondition condition = new RegroupCondition("fakeField", true, 23L, null, false);
         for (int i = 0; i < anyPresent.size(); i++) {
             if (anyPresent.get(i)) {
                 final int newGroup = nextGroupKeys.size();
                 parents.add(groupKeyCreator.parent(i));
                 nextGroupKeys.add(groupKeyCreator.forIndex(i));
-                rules.add(new GroupRemapRule(i, new RegroupCondition("fakeField", true, 23L, null, false), newGroup, newGroup));
+                rules.add(new GroupRemapRule(i, condition, newGroup, newGroup));
                 if (newGroup != i) {
                     anyNonIdentity = true;
                 }
@@ -689,6 +690,7 @@ public class Session {
         if (groupLimit > 0 && numGroups > groupLimit) {
             throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
+        log.debug("checkGroupLimit(" + numGroups + ")");
     }
 
     // TODO: Parallelize across sessions?
