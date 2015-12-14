@@ -910,9 +910,6 @@ public interface DocFilter {
         public final List<DocFilter> filters;
 
         public Ors(List<DocFilter> filters) {
-            if (filters.size() < 2) {
-                throw new IllegalArgumentException("Can't OR a single thing.");
-            }
             this.filters = filters;
         }
 
@@ -927,6 +924,9 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
+            if (filters.isEmpty()) {
+                return new DocMetric.Constant(0);
+            }
             DocMetric metric = filters.get(0).asZeroOneMetric(dataset);
             for (int i = 1; i < filters.size(); i++) {
                 metric = new DocMetric.Add(metric, filters.get(i).asZeroOneMetric(dataset));
@@ -936,6 +936,9 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            if (filters.isEmpty()) {
+                return Collections.<Action>singletonList(new UnconditionalAction(scope.keySet(), target, negative));
+            }
             DocFilter reOrred = filters.get(0);
             for (int i = 1; i < filters.size(); i++) {
                 reOrred = new Or(filters.get(i), reOrred);
