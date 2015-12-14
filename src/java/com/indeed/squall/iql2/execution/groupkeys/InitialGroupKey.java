@@ -8,6 +8,6 @@ public class InitialGroupKey extends GroupKey {
     private InitialGroupKey() {}
 
     @Override
-    public void addToList(List<String> list, boolean appendingTerm) {
+    public void addToList(List<String> list) {
     }
 }

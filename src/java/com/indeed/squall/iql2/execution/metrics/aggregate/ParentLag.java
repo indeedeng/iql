@@ -60,10 +60,10 @@ public class ParentLag implements AggregateMetric {
 
     // TODO: This doesn't seem right...
     private double handle(int group, double metricResult) {
-        final int parent = groupKeySet.groupParents[group];
+        final int parent = groupKeySet.parentGroup(group);
         int targetGroupKey = -1;
         for (final int key : prevGroupKeys) {
-            if (groupKeySet.groupParents[key] == parent && key == group - delay) {
+            if (groupKeySet.parentGroup(key) == parent && key == group - delay) {
                 targetGroupKey = key;
                 break;
             }

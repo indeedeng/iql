@@ -10,8 +10,8 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -119,7 +119,7 @@ public class ExplodePerDocPercentile implements Command {
         });
 
         session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeySet = GroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys);
+        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 
         out.accept("ExplodedPerDocPercentile");

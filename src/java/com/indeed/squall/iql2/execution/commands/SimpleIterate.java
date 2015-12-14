@@ -178,7 +178,7 @@ public class SimpleIterate implements Command {
     // TODO: Move this
     public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKeySet.asList(groupKey, true);
+        final List<String> keyColumns = groupKeySet.asList(groupKey);
         for (final String k : keyColumns) {
             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
@@ -199,7 +199,7 @@ public class SimpleIterate implements Command {
     // TODO: Move this
     public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKeySet.asList(groupKey, true);
+        final List<String> keyColumns = groupKeySet.asList(groupKey);
         for (final String k : keyColumns) {
             sb.append(k).append('\t');
         }

@@ -43,16 +43,16 @@ public class RegroupIntoLastSiblingWhere implements Command {
         final GroupKeySet groupKeySet = session.groupKeySet;
 
         final Int2IntOpenHashMap parentIndexToLastChildIndex = new Int2IntOpenHashMap();
-        for (int i = 0; i < groupKeySet.groupKeys.size(); i++) {
-            if (groupKeySet.groupKeys.get(i) != null) {
-                parentIndexToLastChildIndex.put(groupKeySet.groupParents[i], i);
+        for (int i = 0; i < groupKeySet.numGroups(); i++) {
+            if (groupKeySet.groupKey(i) != null) {
+                parentIndexToLastChildIndex.put(groupKeySet.parentGroup(i), i);
             }
         }
 
         // Cascade until the end of that parent.
         for (int i = 1; i <= session.numGroups; i++) {
             if (remerge[i]) {
-                final int end = parentIndexToLastChildIndex.get(groupKeySet.groupParents[i]);
+                final int end = parentIndexToLastChildIndex.get(groupKeySet.parentGroup(i));
                 for (int j = i; j < end; j++) {
                     remerge[j] = true;
                 }
@@ -79,7 +79,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         for (int i = 1; i <= session.numGroups; i++) {
             final int newGroup;
             if (remerge[i]) {
-                newGroup = parentIndexToLastChildIndex.get(groupKeySet.previous.groupKeys.get(groupKeySet.groupParents[i]));
+                newGroup = parentIndexToLastChildIndex.get(groupKeySet.previous().groupKey(groupKeySet.parentGroup(i)));
                 if (anyStatsAtDepth) {
                     switch (mergeType) {
                         case SumAll: {

@@ -103,10 +103,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final int parent = session.groupKeySet.groupParents[group];
+                final int parent = session.groupKeySet.parentGroup(group);
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset < session.groupKeySet.groupKeys.size() && session.groupKeySet.groupParents[group + offset] == parent) {
+                        if (group + offset < session.groupKeySet.numGroups() && session.groupKeySet.parentGroup(group + offset) == parent) {
                             groupSeen.set(group + offset);
                         }
                     }
@@ -138,10 +138,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final int parent = session.groupKeySet.groupParents[group];
+                final int parent = session.groupKeySet.parentGroup(group);
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset < session.groupKeySet.groupKeys.size() && session.groupKeySet.groupParents[group + offset] == parent) {
+                        if (group + offset < session.groupKeySet.numGroups() && session.groupKeySet.parentGroup(group + offset) == parent) {
                             groupSeen.set(group + offset);
                         }
                     }

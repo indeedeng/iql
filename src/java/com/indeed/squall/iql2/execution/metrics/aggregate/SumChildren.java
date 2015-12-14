@@ -35,7 +35,7 @@ public class SumChildren implements AggregateMetric {
         int start = 1;
         double sum = 0;
         for (int i = 1; i <= numGroups; i++) {
-            final int parent = groupKeySet.groupParents[i];
+            final int parent = groupKeySet.parentGroup(i);
             if (parent != currentParent) {
                 if (start != -1) {
                     Arrays.fill(result, start, i, sum);

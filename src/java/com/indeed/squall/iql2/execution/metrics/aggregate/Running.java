@@ -26,13 +26,13 @@ public class Running implements AggregateMetric {
     @Override
     public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         inner.register(metricIndexes, groupKeySet);
-        this.groupToRealGroup = new int[groupKeySet.groupKeys.size()];
-        for (int group = 1; group < groupKeySet.groupKeys.size(); group++) {
+        this.groupToRealGroup = new int[groupKeySet.numGroups()];
+        for (int group = 1; group < groupKeySet.numGroups(); group++) {
             GroupKeySet keyset = groupKeySet;
             int index = group;
             for (int i = 0; i < offset; i++) {
-                index = keyset.groupParents[index];
-                keyset = keyset.previous;
+                index = keyset.parentGroup(index);
+                keyset = keyset.previous();
             }
             groupToRealGroup[group] = index;
         }

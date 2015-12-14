@@ -44,6 +44,7 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
 import com.indeed.squall.iql2.execution.dimensions.DimensionsTranslator;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
@@ -86,7 +87,7 @@ public class Session {
 
     private static final Logger log = Logger.getLogger(Session.class);
 
-    public GroupKeySet groupKeySet = GroupKeySet.create();
+    public GroupKeySet groupKeySet = DumbGroupKeySet.create();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
 
@@ -397,7 +398,7 @@ public class Session {
                     final List<GroupStats> results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
                     for (final GroupStats result : results) {
-                        final List<String> keyColumns = groupKeySet.asList(result.group, false);
+                        final List<String> keyColumns = groupKeySet.asList(result.group);
                         for (final String k : keyColumns) {
                             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                         }
@@ -429,7 +430,7 @@ public class Session {
         for (final List<List<TermSelects>> groupFieldTerms : results) {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
-                final List<String> keyColumns = groupKeySet.asList(termSelects.group, true);
+                final List<String> keyColumns = groupKeySet.asList(termSelects.group);
                 for (final String k : keyColumns) {
                     sb.append(k).append('\t');
                 }
@@ -609,7 +610,7 @@ public class Session {
 
         numGroups = nextGroupKeys.size() - 1;
         log.debug("numGroups = " + numGroups);
-        groupKeySet = GroupKeySet.create(groupKeySet, parents.toIntArray(), nextGroupKeys);
+        groupKeySet = DumbGroupKeySet.create(groupKeySet, parents.toIntArray(), nextGroupKeys);
 
         timer.pop();
     }
@@ -627,7 +628,7 @@ public class Session {
 
         numGroups = nextGroupKeys.size() - 1;
         log.debug("numGroups = " + numGroups);
-        groupKeySet = GroupKeySet.create(groupKeySet, parents, nextGroupKeys);
+        groupKeySet = DumbGroupKeySet.create(groupKeySet, parents, nextGroupKeys);
         timer.pop();
     }
 
@@ -672,8 +673,8 @@ public class Session {
             GroupKeySet groupKeySet = this.groupKeySet;
             int index = group;
             for (int i = 0; i < depthChange; i++) {
-                index = groupKeySet.groupParents[index];
-                groupKeySet = groupKeySet.previous;
+                index = groupKeySet.parentGroup(index);
+                groupKeySet = groupKeySet.previous();
             }
             stats[group] = savedStat.stats[index];
         }

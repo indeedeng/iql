@@ -32,7 +32,7 @@ public class Window implements AggregateMetric {
     @Override
     public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         inner.register(metricIndexes, groupKeySet);
-        groupToWindowSum = new double[groupKeySet.groupKeys.size()];
+        groupToWindowSum = new double[groupKeySet.numGroups()];
         this.groupKeySet = groupKeySet;
     }
 
@@ -44,7 +44,7 @@ public class Window implements AggregateMetric {
         int currentParent = -1;
         int count = 0;
         for (int i = 1; i <= numGroups; i++) {
-            final int parent = groupKeySet.groupParents[i];
+            final int parent = groupKeySet.parentGroup(i);
             if (parent != currentParent) {
                 currentParent = parent;
                 sum = 0;
@@ -91,9 +91,9 @@ public class Window implements AggregateMetric {
 
     private double handle(int group, double value) {
         iterationStarted = true;
-        final int parentGroup = groupKeySet.groupParents[group];
+        final int parentGroup = groupKeySet.parentGroup(group);
         for (int offset = 0; offset < size; offset++) {
-            if (group + offset < groupKeySet.groupKeys.size() && groupKeySet.groupParents[group + offset] == parentGroup) {
+            if (group + offset < groupKeySet.numGroups() && groupKeySet.parentGroup(group + offset) == parentGroup) {
                 groupToWindowSum[group + offset] += value;
             }
         }

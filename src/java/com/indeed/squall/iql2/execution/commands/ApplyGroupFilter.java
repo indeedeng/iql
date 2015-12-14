@@ -9,8 +9,8 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -70,8 +70,8 @@ public class ApplyGroupFilter implements Command {
             final int newGroup = keep[i] ? newGroupParents.size() : 0;
             rules.add(new GroupRemapRule(i, fakeCondition, newGroup, newGroup));
             if (keep[i]) {
-                newGroupKeys.add(session.groupKeySet.groupKeys.get(i));
-                newGroupParents.add(session.groupKeySet.groupParents[i]);
+                newGroupKeys.add(session.groupKeySet.groupKey(i));
+                newGroupParents.add(session.groupKeySet.parentGroup(i));
             }
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
@@ -83,7 +83,7 @@ public class ApplyGroupFilter implements Command {
         });
         session.numGroups = newGroupParents.size() - 1;
         log.debug("numGroups = " + session.numGroups);
-        session.groupKeySet = GroupKeySet.create(session.groupKeySet.previous, newGroupParents.toIntArray(), newGroupKeys);
+        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
         out.accept("done");
     }
 }

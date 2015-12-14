@@ -10,7 +10,7 @@ public class IntTermGroupKey extends GroupKey {
     }
 
     @Override
-    public void addToList(List<String> list, boolean appendingTerm) {
+    public void addToList(List<String> list) {
         list.add(String.valueOf(value));
     }
 }

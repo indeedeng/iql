@@ -8,8 +8,8 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -170,7 +170,7 @@ public class ExplodeByAggregatePercentile implements Command {
         session.popStats();
 
         session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeySet = GroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
+        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 
         out.accept("ExplodedByAggregatePercentile");

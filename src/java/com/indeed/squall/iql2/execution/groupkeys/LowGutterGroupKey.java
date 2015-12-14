@@ -12,7 +12,7 @@ public class LowGutterGroupKey extends GroupKey {
     }
 
     @Override
-    public void addToList(List<String> list, boolean appendingTerm) {
+    public void addToList(List<String> list) {
         list.add("[-" + Session.INFINITY_SYMBOL + ", " + min + ")");
     }
 }
