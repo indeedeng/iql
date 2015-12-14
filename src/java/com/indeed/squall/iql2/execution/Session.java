@@ -215,6 +215,11 @@ public class Session {
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
             final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
+            // Don't uppercase for usage in the dimension translator.
+            final DatasetDimensions datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
+
+            sessionIntFields.addAll(datasetDimensions.fields());
+
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
@@ -246,8 +251,6 @@ public class Session {
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
             treeTimer.pop();
-            // Don't uppercase for usage in the dimension translator.
-            final DatasetDimensions datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
             final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, datasetDimensions, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
