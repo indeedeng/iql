@@ -682,7 +682,9 @@ public class QueryServlet {
 
     // Logging code below
 
-    private static final int QUERY_LENGTH_LIMIT = 55000;    // trying to not cause the logentry to overflow from being larger than 2^16
+    // trying to not cause the logentry to overflow from being larger than 2^16
+    // this is the pre URL-encoded limit and encoding can make it about twice longer
+    private static final int QUERY_LENGTH_LIMIT = 27000;
 
     private void logQuery(HttpServletRequest req,
                           String query,
