@@ -160,7 +160,7 @@ jqlAggregateMetric
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
-    | AVG_OVER '(' field=scopedField ('[' HAVING jqlAggregateFilter ']')? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | AVG_OVER '(' field=scopedField ((havingBrackets='[' HAVING jqlAggregateFilter ']')|(HAVING jqlAggregateFilter))? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | jqlDocMetricAtom # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower

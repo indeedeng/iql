@@ -292,6 +292,9 @@ public class AggregateMetrics {
                 } else {
                     filter = Optional.absent();
                 }
+                if (ctx.havingBrackets != null) {
+                    warn.accept("Used square brackets in AVG_OVER HAVING. This is no longer necessary and is deprecated.");
+                }
                 final String field = ctx.field.getText().toUpperCase();
                 final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
                 accept(new AggregateMetric.Divide(
