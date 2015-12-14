@@ -48,6 +48,6 @@ public class DumbGroupKeySet implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group < groupParents.length && groupParents[group] != -1 && (previous == null || previous.isPresent(parentGroup(group)));
+        return group < groupParents.length && groupKeys.get(group) != null && (previous == null || previous.isPresent(parentGroup(group)));
     }
 }
