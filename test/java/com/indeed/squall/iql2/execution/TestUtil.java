@@ -70,6 +70,7 @@ public class TestUtil {
 
     private static void verify(Session session, SimpleSession simpleSession, List<Command> verificationCommands) throws ImhotepOutOfMemoryException, IOException {
         for (final Command command : verify(verificationCommands)) {
+            System.out.println("command = " + command);
             testCommand(session, simpleSession, command);
         }
     }

@@ -43,7 +43,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         final GroupKeySet groupKeySet = session.groupKeySet;
 
         final Int2IntOpenHashMap parentIndexToLastChildIndex = new Int2IntOpenHashMap();
-        for (int i = 0; i < groupKeySet.numGroups(); i++) {
+        for (int i = 0; i <= groupKeySet.numGroups(); i++) {
             if (groupKeySet.groupKey(i) != null) {
                 parentIndexToLastChildIndex.put(groupKeySet.parentGroup(i), i);
             }

@@ -26,8 +26,8 @@ public class Running implements AggregateMetric {
     @Override
     public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
         inner.register(metricIndexes, groupKeySet);
-        this.groupToRealGroup = new int[groupKeySet.numGroups()];
-        for (int group = 1; group < groupKeySet.numGroups(); group++) {
+        this.groupToRealGroup = new int[groupKeySet.numGroups() + 1];
+        for (int group = 1; group <= groupKeySet.numGroups(); group++) {
             GroupKeySet keyset = groupKeySet;
             int index = group;
             for (int i = 0; i < offset; i++) {

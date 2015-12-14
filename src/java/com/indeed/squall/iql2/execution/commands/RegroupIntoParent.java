@@ -20,7 +20,7 @@ public class RegroupIntoParent implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         session.timer.push("compute remapping");
-        final int maxIndex = session.groupKeySet.previous().numGroups();
+        final int maxIndex = session.groupKeySet.previous().numGroups() + 1;
         final Map<String, Session.SavedGroupStats> newSavedGroupStatsEntries = Maps.newHashMap();
         for (final Map.Entry<String, Session.SavedGroupStats> entry : session.savedGroupStats.entrySet()) {
             final String k = entry.getKey();
