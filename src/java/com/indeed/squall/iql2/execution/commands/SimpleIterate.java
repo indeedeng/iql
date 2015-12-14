@@ -15,7 +15,8 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TermSelects;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -178,7 +179,7 @@ public class SimpleIterate implements Command {
     // TODO: Move this
     public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKeySet.asList(groupKey);
+        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
@@ -199,7 +200,7 @@ public class SimpleIterate implements Command {
     // TODO: Move this
     public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer) {
         final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = groupKeySet.asList(groupKey);
+        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
             sb.append(k).append('\t');
         }
@@ -263,7 +264,6 @@ public class SimpleIterate implements Command {
                     return;
                 }
                 final double[] selectBuffer = new double[selecting.size()];
-                final double value;
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }

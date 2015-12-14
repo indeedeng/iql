@@ -8,7 +8,7 @@ import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.Constant;
 import com.indeed.squall.iql2.execution.metrics.aggregate.IfThenElse;

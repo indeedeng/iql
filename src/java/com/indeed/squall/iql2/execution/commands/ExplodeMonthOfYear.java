@@ -8,18 +8,14 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
+import com.indeed.squall.iql2.execution.groupkeys.sets.YearMonthGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ExplodeMonthOfYear implements Command {
     @Override
@@ -75,29 +71,7 @@ public class ExplodeMonthOfYear implements Command {
 
         session.regroup(rulesArray);
 
-        final Map<DateTime, GroupKey> yearMonthToGroupKey = new HashMap<>();
-
-        final GroupKeyCreator groupMapper = new GroupKeyCreator() {
-            @Override
-            public int parent(int group) {
-                return 1 + (group - 1) / numMonths;
-            }
-
-            @Override
-            public GroupKey forIndex(int group) {
-                final int monthOffset = (group - 1) % numMonths;
-                final DateTime month = startMonth.plusMonths(monthOffset);
-                if (!yearMonthToGroupKey.containsKey(month)) {
-                    yearMonthToGroupKey.put(month, new DumbGroupKey(formatter.print(month)));
-                }
-                return yearMonthToGroupKey.get(month);
-            }
-        };
-        if (oldNumGroups == 1) {
-            session.assumeDense(groupMapper, oldNumGroups * numMonths);
-        } else {
-            session.densify(groupMapper);
-        }
+        session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, formatter));
         session.currentDepth += 1;
     }
 }

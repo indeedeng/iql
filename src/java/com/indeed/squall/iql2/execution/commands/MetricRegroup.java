@@ -7,16 +7,9 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
-import com.indeed.squall.iql2.execution.groupkeys.HighGutterGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.LowGutterGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.RangeGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.SingleValueGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.sets.MetricRangeGroupKeySet;
 import com.indeed.util.core.TreeTimer;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,38 +69,7 @@ public class MetricRegroup implements Command {
             }
         });
 
-        final long start = min + interval * (numBuckets - 2);
-        final HighGutterGroupKey highGroupKey = new HighGutterGroupKey(start);
-        final LowGutterGroupKey lowGroupKey = new LowGutterGroupKey(min);
-        final Map<Integer, GroupKey> innerGroupToGroupKey = new Int2ObjectOpenHashMap<>();
-
-        session.densify(new GroupKeyCreator() {
-            @Override
-            public int parent(int group) {
-                return 1 + (group - 1) / numBuckets;
-            }
-
-            @Override
-            public GroupKey forIndex(int group) {
-                final int innerGroup = (group - 1) % numBuckets;
-                if (!excludeGutters && innerGroup == numBuckets - 1) {
-                    return highGroupKey;
-                } else if (!excludeGutters && innerGroup == numBuckets - 2) {
-                    return lowGroupKey;
-                } else {
-                    if (!innerGroupToGroupKey.containsKey(innerGroup)) {
-                        if (interval == 1) {
-                            innerGroupToGroupKey.put(innerGroup, new SingleValueGroupKey(min + innerGroup));
-                        } else {
-                            final long minInclusive = min + innerGroup * interval;
-                            final long maxExclusive = min + (innerGroup + 1) * interval;
-                            return new RangeGroupKey(minInclusive, maxExclusive);
-                        }
-                    }
-                    return innerGroupToGroupKey.get(innerGroup);
-                }
-            }
-        });
+        session.densify(new MetricRangeGroupKeySet(session.groupKeySet, numBuckets, excludeGutters, min, interval));
 
         session.currentDepth += 1;
 

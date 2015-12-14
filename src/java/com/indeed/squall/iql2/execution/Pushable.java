@@ -1,6 +1,6 @@
 package com.indeed.squall.iql2.execution;
 
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
 import java.util.Map;
 import java.util.Set;

@@ -1,7 +1,7 @@
 package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Sets;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import java.util.Arrays;

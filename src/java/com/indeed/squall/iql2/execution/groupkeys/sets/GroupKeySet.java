@@ -1,9 +1,8 @@
-package com.indeed.squall.iql2.execution.groupkeys;
+package com.indeed.squall.iql2.execution.groupkeys.sets;
 
-import java.util.List;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 
 public interface GroupKeySet {
-    List<String> asList(int group);
     GroupKeySet previous();
     int parentGroup(int group);
     GroupKey groupKey(int group);

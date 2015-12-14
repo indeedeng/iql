@@ -4,12 +4,7 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DayRangeGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-
-import java.util.Map;
+import com.indeed.squall.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
 
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
@@ -36,31 +31,13 @@ public class TimePeriodRegroup implements Command {
 
         session.checkGroupLimit(numBuckets * session.numGroups);
 
-        final int numGroups = session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
+        session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
 
-        final Map<Integer, GroupKey> groupOffsetToGroupKey = new Int2ObjectOpenHashMap<>();
-
-        session.assumeDense(new GroupKeyCreator() {
-            @Override
-            public int parent(int group) {
-                return 1 + (group - 1) / numBuckets;
-            }
-
-            @Override
-            public GroupKey forIndex(int group) {
-                final int oldGroup = this.parent(group);
-                final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
-                if (!groupOffsetToGroupKey.containsKey(groupOffset)) {
-                    final long start = earliestStart + groupOffset * periodMillis;
-                    final long end = earliestStart + (groupOffset + 1) * periodMillis;
-                    groupOffsetToGroupKey.put(groupOffset, new DayRangeGroupKey(format, start, end));
-                }
-                return groupOffsetToGroupKey.get(groupOffset);
-            }
-        }, numGroups);
+        session.densify(new DateTimeRangeGroupKeySet(session.groupKeySet, earliestStart, periodMillis, numBuckets, format));
         session.currentDepth += 1;
 
         out.accept("TimePeriodRegrouped");
     }
+
 }

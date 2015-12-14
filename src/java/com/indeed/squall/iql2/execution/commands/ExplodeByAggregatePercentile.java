@@ -8,7 +8,7 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;

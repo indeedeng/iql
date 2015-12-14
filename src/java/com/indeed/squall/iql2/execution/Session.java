@@ -27,7 +27,6 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -44,10 +43,10 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
 import com.indeed.squall.iql2.execution.dimensions.DimensionsTranslator;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKeySet;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
+import com.indeed.squall.iql2.execution.groupkeys.sets.MaskingGroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
@@ -384,6 +383,9 @@ public class Session {
                         for (final List<List<TermSelects>> groupFieldTerms : result) {
                             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
                             for (final TermSelects termSelect : groupTerms) {
+                                if (!groupKeySet.isPresent(termSelect.group)) {
+                                    continue;
+                                }
                                 if (termSelect.isIntTerm) {
                                     out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects));
                                 } else {
@@ -398,7 +400,10 @@ public class Session {
                     final List<GroupStats> results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
                     for (final GroupStats result : results) {
-                        final List<String> keyColumns = groupKeySet.asList(result.group);
+                        if (!groupKeySet.isPresent(result.group)) {
+                            continue;
+                        }
+                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, result.group);
                         for (final String k : keyColumns) {
                             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                         }
@@ -430,7 +435,10 @@ public class Session {
         for (final List<List<TermSelects>> groupFieldTerms : results) {
             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
             for (final TermSelects termSelects : groupTerms) {
-                final List<String> keyColumns = groupKeySet.asList(termSelects.group);
+                if (!groupKeySet.isPresent(termSelects.group)) {
+                    continue;
+                }
+                final List<String> keyColumns = GroupKeySets.asList(groupKeySet, termSelects.group);
                 for (final String k : keyColumns) {
                     sb.append(k).append('\t');
                 }
@@ -555,7 +563,7 @@ public class Session {
         return result;
     }
 
-    public void densify(GroupKeyCreator groupKeyCreator) throws ImhotepOutOfMemoryException {
+    public void densify(GroupKeySet groupKeySet) throws ImhotepOutOfMemoryException {
         timer.push("densify");
         final BitSet anyPresent = new BitSet();
         // TODO: Parallelize?
@@ -578,57 +586,18 @@ public class Session {
             timer.pop();
         }
 
-        timer.push("form rules");
-        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-        final List<GroupRemapRule> rules = Lists.newArrayList();
-        boolean anyNonIdentity = false;
-        final IntList parents = new IntArrayList();
-        parents.add(-1);
-        final RegroupCondition condition = new RegroupCondition("fakeField", true, 23L, null, false);
-        for (int i = 0; i < anyPresent.size(); i++) {
-            if (anyPresent.get(i)) {
-                final int newGroup = nextGroupKeys.size();
-                parents.add(groupKeyCreator.parent(i));
-                nextGroupKeys.add(groupKeyCreator.forIndex(i));
-                rules.add(new GroupRemapRule(i, condition, newGroup, newGroup));
-                if (newGroup != i) {
-                    anyNonIdentity = true;
-                }
-            }
-        }
-        timer.pop();
-
-        timer.push("regroup");
-        if (anyNonIdentity) {
-            final GroupRemapRule[] ruleArray = rules.toArray(new GroupRemapRule[rules.size()]);
-            // TODO: Parallelize?
-            for (final ImhotepSession session : getSessionsMapRaw().values()) {
-                session.regroup(ruleArray);
-            }
-        }
-        timer.pop();
-
-        numGroups = nextGroupKeys.size() - 1;
+        numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
-        groupKeySet = DumbGroupKeySet.create(groupKeySet, parents.toIntArray(), nextGroupKeys);
+        this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
 
         timer.pop();
     }
 
-    public void assumeDense(GroupKeyCreator groupKeyCreator, int newNumGroups) throws ImhotepOutOfMemoryException {
+    public void assumeDense(GroupKeySet groupKeySet) {
         timer.push("assumeDense");
-        final List<GroupKey> nextGroupKeys = Lists.newArrayListWithCapacity(newNumGroups + 1);
-        nextGroupKeys.add(null);
-        final int[] parents = new int[newNumGroups + 1];
-        parents[0] = -1;
-        for (int i = 1; i <= newNumGroups; i++) {
-            parents[i] = groupKeyCreator.parent(i);
-            nextGroupKeys.add(groupKeyCreator.forIndex(i));
-        }
-
-        numGroups = nextGroupKeys.size() - 1;
+        this.numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
-        groupKeySet = DumbGroupKeySet.create(groupKeySet, parents, nextGroupKeys);
+        this.groupKeySet = groupKeySet;
         timer.pop();
     }
 

@@ -1,6 +1,7 @@
-package com.indeed.squall.iql2.execution.groupkeys;
+package com.indeed.squall.iql2.execution.groupkeys.sets;
 
-import com.google.common.collect.Lists;
+import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.InitialGroupKey;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,24 +27,6 @@ public class DumbGroupKeySet implements GroupKeySet {
     }
 
     @Override
-    public List<String> asList(int group) {
-        final GroupKey groupKey = groupKeys.get(group);
-        if (groupKey instanceof InitialGroupKey) {
-            return Collections.singletonList("");
-        } else {
-            final List<String> keys = Lists.newArrayList();
-            GroupKeySet groupKeySet = this;
-            int node = group;
-            while (groupKeySet != null && groupKeySet.previous() != null) {
-                groupKeySet.groupKey(node).addToList(keys);
-                node = groupKeySet.parentGroup(node);
-                groupKeySet = groupKeySet.previous();
-            }
-            return Lists.reverse(keys);
-        }
-    }
-
-    @Override
     public GroupKeySet previous() {
         return previous;
     }
@@ -60,11 +43,11 @@ public class DumbGroupKeySet implements GroupKeySet {
 
     @Override
     public int numGroups() {
-        return groupKeys.size();
+        return groupKeys.size() - 1;
     }
 
     @Override
     public boolean isPresent(int group) {
-        return group < groupParents.length && groupParents[group] != -1;
+        return group < groupParents.length && groupParents[group] != -1 && (previous == null || previous.isPresent(parentGroup(group)));
     }
 }

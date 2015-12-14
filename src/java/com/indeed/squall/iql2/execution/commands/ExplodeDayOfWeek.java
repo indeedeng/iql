@@ -9,8 +9,7 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DayGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKeyCreator;
+import com.indeed.squall.iql2.execution.groupkeys.sets.DayGroupKeySet;
 import org.joda.time.DateTime;
 
 import java.util.List;
@@ -48,22 +47,10 @@ public class ExplodeDayOfWeek implements Command {
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
         session.timer.pop();
-        final int oldNumGroups = session.numGroups;
         session.timer.push("shuffle regroup");
         session.regroup(rulesArray);
         session.timer.pop();
-        session.assumeDense(new GroupKeyCreator() {
-            @Override
-            public int parent(int group) {
-                return 1 + (group - 1) / DAY_KEYS.length;
-            }
-
-            @Override
-            public GroupKey forIndex(int group) {
-                final int dayOfWeek = (group - 1) % DAY_KEYS.length;
-                return DAY_GROUP_KEYS[dayOfWeek];
-            }
-        }, oldNumGroups * DAY_KEYS.length);
+        session.assumeDense(new DayGroupKeySet(session.groupKeySet));
         session.currentDepth += 1;
 
         out.accept("success");
