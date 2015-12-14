@@ -404,8 +404,12 @@ public class Session {
                             continue;
                         }
                         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, result.group);
-                        for (final String k : keyColumns) {
-                            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+                        if (keyColumns.isEmpty()) {
+                            sb.append("\t");
+                        } else {
+                            for (final String k : keyColumns) {
+                                sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+                            }
                         }
                         for (final double stat : result.stats) {
                             if (DoubleMath.isMathematicalInteger(stat)) {

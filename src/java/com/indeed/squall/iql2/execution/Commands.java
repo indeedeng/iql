@@ -30,18 +30,22 @@ import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
 import com.indeed.squall.iql2.execution.commands.GetNumGroups;
+import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
 import com.indeed.squall.iql2.execution.commands.SampleFields;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
+import com.indeed.squall.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -310,6 +314,24 @@ public class Commands {
             case "applyGroupFilter": {
                 final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup);
                 return new ApplyGroupFilter(filter);
+            }
+            case "regroupFieldIn": {
+                final String field = command.get("field").textValue();
+                if (command.get("isIntField").booleanValue()) {
+                    final JsonNode termList = command.get("intTerms");
+                    final LongList intTerms = new LongArrayList(termList.size());
+                    for (int i = 0; i < termList.size(); i++) {
+                        intTerms.add(termList.get(i).longValue());
+                    }
+                    return new IntRegroupFieldIn(field, intTerms);
+                } else {
+                    final JsonNode termList = command.get("stringTerms");
+                    final List<String> stringTerms = new ArrayList<>();
+                    for (int i = 0; i < termList.size(); i++) {
+                        stringTerms.add(termList.get(i).textValue());
+                    }
+                    return new StringRegroupFieldIn(field, stringTerms);
+                }
             }
         }
         throw new RuntimeException("oops:" + command);
