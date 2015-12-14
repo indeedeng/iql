@@ -563,7 +563,7 @@ public class QueryServlet {
                 Functions.<DocMetric>identity(),
                 Functions.<AggregateFilter>identity(),
                 new Function<DocFilter, DocFilter>() {
-                    final Map<Query, Set<Long>> queryToResults = new HashMap<>();
+                    final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
 
                     @Nullable
                     @Override
@@ -574,14 +574,17 @@ public class QueryServlet {
                             final Query q = fieldInQuery.query;
                             if (!queryToResults.containsKey(q)) {
                                 final Set<Long> terms = new LongOpenHashSet();
+                                final Set<String> stringTerms = new HashSet<>();
                                 timer.push("Execute sub-query: \"" + q + "\"");
                                 try {
                                     executeParsedQuery(new Consumer<String>() {
                                         @Override
                                         public void accept(String s) {
+                                            final String term = s.split("\t")[0];
                                             try {
-                                                terms.add(Long.parseLong(s.split("\t")[0]));
+                                                terms.add(Long.parseLong(term));
                                             } catch (NumberFormatException e) {
+                                                stringTerms.add(term);
                                             }
                                         }
                                     }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit);
@@ -589,11 +592,19 @@ public class QueryServlet {
                                     throw Throwables.propagate(e);
                                 }
                                 timer.pop();
-                                queryToResults.put(q, terms);
+                                queryToResults.put(q, Pair.of(terms, stringTerms));
                             }
-                            final Set<Long> terms = queryToResults.get(q);
+                            final Pair<Set<Long>, Set<String>> p = queryToResults.get(q);
                             final ScopedField scopedField = fieldInQuery.field;
-                            return scopedField.wrap(new DocFilter.IntFieldIn(scopedField.field, terms));
+
+                            final List<DocFilter> filters = new ArrayList<>();
+                            if (!p.getFirst().isEmpty()) {
+                                filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
+                            }
+                            if (!p.getSecond().isEmpty()) {
+                                filters.add(new DocFilter.StringFieldIn(getKeywordAnalyzerWhitelist(), scopedField.field, p.getSecond()));
+                            }
+                            return scopedField.wrap(new DocFilter.Ors(filters));
                         }
                         return input;
                     }
