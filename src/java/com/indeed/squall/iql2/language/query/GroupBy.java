@@ -2,12 +2,16 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
+import java.util.List;
 import java.util.Set;
 
 public interface GroupBy {
@@ -254,6 +258,47 @@ public interface GroupBy {
                     "field=" + field +
                     ", format=" + format +
                     '}';
+        }
+    }
+
+    class GroupByFieldIn implements GroupBy {
+        public final String field;
+        public final LongList intTerms;
+        public final List<String> stringTerms;
+
+        public GroupByFieldIn(String field, LongList intTerms, List<String> stringTerms) {
+            this.field = field;
+            this.intTerms = intTerms;
+            this.stringTerms = stringTerms;
+
+            if (Sets.newHashSet(stringTerms).size() != stringTerms.size()) {
+                throw new IllegalArgumentException("String terms must be unique: " + stringTerms);
+            }
+            if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
+                throw new IllegalArgumentException("Int terms must be unique: " + intTerms);
+            }
+            if (intTerms.size() > 0 && stringTerms.size() > 0) {
+                throw new IllegalArgumentException("Cannot have both int terms and string terms.");
+            }
+        }
+
+        @Override
+        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            if (intTerms.size() > 0) {
+                return ExecutionStep.ExplodeFieldIn.intExplode(scope, field, intTerms);
+            } else {
+                return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field, stringTerms);
+            }
         }
     }
 

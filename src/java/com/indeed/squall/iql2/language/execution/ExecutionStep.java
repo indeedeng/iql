@@ -16,11 +16,15 @@ import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookup
 import com.indeed.squall.iql2.language.commands.FieldIterateOpts;
 import com.indeed.squall.iql2.language.commands.IterateAndExplode;
 import com.indeed.squall.iql2.language.commands.MetricRegroup;
+import com.indeed.squall.iql2.language.commands.RegroupFieldIn;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.language.commands.TopK;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongLists;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -175,6 +179,51 @@ public interface ExecutionStep {
                     ", limit=" + limit +
                     ", metric=" + metric +
                     ", withDefault=" + withDefault +
+                    '}';
+        }
+    }
+
+    class ExplodeFieldIn implements ExecutionStep {
+        private final Set<String> scope;
+        private final String field;
+        private final List<String> stringTerms;
+        private final LongList intTerms;
+        private final boolean isIntField;
+
+        private ExplodeFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField) {
+            this.scope = scope;
+            this.field = field;
+            this.stringTerms = stringTerms;
+            this.intTerms = intTerms;
+            this.isIntField = isIntField;
+        }
+
+        public static ExplodeFieldIn intExplode(Set<String> scope, String field, LongList terms) {
+            return new ExplodeFieldIn(scope, field, Collections.<String>emptyList(), terms, true);
+        }
+
+        public static ExplodeFieldIn stringExplode(Set<String> scope, String field, List<String> terms) {
+            return new ExplodeFieldIn(scope, field, terms, LongLists.EMPTY_LIST, false);
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.<Command>singletonList(new RegroupFieldIn(scope, field, stringTerms, intTerms, isIntField));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+
+        @Override
+        public String toString() {
+            return "ExplodeFieldIn{" +
+                    "field='" + field + '\'' +
+                    ", stringTerms=" + stringTerms +
+                    ", intTerms=" + intTerms +
+                    ", isIntField=" + isIntField +
                     '}';
         }
     }

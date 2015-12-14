@@ -12,12 +12,18 @@ import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
+import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,8 +102,34 @@ public class GroupBys {
 
             @Override
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
-                final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, ctx.not != null);
-                accept(new GroupBy.GroupByField(ctx.field.getText().toUpperCase(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
+                if (ctx.not != null) {
+                    final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, true);
+                    accept(new GroupBy.GroupByField(ctx.field.getText().toUpperCase(), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
+                } else {
+                    final List<Term> terms = new ArrayList<>();
+                    boolean anyString = false;
+                    for (final JQLParser.TermValContext term : ctx.terms) {
+                        final Term t = Term.parseTerm(term);
+                        anyString |= !t.isIntTerm;
+                        terms.add(t);
+                    }
+                    final List<String> strings;
+                    final LongList ints;
+                    if (anyString) {
+                        strings = new ArrayList<>();
+                        for (final Term term : terms) {
+                            strings.add(term.isIntTerm ? String.valueOf(term.intTerm) : term.stringTerm);
+                        }
+                        ints = LongLists.EMPTY_LIST;
+                    } else {
+                        ints = new LongArrayList();
+                        for (final Term term : terms) {
+                            ints.add(term.intTerm);
+                        }
+                        strings = Collections.emptyList();
+                    }
+                    accept(new GroupBy.GroupByFieldIn(ctx.field.getText().toUpperCase(), ints, strings));
+                }
             }
 
             @Override
