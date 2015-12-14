@@ -7,7 +7,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -101,8 +101,8 @@ public class ExplodeByAggregatePercentile implements Command {
                         }
                     }
                     final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                    // TODO: Not use DumbGroupKey
-                    nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                    // TODO: Not use StringGroupKey
+                    nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
@@ -155,8 +155,8 @@ public class ExplodeByAggregatePercentile implements Command {
                         }
                     }
                     final String keyTerm = "[" + (double) i / numBuckets + ", " + (double) (i + 1) / numBuckets + ")";
-                    // TODO: Not use DumbGroupKey
-                    nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                    // TODO: Not use StringGroupKey
+                    nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));

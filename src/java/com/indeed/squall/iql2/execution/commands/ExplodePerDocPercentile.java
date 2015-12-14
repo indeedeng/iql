@@ -9,7 +9,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.util.core.TreeTimer;
@@ -91,8 +91,8 @@ public class ExplodePerDocPercentile implements Command {
                 final int end = ArrayUtils.lastIndexOf(cutoffs[group], cutoffs[group][bucket]);
                 final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (end + 1) / numBuckets + ")";
                 final int newGroup = nextGroupKeys.size();
-                // TODO: Not use DumbGroupKey this.
-                nextGroupKeys.add(new DumbGroupKey(keyTerm));
+                // TODO: Not use StringGroupKey this.
+                nextGroupKeys.add(new StringGroupKey(keyTerm));
                 groupParents.add(group);
                 positiveGroups.add(newGroup);
                 conditions.add(new RegroupCondition(field, true, cutoffs[group][bucket], null, true));

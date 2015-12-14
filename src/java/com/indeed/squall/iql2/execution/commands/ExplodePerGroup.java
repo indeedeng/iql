@@ -9,7 +9,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
@@ -59,7 +59,7 @@ public class ExplodePerGroup implements Command {
                 } else {
                     regroupConditionsList.add(new RegroupCondition(term.getFieldName(), false, 0, term.getTermStringVal(), false));
                     if (!stringTermGroupKeys.containsKey(term.getTermStringVal())) {
-                        stringTermGroupKeys.put(term.getTermStringVal(), new DumbGroupKey(term.getTermStringVal()));
+                        stringTermGroupKeys.put(term.getTermStringVal(), new StringGroupKey(term.getTermStringVal()));
                     }
                     nextGroupKeys.add(stringTermGroupKeys.get(term.getTermStringVal()));
                     nextGroupParents.add(group);
@@ -75,7 +75,7 @@ public class ExplodePerGroup implements Command {
             if (termsWithExplodeOpts.defaultName.isPresent()) {
                 negativeGroup = nextGroup++;
                 // TODO: Memoize this?
-                nextGroupKeys.add(new DumbGroupKey(termsWithExplodeOpts.defaultName.get()));
+                nextGroupKeys.add(new StringGroupKey(termsWithExplodeOpts.defaultName.get()));
                 nextGroupParents.add(group);
             } else {
                 negativeGroup = 0;

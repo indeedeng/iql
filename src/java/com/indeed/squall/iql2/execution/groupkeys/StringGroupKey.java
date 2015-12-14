@@ -2,10 +2,10 @@ package com.indeed.squall.iql2.execution.groupkeys;
 
 import java.util.List;
 
-public class DumbGroupKey extends GroupKey {
+public class StringGroupKey extends GroupKey {
     private final String term;
 
-    public DumbGroupKey(String term) {
+    public StringGroupKey(String term) {
         this.term = term;
     }
 

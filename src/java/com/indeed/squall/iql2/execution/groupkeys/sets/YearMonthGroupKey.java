@@ -1,6 +1,6 @@
 package com.indeed.squall.iql2.execution.groupkeys.sets;
 
-import com.indeed.squall.iql2.execution.groupkeys.DumbGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
@@ -32,7 +32,7 @@ public class YearMonthGroupKey implements GroupKeySet {
     public GroupKey groupKey(int group) {
         final int monthOffset = (group - 1) % numMonths;
         final DateTime month = startMonth.plusMonths(monthOffset);
-        return new DumbGroupKey(formatter.print(month));
+        return new StringGroupKey(formatter.print(month));
     }
 
     @Override
