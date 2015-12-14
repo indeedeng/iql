@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.execution.groupkeys.GroupKeySet;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class ApplyGroupFilter implements Command {
+    private static final Logger log = Logger.getLogger(ApplyGroupFilter.class);
+
     private final AggregateFilter filter;
 
     public ApplyGroupFilter(AggregateFilter filter) {
@@ -63,12 +66,12 @@ public class ApplyGroupFilter implements Command {
         newGroupKeys.add(null);
         final IntList newGroupParents = new IntArrayList();
         newGroupParents.add(-1);
-        for (int i = 1; i < rules.size(); i++) {
-            final int newGroup = keep[i] ? i : 0;
+        for (int i = 1; i < keep.length; i++) {
+            final int newGroup = keep[i] ? newGroupParents.size() : 0;
             rules.add(new GroupRemapRule(i, fakeCondition, newGroup, newGroup));
             if (keep[i]) {
                 newGroupKeys.add(session.groupKeySet.groupKeys.get(i));
-                newGroupParents.add(i);
+                newGroupParents.add(session.groupKeySet.groupParents[i]);
             }
         }
         final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
@@ -78,7 +81,9 @@ public class ApplyGroupFilter implements Command {
                 session.regroup(rulesArray);
             }
         });
-        session.groupKeySet = GroupKeySet.create(session.groupKeySet, newGroupParents.toIntArray(), newGroupKeys);
+        session.numGroups = newGroupParents.size() - 1;
+        log.debug("numGroups = " + session.numGroups);
+        session.groupKeySet = GroupKeySet.create(session.groupKeySet.previous, newGroupParents.toIntArray(), newGroupKeys);
         out.accept("done");
     }
 }
