@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Optional;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Query;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -22,9 +23,9 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, JQLParser.FromContentsContext fromContents, Consumer<String> warn) {
+    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, JQLParser.FromContentsContext fromContents, Consumer<String> warn, WallClock clock) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn);
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock);
         }
         if (docFilterContext.legacyDocFilter() != null) {
             return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -196,7 +197,7 @@ public class DocFilters {
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
             final Map<String, Set<String>> datasetToIntFields,
             final JQLParser.FromContentsContext fromContents,
-            final Consumer<String> warn
+            final Consumer<String> warn, final WallClock clock
     ) {
         final DocFilter[] ref = new DocFilter[1];
 
@@ -243,7 +244,8 @@ public class DocFilters {
                         null,
                         datasetToKeywordAnalyzerFields,
                         datasetToIntFields,
-                        warn
+                        warn,
+                        clock
                 );
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(new DocFilter.FieldInQuery(query, scopedField, ctx.not != null));
@@ -276,7 +278,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn)));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock)));
             }
 
             @Override
@@ -293,7 +295,7 @@ public class DocFilters {
 
             @Override
             public void enterDocOr(JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn)));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock)));
             }
 
             @Override
@@ -304,8 +306,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
-                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -340,7 +342,7 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn)));
+                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock)));
             }
 
             @Override
@@ -356,7 +358,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, fromContents, warn, clock));
             }
 
             @Override

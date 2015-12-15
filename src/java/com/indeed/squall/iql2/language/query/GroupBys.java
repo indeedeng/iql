@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -23,7 +24,6 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,11 +32,11 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
+    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final List<JQLParser.GroupByElementWithHavingContext> elements = groupByContentsContext.groupByElementWithHaving();
         final List<GroupByMaybeHaving> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByElementWithHavingContext element : elements) {
-            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
         }
         return result;
     }
@@ -45,17 +45,17 @@ public class GroupBys {
             final JQLParser.GroupByElementWithHavingContext ctx,
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
             final Map<String, Set<String>> datasetToIntFields,
-            final Consumer<String> warn
+            final Consumer<String> warn, WallClock clock
     ) {
-        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         if (ctx.filter != null) {
-            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
         } else {
             return GroupByMaybeHaving.of(groupBy);
         }
     }
 
-    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn) {
+    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn, final WallClock clock) {
         final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
@@ -88,7 +88,7 @@ public class GroupBys {
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
                 } else {
                     metric = Optional.absent();
                 }
@@ -141,7 +141,7 @@ public class GroupBys {
                 final boolean excludeGutters;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -155,7 +155,7 @@ public class GroupBys {
                     }
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -236,7 +236,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                     if (reverseOrder) {
                         theMetric = new AggregateMetric.Negate(theMetric);
                     }
@@ -246,7 +246,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
                 } else {
                     filter = Optional.absent();
                 }

@@ -1,5 +1,7 @@
 package com.indeed.squall.iql2.language;
 
+import com.indeed.common.util.time.DefaultWallClock;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
@@ -31,7 +33,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Queries.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
+                    Queries.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), new DefaultWallClock());
                 } catch (Exception e) {
                     successes--;
                     failures++;

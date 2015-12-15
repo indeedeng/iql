@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language.optimizations;
 
 import com.google.common.base.Function;
+import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -291,7 +292,7 @@ public class ConstantFolding {
             public void accept(String s) {
                 System.out.println("WARNING: " + s);
             }
-        });
+        }, new DefaultWallClock());
         System.out.println("filter = " + filter);
         final DocMetric metric = filter.asZeroOneMetric("recommendedjobsservice");
         System.out.println("metric = " + metric);

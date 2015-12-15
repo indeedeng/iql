@@ -2,9 +2,13 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.indeed.common.util.time.StoppedClock;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import junit.framework.Assert;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -19,6 +23,8 @@ import static com.indeed.squall.iql2.language.DocMetric.Multiply;
 import static com.indeed.squall.iql2.language.DocMetric.Subtract;
 
 public class DocMetricsTest {
+    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
@@ -33,7 +39,7 @@ public class DocMetricsTest {
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
                 }
-            });
+            }, CLOCK);
         }
     };
 
@@ -51,7 +57,7 @@ public class DocMetricsTest {
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
                 }
-            });
+            }, CLOCK);
         }
     };
 

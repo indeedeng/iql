@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.JQLBaseListener;
@@ -39,20 +40,20 @@ public class Dataset {
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
-    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
+    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
-        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
         }
         return result;
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
+    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final String dataset = datasetContext.index.getText().toUpperCase();
-        final DateTime start = parseDateTime(datasetContext.start);
-        final DateTime end = parseDateTime(datasetContext.end);
+        final DateTime start = parseDateTime(datasetContext.start, clock);
+        final DateTime end = parseDateTime(datasetContext.end, clock);
         final Optional<String> name;
         if (datasetContext.name != null) {
             name = Optional.of(datasetContext.name.getText().toUpperCase());
@@ -64,7 +65,7 @@ public class Dataset {
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
             }
             initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
         } else {
@@ -73,7 +74,7 @@ public class Dataset {
         return Pair.of(new Dataset(dataset, start, end, name, fieldAliases), initializerFilter);
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn) {
+    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn, final WallClock clock) {
         final Object[] ref = new Object[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -85,7 +86,7 @@ public class Dataset {
             }
 
             public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
-                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn));
+                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
@@ -103,7 +104,7 @@ public class Dataset {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
                 } else {
@@ -134,7 +135,7 @@ public class Dataset {
         return result;
     }
 
-    public static DateTime parseDateTime(JQLParser.DateTimeContext dateTimeContext) {
+    public static DateTime parseDateTime(JQLParser.DateTimeContext dateTimeContext, WallClock clock) {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
             return new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
         } else if (dateTimeContext.DATE_TOKEN() != null) {
@@ -147,33 +148,33 @@ public class Dataset {
                 final JQLParser jqlParser = Queries.parserForString(unquoted);
                 final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                 if (jqlParser.getNumberOfSyntaxErrors() > 0) {
-                    final DateTime dt = parseWordDate(unquoted);
+                    final DateTime dt = parseWordDate(unquoted, clock);
                     if (dt != null) {
                         return dt;
                     }
                     throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
                 }
-                return TimePeriods.timePeriodDateTime(timePeriod);
+                return TimePeriods.timePeriodDateTime(timePeriod, clock);
             }
         } else if (dateTimeContext.timePeriod() != null) {
-            return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod());
+            return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock);
         } else if (dateTimeContext.NAT() != null) {
             return new DateTime(Long.parseLong(dateTimeContext.NAT().getText()));
         } else {
             final String textValue = dateTimeContext.getText();
-            final DateTime dt = parseWordDate(textValue);
+            final DateTime dt = parseWordDate(textValue, clock);
             if (dt != null) return dt;
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }
 
-    private static DateTime parseWordDate(String textValue) {
+    private static DateTime parseWordDate(String textValue, WallClock clock) {
         if ("yesterday".startsWith(textValue.toLowerCase())) {
-            return DateTime.now().withTimeAtStartOfDay().minusDays(1);
+            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
         } else if (textValue.length() >= 3 && "today".startsWith(textValue.toLowerCase())) {
-            return DateTime.now().withTimeAtStartOfDay();
+            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
         } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue.toLowerCase())) {
-            return DateTime.now().withTimeAtStartOfDay().plusDays(1);
+            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
         }
         return null;
     }

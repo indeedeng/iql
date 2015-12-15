@@ -7,6 +7,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
@@ -64,18 +65,18 @@ public class Queries {
         return result;
     }
 
-    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
         return parseQuery(q, useLegacy, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
             @Override
             public void accept(String s) {
 
             }
-        });
+        }, clock);
     }
 
-    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
+    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn);
+        return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context) {
@@ -85,9 +86,9 @@ public class Queries {
         return inputStream.getText(new Interval(context.start.getStartIndex(), context.stop.getStopIndex()));
     }
 
-    public static SplitQuery parseSplitQuery(String q, boolean useLegacy) {
+    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap());
+        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), clock);
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents());
         final String where;

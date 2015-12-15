@@ -1,9 +1,13 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
+import com.indeed.common.util.time.StoppedClock;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.DocMetric.Field;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -19,6 +23,8 @@ import static com.indeed.squall.iql2.language.AggregateMetric.Multiply;
 import static com.indeed.squall.iql2.language.AggregateMetric.Subtract;
 
 public class AggregateMetricsTest {
+    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
@@ -33,7 +39,7 @@ public class AggregateMetricsTest {
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
                 }
-            });
+            }, CLOCK);
         }
     };
     public static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
@@ -50,7 +56,7 @@ public class AggregateMetricsTest {
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
                 }
-            });
+            }, CLOCK);
         }
     };
 

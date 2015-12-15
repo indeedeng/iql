@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language;
 
+import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
@@ -65,9 +66,9 @@ public class TimePeriods {
 
     }
 
-    public static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext) {
+    public static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext, WallClock clock) {
         final List<Pair<Integer, TimeUnit>> pairs = parseTimePeriod(timePeriodContext);
-        DateTime dt = DateTime.now().withTimeAtStartOfDay();
+        DateTime dt = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
         for (final Pair<Integer, TimeUnit> pair : pairs) {
             dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
         }
