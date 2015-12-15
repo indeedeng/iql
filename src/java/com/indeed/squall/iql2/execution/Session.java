@@ -23,6 +23,7 @@ import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
@@ -122,7 +123,8 @@ public class Session {
             final TreeTimer treeTimer,
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
-            final Long imhotepDaemonTempFileSizeLimit
+            final Long imhotepDaemonTempFileSizeLimit,
+            final WallClock clock
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
 
@@ -140,7 +142,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -161,7 +163,7 @@ public class Session {
             return Optional.absent();
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit));
@@ -194,7 +196,17 @@ public class Session {
         return ret;
     }
 
-    private static void createSubSessions(ImhotepClient client, JsonNode sessionRequest, Closer closer, Map<String, ImhotepSessionInfo> sessions, Map<String, DatasetDimensions> dimensions, TreeTimer treeTimer, Long imhotepLocalTempFileSizeLimit, Long imhotepDaemonTempFileSizeLimit) throws ImhotepOutOfMemoryException, IOException {
+    private static void createSubSessions(
+            final ImhotepClient client,
+            final JsonNode sessionRequest,
+            final Closer closer,
+            final Map<String, ImhotepSessionInfo> sessions,
+            final Map<String, DatasetDimensions> dimensions,
+            final TreeTimer treeTimer,
+            final Long imhotepLocalTempFileSizeLimit,
+            final Long imhotepDaemonTempFileSizeLimit,
+            final WallClock clock
+    ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, String> upperCaseToActualDataset = new HashMap<>();
         for (final String dataset : Session.getDatasets(client)) {
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
@@ -237,8 +249,8 @@ public class Session {
                 }
             }
 
-            final DateTime startDateTime = parseDateTime(start);
-            final DateTime endDateTime = parseDateTime(end);
+            final DateTime startDateTime = parseDateTime(start, clock);
+            final DateTime endDateTime = parseDateTime(end, clock);
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
@@ -295,9 +307,9 @@ public class Session {
     }
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
-    private static DateTime parseDateTime(String descriptor) {
+    private static DateTime parseDateTime(String descriptor, WallClock clock) {
         descriptor = descriptor.trim();
-        final DateTime startOfToday = DateTime.now().withTimeAtStartOfDay();
+        final DateTime startOfToday = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
         if (descriptor.equals("today")) {
             return startOfToday;
         } else if (descriptor.equals("yesterday")) {
