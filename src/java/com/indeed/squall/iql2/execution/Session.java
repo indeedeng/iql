@@ -10,6 +10,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -203,6 +204,7 @@ public class Session {
             final JsonNode elem = sessionRequest.get(i);
             final String datasetName = elem.get("dataset").textValue();
             final String actualDataset = upperCaseToActualDataset.get(datasetName.toUpperCase());
+            Preconditions.checkNotNull(actualDataset, "Dataset does not exist: %s", datasetName);
             final String start = elem.get("start").textValue();
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
