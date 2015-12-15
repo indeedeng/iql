@@ -469,6 +469,7 @@ public class QueryServlet {
                 outputStream.println();
                 outputStream.println("event: header");
 
+                // TODO: Fix these headers
                 final Map<String, Object> headerMap = new HashMap<>();
                 headerMap.put("IQL-Cached", "false");
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
