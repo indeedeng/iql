@@ -15,6 +15,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
+import com.indeed.common.util.time.StoppedClock;
+import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
@@ -104,6 +106,7 @@ public class QueryServlet {
     private final TopTermsCache topTermsCache;
     private final Long imhotepLocalTempFileSizeLimit;
     private final Long imhotepDaemonTempFileSizeLimit;
+    private final WallClock clock;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
@@ -118,7 +121,8 @@ public class QueryServlet {
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final Long imhotepLocalTempFileSizeLimit,
-            final Long imhotepDaemonTempFileSizeLimit
+            final Long imhotepDaemonTempFileSizeLimit,
+            final WallClock clock
     ) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
@@ -129,6 +133,7 @@ public class QueryServlet {
         this.topTermsCache = topTermsCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
+        this.clock = clock;
     }
 
     private static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -164,6 +169,8 @@ public class QueryServlet {
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String query
     ) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
+        final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
+
         final int version = ServletUtil.getVersion(request);
         final String contentType = request.getHeader("Accept");
         final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
@@ -220,7 +227,8 @@ public class QueryServlet {
                                 timer,
                                 isStream,
                                 skipValidation,
-                                groupLimit
+                                groupLimit,
+                                clock
                         );
                 statementType = "select";
             }
@@ -367,7 +375,7 @@ public class QueryServlet {
         return value;
     }
 
-    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation, Integer groupLimit) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    private long processSelect(HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation, Integer groupLimit, WallClock clock) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
         if (isStream) {
             response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
         } else {
@@ -456,7 +464,7 @@ public class QueryServlet {
                 public void accept(String s) {
                     warnings.add(s);
                 }
-            }, skipValidation, groupLimit);
+            }, skipValidation, groupLimit, clock);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -549,15 +557,16 @@ public class QueryServlet {
             final NoOpProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
             final boolean skipValidation,
-            final Integer groupLimit
+            final Integer groupLimit,
+            final WallClock clock
     ) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
-        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn);
+        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
         timer.pop();
 
-        executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit);
+        executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock);
         timer.pop();
     }
 
@@ -567,7 +576,8 @@ public class QueryServlet {
             final NoOpProgressCallback progressCallback,
             Query query,
             final boolean skipValidation,
-            final @Nullable Integer initialGroupLimit
+            final @Nullable Integer initialGroupLimit,
+            final WallClock clock
     ) throws IOException {
         query = query.transform(
                 Functions.<GroupBy>identity(),
@@ -599,7 +609,7 @@ public class QueryServlet {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit);
+                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit, clock);
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
                                 }
@@ -758,7 +768,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);

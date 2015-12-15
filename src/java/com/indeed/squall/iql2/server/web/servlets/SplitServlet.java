@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
+import com.indeed.common.util.time.DefaultWallClock;
+import com.indeed.common.util.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +26,7 @@ public class SplitServlet {
         final int version = ServletUtil.getVersion(request);
         response.setHeader("Content-Type", "application/json");
         try {
-            return Queries.parseSplitQuery(q, version == 1);
+            return Queries.parseSplitQuery(q, version == 1, new StoppedClock());
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("clause", "where");

@@ -2,6 +2,8 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.common.util.time.DefaultWallClock;
+import com.indeed.common.util.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import org.springframework.stereotype.Controller;
@@ -40,7 +42,7 @@ public class ParseServlet {
         final int version = ServletUtil.getVersion(request);
         try {
             response.setHeader("Content-Type", "application/json");
-            final Query query = Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields());
+            final Query query = Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new StoppedClock());
             return ImmutableMap.of("parsed", true);
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
