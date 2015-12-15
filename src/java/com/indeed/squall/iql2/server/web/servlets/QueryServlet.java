@@ -538,7 +538,19 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(String q, boolean useLegacy, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, Consumer<String> out, TreeTimer timer, ExecutionManager.QueryTracker queryTracker, NoOpProgressCallback progressCallback, com.indeed.squall.iql2.language.compat.Consumer<String> warn, boolean skipValidation, Integer groupLimit) throws IOException, ImhotepOutOfMemoryException {
+    private void executeSelect(
+            final String q,
+            final boolean useLegacy,
+            final Map<String, Set<String>> keywordAnalyzerWhitelist,
+            final Map<String, Set<String>> datasetToIntFields,
+            final Consumer<String> out,
+            final TreeTimer timer,
+            final ExecutionManager.QueryTracker queryTracker,
+            final NoOpProgressCallback progressCallback,
+            final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
+            final boolean skipValidation,
+            final Integer groupLimit
+    ) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
@@ -552,7 +564,7 @@ public class QueryServlet {
     private void executeParsedQuery(
             Consumer<String> out,
             final TreeTimer timer,
-            NoOpProgressCallback progressCallback,
+            final NoOpProgressCallback progressCallback,
             Query query,
             final boolean skipValidation,
             final @Nullable Integer initialGroupLimit
