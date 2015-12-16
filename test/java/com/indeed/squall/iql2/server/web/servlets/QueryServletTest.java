@@ -134,10 +134,24 @@ public class QueryServletTest {
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
     }
 
+    private static List<List<String>> withoutLastColumn(List<List<String>> input) {
+        final List<List<String>> output = new ArrayList<>();
+        for (final List<String> row : input) {
+            if (row.isEmpty()) {
+                output.add(row);
+            } else {
+                output.add(row.subList(0, row.size() - 1));
+            }
+        }
+        return output;
+    }
+
     @Test
     public void testUngrouped() throws Exception {
         final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
         testAll(expected, "from organic yesterday today select count(), oji, ojc, distinct(tk)");
+        // Remove DISTINCT to allow streaming, rather than regroup.
+        testAll(withoutLastColumn(expected), "from organic yesterday today select count(), oji, ojc");
     }
 
     @Test
@@ -152,6 +166,8 @@ public class QueryServletTest {
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
 
         testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
+        // Remove DISTINCT to allow streaming, rather than regroup.
+        testAll(withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
     }
 
     @Test
