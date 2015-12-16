@@ -127,22 +127,21 @@ public class QueryServletTest {
         return output;
     }
 
-    public void testUngrouped(LanguageVersion version, boolean stream) throws Exception {
-        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today select count(), oji, ojc, distinct(tk)", version, stream);
-        final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
-        Assert.assertEquals(expected, actual);
+    private static void testAll(List<List<String>> expected, String query) throws Exception {
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, false));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, true));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, false));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
     }
 
     @Test
     public void testUngrouped() throws Exception {
-        testUngrouped(LanguageVersion.IQL1, false);
-        testUngrouped(LanguageVersion.IQL1, true);
-        testUngrouped(LanguageVersion.IQL2, false);
-        testUngrouped(LanguageVersion.IQL2, true);
+        final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
+        testAll(expected, "from organic yesterday today select count(), oji, ojc, distinct(tk)");
     }
 
-    public void testTimeRegroup(LanguageVersion version, boolean stream) throws Exception {
-        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)", version, stream);
+    @Test
+    public void testTimeRegroup() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10", "1180", "45", "3"));
         expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "60", "600", "60", "1"));
@@ -151,34 +150,15 @@ public class QueryServletTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", String.valueOf(i), "1", "1"));
         }
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
-        Assert.assertEquals(expected, actual);
-    }
 
-    @Test
-    public void testTimeRegroup() throws Exception {
-        testTimeRegroup(LanguageVersion.IQL1, false);
-        testTimeRegroup(LanguageVersion.IQL1, true);
-        testTimeRegroup(LanguageVersion.IQL2, false);
-        testTimeRegroup(LanguageVersion.IQL2, true);
+        testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
     }
 
     @Test
     public void testBasicFilters() throws Exception {
-        final List<List<String>> expectedA = ImmutableList.<List<String>>of(ImmutableList.of("", "4"));
-        testAll(expectedA, "from organic yesterday today where tk=\"a\" select count()");
-        final List<List<String>> expectedB = ImmutableList.<List<String>>of(ImmutableList.of("", "2"));
-        testAll(expectedB, "from organic yesterday today where tk=\"b\" select count()");
-        final List<List<String>> expectedC = ImmutableList.<List<String>>of(ImmutableList.of("", "4"));
-        testAll(expectedC, "from organic yesterday today where tk=\"c\" select count()");
-        final List<List<String>> expectedD = ImmutableList.<List<String>>of(ImmutableList.of("", "141"));
-        testAll(expectedD, "from organic yesterday today where tk=\"d\" select count()");
-
-    }
-
-    private void testAll(List<List<String>> expected, String query) throws Exception {
-        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, false));
-        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, true));
-        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, false));
-        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
+        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"a\" select count()");
+        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where tk=\"b\" select count()");
+        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"c\" select count()");
+        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "141")), "from organic yesterday today where tk=\"d\" select count()");
     }
 }
