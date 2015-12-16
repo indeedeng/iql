@@ -5,10 +5,8 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.indeed.common.util.VersionData;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.flamdex.MemoryFlamdex;
-import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
@@ -73,7 +71,7 @@ public class QueryServletTest {
         IQL1, IQL2
     }
 
-    public static List<List<String>> runQuery(List<Shard> shards, String query, boolean stream, LanguageVersion version) throws Exception {
+    public static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream) throws Exception {
         final QueryServlet queryServlet = create(shards);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
@@ -116,25 +114,43 @@ public class QueryServletTest {
                 throw new IllegalArgumentException("Error encountered when running query: " + Joiner.on('\n').join(errorLines));
             }
         } else {
-            for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
-                if (!line.isEmpty()) {
-                    output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+            if (response.getStatus() == 200) {
+                for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
+                    if (!line.isEmpty()) {
+                        output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+                    }
                 }
+            } else {
+                throw new IllegalArgumentException("Error encountered when running query: " + response.getContentAsString());
             }
         }
         return output;
     }
 
+    public void testUngrouped(LanguageVersion version, boolean stream) throws Exception {
+        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today select count(), oji, ojc, distinct(tk)", version, stream);
+        final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testUngrouped() throws Exception {
+        testUngrouped(LanguageVersion.IQL1, false);
+        testUngrouped(LanguageVersion.IQL1, true);
+        testUngrouped(LanguageVersion.IQL2, false);
+        testUngrouped(LanguageVersion.IQL2, true);
+    }
+
     public void testTimeRegroup(LanguageVersion version, boolean stream) throws Exception {
-        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today group by time(1h) select count(), oji, ojc", stream, version);
+        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)", version, stream);
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10", "1180", "45"));
-        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "60", "600", "60"));
-        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "60", "600", "180"));
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10", "1180", "45", "3"));
+        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "60", "600", "60", "1"));
+        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "60", "600", "180", "1"));
         for (int i = 3; i < 23; i++) {
-            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", String.valueOf(i), "1"));
+            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", String.valueOf(i), "1", "1"));
         }
-        expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1"));
+        expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
         Assert.assertEquals(expected, actual);
     }
 
@@ -144,5 +160,25 @@ public class QueryServletTest {
         testTimeRegroup(LanguageVersion.IQL1, true);
         testTimeRegroup(LanguageVersion.IQL2, false);
         testTimeRegroup(LanguageVersion.IQL2, true);
+    }
+
+    @Test
+    public void testBasicFilters() throws Exception {
+        final List<List<String>> expectedA = ImmutableList.<List<String>>of(ImmutableList.of("", "4"));
+        testAll(expectedA, "from organic yesterday today where tk=\"a\" select count()");
+        final List<List<String>> expectedB = ImmutableList.<List<String>>of(ImmutableList.of("", "2"));
+        testAll(expectedB, "from organic yesterday today where tk=\"b\" select count()");
+        final List<List<String>> expectedC = ImmutableList.<List<String>>of(ImmutableList.of("", "4"));
+        testAll(expectedC, "from organic yesterday today where tk=\"c\" select count()");
+        final List<List<String>> expectedD = ImmutableList.<List<String>>of(ImmutableList.of("", "141"));
+        testAll(expectedD, "from organic yesterday today where tk=\"d\" select count()");
+
+    }
+
+    private void testAll(List<List<String>> expected, String query) throws Exception {
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, false));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, true));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, false));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
     }
 }
