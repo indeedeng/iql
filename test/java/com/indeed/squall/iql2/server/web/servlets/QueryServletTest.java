@@ -5,6 +5,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.indeed.common.util.VersionData;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
@@ -68,12 +69,24 @@ public class QueryServletTest {
         );
     }
 
-    public static List<List<String>> runQuery(List<Shard> shards, String query, boolean stream) throws Exception {
+    private enum LanguageVersion {
+        IQL1, IQL2
+    }
+
+    public static List<List<String>> runQuery(List<Shard> shards, String query, boolean stream, LanguageVersion version) throws Exception {
         final QueryServlet queryServlet = create(shards);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
         request.addParameter("client", "test");
+        switch (version) {
+            case IQL1:
+                request.addParameter("v", "1");
+                break;
+            case IQL2:
+                request.addParameter("v", "2");
+                break;
+        }
         final MockHttpServletResponse response = new MockHttpServletResponse();
         queryServlet.query(request, response, query);
 
@@ -83,7 +96,6 @@ public class QueryServletTest {
             boolean readingError = false;
             final List<String> errorLines = new ArrayList<>();
             for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
-                System.out.println(line);
                 if (line.startsWith("event: resultstream")) {
                     readingData = true;
                 } else if (line.startsWith("event: servererror")) {
@@ -105,15 +117,16 @@ public class QueryServletTest {
             }
         } else {
             for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
-                output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+                if (!line.isEmpty()) {
+                    output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+                }
             }
         }
         return output;
     }
 
-    @Test
-    public void testTimeRegroup() throws Exception {
-        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today group by time(1h) select count(), oji, ojc", true);
+    public void testTimeRegroup(LanguageVersion version, boolean stream) throws Exception {
+        final List<List<String>> actual = runQuery(OrganicDataset.create(), "from organic yesterday today group by time(1h) select count(), oji, ojc", stream, version);
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10", "1180", "45"));
         expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "60", "600", "60"));
@@ -123,5 +136,13 @@ public class QueryServletTest {
         }
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1"));
         Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testTimeRegroup() throws Exception {
+        testTimeRegroup(LanguageVersion.IQL1, false);
+        testTimeRegroup(LanguageVersion.IQL1, true);
+        testTimeRegroup(LanguageVersion.IQL2, false);
+        testTimeRegroup(LanguageVersion.IQL2, true);
     }
 }
