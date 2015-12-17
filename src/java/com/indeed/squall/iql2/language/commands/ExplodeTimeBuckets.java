@@ -42,8 +42,8 @@ public class ExplodeTimeBuckets implements Command, JsonSerializable {
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         if (timeField.isPresent()) {
             for (final String dataset : datasetsFields.datasets()) {
-                if (!datasetsFields.getIntFields(dataset).contains(timeField.get())) {
-                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, timeField.get(), this));
+                if (!datasetsFields.getAllFields(dataset).contains(timeField.get())) {
+                    errorConsumer.accept(ErrorMessages.missingField(dataset, timeField.get(), this));
                 }
             }
         }
