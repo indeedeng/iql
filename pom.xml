@@ -24,8 +24,8 @@
 
     <scm>
         <url>https://github.com/indeedeng/iql</url>
-        <connection>scm:git:git@eng-git.ausoff.indeed.net:opensource/iql.git</connection>
-        <developerConnection>scm:git:git@eng-git.ausoff.indeed.net:opensource/iql.git</developerConnection>
+        <connection>scm:git:git@code.corp.indeed.com:opensource/iql.git</connection>
+        <developerConnection>scm:git:git@code.corp.indeed.com:opensource/iql.git</developerConnection>
     </scm>
 
     <repositories>
