@@ -1526,8 +1526,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
