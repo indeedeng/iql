@@ -53,8 +53,8 @@ public class IntOrAction implements Action, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
         for (final String dataset : scope) {
-            if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
             }
         }
     }
