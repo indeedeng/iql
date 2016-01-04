@@ -1132,6 +1132,7 @@ public interface DocFilter {
     }
 
     class Qualified implements DocFilter {
+        // TODO: Why is this a List<String> instead of a single string? A per-document thing can only be one dataset!
         public final List<String> scope;
         public final DocFilter filter;
 

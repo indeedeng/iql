@@ -161,7 +161,16 @@ public class ExtractPrecomputed {
                 }
                 if (startDepth == depth) {
                     AggregateMetric aggregateMetric = null;
-                    for (final String dataset : scope) {
+                    final Set<String> pushScope;
+                    final Set<String> docMetricQualifications = ExtractQualifieds.extractDocMetricDatasets(docMetric);
+                    if (docMetricQualifications.isEmpty()) {
+                        pushScope = scope;
+                    } else if (docMetricQualifications.size() == 1) {
+                        pushScope = docMetricQualifications;
+                    } else {
+                        throw new IllegalArgumentException("Doc Metric cannot have multiple different qualifications! metric = [" + docMetric + "], qualifications = [" + docMetricQualifications + "]");
+                    }
+                    for (final String dataset : pushScope) {
                         final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
                         if (aggregateMetric == null) {
                             aggregateMetric = metric;
