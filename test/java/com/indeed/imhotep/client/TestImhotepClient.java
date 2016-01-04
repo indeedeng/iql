@@ -8,7 +8,7 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepLocalSession;
-import com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils;
+import com.indeed.squall.iql2.server.web.servlets.Shard;
 import org.joda.time.DateTime;
 
 import java.lang.reflect.Field;
@@ -23,16 +23,16 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class TestImhotepClient extends ImhotepClient {
-    private final List<QueryServletTestUtils.Shard> shards;
+    private final List<Shard> shards;
 
-    public TestImhotepClient(List<QueryServletTestUtils.Shard> shards) {
+    public TestImhotepClient(List<Shard> shards) {
         super(new DummyHostsReloader(Collections.<Host>emptyList()));
         this.shards = shards;
 
         final Map<String, List<ShardInfo>> datasetToShardInfos = new HashMap<>();
         final Map<String, Set<String>> datasetToIntFields = new HashMap<>();
         final Map<String, Set<String>> datasetToStringFields = new HashMap<>();
-        for (final QueryServletTestUtils.Shard shard : shards) {
+        for (final Shard shard : shards) {
             final String dataset = shard.dataset;
             if (!datasetToShardInfos.containsKey(dataset)) {
                 datasetToShardInfos.put(dataset, new ArrayList<ShardInfo>());
@@ -82,7 +82,7 @@ public class TestImhotepClient extends ImhotepClient {
                     shardIds.add(shard.getShardId());
                 }
 
-                for (final QueryServletTestUtils.Shard shard : TestImhotepClient.this.shards) {
+                for (final Shard shard : TestImhotepClient.this.shards) {
                     if (shardIds.contains(shard.shardId)) {
                         try {
                             sessions.add(new ImhotepLocalSession(shard.flamdex));

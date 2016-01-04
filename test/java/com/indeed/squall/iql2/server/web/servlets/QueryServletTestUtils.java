@@ -3,10 +3,8 @@ package com.indeed.squall.iql2.server.web.servlets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
@@ -17,7 +15,6 @@ import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -27,17 +24,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class QueryServletTestUtils {
-    public static class Shard {
-        public final String dataset;
-        public final String shardId;
-        public final MemoryFlamdex flamdex;
-
-        public Shard(String dataset, String shardId, MemoryFlamdex flamdex) {
-            this.dataset = dataset;
-            this.shardId = shardId;
-            this.flamdex = flamdex;
-        }
-    }
 
     private static QueryServlet create(List<Shard> shards) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
