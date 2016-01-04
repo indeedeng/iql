@@ -18,8 +18,8 @@ class OrganicDataset {
     // oji = 2653
     // ojc = 306
     // distinct(ctk) = { "a", "b", "c", "d" }, || = 4
-    public static List<QueryServletTest.Shard> create() {
-        final List<QueryServletTest.Shard> result = new ArrayList<>();
+    public static List<QueryServletTestUtils.Shard> create() {
+        final List<QueryServletTestUtils.Shard> result = new ArrayList<>();
 
         // 2015-01-01 00:00:00 - 2015-01-01 01:00:00
         // Random smattering of documents, including one 1ms before the shard ends.
@@ -42,7 +42,7 @@ class OrganicDataset {
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 30, 30), 10, 10, "c"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 45, 30), 10, 10, "c"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 59, 59, 999), 10, 0, "c"));
-            result.add(new QueryServletTest.Shard("organic", "index20150101.00", flamdex));
+            result.add(new QueryServletTestUtils.Shard("organic", "index20150101.00", flamdex));
         }
 
         // 2015-01-01 01:00:00 - 2015-01-01 02:00:00
@@ -57,7 +57,7 @@ class OrganicDataset {
             for (int i = 0; i < 60; i++) {
                 flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, i, 0), 10, 1, "d"));
             }
-            result.add(new QueryServletTest.Shard("organic", "index20150101.01", flamdex));
+            result.add(new QueryServletTestUtils.Shard("organic", "index20150101.01", flamdex));
         }
 
         // 2015-01-01 02:00:00 - 03:00:00
@@ -72,7 +72,7 @@ class OrganicDataset {
             for (int i = 0; i < 60; i++) {
                 flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, i, 0), 10, 3, "d"));
             }
-            result.add(new QueryServletTest.Shard("organic", "index20150101.02", flamdex));
+            result.add(new QueryServletTestUtils.Shard("organic", "index20150101.02", flamdex));
         }
 
         // 1 document per hour from 2015-01-01 03:00:00 to 2015-01-02 00:00:00
@@ -87,7 +87,7 @@ class OrganicDataset {
         for (int h = 3; h < 24; h++) {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, h, 0, 0), h, 1, "d"));
-            result.add(new QueryServletTest.Shard("organic", String.format("index20150101.%02d", h), flamdex));
+            result.add(new QueryServletTestUtils.Shard("organic", String.format("index20150101.%02d", h), flamdex));
         }
 
         return result;

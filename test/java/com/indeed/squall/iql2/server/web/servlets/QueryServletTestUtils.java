@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class QueryServletTest {
+public class QueryServletTestUtils {
     public static class Shard {
         public final String dataset;
         public final String shardId;
@@ -71,7 +71,7 @@ public class QueryServletTest {
         IQL1, IQL2
     }
 
-    public static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream) throws Exception {
+    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream) throws Exception {
         final QueryServlet queryServlet = create(shards);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
@@ -127,14 +127,14 @@ public class QueryServletTest {
         return output;
     }
 
-    private static void testAll(List<List<String>> expected, String query) throws Exception {
+    static void testAll(List<List<String>> expected, String query) throws Exception {
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, false));
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, true));
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, false));
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
     }
 
-    private static List<List<String>> withoutLastColumn(List<List<String>> input) {
+    static List<List<String>> withoutLastColumn(List<List<String>> input) {
         final List<List<String>> output = new ArrayList<>();
         for (final List<String> row : input) {
             if (row.isEmpty()) {
@@ -144,37 +144,5 @@ public class QueryServletTest {
             }
         }
         return output;
-    }
-
-    @Test
-    public void testUngrouped() throws Exception {
-        final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
-        testAll(expected, "from organic yesterday today select count(), oji, ojc, distinct(tk)");
-        // Remove DISTINCT to allow streaming, rather than regroup.
-        testAll(withoutLastColumn(expected), "from organic yesterday today select count(), oji, ojc");
-    }
-
-    @Test
-    public void testTimeRegroup() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10", "1180", "45", "3"));
-        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "60", "600", "60", "1"));
-        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "60", "600", "180", "1"));
-        for (int i = 3; i < 23; i++) {
-            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", String.valueOf(i), "1", "1"));
-        }
-        expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
-
-        testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
-        // Remove DISTINCT to allow streaming, rather than regroup.
-        testAll(withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
-    }
-
-    @Test
-    public void testBasicFilters() throws Exception {
-        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"a\" select count()");
-        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where tk=\"b\" select count()");
-        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"c\" select count()");
-        testAll(ImmutableList.<List<String>>of(ImmutableList.of("", "141")), "from organic yesterday today where tk=\"d\" select count()");
     }
 }
