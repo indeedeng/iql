@@ -83,7 +83,7 @@ public class TestImhotepClient extends ImhotepClient {
                 }
 
                 for (final Shard shard : TestImhotepClient.this.shards) {
-                    if (shardIds.contains(shard.shardId)) {
+                    if (shardIds.contains(shard.shardId) && shard.dataset.equals(dataset)) {
                         try {
                             sessions.add(new ImhotepLocalSession(shard.flamdex));
                         } catch (ImhotepOutOfMemoryException e) {

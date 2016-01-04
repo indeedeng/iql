@@ -12,4 +12,13 @@ public class Shard {
         this.shardId = shardId;
         this.flamdex = flamdex;
     }
+
+    @Override
+    public String toString() {
+        return "Shard{" +
+                "dataset='" + dataset + '\'' +
+                ", shardId='" + shardId + '\'' +
+                ", flamdex=" + flamdex +
+                '}';
+    }
 }

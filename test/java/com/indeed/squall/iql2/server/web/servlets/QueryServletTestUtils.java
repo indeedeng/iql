@@ -53,7 +53,7 @@ public class QueryServletTestUtils {
         );
     }
 
-    private enum LanguageVersion {
+    enum LanguageVersion {
         IQL1, IQL2
     }
 
