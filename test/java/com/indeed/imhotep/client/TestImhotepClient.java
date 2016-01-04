@@ -10,6 +10,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepLocalSession;
 import com.indeed.squall.iql2.server.web.servlets.Shard;
 import org.joda.time.DateTime;
+import org.junit.Ignore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+@Ignore
 public class TestImhotepClient extends ImhotepClient {
     private final List<Shard> shards;
 

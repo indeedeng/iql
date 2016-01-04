@@ -23,8 +23,14 @@
     <dependencies>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
-        <dependency org="indeed" name="squall-hadoopcommon" rev="${squall-hadoopcommon.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
+        <dependency org="com.indeed" name="util-io" rev="${indeed-util-io.version}"/>
+        <dependency org="com.indeed" name="status-core" rev="${indeed-status-core.version}"/>
+        <dependency org="indeed" name="common-util" rev="${common-util.version}"/>
+        <dependency org="indeed" name="logging" rev="${logging.version}"/>
+        <dependency org="indeed" name="common-jobsearch" rev="${common-jobsearch.version}"/>
+        <dependency org="indeed" name="common-daemons" rev="${common-daemons.version}"/>
+        <dependency org="indeed" name="webapp-common" rev="${webapp-common.version}"/>
 
         <dependency org="indeed" name="iql2-language" rev="${iql2-language.version}"/>
         <dependency org="indeed" name="iql2-execution" rev="${iql2-execution.version}"/>
@@ -47,7 +53,7 @@
         <dependency org="tomcat" name="servlet-api" rev="${servlet-api7.version}" conf="compile->default"/>
         <dependency org="tomcat" name="jsp-api" rev="${jsp-api7.version}" conf="compile->default"/>
 
-        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}"/>
+        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer->default"/>
 
         <dependency org="hadoop" name="hadoop-core" rev="${hadoop-core.cdh4.version}"/>
         <dependency org="hadoop" name="hadoop-common" rev="${hadoop-common.cdh4.version}"/>
