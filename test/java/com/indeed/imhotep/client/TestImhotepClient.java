@@ -2,6 +2,7 @@ package com.indeed.imhotep.client;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.indeed.imhotep.AbstractImhotepMultiSession;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.ShardInfo;
@@ -74,15 +75,22 @@ public class TestImhotepClient extends ImhotepClient {
     @Override
     public SessionBuilder sessionBuilder(final String dataset, DateTime start, DateTime end) {
         return new SessionBuilder(dataset, start, end) {
+            private List<String> readShardsOverride() {
+                try {
+                    final Field shardsOverrideField = SessionBuilder.class.getDeclaredField("shardsOverride");
+                    shardsOverrideField.setAccessible(true);
+                    return (List<String>) shardsOverrideField.get(this);
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+
             @Override
             public ImhotepSession build() {
-                final List<ShardIdWithVersion> chosenShards = this.getChosenShards();
-                final List<ImhotepLocalSession> sessions = new ArrayList<>();
+                final List<String> shardsOverride = readShardsOverride();
+                final List<String> shardIds = shardsOverride != null ? shardsOverride : ShardIdWithVersion.keepShardIds(this.getChosenShards());
 
-                final Set<String> shardIds = new HashSet<>();
-                for (final ShardIdWithVersion shard : chosenShards) {
-                    shardIds.add(shard.getShardId());
-                }
+                final List<ImhotepLocalSession> sessions = new ArrayList<>();
 
                 for (final Shard shard : TestImhotepClient.this.shards) {
                     if (shardIds.contains(shard.shardId) && shard.dataset.equals(dataset)) {

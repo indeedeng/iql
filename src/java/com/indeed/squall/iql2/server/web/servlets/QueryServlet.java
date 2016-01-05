@@ -53,6 +53,7 @@ import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
+import org.apache.hadoop.hbase.thrift.generated.IllegalArgument;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -592,7 +593,6 @@ public class QueryServlet {
                     @Override
                     public DocFilter apply(DocFilter input) {
                         if (input instanceof DocFilter.FieldInQuery) {
-                            // TODO: Handle int fields.
                             final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
                             final Query q = fieldInQuery.query;
                             if (!queryToResults.containsKey(q)) {
@@ -673,15 +673,20 @@ public class QueryServlet {
 
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
-        // TODO: Save the chosenShards and use them during execution, otherwise we have a race condition
-        //       where the shard lists can be updated after hashing and we'll cache it under the wrong shards.
+        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
             final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
+            final String sessionName = dataset.alias.or(dataset.dataset);
             final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
             timer.pop();
             for (final ShardIdWithVersion chosenShard : chosenShards) {
-                shards.add(Pair.of(actualDataset, chosenShard.getShardId()));
+                // This needs to be associated with the session name, not just the actualDataset.
+                shards.add(Pair.of(sessionName, chosenShard.getShardId()));
+            }
+            final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
+            if (oldShards != null) {
+                throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
         final String queryHash = computeQueryHash(commands, shards, 5);
@@ -769,7 +774,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+                Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);
