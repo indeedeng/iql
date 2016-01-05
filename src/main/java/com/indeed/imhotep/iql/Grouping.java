@@ -38,6 +38,9 @@ public abstract class Grouping {
             return Collections.<GroupStats>emptyList().iterator();
         }
         groupKeys = regroup(session, groupKeys);
+        if(groupKeys.isEmpty()) {   // we ended up with no groups so return the empty result
+            return Collections.<GroupStats>emptyList().iterator();
+        }
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {
