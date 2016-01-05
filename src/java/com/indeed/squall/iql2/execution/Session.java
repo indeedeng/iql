@@ -409,7 +409,6 @@ public class Session {
                                 }
                             }
                         }
-                        out.accept("");
                     }
                 } else if (command instanceof GetGroupStats) {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
