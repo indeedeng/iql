@@ -53,7 +53,6 @@ import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
-import org.apache.hadoop.hbase.thrift.generated.IllegalArgument;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
