@@ -63,6 +63,7 @@ import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -116,6 +117,7 @@ public class Session {
 
     public static Optional<Session> createSession(
             final ImhotepClient client,
+            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final JsonNode sessionRequest,
             final Closer closer,
             final Consumer<String> out,
@@ -142,7 +144,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -163,7 +165,7 @@ public class Session {
             return Optional.absent();
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit));
@@ -199,6 +201,7 @@ public class Session {
     private static void createSubSessions(
             final ImhotepClient client,
             final JsonNode sessionRequest,
+            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final Closer closer,
             final Map<String, ImhotepSessionInfo> sessions,
             final Map<String, DatasetDimensions> dimensions,
@@ -254,13 +257,12 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
+            final List<ShardIdWithVersion> chosenShards = datasetToChosenShards.get(name);
             final ImhotepClient.SessionBuilder sessionBuilder =
                     client.sessionBuilder(actualDataset, startDateTime, endDateTime)
+                          .shardsOverride(ShardIdWithVersion.keepShardIds(chosenShards))
                           .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                           .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit);
-            treeTimer.pop();
-            treeTimer.push("get shards");
-            final List<ShardIdWithVersion> shards = sessionBuilder.getChosenShards();
             treeTimer.pop();
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
@@ -269,12 +271,12 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("determine time range");
-            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(shards, new Function<ShardIdWithVersion, DateTime>() {
+            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(chosenShards, new Function<ShardIdWithVersion, DateTime>() {
                 public DateTime apply(ShardIdWithVersion input) {
                     return input.getStart();
                 }
             }));
-            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(shards, new Function<ShardIdWithVersion, DateTime>() {
+            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(chosenShards, new Function<ShardIdWithVersion, DateTime>() {
                 public DateTime apply(@Nullable ShardIdWithVersion input) {
                     return input.getEnd();
                 }
