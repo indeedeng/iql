@@ -16,6 +16,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
@@ -25,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class FieldAliasingImhotepSession implements ImhotepSession {
+public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImhotepSession {
     private final ImhotepSession wrapped;
     private final Map<String, String> aliasToReal;
 
@@ -390,5 +391,10 @@ public class FieldAliasingImhotepSession implements ImhotepSession {
     @Override
     public void rebuildAndFilterIndexes(List<String> intFields, List<String> stringFields) throws ImhotepOutOfMemoryException {
         wrapped.rebuildAndFilterIndexes(rewriteFields(intFields), rewriteFields(stringFields));
+    }
+
+    @Override
+    public ImhotepSession wrapped() {
+        return wrapped;
     }
 }

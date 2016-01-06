@@ -175,8 +175,14 @@ public class Session {
 
             long tempFileBytesWritten = 0L;
             for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
-                if (sessionInfo.session instanceof RemoteImhotepMultiSession) {
-                    final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) sessionInfo.session;
+                ImhotepSession s = sessionInfo.session;
+
+                while (s instanceof WrappingImhotepSession) {
+                    s = ((WrappingImhotepSession) s).wrapped();
+                }
+
+                if (s instanceof RemoteImhotepMultiSession) {
+                    final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) s;
                     tempFileBytesWritten += remoteImhotepMultiSession.getTempFilesBytesWritten();
                 }
             }

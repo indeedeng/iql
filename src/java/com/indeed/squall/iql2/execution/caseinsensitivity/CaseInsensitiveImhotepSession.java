@@ -16,6 +16,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CaseInsensitiveImhotepSession implements ImhotepSession {
+public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingImhotepSession {
     private final ImhotepSession wrapped;
     private final Map<String, String> upperCaseToActual;
 
@@ -421,5 +422,10 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession {
     @Override
     public void rebuildAndFilterIndexes(List<String> intFields, List<String> stringFields) throws ImhotepOutOfMemoryException {
         wrapped.rebuildAndFilterIndexes(rewriteList(intFields), rewriteList(stringFields));
+    }
+
+    @Override
+    public ImhotepSession wrapped() {
+        return wrapped;
     }
 }
