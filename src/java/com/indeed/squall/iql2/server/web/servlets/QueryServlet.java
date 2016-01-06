@@ -54,7 +54,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -411,7 +410,7 @@ public class QueryServlet {
                 };
             }
             final Set<String> warnings = new HashSet<>();
-            executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, queryTracker, new NoOpProgressCallback() {
+            final SelectExecutionInformation execInfo = executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, new NoOpProgressCallback() {
                 private int completedChunks = 0;
 
                 @Override
@@ -471,12 +470,11 @@ public class QueryServlet {
 
                 // TODO: Fix these headers
                 final Map<String, Object> headerMap = new HashMap<>();
-                headerMap.put("IQL-Cached", "false");
+                headerMap.put("IQL-Cached", execInfo.allCached());
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                headerMap.put("IQL-Shard-List", "");
-                headerMap.put("IQL-Newest-Shard", DateTime.now().toString());
-                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", "0");
-                headerMap.put("IQL-Totals", "[]");
+                headerMap.put("IQL-Shard-List", execInfo.perDatasetShardIds().toString());
+                headerMap.put("IQL-Newest-Shard", execInfo.newestShard());
+                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
 
                 if (!warnings.isEmpty()) {
@@ -547,14 +545,52 @@ public class QueryServlet {
         return builder.build();
     }
 
-    private void executeSelect(
+    private static class SelectExecutionInformation {
+        public final Map<String, List<ShardIdWithVersion>> shards;
+        public final Map<Query, Boolean> queryCached;
+        public final long imhotepTempBytesWritten;
+
+        private SelectExecutionInformation(Map<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten) {
+            this.shards = shards;
+            this.queryCached = queryCached;
+            this.imhotepTempBytesWritten = imhotepTempBytesWritten;
+        }
+
+        public boolean allCached() {
+            for (final boolean b : queryCached.values()) {
+                if (!b) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public Map<String, List<String>> perDatasetShardIds() {
+            final Map<String, List<String>> result = new HashMap<>(shards.size());
+            for (final Map.Entry<String, List<ShardIdWithVersion>> entry : shards.entrySet()) {
+                result.put(entry.getKey(), ShardIdWithVersion.keepShardIds(entry.getValue()));
+            }
+            return result;
+        }
+
+        public long newestShard() {
+            long newest = -1;
+            for (final List<ShardIdWithVersion> shardset : shards.values()) {
+                for (final ShardIdWithVersion shard : shardset) {
+                    newest = Math.max(newest, shard.getVersion());
+                }
+            }
+            return newest;
+        }
+    }
+
+    private SelectExecutionInformation executeSelect(
             final String q,
             final boolean useLegacy,
             final Map<String, Set<String>> keywordAnalyzerWhitelist,
             final Map<String, Set<String>> datasetToIntFields,
             final Consumer<String> out,
             final TreeTimer timer,
-            final ExecutionManager.QueryTracker queryTracker,
             final NoOpProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
             final boolean skipValidation,
@@ -567,19 +603,26 @@ public class QueryServlet {
         final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
         timer.pop();
 
-        executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock);
+        final HashMap<Query, Boolean> queryCached = new HashMap<>();
+        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached);
         timer.pop();
+
+        return result;
     }
 
-    private void executeParsedQuery(
+    private SelectExecutionInformation executeParsedQuery(
             Consumer<String> out,
             final TreeTimer timer,
             final NoOpProgressCallback progressCallback,
             Query query,
             final boolean skipValidation,
             final @Nullable Integer initialGroupLimit,
-            final WallClock clock
+            final WallClock clock,
+            final Map<Query, Boolean> queryCached
     ) throws IOException {
+
+        final int[] totalBytesWritten = {0};
+
         query = query.transform(
                 Functions.<GroupBy>identity(),
                 Functions.<AggregateMetric>identity(),
@@ -599,7 +642,7 @@ public class QueryServlet {
                                 final Set<String> stringTerms = new HashSet<>();
                                 timer.push("Execute sub-query: \"" + q + "\"");
                                 try {
-                                    executeParsedQuery(new Consumer<String>() {
+                                    final SelectExecutionInformation execInfo = executeParsedQuery(new Consumer<String>() {
                                         @Override
                                         public void accept(String s) {
                                             final String term = s.split("\t")[0];
@@ -609,7 +652,8 @@ public class QueryServlet {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit, clock);
+                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit, clock, queryCached);
+                                    totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
                                 }
@@ -700,13 +744,15 @@ public class QueryServlet {
                 final boolean isCached = queryCache.isFileCached(cacheFileName);
                 timer.pop();
 
+                queryCached.put(query, isCached);
+
                 if (isCached) {
                     timer.push("read cache");
                     // TODO: Don't have this hack
                     progressCallback.startCommand(null, true);
                     sendCachedQuery(cacheFileName, out, query.rowLimit);
                     timer.pop();
-                    return;
+                    return new SelectExecutionInformation(datasetToChosenShards, queryCached, 0);
                 } else {
                     final Consumer<String> oldOut = out;
                     final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -773,7 +819,8 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+                final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+                return new SelectExecutionInformation(datasetToChosenShards, queryCached, createResult.tempFileBytesWritten);
             } catch (Exception e) {
                 errorOccurred.set(true);
                 throw Throwables.propagate(e);
