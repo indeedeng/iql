@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,13 +44,17 @@ public class GetGroupStats implements Command {
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.timer.pop();
-        session.timer.push("pushing stats");
+        session.timer.push("ordering stats");
         int numStats = 0;
+        final Map<String, List<QualifiedPush>> sessionPushes = Maps.newHashMap();
         for (final QualifiedPush push : pushesRequired) {
             final int index = numStats++;
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
-            sessions.get(sessionName).pushStats(push.pushes);
+            if (!sessionPushes.containsKey(sessionName)) {
+                sessionPushes.put(sessionName, Lists.<QualifiedPush>newArrayList());
+            }
+            sessionPushes.get(sessionName).add(push);
             IntList metricIndex = sessionMetricIndexes.get(sessionName);
             if (metricIndex == null) {
                 metricIndex = new IntArrayList();
@@ -64,14 +69,18 @@ public class GetGroupStats implements Command {
         }
         session.timer.pop();
 
-        session.timer.push("getGroupStats");
+        session.timer.push("pushing / getGroupStats");
         final long[][] allStats = new long[numStats][];
+        // TODO: Parallelize acrosss sessions.
         for (final Map.Entry<String, IntList> entry : sessionMetricIndexes.entrySet()) {
             final String name = entry.getKey();
+            final List<QualifiedPush> pushesForSession = sessionPushes.get(name);
             final IntList positions = entry.getValue();
             final ImhotepSession s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
-                allStats[positions.get(i)] = s.getGroupStats(i);
+                s.pushStats(pushesForSession.get(i).pushes);
+                allStats[positions.get(i)] = s.getGroupStats(0);
+                s.popStat();
             }
         }
         session.timer.pop();
@@ -94,8 +103,6 @@ public class GetGroupStats implements Command {
             groupStats.add(new Session.GroupStats(i + 1, results[i]));
         }
         session.timer.pop();
-
-        session.popStats();
 
         return groupStats;
     }
