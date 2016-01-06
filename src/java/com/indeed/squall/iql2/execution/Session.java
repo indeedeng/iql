@@ -29,6 +29,7 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -63,7 +64,6 @@ import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -115,7 +115,17 @@ public class Session {
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
     }
 
-    public static Optional<Session> createSession(
+    public static class CreateSessionResult {
+        public final Optional<Session> session;
+        public final long tempFileBytesWritten;
+
+        CreateSessionResult(Optional<Session> session, long tempFileBytesWritten) {
+            this.session = session;
+            this.tempFileBytesWritten = tempFileBytesWritten;
+        }
+    }
+
+    public static CreateSessionResult createSession(
             final ImhotepClient client,
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final JsonNode sessionRequest,
@@ -162,13 +172,22 @@ public class Session {
                     });
                 }
             }
-            return Optional.absent();
+
+            long tempFileBytesWritten = 0L;
+            for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
+                if (sessionInfo.session instanceof RemoteImhotepMultiSession) {
+                    final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) sessionInfo.session;
+                    tempFileBytesWritten += remoteImhotepMultiSession.getTempFilesBytesWritten();
+                }
+            }
+
+            return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
             createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit));
+            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
         }
     }
 
