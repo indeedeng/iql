@@ -151,7 +151,6 @@ public class SimpleIterate implements Command {
         session.popStats();
 
         if (streamResult) {
-            out.accept("");
             return Collections.emptyList();
         } else {
             session.timer.push("convert results");
