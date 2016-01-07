@@ -993,7 +993,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier());
+                                    new LongStringifier(), false);
                         } else if (input.size() == 8) {
                             // DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each
                             final Stat xStat = input.get(0).match(statMatcher);
@@ -1056,7 +1056,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true);
         }
 
 
