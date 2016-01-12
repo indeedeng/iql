@@ -34,18 +34,20 @@ public interface GroupBy {
         private final long max;
         private final long interval;
         private final boolean excludeGutters;
+        private final boolean withDefault;
 
-        public GroupByMetric(DocMetric metric, long min, long max, long interval, boolean excludeGutters) {
+        public GroupByMetric(DocMetric metric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
             this.metric = metric;
             this.min = min;
             this.max = max;
             this.interval = interval;
             this.excludeGutters = excludeGutters;
+            this.withDefault = withDefault;
         }
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByMetric(metric.transform(g, i), min, max, interval, excludeGutters));
+            return groupBy.apply(new GroupByMetric(metric.transform(g, i), min, max, interval, excludeGutters, withDefault));
         }
 
         @Override
@@ -55,7 +57,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeMetric(metric, min, max, interval, scope, excludeGutters);
+            return new ExecutionStep.ExplodeMetric(metric, min, max, interval, scope, excludeGutters, withDefault);
         }
 
         @Override
@@ -69,6 +71,7 @@ public interface GroupBy {
             if (max != that.max) return false;
             if (interval != that.interval) return false;
             if (excludeGutters != that.excludeGutters) return false;
+            if (withDefault != that.withDefault) return false;
             return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
 
         }
@@ -80,6 +83,7 @@ public interface GroupBy {
             result = 31 * result + (int) (max ^ (max >>> 32));
             result = 31 * result + (int) (interval ^ (interval >>> 32));
             result = 31 * result + (excludeGutters ? 1 : 0);
+            result = 31 * result + (withDefault ? 1 : 0);
             return result;
         }
 
@@ -91,6 +95,7 @@ public interface GroupBy {
                     ", max=" + max +
                     ", interval=" + interval +
                     ", excludeGutters=" + excludeGutters +
+                    ", withDefault=" + withDefault +
                     '}';
         }
     }

@@ -235,14 +235,16 @@ public interface ExecutionStep {
         private final long interval;
         private final Set<String> scope;
         private final boolean excludeGutters;
+        private final boolean withDefault;
 
-        public ExplodeMetric(DocMetric metric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters) {
+        public ExplodeMetric(DocMetric metric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault) {
             this.metric = metric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
             this.interval = interval;
             this.scope = scope;
             this.excludeGutters = excludeGutters;
+            this.withDefault = withDefault;
         }
 
         @Override
@@ -251,7 +253,7 @@ public interface ExecutionStep {
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(metric).getPushes(s));
             }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters));
+            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault));
         }
 
         @Override
@@ -268,6 +270,7 @@ public interface ExecutionStep {
                     ", interval=" + interval +
                     ", scope=" + scope +
                     ", excludeGutters=" + excludeGutters +
+                    ", withDefault=" + withDefault +
                     '}';
         }
     }

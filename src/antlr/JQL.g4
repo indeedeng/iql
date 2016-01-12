@@ -366,11 +366,11 @@ topTermsGroupByElem [boolean useLegacy]
     ;
 
 groupByMetric [boolean useLegacy]
-    : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=integer ',' max=integer ',' interval=NAT (',' (gutterID=identifier | gutterNumber=number))? ')'
+    : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=integer ',' max=integer ',' interval=NAT (',' (gutterID=identifier | gutterNumber=number))? ')' (withDefault=WITH DEFAULT)?
     ;
 
 groupByMetricEnglish [boolean useLegacy]
-    : docMetric[$ctx.useLegacy] FROM min=integer TO max=integer BY interval=NAT
+    : docMetric[$ctx.useLegacy] FROM min=integer TO max=integer BY interval=NAT (withDefault=WITH DEFAULT)?
     ;
 
 groupByTime [boolean useLegacy]

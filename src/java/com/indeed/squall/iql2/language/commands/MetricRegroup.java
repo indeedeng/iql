@@ -21,8 +21,9 @@ public class MetricRegroup implements Command, JsonSerializable {
     public final long max;
     public final long interval;
     public final boolean excludeGutters;
+    public final boolean withDefault;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters) {
+    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
         for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
@@ -32,6 +33,7 @@ public class MetricRegroup implements Command, JsonSerializable {
         this.max = max;
         this.interval = interval;
         this.excludeGutters = excludeGutters;
+        this.withDefault = withDefault;
     }
 
     @Override
@@ -47,6 +49,7 @@ public class MetricRegroup implements Command, JsonSerializable {
         } else {
             gen.writeObjectField("opts", Collections.emptyList());
         }
+        gen.writeBooleanField("withDefault", withDefault);
         gen.writeEndObject();
     }
 
@@ -65,16 +68,17 @@ public class MetricRegroup implements Command, JsonSerializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MetricRegroup that = (MetricRegroup) o;
-        return Objects.equals(min, that.min) &&
-                Objects.equals(max, that.max) &&
-                Objects.equals(interval, that.interval) &&
-                Objects.equals(excludeGutters, that.excludeGutters) &&
+        return min == that.min &&
+                max == that.max &&
+                interval == that.interval &&
+                excludeGutters == that.excludeGutters &&
+                withDefault == that.withDefault &&
                 Objects.equals(perDatasetMetric, that.perDatasetMetric);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(perDatasetMetric, min, max, interval, excludeGutters);
+        return Objects.hash(perDatasetMetric, min, max, interval, excludeGutters, withDefault);
     }
 
     @Override
@@ -84,6 +88,8 @@ public class MetricRegroup implements Command, JsonSerializable {
                 ", min=" + min +
                 ", max=" + max +
                 ", interval=" + interval +
+                ", excludeGutters=" + excludeGutters +
+                ", withDefault=" + withDefault +
                 '}';
     }
 }

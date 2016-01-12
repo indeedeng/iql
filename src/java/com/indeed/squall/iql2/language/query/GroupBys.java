@@ -139,6 +139,7 @@ public class GroupBys {
                 final long max;
                 final long interval;
                 final boolean excludeGutters;
+                final boolean withDefault;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
                     metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
@@ -153,6 +154,7 @@ public class GroupBys {
                     } else {
                         excludeGutters = false;
                     }
+                    withDefault = ctx2.withDefault != null;
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
                     metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
@@ -160,10 +162,14 @@ public class GroupBys {
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
                     excludeGutters = false;
+                    withDefault = ctx2.withDefault != null;
                 } else {
                     throw new UnsupportedOperationException("Oh no! Someone changed the parser but not the consumer!");
                 }
-                accept(new GroupBy.GroupByMetric(metric, min, max, interval, excludeGutters));
+                if (excludeGutters && withDefault) {
+                    throw new IllegalArgumentException("Can't use both excludeGutters and withDefault explicitly! Just use with default.");
+                }
+                accept(new GroupBy.GroupByMetric(metric, min, max, interval, excludeGutters || withDefault, withDefault));
             }
 
             @Override
