@@ -42,7 +42,8 @@ public class TestImhotepClient extends ImhotepClient {
                 datasetToIntFields.put(dataset, new HashSet<String>());
                 datasetToStringFields.put(dataset, new HashSet<String>());
             }
-            datasetToShardInfos.get(dataset).add(new ShardInfo(dataset, shard.shardId, Collections.<String>emptySet(), shard.flamdex.getNumDocs(), 1));
+            // TODO: Not hardcode version to 2015-01-01 00:00:00?
+            datasetToShardInfos.get(dataset).add(new ShardInfo(dataset, shard.shardId, Collections.<String>emptySet(), shard.flamdex.getNumDocs(), 20150101000000L));
             datasetToIntFields.get(dataset).addAll(shard.flamdex.getIntFields());
             datasetToStringFields.get(dataset).addAll(shard.flamdex.getStringFields());
         }
