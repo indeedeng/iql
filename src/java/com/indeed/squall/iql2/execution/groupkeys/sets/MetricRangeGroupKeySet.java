@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.groupkeys.sets;
 
+import com.indeed.squall.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.LowGutterGroupKey;
@@ -12,13 +13,15 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final boolean excludeGutters;
     private final long min;
     private final long interval;
+    private final boolean withDefaultBucket;
 
-    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval) {
+    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket) {
         this.previous = previous;
         this.numBuckets = numBuckets;
         this.excludeGutters = excludeGutters;
         this.min = min;
         this.interval = interval;
+        this.withDefaultBucket = withDefaultBucket;
     }
 
     @Override
@@ -38,6 +41,8 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
             return new HighGutterGroupKey(min + interval * (numBuckets - 2));
         } else if (!excludeGutters && innerGroup == numBuckets - 2) {
             return new LowGutterGroupKey(min);
+        } else if (withDefaultBucket && innerGroup == numBuckets - 1) {
+            return DefaultGroupKey.INSTANCE;
         } else {
             if (interval == 1) {
                 return new SingleValueGroupKey(min + innerGroup);

@@ -112,7 +112,7 @@ public class SimpleSession {
             this.getGroupPercentiles(getGroupPercentiles.scope, getGroupPercentiles.field, getGroupPercentiles.percentiles, out);
         } else if (command instanceof MetricRegroup) {
             final MetricRegroup metricRegroup = (MetricRegroup) command;
-            this.metricRegroup(metricRegroup.perDatasetMetric, metricRegroup.min, metricRegroup.max, metricRegroup.interval, metricRegroup.excludeGutters);
+            this.metricRegroup(metricRegroup.perDatasetMetric, metricRegroup.min, metricRegroup.max, metricRegroup.interval, metricRegroup.excludeGutters, metricRegroup.withDefault);
         } else if (command instanceof GetNumGroups) {
             out.accept(String.valueOf(groups.getNumGroups()));
         } else if (command instanceof ExplodePerGroup) {
@@ -503,17 +503,34 @@ public class SimpleSession {
         out.accept(OBJECT_MAPPER.writeValueAsString(result));
     }
 
-    private void metricRegroup(final Map<String, ? extends List<String>> perDatasetMetric, final long min, final long max, final long interval, final boolean excludeGutters) {
-        final int bucketsPerGroup = (excludeGutters ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
+    private void metricRegroup(
+            final Map<String, ? extends List<String>> perDatasetMetric,
+            final long min,
+            final long max,
+            final long interval,
+            final boolean excludeGutters,
+            final boolean withDefault) {
+        final int bucketsPerGroup = (excludeGutters ? (withDefault ? 1 : 0) : 2) + (int) Math.ceil(((double) max - min) / interval);
         groups = groups.createNew(new Grouping.GroupingCallback() {
             @Override
             public void handle(final int group, final Document document) {
                 final List<String> metric = perDatasetMetric.get(document.dataset);
                 final long value = document.computeMetric(metric);
-                if (excludeGutters && ((value < min) || (value > max))) {
-                    discard();
+                final long offset;
+                if (value < min || value > max) {
+                    if (excludeGutters && withDefault) {
+                        offset = bucketsPerGroup - 1;
+                    } else if (excludeGutters) {
+                        discard();
+                        return;
+                    } else if (value < min) {
+                        offset = bucketsPerGroup - 2;
+                    } else {
+                        offset = bucketsPerGroup - 1;
+                    }
+                } else {
+                    offset = (value - min) / interval;
                 }
-                final long offset = (value - min) / interval;
                 addToGroup(1 + (bucketsPerGroup * (group - 1)) + (int) offset);
             }
         });

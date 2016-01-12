@@ -167,7 +167,8 @@ public class Commands {
                         command.get("min").longValue(),
                         command.get("max").longValue(),
                         command.get("interval").longValue(),
-                        excludeGutters
+                        excludeGutters,
+                        command.get("withDefault").booleanValue()
                 );
             }
             case "getNumGroups": {

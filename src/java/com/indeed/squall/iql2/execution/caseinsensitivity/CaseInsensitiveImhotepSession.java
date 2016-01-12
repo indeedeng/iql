@@ -8,6 +8,7 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
+import com.indeed.imhotep.Instrumentation;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
@@ -20,6 +21,7 @@ import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -422,6 +424,32 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     @Override
     public void rebuildAndFilterIndexes(List<String> intFields, List<String> stringFields) throws ImhotepOutOfMemoryException {
         wrapped.rebuildAndFilterIndexes(rewriteList(intFields), rewriteList(stringFields));
+    }
+
+
+    @Override
+    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, Socket socket) throws ImhotepOutOfMemoryException {
+        wrapped.writeFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, socket);
+    }
+
+    @Override
+    public long getLowerBound(int stat) {
+        return wrapped.getLowerBound(stat);
+    }
+
+    @Override
+    public long getUpperBound(int stat) {
+        return wrapped.getUpperBound(stat);
+    }
+
+    @Override
+    public void addObserver(Instrumentation.Observer observer) {
+        wrapped.addObserver(observer);
+    }
+
+    @Override
+    public void removeObserver(Instrumentation.Observer observer) {
+        wrapped.removeObserver(observer);
     }
 
     @Override

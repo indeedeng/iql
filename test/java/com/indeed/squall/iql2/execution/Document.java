@@ -11,6 +11,7 @@ import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.local.ImhotepJavaLocalSession;
 import com.indeed.imhotep.local.ImhotepLocalSession;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -92,7 +93,7 @@ public class Document {
         final MemoryFlamdex memoryFlamdex = new MemoryFlamdex();
         memoryFlamdex.addDocument(asFlamdex());
         try {
-            return new ImhotepLocalSession(memoryFlamdex);
+            return new ImhotepJavaLocalSession(memoryFlamdex);
         } catch (final ImhotepOutOfMemoryException e) {
             throw Throwables.propagate(e);
         }
