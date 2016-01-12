@@ -63,7 +63,17 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
 
         @Override
         public Session.StringIterateCallback stringIterateCallback() {
-            throw new UnsupportedOperationException("Expected int field for GetFieldMin!");
+            return new Session.StringIterateCallback() {
+                @Override
+                public void term(String term, long[] stats, int group) {
+                    try {
+                        final long v = Long.parseLong(term);
+                        // Can't assume that earlier values are smaller, because String sort order.
+                        min[group - 1] = Math.min(min[group - 1], v);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            };
         }
 
         @Override

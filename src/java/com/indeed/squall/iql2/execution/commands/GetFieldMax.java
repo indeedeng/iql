@@ -64,7 +64,17 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
 
         @Override
         public Session.StringIterateCallback stringIterateCallback() {
-            throw new UnsupportedOperationException("Expected int field for GetFieldMax!");
+            return new Session.StringIterateCallback() {
+                @Override
+                public void term(String term, long[] stats, int group) {
+                    try {
+                        final long v = Long.parseLong(term);
+                        // Can't assume that later values are larger, because String sort order.
+                        max[group - 1] = Math.max(max[group - 1], v);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            };
         }
 
         @Override
