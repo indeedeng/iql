@@ -389,6 +389,8 @@ groupByField [boolean useLegacy]
             )
           |
             (forceNonStreaming='*')
+          |
+            (withDefault=WITH DEFAULT)
         )?
     ;
 

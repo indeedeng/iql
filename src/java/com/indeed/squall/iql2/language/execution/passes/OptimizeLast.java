@@ -32,7 +32,8 @@ public class OptimizeLast {
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) steps.get(steps.size() - 2);
                 // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
                 final boolean isReordered = explodeAndRegroup.limit.isPresent();
-                if (!isReordered || !selectIsOrdered) { // If there's a filter and something that depends on order, we can't merge them.
+                final boolean hasDefault = explodeAndRegroup.withDefault;
+                if (!isReordered && !selectIsOrdered && !hasDefault) { // If there's a filter and something that depends on order, we can't merge them.
                     final List<ExecutionStep> newSteps = new ArrayList<>();
                     newSteps.addAll(steps);
                     newSteps.remove(newSteps.size() - 1);
