@@ -342,7 +342,7 @@ groupByElementWithHaving [boolean useLegacy]
     ;
 
 groupByElement [boolean useLegacy]
-    : DAYOFWEEK # DayOfWeekGroupBy
+    : DAYOFWEEK (hasParens='(' ')')? # DayOfWeekGroupBy
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn

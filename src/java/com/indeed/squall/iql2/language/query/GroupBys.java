@@ -68,6 +68,9 @@ public class GroupBys {
 
             @Override
             public void enterDayOfWeekGroupBy(JQLParser.DayOfWeekGroupByContext ctx) {
+                if (ctx.hasParens == null) {
+                    warn.accept("DAYOFWEEK is deprecated -- should be DAYOFWEEK().");
+                }
                 accept(new GroupBy.GroupByDayOfWeek());
             }
 
