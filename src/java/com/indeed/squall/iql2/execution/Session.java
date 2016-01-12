@@ -723,11 +723,11 @@ public class Session {
         timer.pop();
     }
 
-    public void regroup(GroupMultiRemapRule[] rules) throws ImhotepOutOfMemoryException {
+    public void regroup(GroupMultiRemapRule[] rules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
         timer.push("regroup");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            sessionInfo.session.regroup(rules);
+            sessionInfo.session.regroup(rules, errorOnCollisions);
         }
         timer.pop();
     }

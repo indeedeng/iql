@@ -40,7 +40,7 @@ public class IntRegroupFieldIn implements Command {
         }
         session.timer.pop();
 
-        session.regroup(remapRules);
+        session.regroup(remapRules, false);
 
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms));
         session.currentDepth += 1;

@@ -108,7 +108,7 @@ public class ExplodeByAggregatePercentile implements Command {
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
             final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.regroup(rulesArr);
+            session.regroup(rulesArr, true);
         } else if (session.isStringField(field)) {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field, new Session.StringIterateCallback() {
@@ -162,7 +162,7 @@ public class ExplodeByAggregatePercentile implements Command {
                 rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
             }
             final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.regroup(rulesArr);
+            session.regroup(rulesArr, true);
         } else {
             throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
         }

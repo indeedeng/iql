@@ -87,7 +87,7 @@ public class ExplodePerGroup implements Command {
         session.timer.push("regroup");
         // TODO: Parallelize
         for (final ImhotepSession s : session.getSessionsMapRaw().values()) {
-            s.regroup(rules);
+            s.regroup(rules, true);
         }
         session.timer.pop();
 

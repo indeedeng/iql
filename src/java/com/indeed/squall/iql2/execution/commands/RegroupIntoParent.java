@@ -70,7 +70,7 @@ public class RegroupIntoParent implements Command {
             rules[group - 1] = new GroupMultiRemapRule(group, group, new int[]{newGroup}, fakeConditions);
         }
         session.timer.pop();
-        session.regroup(rules);
+        session.regroup(rules, false);
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
         session.groupKeySet = session.groupKeySet.previous();

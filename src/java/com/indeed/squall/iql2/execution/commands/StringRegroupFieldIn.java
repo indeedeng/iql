@@ -6,10 +6,8 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
-import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,7 +40,7 @@ public class StringRegroupFieldIn implements Command {
         }
         session.timer.pop();
 
-        session.regroup(remapRules);
+        session.regroup(remapRules, false);
 
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms));
         session.currentDepth += 1;
