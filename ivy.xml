@@ -65,11 +65,11 @@
         <dependency org="indeed" name="docservice" rev="${docservice.version}" conf="webapp,compile,developer->interfaces"/>
         <dependency org="indeed" name="sourceservice" rev="${sourceservice.version}" conf="webapp,compile,developer->default"/>
 
-        <exclude org="tomcat" conf="webapp"/>
-        <exclude org="org.mortbay.jetty" conf="webapp"/>
-        <exclude org="javax.servlet" module="servlet-api" conf="webapp"/>
-        <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp"/>
-        <exclude org="spring" module="spring-asm" conf="webapp"/>
+        <exclude org="tomcat" conf="webapp,developer"/>
+        <exclude org="org.mortbay.jetty" conf="webapp,developer"/>
+        <exclude org="javax.servlet" module="servlet-api" conf="webapp,developer"/>
+        <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp,developer"/>
+        <exclude org="spring" module="spring-asm" conf="webapp,developer"/>
 
         <exclude org="hadoop" module="hadoop-yarn.*"/>
         <!-- Jersey conflicts with RESTEasy -->

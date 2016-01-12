@@ -28,6 +28,7 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
+import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -39,6 +40,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.server.SessionCollectingProgressCallback;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
@@ -54,6 +56,8 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -385,6 +389,7 @@ public class QueryServlet {
         try {
             timer.push("Acquire concurrent query lock");
             queryTracker.acquireLocks(); // blocks and waits if necessary
+            final long startTime = clock.currentTimeMillis();
             timer.pop();
             queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
             final PrintWriter outputStream = response.getWriter();
@@ -410,7 +415,7 @@ public class QueryServlet {
                 };
             }
             final Set<String> warnings = new HashSet<>();
-            final SelectExecutionInformation execInfo = executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, new NoOpProgressCallback() {
+            final SessionCollectingProgressCallback progressCallback = new SessionCollectingProgressCallback(new NoOpProgressCallback() {
                 private int completedChunks = 0;
 
                 @Override
@@ -458,7 +463,8 @@ public class QueryServlet {
                     }
                     incrementChunksCompleted();
                 }
-            }, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+            });
+            final SelectExecutionInformation execInfo = executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     warnings.add(s);
@@ -472,9 +478,11 @@ public class QueryServlet {
                 final Map<String, Object> headerMap = new HashMap<>();
                 headerMap.put("IQL-Cached", execInfo.allCached());
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                headerMap.put("IQL-Shard-List", execInfo.perDatasetShardIds().toString());
-                headerMap.put("IQL-Newest-Shard", execInfo.newestShard());
+                headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
+                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
                 headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
+                headerMap.put("Imhotep-Session-IDs", progressCallback.getSessionIds());
+                headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
 
                 if (!warnings.isEmpty()) {
@@ -580,7 +588,10 @@ public class QueryServlet {
                     newest = Math.max(newest, shard.getVersion());
                 }
             }
-            return newest;
+            if (newest == -1) {
+                throw new IllegalArgumentException("No shards!");
+            }
+            return DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newest));
         }
     }
 
@@ -591,7 +602,7 @@ public class QueryServlet {
             final Map<String, Set<String>> datasetToIntFields,
             final Consumer<String> out,
             final TreeTimer timer,
-            final NoOpProgressCallback progressCallback,
+            final ProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
             final boolean skipValidation,
             final Integer groupLimit,
@@ -613,7 +624,7 @@ public class QueryServlet {
     private SelectExecutionInformation executeParsedQuery(
             Consumer<String> out,
             final TreeTimer timer,
-            final NoOpProgressCallback progressCallback,
+            final ProgressCallback progressCallback,
             Query query,
             final boolean skipValidation,
             final @Nullable Integer initialGroupLimit,
@@ -652,7 +663,7 @@ public class QueryServlet {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, new NoOpProgressCallback(), q, skipValidation, initialGroupLimit, clock, queryCached);
+                                    }, timer, new SessionCollectingProgressCallback(new NoOpProgressCallback()), q, skipValidation, initialGroupLimit, clock, queryCached);
                                     totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
