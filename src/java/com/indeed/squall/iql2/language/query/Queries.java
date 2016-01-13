@@ -21,9 +21,11 @@ import com.indeed.squall.iql2.language.execution.passes.OptimizeLast;
 import com.indeed.squall.iql2.language.optimizations.CollapseFilters;
 import com.indeed.squall.iql2.language.passes.ExtractNames;
 import com.indeed.squall.iql2.language.passes.ExtractPrecomputed;
+import com.indeed.squall.iql2.language.passes.FixTopKHaving;
 import com.indeed.squall.iql2.language.passes.HandleWhereClause;
 import com.indeed.squall.iql2.language.passes.RemoveNames;
 import com.indeed.squall.iql2.language.passes.SubstituteNamed;
+import com.indeed.util.logging.Loggers;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -180,28 +182,20 @@ public class Queries {
     }
 
     public static List<Command> queryCommands(Query query) {
-        if (log.isTraceEnabled()) {
-            log.trace("query = " + query);
-        }
-        final Map<String, AggregateMetric> named = ExtractNames.extractNames(query);
-        final Query query2 = SubstituteNamed.substituteNamedMetrics(query, named);
-        if (log.isTraceEnabled()) {
-            log.trace("query2 = " + query2);
-        }
+        Loggers.trace(log, "query = %s", query);
+        final Query query1 = FixTopKHaving.apply(query);
+        Loggers.trace(log, "query1 = %s", query1);
+        final Map<String, AggregateMetric> named = ExtractNames.extractNames(query1);
+        final Query query2 = SubstituteNamed.substituteNamedMetrics(query1, named);
+        Loggers.trace(log, "query2 = %s", query2);
         final Query query3 = RemoveNames.removeNames(query2);
-        if (log.isTraceEnabled()) {
-            log.trace("query3 = " + query3);
-        }
+        Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = CollapseFilters.collapseFilters(query3);
-        if (log.isTraceEnabled()) {
-            log.trace("query4 = " + query4);
-        }
+        Loggers.trace(log, "query4 = %s", query4);
         final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(query4);
         final List<ExecutionStep> firstSteps = query5Result.steps;
         final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query5Result.query);
-        if (log.isTraceEnabled()) {
-            log.trace("extracted = " + extracted);
-        }
+        Loggers.trace(log, "extracted = %s", extracted);
         final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(extracted)));
         if (log.isTraceEnabled()) {
             log.trace("executionSteps = " + executionSteps);
