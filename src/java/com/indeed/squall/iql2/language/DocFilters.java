@@ -234,7 +234,7 @@ public class DocFilters {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
                 final JQLParser.FromContentsContext fromUsed = queryCtx.same == null ? queryCtx.fromContents() : fromContents;
                 if (fromUsed == null) {
-                    throw new IllegalArgumentException("Can't use 'FROM SAME' in initial FROM");
+                    throw new IllegalArgumentException("Can't use 'FROM SAME' outside of WHERE");
                 }
                 final Query query = Query.parseQuery(
                         fromUsed,

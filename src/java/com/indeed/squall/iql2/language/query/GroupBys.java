@@ -7,6 +7,8 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.AggregateMetrics;
+import com.indeed.squall.iql2.language.DocFilter;
+import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.DocMetrics;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
@@ -262,6 +264,12 @@ public class GroupBys {
                 final boolean withDefault = ctx2.withDefault != null;
                 final boolean forceNonStreaming = ctx2.forceNonStreaming != null;
                 accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming));
+            }
+
+            @Override
+            public void enterPredicateGroupBy(JQLParser.PredicateGroupByContext ctx) {
+                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock);
+                accept(new GroupBy.GroupByPredicate(filter));
             }
         });
 

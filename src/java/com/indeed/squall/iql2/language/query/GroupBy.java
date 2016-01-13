@@ -7,11 +7,15 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public interface GroupBy {
@@ -504,6 +508,54 @@ public interface GroupBy {
             return "GroupByQuantiles{" +
                     "field='" + field + '\'' +
                     ", numBuckets=" + numBuckets +
+                    '}';
+        }
+    }
+
+    class GroupByPredicate implements GroupBy {
+        private final DocFilter docFilter;
+
+        public GroupByPredicate(DocFilter docFilter) {
+            this.docFilter = docFilter;
+        }
+
+        @Override
+        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(new GroupByPredicate(docFilter.transform(g, i)));
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            // TODO: Do this better by making ExplodeMetric take a Map<String, DocMetric>?
+            final List<ExecutionStep> steps = new ArrayList<>();
+            for (final String dataset : scope) {
+                steps.add(new ExecutionStep.ExplodeMetric(docFilter.asZeroOneMetric(dataset), 0, 2, 1, Collections.singleton(dataset), true, false));
+            }
+            return new ExecutionStep.ExecuteMany(steps);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupByPredicate that = (GroupByPredicate) o;
+            return Objects.equals(docFilter, that.docFilter);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(docFilter);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByPredicate{" +
+                    "docFilter=" + docFilter +
                     '}';
         }
     }

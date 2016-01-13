@@ -350,6 +350,7 @@ groupByElement [boolean useLegacy]
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
+    | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     ;
 
 // TODO: Make TOPTERMS a valid identifier

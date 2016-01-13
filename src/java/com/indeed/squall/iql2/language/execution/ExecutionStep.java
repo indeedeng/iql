@@ -24,7 +24,6 @@ import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
-import it.unimi.dsi.fastutil.longs.LongSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -605,6 +604,39 @@ public interface ExecutionStep {
         public String toString() {
             return "FilterGroups{" +
                     "filter=" + filter +
+                    '}';
+        }
+    }
+
+    class ExecuteMany implements ExecutionStep {
+        private final List<ExecutionStep> steps;
+
+        public ExecuteMany(List<ExecutionStep> steps) {
+            this.steps = steps;
+        }
+
+        @Override
+        public List<Command> commands() {
+            final List<Command> commands = new ArrayList<>();
+            for (final ExecutionStep step : steps) {
+                commands.addAll(step.commands());
+            }
+            return commands;
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final List<ExecutionStep> newSteps = new ArrayList<>(steps.size());
+            for (final ExecutionStep step : steps) {
+                newSteps.add(step.traverse1(f));
+            }
+            return new ExecuteMany(newSteps);
+        }
+
+        @Override
+        public String toString() {
+            return "ExecuteMany{" +
+                    "steps=" + steps +
                     '}';
         }
     }
