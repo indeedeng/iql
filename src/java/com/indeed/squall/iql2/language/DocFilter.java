@@ -394,19 +394,19 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         @Override
@@ -460,17 +460,17 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             // TODO: Not duplicate logic across these two branches
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                return getFieldNotEqualValue(scope, field, value, target, positive, negative);
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                return getFieldNotEqualValue(scope, field, value, target, positive, negative);
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                return getFieldNotEqualValue(scope, field, value, target, positive, negative);
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                return getFieldNotEqualValue(scope, field, value, target, positive, negative);
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         private static List<Action> getFieldNotEqualValue(Map<String, String> scope, String field, long value, int target, int positive, int negative) {
@@ -529,21 +529,21 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                // field > value => field in [value + 1, MAX_VALUE]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value + 1, Long.MAX_VALUE, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                // value > field => field in [MIN_VALUE, value)
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, false);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                // field > value => field in [value + 1, MAX_VALUE]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value + 1, Long.MAX_VALUE, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                // value > field => field in [MIN_VALUE, value)
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, false);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         @Override
@@ -596,21 +596,21 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                // field >= value => field in [value, MAX_VALUE]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value, Long.MAX_VALUE, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                // value >= field => field in [MIN_VALUE, value]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                // field >= value => field in [value, MAX_VALUE]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value, Long.MAX_VALUE, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                // value >= field => field in [MIN_VALUE, value]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         @Override
@@ -663,21 +663,21 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                // field < value => field in [MIN_VALUE, value)
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, false);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                // value < field => field in [value + 1, MAX_VALUE]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value + 1, Long.MAX_VALUE, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                // field < value => field in [MIN_VALUE, value)
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, false);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                // value < field => field in [value + 1, MAX_VALUE]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value + 1, Long.MAX_VALUE, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         @Override
@@ -730,21 +730,21 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
-                final String field = ((DocMetric.Field) m1).field;
-                final long value = ((DocMetric.Constant) m2).value;
-                // field <= value => field in [MIN_VALUE, value]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
-                final String field = ((DocMetric.Field) m2).field;
-                final long value = ((DocMetric.Constant) m1).value;
-                // value <= field => field in [value, MAX_VALUE]
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value, Long.MAX_VALUE, true);
-                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
-            } else {
+//            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
+//                final String field = ((DocMetric.Field) m1).field;
+//                final long value = ((DocMetric.Constant) m2).value;
+//                // field <= value => field in [MIN_VALUE, value]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else if (m1 instanceof DocMetric.Constant && m2 instanceof DocMetric.Field) {
+//                final String field = ((DocMetric.Field) m2).field;
+//                final long value = ((DocMetric.Constant) m1).value;
+//                // value <= field => field in [value, MAX_VALUE]
+//                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value, Long.MAX_VALUE, true);
+//                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+//            } else {
                 return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
-            }
+//            }
         }
 
         @Override
