@@ -484,18 +484,19 @@ public class QueryServlet {
                 headerMap.put("Imhotep-Session-IDs", progressCallback.getSessionIds());
                 headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+                outputStream.println();
 
                 if (!warnings.isEmpty()) {
-                    outputStream.println();
                     outputStream.println("event: warnings");
                     for (final String warning : warnings) {
                         outputStream.println("data: " + warning);
                     }
+                    outputStream.println();
                 }
 
-                outputStream.println();
                 outputStream.println("event: complete");
                 outputStream.println("data: :)");
+                outputStream.println();
             }
         } finally {
             if (!queryTracker.isAsynchronousRelease()) {
