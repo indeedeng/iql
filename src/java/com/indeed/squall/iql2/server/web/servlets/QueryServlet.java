@@ -736,7 +736,7 @@ public class QueryServlet {
             timer.pop();
             for (final ShardIdWithVersion chosenShard : chosenShards) {
                 // This needs to be associated with the session name, not just the actualDataset.
-                shards.add(Pair.of(sessionName, chosenShard.getShardId()));
+                shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
             }
             final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
             if (oldShards != null) {
