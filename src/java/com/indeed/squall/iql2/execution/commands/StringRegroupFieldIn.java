@@ -5,6 +5,7 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -17,10 +18,12 @@ import java.util.Objects;
 public class StringRegroupFieldIn implements Command {
     private final String field;
     private final List<String> terms;
+    private final boolean withDefault;
 
-    public StringRegroupFieldIn(String field, List<String> terms) {
+    public StringRegroupFieldIn(String field, List<String> terms, boolean withDefault) {
         this.field = field;
         this.terms = terms;
+        this.withDefault = withDefault;
     }
 
     @Override
@@ -34,32 +37,39 @@ public class StringRegroupFieldIn implements Command {
         }
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];
-            final int baseGroup = 1 + (group - 1) * numTerms;
+            final int baseGroup = 1 + (group - 1) * (numTerms + (withDefault ? 1 : 0));
             for (int i = 0; i < numTerms; i++) {
                 positiveGroups[i] = baseGroup + i;
             }
-            remapRules[group - 1] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+            final int negativeGroup = withDefault ? (baseGroup + numTerms) : 0;
+            remapRules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
         }
         session.timer.pop();
 
         session.regroup(remapRules, false);
 
-        session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms));
+        session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
         session.currentDepth += 1;
     }
 
     public static class StringFieldInGroupKeySet implements GroupKeySet {
         private final GroupKeySet previous;
         private final List<String> terms;
+        private final boolean withDefault;
         private final StringGroupKey[] groupKeys;
 
-        public StringFieldInGroupKeySet(GroupKeySet previous, List<String> terms) {
+        public StringFieldInGroupKeySet(GroupKeySet previous, List<String> terms, boolean withDefault) {
             this.previous = previous;
             this.terms = terms;
+            this.withDefault = withDefault;
             this.groupKeys = new StringGroupKey[terms.size()];
             for (int i = 0; i < terms.size(); i++) {
                 this.groupKeys[i] = new StringGroupKey(terms.get(i));
             }
+        }
+
+        private int groupsPerOldGroup() {
+            return terms.size() + (withDefault ? 1 : 0);
         }
 
         @Override
@@ -69,17 +79,21 @@ public class StringRegroupFieldIn implements Command {
 
         @Override
         public int parentGroup(int group) {
-            return 1 + (group - 1) / terms.size();
+            return 1 + (group - 1) / groupsPerOldGroup();
         }
 
         @Override
         public GroupKey groupKey(int group) {
-            return this.groupKeys[(group - 1) % terms.size()];
+            final int termIndex = (group - 1) % groupsPerOldGroup();
+            if (termIndex == this.groupKeys.length) {
+                return DefaultGroupKey.INSTANCE;
+            }
+            return this.groupKeys[(termIndex)];
         }
 
         @Override
         public int numGroups() {
-            return previous.numGroups() * terms.size();
+            return previous.numGroups() * groupsPerOldGroup();
         }
 
         @Override
@@ -92,14 +106,15 @@ public class StringRegroupFieldIn implements Command {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             StringFieldInGroupKeySet that = (StringFieldInGroupKeySet) o;
-            return Objects.equals(previous, that.previous) &&
+            return withDefault == that.withDefault &&
+                    Objects.equals(previous, that.previous) &&
                     Objects.equals(terms, that.terms) &&
                     Arrays.equals(groupKeys, that.groupKeys);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(previous, terms, groupKeys);
+            return Objects.hash(previous, terms, withDefault, groupKeys);
         }
     }
 }

@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class TestIntFieldInGroupKeySet {
     private static IntRegroupFieldIn.IntFieldInGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.create(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new IntRegroupFieldIn.IntFieldInGroupKeySet(previous, new LongArrayList(new long[]{1, 3, 10, 100}));
+        return new IntRegroupFieldIn.IntFieldInGroupKeySet(previous, new LongArrayList(new long[]{1, 3, 10, 100}), false);
     }
 
     @Test

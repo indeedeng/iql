@@ -318,20 +318,21 @@ public class Commands {
             }
             case "regroupFieldIn": {
                 final String field = command.get("field").textValue();
+                final boolean withDefault = command.get("withDefault").booleanValue();
                 if (command.get("isIntField").booleanValue()) {
                     final JsonNode termList = command.get("intTerms");
                     final LongList intTerms = new LongArrayList(termList.size());
                     for (int i = 0; i < termList.size(); i++) {
                         intTerms.add(termList.get(i).longValue());
                     }
-                    return new IntRegroupFieldIn(field, intTerms);
+                    return new IntRegroupFieldIn(field, intTerms, withDefault);
                 } else {
                     final JsonNode termList = command.get("stringTerms");
                     final List<String> stringTerms = new ArrayList<>();
                     for (int i = 0; i < termList.size(); i++) {
                         stringTerms.add(termList.get(i).textValue());
                     }
-                    return new StringRegroupFieldIn(field, stringTerms);
+                    return new StringRegroupFieldIn(field, stringTerms, withDefault);
                 }
             }
         }
