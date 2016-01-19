@@ -113,6 +113,11 @@ public class QueryServletTestUtils {
         return output;
     }
 
+    static void testIQL2(List<List<String>> expected, String query) throws Exception {
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, false));
+        Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL2, true));
+    }
+
     static void testAll(List<List<String>> expected, String query) throws Exception {
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, false));
         Assert.assertEquals(expected, runQuery(OrganicDataset.create(), query, LanguageVersion.IQL1, true));
