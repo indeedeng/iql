@@ -10,7 +10,9 @@ import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class StringRegroupFieldIn implements Command {
     private final String field;
@@ -67,7 +69,7 @@ public class StringRegroupFieldIn implements Command {
 
         @Override
         public int parentGroup(int group) {
-            return 1 + (group - 1) % terms.size();
+            return 1 + (group - 1) / terms.size();
         }
 
         @Override
@@ -82,7 +84,22 @@ public class StringRegroupFieldIn implements Command {
 
         @Override
         public boolean isPresent(int group) {
-            return group <= numGroups() && previous.isPresent(parentGroup(group));
+            return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            StringFieldInGroupKeySet that = (StringFieldInGroupKeySet) o;
+            return Objects.equals(previous, that.previous) &&
+                    Objects.equals(terms, that.terms) &&
+                    Arrays.equals(groupKeys, that.groupKeys);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(previous, terms, groupKeys);
         }
     }
 }
