@@ -6,6 +6,7 @@ import com.indeed.squall.iql2.execution.groupkeys.InitialGroupKey;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class DumbGroupKeySet implements GroupKeySet {
     public final GroupKeySet previous;
@@ -48,6 +49,21 @@ public class DumbGroupKeySet implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group < groupParents.length && groupKeys.get(group) != null && (previous == null || previous.isPresent(parentGroup(group)));
+        return group > 0 && group < groupParents.length && groupKeys.get(group) != null && (previous == null || previous.isPresent(parentGroup(group)));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DumbGroupKeySet that = (DumbGroupKeySet) o;
+        return Objects.equals(previous, that.previous) &&
+                Arrays.equals(groupParents, that.groupParents) &&
+                Objects.equals(groupKeys, that.groupKeys);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(previous, groupParents, groupKeys);
     }
 }

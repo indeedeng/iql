@@ -1,7 +1,9 @@
 package com.indeed.squall.iql2.execution.groupkeys.sets;
 
-import com.indeed.squall.iql2.execution.groupkeys.DayRangeGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.TimeRangeGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+
+import java.util.Objects;
 
 public class DateTimeRangeGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
@@ -34,7 +36,7 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
         final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
         final long start = earliestStart + groupOffset * periodMillis;
         final long end = earliestStart + (groupOffset + 1) * periodMillis;
-        return new DayRangeGroupKey(format, start, end);
+        return new TimeRangeGroupKey(format, start, end);
     }
 
     @Override
@@ -44,6 +46,23 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group <= numGroups() && previous.isPresent(parentGroup(group));
+        return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DateTimeRangeGroupKeySet that = (DateTimeRangeGroupKeySet) o;
+        return earliestStart == that.earliestStart &&
+                periodMillis == that.periodMillis &&
+                numBuckets == that.numBuckets &&
+                Objects.equals(previous, that.previous) &&
+                Objects.equals(format, that.format);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(previous, earliestStart, periodMillis, numBuckets, format);
     }
 }

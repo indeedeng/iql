@@ -8,8 +8,8 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.DayGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.sets.DayGroupKeySet;
+import com.indeed.squall.iql2.execution.groupkeys.DayOfWeekGroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
 
 import java.util.List;
@@ -17,10 +17,10 @@ import java.util.List;
 public class ExplodeDayOfWeek implements Command {
     public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
-    public static final DayGroupKey[] DAY_GROUP_KEYS = new DayGroupKey[DAY_KEYS.length];
+    public static final DayOfWeekGroupKey[] DAY_GROUP_KEYS = new DayOfWeekGroupKey[DAY_KEYS.length];
     static {
         for (int i = 0; i < DAY_GROUP_KEYS.length; i++) {
-            DAY_GROUP_KEYS[i] = new DayGroupKey(i);
+            DAY_GROUP_KEYS[i] = new DayOfWeekGroupKey(i);
         }
     }
 
@@ -50,7 +50,7 @@ public class ExplodeDayOfWeek implements Command {
         session.timer.push("shuffle regroup");
         session.regroup(rulesArray);
         session.timer.pop();
-        session.assumeDense(new DayGroupKeySet(session.groupKeySet));
+        session.assumeDense(new DayOfWeekGroupKeySet(session.groupKeySet));
         session.currentDepth += 1;
 
         out.accept("success");

@@ -3,10 +3,12 @@ package com.indeed.squall.iql2.execution.groupkeys.sets;
 import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 
-public class DayGroupKeySet implements GroupKeySet {
+import java.util.Objects;
+
+public class DayOfWeekGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
 
-    public DayGroupKeySet(GroupKeySet previous) {
+    public DayOfWeekGroupKeySet(GroupKeySet previous) {
         this.previous = previous;
     }
 
@@ -33,6 +35,19 @@ public class DayGroupKeySet implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group <= numGroups() && previous.isPresent(parentGroup(group));
+        return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DayOfWeekGroupKeySet that = (DayOfWeekGroupKeySet) o;
+        return Objects.equals(previous, that.previous);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(previous);
     }
 }

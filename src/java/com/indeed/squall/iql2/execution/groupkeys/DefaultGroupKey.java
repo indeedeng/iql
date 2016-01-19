@@ -12,4 +12,10 @@ public class DefaultGroupKey extends GroupKey {
     public void addToList(List<String> list) {
         list.add("DEFAULT");
     }
+
+
+    @Override
+    public String toString() {
+        return "DefaultGroupKey{}";
+    }
 }

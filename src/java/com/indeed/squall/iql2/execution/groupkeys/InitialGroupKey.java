@@ -10,4 +10,9 @@ public class InitialGroupKey extends GroupKey {
     @Override
     public void addToList(List<String> list) {
     }
+
+    @Override
+    public String toString() {
+        return "InitialGroupKey{}";
+    }
 }

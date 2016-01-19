@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.execution.groupkeys.sets;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 
 import java.util.BitSet;
+import java.util.Objects;
 
 public class MaskingGroupKeySet implements GroupKeySet {
     private final GroupKeySet wrapped;
@@ -35,6 +36,20 @@ public class MaskingGroupKeySet implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group < presentMask.size() && presentMask.get(group);
+        return group > 0 && group < presentMask.size() && presentMask.get(group);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MaskingGroupKeySet that = (MaskingGroupKeySet) o;
+        return Objects.equals(wrapped, that.wrapped) &&
+                Objects.equals(presentMask, that.presentMask);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wrapped, presentMask);
     }
 }

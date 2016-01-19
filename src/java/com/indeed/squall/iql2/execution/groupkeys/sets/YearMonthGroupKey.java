@@ -5,6 +5,8 @@ import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 
+import java.util.Objects;
+
 public class YearMonthGroupKey implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numMonths;
@@ -42,6 +44,22 @@ public class YearMonthGroupKey implements GroupKeySet {
 
     @Override
     public boolean isPresent(int group) {
-        return group <= numGroups() && previous.isPresent(parentGroup(group));
+        return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        YearMonthGroupKey that = (YearMonthGroupKey) o;
+        return numMonths == that.numMonths &&
+                Objects.equals(previous, that.previous) &&
+                Objects.equals(startMonth, that.startMonth) &&
+                Objects.equals(formatter, that.formatter);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(previous, numMonths, startMonth, formatter);
     }
 }
