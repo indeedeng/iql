@@ -79,6 +79,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
@@ -291,8 +292,11 @@ public class QueryServlet {
         final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
         selectExecutionStats.hashForCaching = queryHash;
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
+        long beginTimeMillis = System.currentTimeMillis();
         final boolean isCached = queryCache.isFileCached(cacheFileName);
+        long endTimeMillis = System.currentTimeMillis();
         selectExecutionStats.cached = isCached;
+        selectExecutionStats.setPhase("cacheCheckMillis", endTimeMillis - beginTimeMillis);
         final QueryMetadata queryMetadata = new QueryMetadata();
 
         queryMetadata.addItem("IQL-Cached", isCached, true);
@@ -730,6 +734,10 @@ public class QueryServlet {
 
         final String queryType = logStatementData(parsedQuery, selectExecutionStats, logEntry);
         logEntry.setProperty("statement", queryType);
+
+        for (Map.Entry<String, Long> phase: selectExecutionStats.phases.entrySet()) {
+            logEntry.setProperty(phase.getKey(), phase.getValue());
+        }
 
         dataLog.info(logEntry);
     }
