@@ -188,26 +188,28 @@ public interface ExecutionStep {
         private final List<String> stringTerms;
         private final LongList intTerms;
         private final boolean isIntField;
+        private final boolean withDefault;
 
-        private ExplodeFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField) {
+        private ExplodeFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
             this.scope = scope;
             this.field = field;
             this.stringTerms = stringTerms;
             this.intTerms = intTerms;
             this.isIntField = isIntField;
+            this.withDefault = withDefault;
         }
 
-        public static ExplodeFieldIn intExplode(Set<String> scope, String field, LongList terms) {
-            return new ExplodeFieldIn(scope, field, Collections.<String>emptyList(), terms, true);
+        public static ExplodeFieldIn intExplode(Set<String> scope, String field, LongList terms, boolean withDefault) {
+            return new ExplodeFieldIn(scope, field, Collections.<String>emptyList(), terms, true, withDefault);
         }
 
-        public static ExplodeFieldIn stringExplode(Set<String> scope, String field, List<String> terms) {
-            return new ExplodeFieldIn(scope, field, terms, LongLists.EMPTY_LIST, false);
+        public static ExplodeFieldIn stringExplode(Set<String> scope, String field, List<String> terms, boolean withDefault) {
+            return new ExplodeFieldIn(scope, field, terms, LongLists.EMPTY_LIST, false, withDefault);
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new RegroupFieldIn(scope, field, stringTerms, intTerms, isIntField));
+            return Collections.<Command>singletonList(new RegroupFieldIn(scope, field, stringTerms, intTerms, isIntField, withDefault));
         }
 
         @Override
@@ -219,10 +221,12 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ExplodeFieldIn{" +
-                    "field='" + field + '\'' +
+                    "scope=" + scope +
+                    ", field='" + field + '\'' +
                     ", stringTerms=" + stringTerms +
                     ", intTerms=" + intTerms +
                     ", isIntField=" + isIntField +
+                    ", withDefault=" + withDefault +
                     '}';
         }
     }

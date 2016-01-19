@@ -133,7 +133,8 @@ public class GroupBys {
                         }
                         strings = Collections.emptyList();
                     }
-                    accept(new GroupBy.GroupByFieldIn(ctx.field.getText().toUpperCase(), ints, strings));
+                    final boolean withDefault = ctx.withDefault != null;
+                    accept(new GroupBy.GroupByFieldIn(ctx.field.getText().toUpperCase(), ints, strings, withDefault));
                 }
             }
 
