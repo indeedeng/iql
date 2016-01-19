@@ -744,7 +744,7 @@ public class QueryServlet {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
-        final String queryHash = computeQueryHash(commands, shards, 6);
+        final String queryHash = computeQueryHash(commands, shards, 7);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
