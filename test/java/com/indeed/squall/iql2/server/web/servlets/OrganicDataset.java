@@ -107,6 +107,9 @@ class OrganicDataset {
         doc.addIntTerm("ojc", ojc);
         doc.addStringTerm("tk", tk);
 
+        // TODO: This is a work-around for MemoryFlamdex not handling missing fields.
+        doc.addIntTerm("fakeField", 0);
+
         return doc;
     }
 }
