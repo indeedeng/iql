@@ -182,7 +182,11 @@ public class EZImhotepSession implements Closeable {
     }
 
     public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
-        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+        ftgsIterate(fields, callback, 0);
+    }
+
+    public void ftgsIterate(List<Field> fields, FTGSCallback callback, int termLimit) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields, termLimit);
         performIteration(callback, ftgsIterator);
     }
 
@@ -259,14 +263,14 @@ public class EZImhotepSession implements Closeable {
         return session.getSubsetFTGSIterator(intFields, stringFields);
     }
 
-    public <E> Iterator<E> ftgsGetIterator(List<Field> fields, final FTGSIteratingCallback<E> callback) {
-        final FTGSIterator ftgsIterator = getFtgsIterator(fields);
+    public <E> Iterator<E> ftgsGetIterator(List<Field> fields, final FTGSIteratingCallback<E> callback, int termLimit) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(fields, termLimit);
 
         // TODO: make sure ftgsIterator gets closed
         return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
-    private FTGSIterator getFtgsIterator(List<Field> fields) {
+    private FTGSIterator getFtgsIterator(List<Field> fields, int termLimit) {
         final List<String> intFields = Lists.newArrayList();
         final List<String> stringFields = Lists.newArrayList();
         for (Field field : fields) {
@@ -277,9 +281,14 @@ public class EZImhotepSession implements Closeable {
             }
         }
 
+        if(termLimit == Integer.MAX_VALUE) {
+            termLimit = 0;  // slight optimization by disabling the limit completely
+        }
+
         return session.getFTGSIterator(
                 intFields.toArray(new String[intFields.size()]),
-                stringFields.toArray(new String[stringFields.size()])
+                stringFields.toArray(new String[stringFields.size()]),
+                termLimit
         );
     }
 
@@ -287,7 +296,7 @@ public class EZImhotepSession implements Closeable {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
         }
-        final TLongArrayList intTerms = intFieldTerms(field, session, predicate);
+        final TLongArrayList intTerms = intFieldTerms(field, session, predicate, 0);
         final long[] longs = intTerms.toNativeArray();
         for (int group = 1; group < numGroups; group++) {
             session.intOrRegroup(field.getFieldName(), longs, group, 0, group);
@@ -298,7 +307,7 @@ public class EZImhotepSession implements Closeable {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
         }
-        final TLongArrayList intTerms = intFieldTerms(field, session, predicate);
+        final TLongArrayList intTerms = intFieldTerms(field, session, predicate, 0);
         final long[] longs = intTerms.toNativeArray();
         for (int group = 1; group < numGroups; group++) {
             session.intOrRegroup(field.getFieldName(), longs, group, group, 0);
@@ -327,7 +336,7 @@ public class EZImhotepSession implements Closeable {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
         }
-        final List<String> stringTerms = stringFieldTerms(field, session, predicate);
+        final List<String> stringTerms = stringFieldTerms(field, session, predicate, 0);
         for (int group = 1; group < numGroups; group++) {
             session.stringOrRegroup(field.getFieldName(), stringTerms.toArray(new String[stringTerms.size()]), group, 0, group);
         }
@@ -337,7 +346,7 @@ public class EZImhotepSession implements Closeable {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
         }
-        final List<String> stringTerms = stringFieldTerms(field, session, predicate);
+        final List<String> stringTerms = stringFieldTerms(field, session, predicate, 0);
         for (int group = 1; group < numGroups; group++) {
             session.stringOrRegroup(field.getFieldName(), stringTerms.toArray(new String[stringTerms.size()]), group, group, 0);
         }
@@ -500,11 +509,11 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public @Nullable Map<Integer, GroupKey> splitAll(Field field, @Nullable Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public @Nullable Map<Integer, GroupKey> splitAll(Field field, @Nullable Map<Integer, GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
         final Map<Integer, GroupKey> ret = groupKeys == null ? null : Maps.<Integer, GroupKey>newHashMap();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
-            final TIntObjectHashMap<TLongArrayList> termListsMap = getIntGroupTerms(intField);
+            final TIntObjectHashMap<TLongArrayList> termListsMap = getIntGroupTerms(intField, termLimit);
 
             int newGroupCount = 0;
             for(TIntObjectIterator<TLongArrayList> iterator = termListsMap.iterator(); iterator.hasNext();) {
@@ -530,7 +539,7 @@ public class EZImhotepSession implements Closeable {
             }
         } else {
             final StringField stringField = (StringField) field;
-            final TIntObjectHashMap<List<String>> termListsMap = getStringGroupTerms(stringField);
+            final TIntObjectHashMap<List<String>> termListsMap = getStringGroupTerms(stringField, termLimit);
 
             int newGroupCount = 0;
             for(TIntObjectIterator<List<String>> iterator = termListsMap.iterator(); iterator.hasNext();) {
@@ -557,14 +566,14 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
-    public @Nullable Map<Integer, GroupKey> splitAllExplode(Field field, @Nullable Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public @Nullable Map<Integer, GroupKey> splitAllExplode(Field field, @Nullable Map<Integer, GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
-            final TLongArrayList terms = intFieldTerms(intField, session, null);
+            final TLongArrayList terms = intFieldTerms(intField, session, null, termLimit);
             return explodeEachGroup(intField, terms.toNativeArray(), groupKeys);
         } else {
             final StringField stringField = (StringField) field;
-            final List<String> terms = stringFieldTerms(stringField, session, null);
+            final List<String> terms = stringFieldTerms(stringField, session, null, termLimit);
             return explodeEachGroup(stringField, terms.toArray(new String[terms.size()]), groupKeys);
         }
     }
@@ -806,15 +815,15 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    private TIntObjectHashMap<List<String>> getStringGroupTerms(StringField field) {
+    private TIntObjectHashMap<List<String>> getStringGroupTerms(StringField field, int termLimit) {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth);
-        ftgsIterate(Arrays.asList((Field) field), callback);
+        ftgsIterate(Arrays.asList((Field) field), callback, termLimit);
         return callback.stringTermListsMap;
     }
 
-    private TIntObjectHashMap<TLongArrayList> getIntGroupTerms(IntField field) {
+    private TIntObjectHashMap<TLongArrayList> getIntGroupTerms(IntField field, int termLimit) {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth);
-        ftgsIterate(Arrays.asList((Field)field), callback);
+        ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.intTermListsMap;
     }
 
@@ -935,15 +944,15 @@ public class EZImhotepSession implements Closeable {
             }
         }
     }
-    public TLongArrayList intFieldTerms(IntField field, ImhotepSession session, @Nullable Predicate<Long> filterPredicate) throws ImhotepOutOfMemoryException {
+    public TLongArrayList intFieldTerms(IntField field, ImhotepSession session, @Nullable Predicate<Long> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
         final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, filterPredicate, null);
-        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback);
+        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.intTerms;
     }
 
-    public List<String> stringFieldTerms(StringField field, ImhotepSession session, @Nullable Predicate<String> filterPredicate) throws ImhotepOutOfMemoryException {
+    public List<String> stringFieldTerms(StringField field, ImhotepSession session, @Nullable Predicate<String> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
         final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, null, filterPredicate);
-        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback);
+        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.stringTerms;
     }
 

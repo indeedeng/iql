@@ -120,7 +120,7 @@ public final class IQLTranslator {
         }
 
         final List<Grouping> groupings = Lists.newArrayList();
-        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, keywordAnalyzerWhitelist, fromClause.getStart(), fromClause.getEnd());
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, keywordAnalyzerWhitelist, fromClause.getStart(), fromClause.getEnd(), parse.limit);
         if (parse.groupBy != null) {
             for (Expression groupBy : parse.groupBy.groupings) {
                 groupings.add(groupBy.match(groupByMatcher));
@@ -162,7 +162,7 @@ public final class IQLTranslator {
             if(!fieldGrouping.isNoExplode()
                     && !fieldGrouping.isTopK()
                     && !fieldGrouping.isTermSubset()) {
-                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true));
+                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true, fieldGrouping.getRowLimit()));
             }
         }
     }
@@ -929,12 +929,14 @@ public final class IQLTranslator {
         private final DatasetMetadata datasetMetadata;
         private final DateTime start;
         private final DateTime end;
+        private final int rowLimit;
 
         private final StatMatcher statMatcher;
 
 
-        private GroupByMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist, final DateTime start, final DateTime end) {
+        private GroupByMatcher(final DatasetMetadata datasetMetadata, final Set<String> keywordAnalyzerWhitelist, final DateTime start, final DateTime end, final int rowLimit) {
             statMatcher = new StatMatcher(datasetMetadata, keywordAnalyzerWhitelist);
+            this.rowLimit = rowLimit;
             this.datasetMetadata = datasetMetadata;
             this.start = start;
             this.end = end;
@@ -993,7 +995,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier());
+                                    new LongStringifier(), false);
                         } else if (input.size() == 8) {
                             // DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each
                             final Stat xStat = input.get(0).match(statMatcher);
@@ -1056,7 +1058,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true);
         }
 
 
@@ -1168,7 +1170,7 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
-            return new FieldGrouping(field, true);
+            return new FieldGrouping(field, true, rowLimit);
         }
 
         @Override
@@ -1183,7 +1185,7 @@ public final class IQLTranslator {
                 {
                     final String fieldName = getStr(operand);
                     final Field field = getField(fieldName, datasetMetadata);
-                    return new FieldGrouping(field, false);
+                    return new FieldGrouping(field, false, rowLimit);
                 }
                 default:
                     throw new UnsupportedOperationException();
@@ -1266,7 +1268,7 @@ public final class IQLTranslator {
             if(arg == null || arg.trim().isEmpty()) {
                 // treat as a request to get all terms but not explode
                 final Field field = getField(fieldName, datasetMetadata);
-                return new FieldGrouping(field, true);
+                return new FieldGrouping(field, true, rowLimit);
             }
 
             Pattern topTermsPattern = Pattern.compile("\\s*(?:(top|bottom)\\s+)?(\\d+)\\s*(?:\\s*(?:by|,)\\s*(.+))?\\s*");

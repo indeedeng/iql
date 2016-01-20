@@ -106,7 +106,7 @@ public class QueryServlet {
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final String METADATA_FILE_SUFFIX = ".meta";
     // this can be incremented to invalidate the old cache
-    private static final byte VERSION_FOR_HASHING = 1;
+    private static final byte VERSION_FOR_HASHING = 2;
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive", "nocache");
@@ -682,7 +682,9 @@ public class QueryServlet {
 
     // Logging code below
 
-    private static final int QUERY_LENGTH_LIMIT = 55000;    // trying to not cause the logentry to overflow from being larger than 2^16
+    // trying to not cause the logentry to overflow from being larger than 2^16
+    // this is the pre URL-encoded limit and encoding can make it about twice longer
+    private static final int QUERY_LENGTH_LIMIT = 27000;
 
     private void logQuery(HttpServletRequest req,
                           String query,

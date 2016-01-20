@@ -14,6 +14,7 @@
  package com.indeed.imhotep.web.config;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.LocalImhotepDaemon;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
@@ -46,7 +47,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import javax.annotation.PostConstruct;
 import javax.xml.bind.PropertyException;
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -117,12 +117,14 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
     }
 
-    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String host, boolean quiet) {
-        if(!Strings.isNullOrEmpty(host)) {
-            String mergePoint = host.split(",")[0];
-            String[] mergePointParts = mergePoint.split(":");
-            List<Host> hosts = Arrays.asList(new Host(mergePointParts[0], Integer.parseInt(mergePointParts[1])));
-            return new ImhotepClient(hosts);
+    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts, boolean quiet) {
+        if(!Strings.isNullOrEmpty(hosts)) {
+            final List<Host> hostObjects = Lists.newArrayList();
+            for(String host : hosts.split(",")) {
+                String[] hostParts = host.split(":");
+                hostObjects.add(new Host(hostParts[0], Integer.parseInt(hostParts[1])));
+            }
+            return new ImhotepClient(hostObjects);
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
             return new ImhotepClient(zkNodes, zkPath, true);
         } else {

@@ -31,16 +31,16 @@ import static com.indeed.imhotep.ez.Stats.Stat;
 public final class StatRangeGrouping extends Grouping {
     private static final Logger log = Logger.getLogger(StatRangeGrouping.class);
 
-    static final int MAX_BUCKETS = 4000000; // 4 million
-
     private final Stat stat;
     private final long minValue;
     private final long maxValue;
     private final long intervalSize;
     private final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
+    private final boolean isTimeGrouping;
 
-    public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize, final boolean noGutters, Stringifier<Long> stringFormatter) {
+    public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize,
+                             final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping) {
         if(intervalSize <= 0) {
             throw new IllegalArgumentException("Bucket size has to be positive for stat: " + stat.toString());
         }
@@ -50,11 +50,12 @@ public final class StatRangeGrouping extends Grouping {
         this.intervalSize = intervalSize;
         this.noGutters = noGutters;
         this.stringFormatter = stringFormatter;
+        this.isTimeGrouping = isTimeGrouping;
 
         final long expectedBucketCount = (maxValue - minValue) / intervalSize;
-        if(expectedBucketCount > MAX_BUCKETS || expectedBucketCount < 0) {
+        if(expectedBucketCount > EZImhotepSession.GROUP_LIMIT || expectedBucketCount < 0) {
             throw new IllegalArgumentException("Requested bucket count for metric " + stat.toString() +
-                    " is " + expectedBucketCount + " which is over the limit of " + MAX_BUCKETS);
+                    " is " + expectedBucketCount + " which is over the limit of " + EZImhotepSession.GROUP_LIMIT);
         }
     }
 
@@ -63,6 +64,15 @@ public final class StatRangeGrouping extends Grouping {
             return groupKeys;
         }
         final SingleStatReference statRef = session.pushStat(stat);
+        boolean noGutters = this.noGutters;
+        // Special case for Time regroups:
+        // We want gutters enabled when it's the first regroup (we have only one group key) since the empty gutters get
+        // truncated then but non-empty gutters are kept to indicate a likely problem with the time field in the index.
+        // For non first regroup we need to disable gutters to avoid having them with value 0 for every groupKey since
+        // in this case the 0s are not trailing and don't get truncated.
+        if(isTimeGrouping) {
+            noGutters = groupKeys.size() > 1;
+        }
         final Map<Integer, GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
         session.popStat();
         return ret;
