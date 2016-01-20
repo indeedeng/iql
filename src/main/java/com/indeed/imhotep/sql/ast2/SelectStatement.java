@@ -57,7 +57,6 @@ public class SelectStatement extends IQLStatement implements Serializable {
 
     /**
      * Returns a string representation that can be used to compare with other SelectStatements.
-     * limit value is ignored as it changes presentation of results only.
      */
     public String toHashKeyString() {
         final String fromStr = from != null ? from.toString() : "null";
@@ -67,6 +66,7 @@ public class SelectStatement extends IQLStatement implements Serializable {
         return "SelectStatement {from=" + fromStr  +
                 ", groupBy=" + groupByStr +
                 ", select=" + selectStr +
-                ", where=" + whereStr + "}";
+                ", where=" + whereStr +
+                ", limit=" + limit + "}";
     }
 }

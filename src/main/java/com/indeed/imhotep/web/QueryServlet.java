@@ -106,7 +106,7 @@ public class QueryServlet {
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final String METADATA_FILE_SUFFIX = ".meta";
     // this can be incremented to invalidate the old cache
-    private static final byte VERSION_FOR_HASHING = 1;
+    private static final byte VERSION_FOR_HASHING = 2;
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive", "nocache");
