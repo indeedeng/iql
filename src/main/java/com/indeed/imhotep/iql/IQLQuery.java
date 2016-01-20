@@ -126,7 +126,7 @@ public final class IQLQuery implements Closeable {
         }
 
         session = new EZImhotepSession(imhotepSession);
-        timer.pop();
+        selectExecutionStats.setPhase("createSessionMillis", timer.pop());
 
         final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
 
@@ -142,60 +142,68 @@ public final class IQLQuery implements Closeable {
             }
             timer.push("Time filter");
             timeFilter(session);
-            timer.pop();
+            selectExecutionStats.setPhase("timeFilterMillis", timer.pop());
             if(progress) {
                 out.print(": Time filtering finished" + EVENT_SOURCE_END);
                 out.flush();
             }
 
+            long conditionFilterMillis = 0;
             for (Condition condition : conditions) {
                 checkTimeout(timeoutTS);
                 timer.push("Filtering " + condition.getClass().getSimpleName());
                 condition.filter(session);
-                timer.pop();
+                conditionFilterMillis += timer.pop();
                 count = updateProgress(progress, out, count);
             }
+            selectExecutionStats.setPhase("conditionFilterMillis", conditionFilterMillis);
 
+            long pushStatsMillis = 0;
             if (groupings.size() > 0) {
                 List<StatReference> statRefs = null;
                 double[] totals = new double[0];
                 if(getTotals) {
                     timer.push("Pushing stats");
                     statRefs = pushStats(session);
-                    timer.pop();
+                    pushStatsMillis += timer.pop();
                     timer.push("Getting totals");
                     totals = getStats(statRefs);
-                    timer.pop();
+                    pushStatsMillis += timer.pop();
                 }
 
+                long regroupMillis = 0;
                 Map<Integer, GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
                 // do Imhotep regroup on all except the last grouping
                 for (int i = 0; i < groupings.size()-1; i++) {
                     checkTimeout(timeoutTS);
                     timer.push("Regroup " + (i + 1));
                     groupKeys = groupings.get(i).regroup(session, groupKeys);
-                    timer.pop();
+                    regroupMillis += timer.pop();
                     count = updateProgress(progress, out, count);
                 }
+                selectExecutionStats.setPhase("regroupMillis", regroupMillis);
                 checkTimeout(timeoutTS);
                 if(!getTotals) {
                     timer.push("Pushing stats");
                     statRefs = pushStats(session);
-                    timer.pop();
+                    pushStatsMillis += timer.pop();
                 }
+                selectExecutionStats.setPhase("pushStatsMillis", pushStatsMillis);
+
                 // do FTGS on the last grouping
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
-                timer.pop();
+                final long ftgsMillis = timer.pop();
+                selectExecutionStats.setPhase("ftgsMillis", ftgsMillis);
                 updateProgress(progress, out, count);
                 return new ExecutionResult(groupStatsIterator, totals, timer.toString(), session.getTempFilesBytesWritten());
             } else {
                 timer.push("Pushing stats");
                 final List<StatReference> statRefs = pushStats(session);
-                timer.pop();
+                selectExecutionStats.setPhase("pushStatsMillis", timer.pop());
                 timer.push("Getting stats");
                 final double[] stats = getStats(statRefs);
-                timer.pop();
+                selectExecutionStats.setPhase("getStatsMillis", timer.pop());
                 count = updateProgress(progress, out, count);
                 final List<GroupStats> result = Lists.newArrayList();
                 result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));

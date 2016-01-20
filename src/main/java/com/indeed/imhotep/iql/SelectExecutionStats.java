@@ -1,5 +1,8 @@
 package com.indeed.imhotep.iql;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
+
 public class SelectExecutionStats {
     public boolean cached;
     public int rowsWritten;
@@ -9,6 +12,7 @@ public class SelectExecutionStats {
     public int shardCount;
     public boolean headOnly;
     public String sessionId;
+    public Object2LongMap<String> phases = new Object2LongArrayMap<String>();
 
     public SelectExecutionStats() {
         this.headOnly = false;
@@ -19,5 +23,9 @@ public class SelectExecutionStats {
         shardCount = 0;
         imhotepTempFilesBytesWritten = 0;
         sessionId = "";
+    }
+
+    public void setPhase(final String phase, long elapsedtimemillis) {
+        phases.put(phase, elapsedtimemillis);
     }
 }
