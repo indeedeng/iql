@@ -48,17 +48,18 @@ public final class FieldGrouping extends Grouping {
     private final boolean isBottom;
     private final boolean noExplode;
     private final ArrayList<String> termSubset;
+    private final int rowLimit;
 
     public FieldGrouping(final Field field) {
         this(field, 0);
     }
 
-    public FieldGrouping(final Field field, final boolean noExplode) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList());
+    public FieldGrouping(final Field field, final boolean noExplode, int rowLimit) {
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList(), rowLimit);
     }
 
     public FieldGrouping(final Field field, boolean noExplode, List<String> termSubset) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset);
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset, 0);
     }
 
     public FieldGrouping(final Field field, int topK) {
@@ -74,18 +75,18 @@ public final class FieldGrouping extends Grouping {
     }
 
     public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom) {
-        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList());
+        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList(), 0);
     }
 
-    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset) {
+    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset, int rowLimit) {
         this.field = field;
         this.topK = topK;
         this.sortStat = sortStat;
         this.isBottom = isBottom;
         this.noExplode = noExplode;
+        this.rowLimit = rowLimit;
         // remove duplicated terms as it makes Imhotep complain
         this.termSubset = Lists.newArrayList(Sets.newLinkedHashSet(termSubset));
-
         // validation
         if(topK > EZImhotepSession.GROUP_LIMIT) {
             DecimalFormat df = new DecimalFormat("###,###");
@@ -119,9 +120,9 @@ public final class FieldGrouping extends Grouping {
                 return Preconditions.checkNotNull(session.explodeEachGroup((Field.StringField) field, termsArray, groupKeys));
             }
         } else if(noExplode) {
-            return Preconditions.checkNotNull(session.splitAll(field, groupKeys));
+            return Preconditions.checkNotNull(session.splitAll(field, groupKeys, rowLimit));
         } else {
-            return Preconditions.checkNotNull(session.splitAllExplode(field, groupKeys));
+            return Preconditions.checkNotNull(session.splitAllExplode(field, groupKeys, rowLimit));
         }
     }
 
@@ -138,7 +139,7 @@ public final class FieldGrouping extends Grouping {
         } else if(noExplode) {
             final GroupingFTGSCallbackNoExplode callback = new GroupingFTGSCallbackNoExplode(session.getStackDepth(), statRefs, groupKeys);
             if(!isTermSubset()) {
-                return session.ftgsGetIterator(Arrays.asList(field), callback);
+                return session.ftgsGetIterator(Arrays.asList(field), callback, rowLimit);
             } else {
                 final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
                 fieldsToTermsSubsets.put(field, termSubset);
@@ -175,5 +176,9 @@ public final class FieldGrouping extends Grouping {
 
     public boolean isTermSubset() {
         return termSubset.size() != 0;
+    }
+
+    public int getRowLimit() {
+        return rowLimit;
     }
 }
