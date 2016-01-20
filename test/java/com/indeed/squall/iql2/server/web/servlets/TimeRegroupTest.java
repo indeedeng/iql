@@ -21,8 +21,8 @@ public class TimeRegroupTest {
         }
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
 
-        testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
-        testAll(withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
+        testAll(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
     }
 }

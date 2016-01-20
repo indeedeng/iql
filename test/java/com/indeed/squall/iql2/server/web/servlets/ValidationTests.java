@@ -60,7 +60,7 @@ public class ValidationTests {
         final List<List<String>> expected = ImmutableList.of(Arrays.asList("", "2", "1", "1", "2", "1", "1", "1", "1"));
 
         for (final String query : Arrays.asList(basic, aliases, sameDataset)) {
-            QueryServletTestUtils.testIQL2(expected, query);
+            QueryServletTestUtils.testIQL2(shards, expected, query);
         }
     }
 

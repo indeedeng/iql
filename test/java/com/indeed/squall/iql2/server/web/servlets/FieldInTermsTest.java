@@ -13,7 +13,7 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("a", "4", "1"));
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "145", "2"));
-        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
     }
 
     @Test
@@ -22,6 +22,6 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("1", "84", "3"));
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "65", "4"));
-        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)");
     }
 }
