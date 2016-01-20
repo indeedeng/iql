@@ -136,4 +136,15 @@ public class QueryServletTestUtils {
         }
         return output;
     }
+
+    static List<List<String>> addConstantColumn(int index, String value, List<List<String>> oldData) {
+        final List<List<String>> output = new ArrayList<>();
+        for (final List<String> line : oldData) {
+            final List<String> newLine = new ArrayList<>(line.size() + 1);
+            newLine.addAll(line);
+            newLine.add(index, value);
+            output.add(newLine);
+        }
+        return output;
+    }
 }

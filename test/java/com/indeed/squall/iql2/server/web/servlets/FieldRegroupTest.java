@@ -6,6 +6,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.*;
+
 public class FieldRegroupTest {
     @Test
     public void testBasicGroupBy() throws Exception {
@@ -17,7 +19,8 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("5", "1", "5"));
         expected.add(ImmutableList.of("10", "2", "20"));
         expected.add(ImmutableList.of("15", "1", "15"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, (true) select count(), ojc");
     }
 
     @Test
@@ -26,7 +29,8 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("0", "2", "0"));
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("2", "1", "2"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc LIMIT 3");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc LIMIT 3");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, (true) select count(), ojc LIMIT 3");
     }
 
     @Test
@@ -36,7 +40,8 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("3", "60", "180"));
         // TODO: Introduce fully deterministic ordering for ties and increase to top 3?
 //        expected.add(ImmutableList.of("0", "2", "0"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[2] select count(), ojc");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[2] select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], (true) select count(), ojc");
     }
 
     @Test
@@ -49,7 +54,8 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("2", "1", "2"));
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], (true) select count(), ojc");
     }
 
     @Test
@@ -62,6 +68,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("2", "1", "2"));
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BY ojc/count()], (true) select count(), ojc");
     }
 }
