@@ -469,7 +469,7 @@ public class QueryServlet {
                 public void accept(String s) {
                     warnings.add(s);
                 }
-            }, skipValidation, groupLimit, clock);
+            }, skipValidation, groupLimit, clock, username);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -607,7 +607,8 @@ public class QueryServlet {
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
             final boolean skipValidation,
             final Integer groupLimit,
-            final WallClock clock
+            final WallClock clock,
+            final String username
     ) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
@@ -616,7 +617,7 @@ public class QueryServlet {
         timer.pop();
 
         final HashMap<Query, Boolean> queryCached = new HashMap<>();
-        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached);
+        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached, username);
         timer.pop();
 
         return result;
@@ -630,7 +631,8 @@ public class QueryServlet {
             final boolean skipValidation,
             final @Nullable Integer initialGroupLimit,
             final WallClock clock,
-            final Map<Query, Boolean> queryCached
+            final Map<Query, Boolean> queryCached,
+            final String username
     ) throws IOException {
 
         final int[] totalBytesWritten = {0};
@@ -664,7 +666,7 @@ public class QueryServlet {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, new SessionCollectingProgressCallback(new NoOpProgressCallback()), q, skipValidation, initialGroupLimit, clock, queryCached);
+                                    }, timer, new SessionCollectingProgressCallback(new NoOpProgressCallback()), q, skipValidation, initialGroupLimit, clock, queryCached, username);
                                     totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
@@ -840,7 +842,7 @@ public class QueryServlet {
             final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
             try {
-                final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock);
+                final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
                 return new SelectExecutionInformation(datasetToChosenShards, queryCached, createResult.tempFileBytesWritten);
             } catch (Exception e) {
                 errorOccurred.set(true);
