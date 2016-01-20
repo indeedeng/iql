@@ -54,7 +54,10 @@ public class IterateAndExplode implements Command, JsonSerializable {
         }
 
         if (fieldOpts.topK.isPresent()) {
-            fieldOpts.topK.get().metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            final TopK topK = fieldOpts.topK.get();
+            if (topK.metric.isPresent()) {
+                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            }
         }
 
         if (fieldOpts.filter.isPresent()) {

@@ -9,6 +9,8 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class FieldIterateOpts implements JsonSerializable {
@@ -35,7 +37,15 @@ public class FieldIterateOpts implements JsonSerializable {
         }
         if (topK.isPresent()) {
             final TopK topK = this.topK.get();
-            gen.writeObject(ImmutableMap.of("type", "top", "k", topK.limit, "metric", topK.metric));
+            final Map<String, Object> topKMap = new HashMap<>();
+            topKMap.put("type", "top");
+            if (topK.limit.isPresent()) {
+                topKMap.put("k", topK.limit.get());
+            }
+            if (topK.metric.isPresent()) {
+                topKMap.put("metric", topK.metric.get());
+            }
+            gen.writeObject(topKMap);
         }
         gen.writeEndArray();
     }

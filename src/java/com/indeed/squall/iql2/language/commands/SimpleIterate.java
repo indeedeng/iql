@@ -49,7 +49,10 @@ public class SimpleIterate implements Command, JsonSerializable {
         }
 
         if (opts.topK.isPresent()) {
-            opts.topK.get().metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            }
         }
 
         if (opts.filter.isPresent()) {

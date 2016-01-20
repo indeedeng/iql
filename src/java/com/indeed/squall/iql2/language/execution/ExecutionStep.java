@@ -127,11 +127,11 @@ public interface ExecutionStep {
         public final String field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
-        public final AggregateMetric metric;
+        public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
         public final boolean forceNonStreaming;
 
-        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, boolean withDefault, boolean forceNonStreaming) {
+        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -146,8 +146,8 @@ public interface ExecutionStep {
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
             }
-            if (limit.isPresent()) {
-                opts.topK = Optional.of(new TopK((int) (long) limit.get(), metric));
+            if (limit.isPresent() || metric.isPresent()) {
+                opts.topK = Optional.of(new TopK(limit, metric));
             }
             final Optional<String> withDefaultName;
             if (withDefault) {
@@ -167,7 +167,13 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            return new ExplodeAndRegroup(field, filter, limit, f.apply(metric), withDefault, forceNonStreaming);
+            final Optional<AggregateMetric> metric;
+            if (this.metric.isPresent()) {
+                metric = Optional.of(f.apply(this.metric.get()));
+            } else {
+                metric = Optional.absent();
+            }
+            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
         }
 
         @Override
@@ -427,11 +433,11 @@ public interface ExecutionStep {
         private final String field;
         private final Optional<AggregateFilter> filter;
         private final Optional<Long> limit;
-        private final AggregateMetric metric;
+        private final Optional<AggregateMetric> metric;
         private final List<AggregateMetric> stats;
         private final boolean forceNonStreaming;
 
-        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, AggregateMetric metric, List<AggregateMetric> stats, boolean forceNonStreaming) {
+        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, List<AggregateMetric> stats, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -443,11 +449,11 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             final FieldIterateOpts opts = new FieldIterateOpts();
-            if (limit.isPresent()) {
-                opts.topK = Optional.of(new TopK((int) (long) limit.get(), metric));
+            if (limit.isPresent() || metric.isPresent()) {
+                opts.topK = Optional.of(new TopK(limit, metric));
             }
             opts.filter = filter;
-            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, !limit.isPresent() && !forceNonStreaming);
+            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
             return Collections.<Command>singletonList(simpleIterate);
         }
 
@@ -459,11 +465,17 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
+            final Optional<AggregateMetric> metric;
+            if (this.metric.isPresent()) {
+                metric = Optional.of(f.apply(this.metric.get()));
+            } else {
+                metric = Optional.absent();
+            }
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, f.apply(metric), stats, forceNonStreaming);
+            return new IterateStats(field, filter, limit, metric, stats, forceNonStreaming);
         }
 
         @Override

@@ -343,7 +343,7 @@ public interface GroupBy {
         public final String field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
-        public final AggregateMetric metric;
+        public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
         public final boolean forceNonStreaming;
 
@@ -352,7 +352,7 @@ public interface GroupBy {
             this.filter = filter;
             this.limit = limit;
             this.forceNonStreaming = forceNonStreaming;
-            this.metric = metric.or(new AggregateMetric.DocStats(new DocMetric.Count()));
+            this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
             this.withDefault = withDefault;
         }
 
@@ -364,8 +364,13 @@ public interface GroupBy {
             } else {
                 filter = Optional.absent();
             }
-            final AggregateMetric metric = this.metric.transform(f, g, h, i, groupBy);
-            return groupBy.apply(new GroupByField(field, filter, limit, Optional.of(metric), withDefault, forceNonStreaming));
+            final Optional<AggregateMetric> metric;
+            if (this.metric.isPresent()) {
+                metric = Optional.of(this.metric.get().transform(f, g, h, i, groupBy));
+            } else {
+                metric = Optional.absent();
+            }
+            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming));
         }
 
         @Override
@@ -376,8 +381,13 @@ public interface GroupBy {
             } else {
                 filter = Optional.absent();
             }
-            final AggregateMetric metric = f.apply(this.metric);
-            return new GroupByField(field, filter, limit, Optional.of(metric), withDefault, forceNonStreaming);
+            final Optional<AggregateMetric> metric;
+            if (this.metric.isPresent()) {
+                metric = Optional.of(f.apply(this.metric.get()));
+            } else {
+                metric = Optional.absent();
+            }
+            return new GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming);
         }
 
         @Override
