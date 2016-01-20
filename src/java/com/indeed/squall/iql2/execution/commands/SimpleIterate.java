@@ -14,9 +14,10 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TermSelects;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.squall.iql2.execution.commands.misc.TopK;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -63,7 +65,10 @@ public class SimpleIterate implements Command {
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
         if (opts.topK.isPresent()) {
-            metrics.add(opts.topK.get().metric);
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                metrics.add(topK.metric.get());
+            }
         }
         metrics.addAll(this.selecting);
         for (final AggregateMetric metric : metrics) {
@@ -105,9 +110,17 @@ public class SimpleIterate implements Command {
                     return r;
                 }
             };
-            for (int i = 1; i <= session.numGroups; i++) {
-                // TODO: If this type changes, then a line below with an instanceof check will break.
-                pqs.put(i, BoundedPriorityQueue.newInstance(opts.topK.get().limit, comparator));
+            // TODO: If these queue types change, then a line below with an instanceof check will break.
+            if (opts.topK.get().limit.isPresent()) {
+                final int limit = opts.topK.get().limit.get();
+                for (int i = 1; i <= session.numGroups; i++) {
+                    pqs.put(i, BoundedPriorityQueue.newInstance(limit, comparator));
+                }
+            } else {
+                // TODO: HOW MUCH CAPACITY?
+                for (int i = 1; i <= session.numGroups; i++) {
+                    pqs.put(i, new PriorityQueue<>(100, comparator));
+                }
             }
         } else {
             for (int i = 1; i <= session.numGroups; i++) {
@@ -116,8 +129,13 @@ public class SimpleIterate implements Command {
         }
         final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
-            topKMetricOrNull = opts.topK.get().metric;
-            topKMetricOrNull.register(metricIndexes, session.groupKeySet);
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                topKMetricOrNull = topK.metric.get();
+                topKMetricOrNull.register(metricIndexes, session.groupKeySet);
+            } else {
+                topKMetricOrNull = null;
+            }
         } else {
             topKMetricOrNull = null;
         }
@@ -163,7 +181,7 @@ public class SimpleIterate implements Command {
                     listTermSelects.add(pq.poll());
                 }
                 // TODO: This line is very fragile
-                if (pq instanceof BoundedPriorityQueue) {
+                if (pq instanceof BoundedPriorityQueue || pq instanceof PriorityQueue) {
                     groupTermSelects.add(Lists.reverse(listTermSelects));
                 } else {
                     groupTermSelects.add(listTermSelects);

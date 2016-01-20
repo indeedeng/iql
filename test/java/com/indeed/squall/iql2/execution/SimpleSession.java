@@ -51,6 +51,7 @@ import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.commands.misc.FieldLimitingMechanism;
+import com.indeed.squall.iql2.execution.commands.misc.TopK;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -396,7 +397,10 @@ public class SimpleSession {
 
         final List<AggregateMetric> actualSelecting = new ArrayList<>();
         if (opts.topK.isPresent()) {
-            actualSelecting.add(opts.topK.get().metric);
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                actualSelecting.add(topK.metric.get());
+            }
         }
 
         final List<IterateFTGS> unsortedResults = new ArrayList<>();

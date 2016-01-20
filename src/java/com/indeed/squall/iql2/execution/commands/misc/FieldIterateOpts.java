@@ -26,8 +26,18 @@ public class FieldIterateOpts {
                     break;
                 }
                 case "top": {
-                    final int k = option.get("k").intValue();
-                    final AggregateMetric metric = AggregateMetrics.fromJson(option.get("metric"), namedMetricLookup);
+                    final Optional<Integer> k;
+                    if (option.has("k")) {
+                        k = Optional.of(option.get("k").intValue());
+                    } else {
+                        k = Optional.absent();
+                    }
+                    final Optional<AggregateMetric> metric;
+                    if (option.has("metric")) {
+                        metric = Optional.of(AggregateMetrics.fromJson(option.get("metric"), namedMetricLookup));
+                    } else {
+                        metric = Optional.absent();
+                    }
                     this.topK = Optional.of(new TopK(k, metric));
                     break;
                 }
