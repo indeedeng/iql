@@ -31,8 +31,6 @@ import static com.indeed.imhotep.ez.Stats.Stat;
 public final class StatRangeGrouping extends Grouping {
     private static final Logger log = Logger.getLogger(StatRangeGrouping.class);
 
-    static final int MAX_BUCKETS = 4000000; // 4 million
-
     private final Stat stat;
     private final long minValue;
     private final long maxValue;
@@ -55,9 +53,9 @@ public final class StatRangeGrouping extends Grouping {
         this.isTimeGrouping = isTimeGrouping;
 
         final long expectedBucketCount = (maxValue - minValue) / intervalSize;
-        if(expectedBucketCount > MAX_BUCKETS || expectedBucketCount < 0) {
+        if(expectedBucketCount > EZImhotepSession.GROUP_LIMIT || expectedBucketCount < 0) {
             throw new IllegalArgumentException("Requested bucket count for metric " + stat.toString() +
-                    " is " + expectedBucketCount + " which is over the limit of " + MAX_BUCKETS);
+                    " is " + expectedBucketCount + " which is over the limit of " + EZImhotepSession.GROUP_LIMIT);
         }
     }
 

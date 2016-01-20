@@ -56,9 +56,9 @@ public final class StatRangeGrouping2D extends Grouping {
         this.yIntervalSize = yIntervalSize;
 
         final long expectedBucketCount = ((long)xMax - xMin) / xIntervalSize + ((long)yMax - yMin) / yIntervalSize;
-        if(expectedBucketCount > StatRangeGrouping.MAX_BUCKETS || expectedBucketCount < 0) {
+        if(expectedBucketCount > EZImhotepSession.GROUP_LIMIT|| expectedBucketCount < 0) {
             throw new IllegalArgumentException("Requested bucket count for metrics " + xStat.toString() + " & " + yStat.toString() +
-                    " is " + expectedBucketCount + " which is over the limit of " + StatRangeGrouping.MAX_BUCKETS);
+                    " is " + expectedBucketCount + " which is over the limit of " + EZImhotepSession.GROUP_LIMIT);
         }
     }
 
