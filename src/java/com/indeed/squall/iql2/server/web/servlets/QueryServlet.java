@@ -783,16 +783,9 @@ public class QueryServlet {
                             }
                         }
                     });
-                    final int rowLimit = query.rowLimit.or(Integer.MAX_VALUE);
                     out = new Consumer<String>() {
-                        int rowsWritten = 0;
-
                         @Override
                         public void accept(String s) {
-                            if (rowsWritten < rowLimit) {
-                                oldOut.accept(s);
-                                rowsWritten += 1;
-                            }
                             try {
                                 cacheWriter.write(s);
                                 cacheWriter.newLine();
@@ -802,6 +795,22 @@ public class QueryServlet {
                         }
                     };
                 }
+            }
+
+            if (query.rowLimit.isPresent()) {
+                final int rowLimit = query.rowLimit.get();
+                final Consumer<String> oldOut = out;
+                out = new Consumer<String>() {
+                    int rowsWritten = 0;
+
+                    @Override
+                    public void accept(String s) {
+                        if (rowsWritten < rowLimit) {
+                            oldOut.accept(s);
+                            rowsWritten += 1;
+                        }
+                    }
+                };
             }
 
             final ObjectMapper objectMapper = new ObjectMapper();
