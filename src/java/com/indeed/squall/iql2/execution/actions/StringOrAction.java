@@ -40,10 +40,18 @@ public class StringOrAction implements Action {
         return "StringOrAction{" +
                 "scope=" + scope +
                 ", field='" + field + '\'' +
-                ", terms=" + terms +
+                ", terms=" + renderTerms() +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +
                 ", negativeGroup=" + negativeGroup +
                 '}';
+    }
+
+    private String renderTerms() {
+        if (terms.size() <= 10) {
+            return terms.toString();
+        } else {
+            return "(" + terms.size() + " terms)";
+        }
     }
 }
