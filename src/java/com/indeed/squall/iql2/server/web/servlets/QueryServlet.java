@@ -186,6 +186,8 @@ public class QueryServlet {
             }
         };
 
+        log.info("Query received from user [" + username + "]");
+
         Throwable errorOccurred = null;
 
         long queryStartTimestamp = System.currentTimeMillis();
