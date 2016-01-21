@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.Options;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -73,7 +74,7 @@ public class ValidationTests {
                 "FROM organic 2015-01-01 2015-01-02, sponsored " +
                 "SELECT [organic.clicked + sponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, false);
+            QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, false, Options.create());
             Assert.fail();
         } catch (Exception ignored) {
         }

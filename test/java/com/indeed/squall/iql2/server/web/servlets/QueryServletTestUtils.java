@@ -25,7 +25,7 @@ import java.util.List;
 
 public class QueryServletTestUtils {
 
-    private static QueryServlet create(List<Shard> shards) {
+    private static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
         final Long imhotepDaemonTempFileSizeLimit = -1L;
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
@@ -49,7 +49,8 @@ public class QueryServletTestUtils {
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,
                 imhotepDaemonTempFileSizeLimit,
-                new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())
+                new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis()),
+                options.subQueryTermLimit
         );
     }
 
@@ -57,8 +58,8 @@ public class QueryServletTestUtils {
         IQL1, IQL2
     }
 
-    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream) throws Exception {
-        final QueryServlet queryServlet = create(shards);
+    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
+        final QueryServlet queryServlet = create(shards, options);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
@@ -113,16 +114,44 @@ public class QueryServletTestUtils {
         return output;
     }
 
+    static class Options {
+        public Long subQueryTermLimit = -1L;
+
+        private Options() {
+        }
+
+        public static Options create() {
+            return new Options();
+        }
+
+        public Long getSubQueryTermLimit() {
+            return subQueryTermLimit;
+        }
+
+        public Options setSubQueryTermLimit(Long subQueryTermLimit) {
+            this.subQueryTermLimit = subQueryTermLimit;
+            return this;
+        }
+    }
+
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true));
+        testIQL2(shards, expected, query, Options.create());
+    }
+
+    static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
     }
 
     static void testAll(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true));
+        testAll(shards, expected, query, Options.create());
+    }
+
+    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
     }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {

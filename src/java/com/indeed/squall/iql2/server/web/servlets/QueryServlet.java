@@ -110,6 +110,7 @@ public class QueryServlet {
     private final Long imhotepLocalTempFileSizeLimit;
     private final Long imhotepDaemonTempFileSizeLimit;
     private final WallClock clock;
+    private final Long subQueryTermLimit;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+)");
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(desc)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)");
@@ -125,7 +126,8 @@ public class QueryServlet {
             final TopTermsCache topTermsCache,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final WallClock clock
+            final WallClock clock,
+            final Long subQueryTermLimit
     ) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
@@ -137,6 +139,7 @@ public class QueryServlet {
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
         this.clock = clock;
+        this.subQueryTermLimit = subQueryTermLimit;
     }
 
     private static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -661,6 +664,9 @@ public class QueryServlet {
                                     final SelectExecutionInformation execInfo = executeParsedQuery(new Consumer<String>() {
                                         @Override
                                         public void accept(String s) {
+                                            if (subQueryTermLimit > 0 && terms.size() + stringTerms.size() >= subQueryTermLimit) {
+                                                throw new IllegalStateException("Sub query cannot have more than [" + subQueryTermLimit + "] terms!");
+                                            }
                                             final String term = s.split("\t")[0];
                                             try {
                                                 terms.add(Long.parseLong(term));

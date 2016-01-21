@@ -118,6 +118,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return mbToBytes(env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Long.class, -1L));
     }
 
+    @Bean
+    public Long subQueryTermLimit() {
+        return env.getProperty("subquery.term.limit", Long.class, -1L);
+    }
+
     private Long mbToBytes(Long megabytes) {
         return megabytes <= 0 ? megabytes : megabytes * 1024 * 1024;
     }
