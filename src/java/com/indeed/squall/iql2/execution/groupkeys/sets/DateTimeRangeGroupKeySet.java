@@ -1,7 +1,7 @@
 package com.indeed.squall.iql2.execution.groupkeys.sets;
 
-import com.indeed.squall.iql2.execution.groupkeys.TimeRangeGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
+import com.indeed.squall.iql2.execution.groupkeys.TimeRangeGroupKey;
 
 import java.util.Objects;
 
