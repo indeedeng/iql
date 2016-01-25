@@ -24,7 +24,7 @@ public class ComputeFieldMax implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        for (final String dataset : datasetsFields.datasets()) {
+        for (final String dataset : scope) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
                 errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
             }
