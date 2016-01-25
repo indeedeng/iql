@@ -754,7 +754,7 @@ public class QueryServlet {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
-        final String queryHash = computeQueryHash(commands, shards, 7);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, 7);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -900,7 +900,7 @@ public class QueryServlet {
         }
     }
 
-    private static String computeQueryHash(List<Command> commands, Set<Pair<String, String>> shards, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -912,6 +912,7 @@ public class QueryServlet {
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }
+        sha1.update(Ints.toByteArray(rowLimit.or(-1)));
         for (final Pair<String, String> pair : shards) {
             sha1.update(pair.getFirst().getBytes(Charsets.UTF_8));
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
