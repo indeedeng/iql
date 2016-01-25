@@ -796,6 +796,7 @@ public class QueryServlet {
                     out = new Consumer<String>() {
                         @Override
                         public void accept(String s) {
+                            oldOut.accept(s);
                             try {
                                 cacheWriter.write(s);
                                 cacheWriter.newLine();
