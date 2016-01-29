@@ -106,7 +106,9 @@ public class ImhotepMetadataCache {
     // updated every 60s and actual shards in ImhotepClient are reloaded every 60s
     @Scheduled(fixedRate = 60000)
     public void updateDatasets() {
+        log.trace("Started metadata update");
         Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToShardList();
+        log.trace("Loaded metadata for " + datasetToShardList.size() + " datasets from Imhotep");
         List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
         Collections.sort(datasetNames, String.CASE_INSENSITIVE_ORDER);
 
@@ -143,11 +145,12 @@ public class ImhotepMetadataCache {
                 fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
             }
         }
-
+        log.trace("Metadata loaded from Imhotep. Querying IMS");
 
 //       now load the metadata from the IMS
         try {
             DatasetYaml[] datasetYamls = metadataClient.getDatasets();
+            log.trace("Got metadata for " + datasetYamls.length + " datasets from IMS");
             for (final DatasetYaml datasetYaml : datasetYamls) {
                 if (newDatasets.containsKey(datasetYaml.getName())) {
                     DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
@@ -199,6 +202,7 @@ public class ImhotepMetadataCache {
         // new metadata instance is ready for use
         datasets = newDatasets;
 
+        log.debug("Finished metadata update");
     }
 
 
