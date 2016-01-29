@@ -13,6 +13,7 @@
  */
  package com.indeed.imhotep.web;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -66,10 +67,13 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -539,7 +543,7 @@ public class QueryServlet {
     }
 
     private void handleDescribeField(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
@@ -571,7 +575,7 @@ public class QueryServlet {
     }
 
     private void handleDescribeDataset(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
         final boolean json = req.getParameter("json") != null;
@@ -593,7 +597,7 @@ public class QueryServlet {
     }
 
     private void handleShowStatement(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final boolean json = req.getParameter("json") != null;
 
         if(json) {
@@ -648,7 +652,7 @@ public class QueryServlet {
         // output parse/execute error
         if(!json) {
             final ServletOutputStream outputStream = resp.getOutputStream();
-            final PrintStream printStream = new PrintStream(outputStream);
+            final PrintStream printStream = new PrintStream(outputStream, false, "UTF-8");
             if(isEventStream) {
                 resp.setContentType("text/event-stream");
                 final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
