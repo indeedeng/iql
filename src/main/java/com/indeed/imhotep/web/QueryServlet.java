@@ -742,6 +742,7 @@ public class QueryServlet {
         dataLog.info(logEntry);
     }
 
+    // Log to logrepo
     private String logStatementData(IQLStatement parsedQuery,
                                     SelectExecutionStats selectExecutionStats,
                                     QueryLogEntry logEntry) {
@@ -805,6 +806,7 @@ public class QueryServlet {
         logEntry.setProperty("disk", selectExecutionStats.overflowedToDisk ? "1" : "0");
         logEntry.setProperty("hash", selectExecutionStats.hashForCaching);
         logEntry.setProperty("head", selectExecutionStats.headOnly ? "1" : "0");
+        logEntry.setProperty("maxgroups", selectExecutionStats.maxImhotepGroups);
         // convert bytes to megabytes
         logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
     }

@@ -178,6 +178,7 @@ public final class IQLQuery implements Closeable {
                     checkTimeout(timeoutTS);
                     timer.push("Regroup " + (i + 1));
                     groupKeys = groupings.get(i).regroup(session, groupKeys);
+                    selectExecutionStats.maxImhotepGroups = Math.max(selectExecutionStats.maxImhotepGroups, session.getNumGroups());
                     regroupMillis += timer.pop();
                     count = updateProgress(progress, out, count);
                 }
@@ -193,6 +194,7 @@ public final class IQLQuery implements Closeable {
                 // do FTGS on the last grouping
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
+                selectExecutionStats.maxImhotepGroups = Math.max(selectExecutionStats.maxImhotepGroups, session.getNumGroups());
                 final long ftgsMillis = timer.pop();
                 selectExecutionStats.setPhase("ftgsMillis", ftgsMillis);
                 updateProgress(progress, out, count);

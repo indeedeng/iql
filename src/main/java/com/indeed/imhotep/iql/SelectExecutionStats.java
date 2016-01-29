@@ -12,6 +12,7 @@ public class SelectExecutionStats {
     public int shardCount;
     public boolean headOnly;
     public String sessionId;
+    public int maxImhotepGroups;
     public Object2LongMap<String> phases = new Object2LongArrayMap<String>();
 
     public SelectExecutionStats() {
@@ -22,6 +23,7 @@ public class SelectExecutionStats {
         cached = false;
         shardCount = 0;
         imhotepTempFilesBytesWritten = 0;
+        maxImhotepGroups = 1;
         sessionId = "";
     }
 
