@@ -490,7 +490,7 @@ public final class IQLQuery implements Closeable {
                 line = reader.readLine();
             }
             if(eventSource) {
-                writer.write("\nevent: complete\ndata: :)\n\n");
+                writer.newLine();
             }
             Closeables2.closeQuietly(reader, log);
             writer.flush();
@@ -576,7 +576,7 @@ public final class IQLQuery implements Closeable {
             }
         }
         if(progress) {
-            out.print("\nevent: complete\ndata: :)" + EVENT_SOURCE_END);
+            out.println();
         }
         out.flush();
         return rowsProcessed;
