@@ -380,7 +380,7 @@ public final class IQLQuery implements Closeable {
                 final long started = System.currentTimeMillis();
                 int rowsWritten = 0;
                 // flush cache
-                rowsWritten += writeRowsToStream(resultsCache.iterator(), fileOutputStream, csv, rowLimit, false);
+                rowsWritten += writeRowsToStream(resultsCache.iterator(), fileOutputStream, csv, Integer.MAX_VALUE, false);
                 //noinspection UnusedAssignment
                 resultsCache = null;    // let it be GC'd
                 // save the remaining rows to disk
