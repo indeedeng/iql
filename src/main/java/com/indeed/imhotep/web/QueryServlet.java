@@ -366,7 +366,7 @@ public class QueryServlet {
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 if (writeResults.exceedsLimit) {
-                    queryMetadata.addItem("IQL-Warning", "row limit exceeded, only " + iqlQuery.getRowLimit() + " rows returned");
+                    queryMetadata.addItem("IQL-Warning", "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
                 completeStream(outputStream, queryMetadata, args.progress);
 
