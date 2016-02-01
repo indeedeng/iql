@@ -339,17 +339,13 @@ public class QueryServlet {
 
                     queryMetadata.setPendingHeaders(resp);
                     resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
-                    if(args.progress) {
-                        outputStream.println("event: header");
-                        outputStream.print("data: ");
-                        outputStream.print(queryMetadata.toJSON() + "\n\n");
-                    }
                 } catch (Exception e) {
                     log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
                 }
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
+                completeStream(outputStream, queryMetadata, args.progress);
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
                 return;
@@ -369,19 +365,15 @@ public class QueryServlet {
                 queryMetadata.setPendingHeaders(resp);
                 resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
 
-                if(args.progress) {
-                    outputStream.println("event: header");
-                    outputStream.print("data: ");
-                    outputStream.print(queryMetadata.toJSON() + "\n\n");
-                }
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
-                if(!args.asynchronous) {
-                    writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
-                } else {
-                    writeResults = new IQLQuery.WriteResults(0, null, groupStats, 0);
+                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                if (writeResults.exceedsLimit) {
+                    queryMetadata.addItem("IQL-Warning", "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
+                completeStream(outputStream, queryMetadata, args.progress);
+
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
@@ -457,7 +449,15 @@ public class QueryServlet {
         }
     }
 
-
+    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata, boolean progress) throws IOException {
+        if (progress) {
+            outputStream.println("event: header");
+            outputStream.print("data: ");
+            outputStream.print(queryMetadata.toJSON() + "\n\n");
+        }
+        outputStream.print("event: complete\ndata: :)\n\n");
+        outputStream.flush();
+    }
 
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 

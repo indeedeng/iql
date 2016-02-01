@@ -334,12 +334,14 @@ public final class IQLQuery implements Closeable {
         public final File unsortedFile;
         public final Iterator<GroupStats> resultCacheIterator;
         public final long timeTaken;
+        public final boolean exceedsLimit;
 
-        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, long timeTaken) {
+        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, long timeTaken, boolean exceedsLimit) {
             this.rowsWritten = rowsWritten;
             this.unsortedFile = unsortedFile;
             this.resultCacheIterator = resultCacheIterator;
             this.timeTaken = timeTaken;
+            this.exceedsLimit = exceedsLimit;
         }
 
         public boolean didOverflowToDisk() {
@@ -353,28 +355,26 @@ public final class IQLQuery implements Closeable {
         final boolean requiresSorting = requiresSorting();
         if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);
-            return new WriteResults(rowsWritten, null, null, System.currentTimeMillis() - timeStarted);
+            return new WriteResults(rowsWritten, null, null, System.currentTimeMillis() - timeStarted, rows.hasNext());
         }
 
         List<GroupStats> resultsCache = Lists.newArrayList();
 
         int rowsLoaded = 0;
-        boolean cacheOverflow = false;
-        while(rows.hasNext()) {
+        final int limit = Math.min(IN_MEMORY_ROW_LIMIT, rowLimit);
+        while(rows.hasNext() &&  rowsLoaded < limit) {
             resultsCache.add(rows.next());
-
-            if((++rowsLoaded) >= IN_MEMORY_ROW_LIMIT) {
-                cacheOverflow = true;
-                break;
-            }
+            rowsLoaded++;
         }
+        final boolean cacheOverflow = rowsLoaded >= IN_MEMORY_ROW_LIMIT;
 
         // TODO: figure out the size of the resulting data for reporting or limiting?
         if(!cacheOverflow) {
             // results fit in memory. stream them out
             // TODO: in memory sort if necessary? or just always defer to gnu sort?
             final int rowsWritten = writeRowsToStream(resultsCache.iterator(), httpOutStream, csv, rowLimit, progress);
-            return new WriteResults(rowsWritten, null, resultsCache.iterator(), System.currentTimeMillis() - timeStarted);
+            final boolean exceedsRowLimit = rowsLoaded >= rowLimit && rows.hasNext();
+            return new WriteResults(rowsWritten, null, resultsCache.iterator(), System.currentTimeMillis() - timeStarted, exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
             try {
                 final File unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
@@ -386,7 +386,7 @@ public final class IQLQuery implements Closeable {
                 //noinspection UnusedAssignment
                 resultsCache = null;    // let it be GC'd
                 // save the remaining rows to disk
-                rowsWritten += writeRowsToStream(rows, fileOutputStream, csv, Integer.MAX_VALUE, false);
+                rowsWritten += writeRowsToStream(rows, fileOutputStream, csv, rowLimit - rowsWritten, false);
                 fileOutputStream.close();
                 log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
@@ -400,7 +400,8 @@ public final class IQLQuery implements Closeable {
                 // send the results out to the client
                 copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
 
-                return new WriteResults(rowsWritten, unsortedFile, null, System.currentTimeMillis() - timeStarted);
+                final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
+                return new WriteResults(rowsWritten, unsortedFile, null, System.currentTimeMillis() - timeStarted, exceedsRowLimit);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
@@ -492,7 +493,7 @@ public final class IQLQuery implements Closeable {
                 line = reader.readLine();
             }
             if(eventSource) {
-                writer.write("\nevent: complete\ndata: :)\n\n");
+                writer.newLine();
             }
             Closeables2.closeQuietly(reader, log);
             writer.flush();
@@ -578,7 +579,7 @@ public final class IQLQuery implements Closeable {
             }
         }
         if(progress) {
-            out.print("\nevent: complete\ndata: :)" + EVENT_SOURCE_END);
+            out.println();
         }
         out.flush();
         return rowsProcessed;
