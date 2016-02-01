@@ -341,7 +341,7 @@ public class QueryServlet {
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
-                completeStream(outputStream, queryMetadata, args.progress, rowsWritten == iqlQuery.getRowLimit());
+                completeStream(outputStream, queryMetadata, args.progress);
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
                 return;
@@ -365,7 +365,10 @@ public class QueryServlet {
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
-                completeStream(outputStream, queryMetadata, args.progress, writeResults.rowsWritten == iqlQuery.getRowLimit());
+                if (writeResults.exceedsLimit) {
+                    queryMetadata.addItem("IQL-Warning", "row limit exceeded, only " + iqlQuery.getRowLimit() + " rows returned");
+                }
+                completeStream(outputStream, queryMetadata, args.progress);
 
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
@@ -442,11 +445,8 @@ public class QueryServlet {
         }
     }
 
-    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata, boolean progress, boolean warnRowLimit) throws IOException {
+    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata, boolean progress) throws IOException {
         if (progress) {
-            if (warnRowLimit) {
-                queryMetadata.addItem("IQL-Warning", "Some rows not returned because result size exceeds limit");
-            }
             outputStream.println("event: header");
             outputStream.print("data: ");
             outputStream.print(queryMetadata.toJSON() + "\n\n");
