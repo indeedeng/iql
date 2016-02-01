@@ -15,6 +15,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
@@ -86,6 +87,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeoutException;
@@ -728,42 +730,15 @@ public class QueryServlet {
 
         timer.pop();
 
-        timer.push("compute dataset normalization");
-        final Set<String> datasets = Session.getDatasets(imhotepClient);
-        final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
-        for (final String dataset : datasets) {
-            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
-        }
-        timer.pop();
-
-        timer.push("compute hash");
-        final Set<Pair<String, String>> shards = Sets.newHashSet();
-        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
-        for (final Dataset dataset : query.datasets) {
-            timer.push("get chosen shards");
-            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
-            final String sessionName = dataset.alias.or(dataset.dataset);
-            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
-            timer.pop();
-            for (final ShardIdWithVersion chosenShard : chosenShards) {
-                // This needs to be associated with the session name, not just the actualDataset.
-                shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
-            }
-            final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
-            if (oldShards != null) {
-                throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
-            }
-        }
-        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, 7);
-        final String cacheFileName = "IQL2-" + queryHash + ".tsv";
-        timer.pop();
+        final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands);
+        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = computeCacheKey.datasetToChosenShards;
 
         final AtomicBoolean errorOccurred = new AtomicBoolean(false);
 
         try (final Closer closer = Closer.create()) {
             if (queryCache.isEnabled()) {
                 timer.push("cache check");
-                final boolean isCached = queryCache.isFileCached(cacheFileName);
+                final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
                 timer.pop();
 
                 queryCached.put(query, isCached);
@@ -772,7 +747,7 @@ public class QueryServlet {
                     timer.push("read cache");
                     // TODO: Don't have this hack
                     progressCallback.startCommand(null, true);
-                    sendCachedQuery(cacheFileName, out, query.rowLimit);
+                    sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit);
                     timer.pop();
                     return new SelectExecutionInformation(datasetToChosenShards, queryCached, 0);
                 } else {
@@ -786,7 +761,7 @@ public class QueryServlet {
                             // TODO: Do this stuff asynchronously
                             cacheWriter.close();
                             if (!errorOccurred.get()) {
-                                queryCache.writeFromFile(cacheFileName, cacheFile);
+                                queryCache.writeFromFile(computeCacheKey.cacheFileName, cacheFile);
                             }
                             if (!cacheFile.delete()) {
                                 log.warn("Failed to delete  " + cacheFile);
@@ -860,6 +835,42 @@ public class QueryServlet {
         }
     }
 
+    public ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands) {
+        timer.push("compute dataset normalization");
+        final Set<String> datasets = Session.getDatasets(imhotepClient);
+        final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
+        for (final String dataset : datasets) {
+            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
+        }
+        timer.pop();
+
+        timer.push("compute hash");
+        final Set<Pair<String, String>> shards = Sets.newHashSet();
+        final Set<DatasetWithTimeRange> datasetsWithTimeRange = Sets.newHashSet();
+        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
+        for (final Dataset dataset : query.datasets) {
+            timer.push("get chosen shards");
+            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
+            final String sessionName = dataset.alias.or(dataset.dataset);
+            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
+            timer.pop();
+            for (final ShardIdWithVersion chosenShard : chosenShards) {
+                // This needs to be associated with the session name, not just the actualDataset.
+                shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
+            }
+            datasetsWithTimeRange.add(new DatasetWithTimeRange(actualDataset, dataset.startInclusive.getMillis(), dataset.endExclusive.getMillis()));
+            final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
+            if (oldShards != null) {
+                throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
+            }
+        }
+        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, 7);
+        final String cacheFileName = "IQL2-" + queryHash + ".tsv";
+        timer.pop();
+
+        return new ComputeCacheKey(datasetToChosenShards, cacheFileName);
+    }
+
     private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
         final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
         for (final Dataset dataset : datasets) {
@@ -900,7 +911,7 @@ public class QueryServlet {
         }
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRange> datasets, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -911,6 +922,11 @@ public class QueryServlet {
         sha1.update(Ints.toByteArray(version));
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
+        }
+        for (final DatasetWithTimeRange dataset : datasets) {
+            sha1.update(dataset.dataset.getBytes(Charsets.UTF_8));
+            sha1.update(Longs.toByteArray(dataset.start));
+            sha1.update(Longs.toByteArray(dataset.end));
         }
         sha1.update(Ints.toByteArray(rowLimit.or(-1)));
         for (final Pair<String, String> pair : shards) {
@@ -976,5 +992,51 @@ public class QueryServlet {
         }
         final String timeTakenStr = timeTaken >= 0 ? String.valueOf(timeTaken) : "";
         log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
+    }
+
+    private static class DatasetWithTimeRange {
+        public final String dataset;
+        public final long start;
+        public final long end;
+
+        private DatasetWithTimeRange(String dataset, long start, long end) {
+            this.dataset = dataset;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DatasetWithTimeRange that = (DatasetWithTimeRange) o;
+            return start == that.start &&
+                    end == that.end &&
+                    Objects.equals(dataset, that.dataset);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dataset, start, end);
+        }
+
+        @Override
+        public String toString() {
+            return "DatasetWithTimeRange{" +
+                    "dataset='" + dataset + '\'' +
+                    ", start=" + start +
+                    ", end=" + end +
+                    '}';
+        }
+    }
+
+    public static class ComputeCacheKey {
+        public final Map<String, List<ShardIdWithVersion>> datasetToChosenShards;
+        public final String cacheFileName;
+
+        private ComputeCacheKey(Map<String, List<ShardIdWithVersion>> datasetToChosenShards, String cacheFileName) {
+            this.datasetToChosenShards = datasetToChosenShards;
+            this.cacheFileName = cacheFileName;
+        }
     }
 }

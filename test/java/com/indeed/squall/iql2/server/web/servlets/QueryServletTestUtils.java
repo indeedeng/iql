@@ -25,7 +25,7 @@ import java.util.List;
 
 public class QueryServletTestUtils {
 
-    private static QueryServlet create(List<Shard> shards, Options options) {
+    public static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
         final Long imhotepDaemonTempFileSizeLimit = -1L;
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
@@ -117,7 +117,7 @@ public class QueryServletTestUtils {
     static class Options {
         public Long subQueryTermLimit = -1L;
 
-        private Options() {
+        Options() {
         }
 
         public static Options create() {
