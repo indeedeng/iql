@@ -345,7 +345,9 @@ public class QueryServlet {
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
-                completeStream(outputStream, queryMetadata, args.progress);
+                if(args.progress) {
+                    completeStream(outputStream, queryMetadata);
+                }
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
                 return;
@@ -372,7 +374,9 @@ public class QueryServlet {
                 if (writeResults.exceedsLimit) {
                     queryMetadata.addItem("IQL-Warning", "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
-                completeStream(outputStream, queryMetadata, args.progress);
+                if(args.progress) {
+                    completeStream(outputStream, queryMetadata);
+                }
 
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
@@ -449,12 +453,11 @@ public class QueryServlet {
         }
     }
 
-    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata, boolean progress) throws IOException {
-        if (progress) {
-            outputStream.println("event: header");
-            outputStream.print("data: ");
-            outputStream.print(queryMetadata.toJSON() + "\n\n");
-        }
+    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata) throws IOException {
+        outputStream.println();
+        outputStream.println("event: header");
+        outputStream.print("data: ");
+        outputStream.print(queryMetadata.toJSON() + "\n\n");
         outputStream.print("event: complete\ndata: :)\n\n");
         outputStream.flush();
     }

@@ -492,9 +492,6 @@ public final class IQLQuery implements Closeable {
 
                 line = reader.readLine();
             }
-            if(eventSource) {
-                writer.newLine();
-            }
             Closeables2.closeQuietly(reader, log);
             writer.flush();
             return linesCopied;
@@ -577,9 +574,6 @@ public final class IQLQuery implements Closeable {
             if(++rowsProcessed >= rowLimit) {
                 break;   // reached the requested row limit
             }
-        }
-        if(progress) {
-            out.println();
         }
         out.flush();
         return rowsProcessed;
