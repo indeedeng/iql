@@ -13,6 +13,7 @@
  */
  package com.indeed.imhotep.web;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -66,10 +67,13 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -335,17 +339,13 @@ public class QueryServlet {
 
                     queryMetadata.setPendingHeaders(resp);
                     resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
-                    if(args.progress) {
-                        outputStream.println("event: header");
-                        outputStream.print("data: ");
-                        outputStream.print(queryMetadata.toJSON() + "\n\n");
-                    }
                 } catch (Exception e) {
                     log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
                 }
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, iqlQuery.getRowLimit(), args.progress);
+                completeStream(outputStream, queryMetadata, args.progress);
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
                 return;
@@ -365,19 +365,15 @@ public class QueryServlet {
                 queryMetadata.setPendingHeaders(resp);
                 resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
 
-                if(args.progress) {
-                    outputStream.println("event: header");
-                    outputStream.print("data: ");
-                    outputStream.print(queryMetadata.toJSON() + "\n\n");
-                }
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
-                if(!args.asynchronous) {
-                    writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
-                } else {
-                    writeResults = new IQLQuery.WriteResults(0, null, groupStats, 0);
+                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                if (writeResults.exceedsLimit) {
+                    queryMetadata.addItem("IQL-Warning", "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
+                completeStream(outputStream, queryMetadata, args.progress);
+
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
@@ -453,7 +449,15 @@ public class QueryServlet {
         }
     }
 
-
+    private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata, boolean progress) throws IOException {
+        if (progress) {
+            outputStream.println("event: header");
+            outputStream.print("data: ");
+            outputStream.print(queryMetadata.toJSON() + "\n\n");
+        }
+        outputStream.print("event: complete\ndata: :)\n\n");
+        outputStream.flush();
+    }
 
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 
@@ -539,7 +543,7 @@ public class QueryServlet {
     }
 
     private void handleDescribeField(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
@@ -571,7 +575,7 @@ public class QueryServlet {
     }
 
     private void handleDescribeDataset(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
         final boolean json = req.getParameter("json") != null;
@@ -593,7 +597,7 @@ public class QueryServlet {
     }
 
     private void handleShowStatement(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
-        final ServletOutputStream outputStream = resp.getOutputStream();
+        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final boolean json = req.getParameter("json") != null;
 
         if(json) {
@@ -648,7 +652,7 @@ public class QueryServlet {
         // output parse/execute error
         if(!json) {
             final ServletOutputStream outputStream = resp.getOutputStream();
-            final PrintStream printStream = new PrintStream(outputStream);
+            final PrintStream printStream = new PrintStream(outputStream, false, "UTF-8");
             if(isEventStream) {
                 resp.setContentType("text/event-stream");
                 final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
@@ -742,6 +746,7 @@ public class QueryServlet {
         dataLog.info(logEntry);
     }
 
+    // Log to logrepo
     private String logStatementData(IQLStatement parsedQuery,
                                     SelectExecutionStats selectExecutionStats,
                                     QueryLogEntry logEntry) {
@@ -805,6 +810,7 @@ public class QueryServlet {
         logEntry.setProperty("disk", selectExecutionStats.overflowedToDisk ? "1" : "0");
         logEntry.setProperty("hash", selectExecutionStats.hashForCaching);
         logEntry.setProperty("head", selectExecutionStats.headOnly ? "1" : "0");
+        logEntry.setProperty("maxgroups", selectExecutionStats.maxImhotepGroups);
         // convert bytes to megabytes
         logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
     }
