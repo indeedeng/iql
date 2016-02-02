@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -238,7 +239,7 @@ public interface ExecutionStep {
     }
 
     class ExplodeMetric implements ExecutionStep {
-        private final DocMetric metric;
+        private final Map<String, DocMetric> perDatasetMetric;
         private final long lowerBound;
         private final long upperBound;
         private final long interval;
@@ -246,8 +247,8 @@ public interface ExecutionStep {
         private final boolean excludeGutters;
         private final boolean withDefault;
 
-        public ExplodeMetric(DocMetric metric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault) {
-            this.metric = metric;
+        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault) {
+            this.perDatasetMetric = perDatasetMetric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
             this.interval = interval;
@@ -260,7 +261,7 @@ public interface ExecutionStep {
         public List<Command> commands() {
             final Map<String, List<String>> datasetToPushes = new HashMap<>();
             for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(metric).getPushes(s));
+                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
             }
             return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault));
         }
@@ -273,7 +274,7 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ExplodeMetric{" +
-                    "metric=" + metric +
+                    "perDatasetMetric=" + perDatasetMetric +
                     ", lowerBound=" + lowerBound +
                     ", upperBound=" + upperBound +
                     ", interval=" + interval +

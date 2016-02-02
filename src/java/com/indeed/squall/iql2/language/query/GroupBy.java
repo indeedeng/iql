@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -15,6 +16,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -61,7 +63,11 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeMetric(metric, min, max, interval, scope, excludeGutters, withDefault);
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+            for (final String dataset : scope) {
+                perDatasetMetric.put(dataset, metric);
+            }
+            return new ExecutionStep.ExplodeMetric(perDatasetMetric, min, max, interval, scope, excludeGutters, withDefault);
         }
 
         @Override
@@ -569,12 +575,11 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            // TODO: Do this better by making ExplodeMetric take a Map<String, DocMetric>?
-            final List<ExecutionStep> steps = new ArrayList<>();
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
             for (final String dataset : scope) {
-                steps.add(new ExecutionStep.ExplodeMetric(docFilter.asZeroOneMetric(dataset), 0, 2, 1, Collections.singleton(dataset), true, false));
+                perDatasetMetric.put(dataset, docFilter.asZeroOneMetric(dataset));
             }
-            return new ExecutionStep.ExecuteMany(steps);
+            return new ExecutionStep.ExplodeMetric(perDatasetMetric, 0, 2, 1, scope, true, false);
         }
 
         @Override
