@@ -169,8 +169,8 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomFloatScale(JQLParser.LegacyDocMetricAtomFloatScaleContext ctx) {
                 final String field = ctx.field.getText().toUpperCase();
-                final double mult = Double.parseDouble(ctx.mult.getText());
-                final double add = Double.parseDouble(ctx.add.getText());
+                final double mult = ctx.mult == null ? 1.0 : Double.parseDouble(ctx.mult.getText());
+                final double add = ctx.add == null ? 0.0 : Double.parseDouble(ctx.add.getText());
                 accept(new DocMetric.FloatScale(field, mult, add));
             }
 
@@ -359,8 +359,8 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomFloatScale(JQLParser.DocMetricAtomFloatScaleContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                final double mult = Double.parseDouble(ctx.mult.getText());
-                final double add = Double.parseDouble(ctx.add.getText());
+                final double mult = ctx.mult == null ? 1.0 : Double.parseDouble(ctx.mult.getText());
+                final double add = ctx.add == null ? 0.0 : Double.parseDouble(ctx.add.getText());
                 accept(scopedField.wrap(new DocMetric.FloatScale(scopedField.field, mult, add)));
             }
 

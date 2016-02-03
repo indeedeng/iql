@@ -114,7 +114,7 @@ LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 
 integer : neg='-'? NAT ;
 
-number : NAT | DOUBLE ;
+number : (neg='-'? NAT) | DOUBLE ;
 
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
@@ -221,7 +221,7 @@ legacyDocMetricAtom
     | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
-    | FLOATSCALE '(' field=identifier ',' mult=number ',' add=number ')' # LegacyDocMetricAtomFloatScale
+    | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | identifier # LegacyDocMetricAtomRawField
     ;
 
@@ -234,7 +234,7 @@ jqlDocMetricAtom
     | singlyScopedField '!=' integer # DocMetricAtomHasntInt
     | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
-    | FLOATSCALE '(' singlyScopedField ',' mult=number ',' add=number ')' # DocMetricAtomFloatScale
+    | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 
