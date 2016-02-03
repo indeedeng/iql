@@ -61,6 +61,9 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
             return handlePrefix(statName, "inttermcount ");
         } else if (statName.startsWith("strtermcount ")) {
             return handlePrefix(statName, "strtermcount ");
+        } else if (statName.startsWith("floatscale ")) {
+            final int multIndex = statName.indexOf('*');
+            return "floatscale " + rewrite(statName.substring("floatscale ".length(), multIndex)) + statName.substring(multIndex);
         }
         return statName;
     }
