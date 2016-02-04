@@ -694,7 +694,14 @@ public class QueryServlet {
                             if (!p.getSecond().isEmpty()) {
                                 filters.add(new DocFilter.StringFieldIn(getKeywordAnalyzerWhitelist(), scopedField.field, p.getSecond()));
                             }
-                            return scopedField.wrap(new DocFilter.Ors(filters));
+                            final DocFilter.Ors orred = new DocFilter.Ors(filters);
+                            final DocFilter maybeNegated;
+                            if (fieldInQuery.isNegated) {
+                                maybeNegated = new DocFilter.Not(orred);
+                            } else {
+                                maybeNegated = orred;
+                            }
+                            return scopedField.wrap(maybeNegated);
                         }
                         return input;
                     }
