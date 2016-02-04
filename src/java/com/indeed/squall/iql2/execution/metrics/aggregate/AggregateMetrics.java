@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.AggregateFilters;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AggregateMetrics {
@@ -86,6 +87,25 @@ public class AggregateMetrics {
                 final AggregateMetric trueCase = fromJson(node.get("trueCase"), namedMetricLookup);
                 final AggregateMetric falseCase = fromJson(node.get("falseCase"), namedMetricLookup);
                 return new IfThenElse(condition, trueCase, falseCase);
+            }
+            case "min": {
+                final List<AggregateMetric> metrics = new ArrayList<>();
+                final JsonNode jsonMetrics = node.get("metrics");
+                for (int i = 0; i < jsonMetrics.size(); i++) {
+                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup));
+                }
+                return new Min(metrics);
+            }
+            case "max": {
+                final List<AggregateMetric> metrics = new ArrayList<>();
+                final JsonNode jsonMetrics = node.get("metrics");
+                for (int i = 0; i < jsonMetrics.size(); i++) {
+                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup));
+                }
+                return new Max(metrics);
+            }
+            case "negate": {
+                return new Subtract(new Constant(0), value.get());
             }
         }
         throw new RuntimeException("Oops: " + node);
