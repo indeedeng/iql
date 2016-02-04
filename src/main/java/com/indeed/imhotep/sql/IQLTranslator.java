@@ -548,12 +548,10 @@ public final class IQLTranslator {
                         if(field == null) {
                             throw new IllegalArgumentException("Field not found: " + fieldName);
                         }
-                        final FieldType fieldMetadataType = field.getType();
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
                             long value = parseInt(right);
                             return hasInt(fieldName, value);
-                        } else if(fieldMetadataType == FieldType.Integer && right instanceof NumberExpression ||
-                                fieldMetadataType == FieldType.String) {
+                        } else {
                             return hasString(fieldName, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
