@@ -17,9 +17,9 @@ public class Min implements AggregateMetric {
 
     @Override
     public double[] getGroupStats(long[][] stats, int numGroups) {
-        final double[] resultStats = new double[numGroups + 1];
-        for (final AggregateMetric metric : metrics) {
-            final double[] mStats = metric.getGroupStats(stats, numGroups);
+        final double[] resultStats = metrics.get(0).getGroupStats(stats, numGroups);
+        for (int metricIndex = 1; metricIndex < metrics.size(); metricIndex++) {
+            final double[] mStats = metrics.get(metricIndex).getGroupStats(stats, numGroups);
             for (int i = 0; i <= numGroups; i++) {
                 resultStats[i] = Math.min(resultStats[i], mStats[i]);
             }
