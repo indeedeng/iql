@@ -65,6 +65,8 @@ HASINTFIELD : 'HASINTFIELD' ;
 SAME : 'SAME' ;
 EXP : 'EXP' ;
 WINDOW_SUM : 'WINDOW_SUM' ;
+MIN : 'MIN' ;
+MAX : 'MAX' ;
 
 Y : 'Y' ;
 
@@ -102,7 +104,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -159,6 +161,8 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
+    | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
+    | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
     | AVG_OVER '(' field=scopedField ((havingBrackets='[' HAVING jqlAggregateFilter ']')|(HAVING jqlAggregateFilter))? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | jqlDocMetricAtom # AggregateDocMetricAtom
@@ -249,6 +253,8 @@ legacyDocMetric
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
     | LOG '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocLog
     | EXP '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocExp
+    | MIN '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMin
+    | MAX '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMax
     | '-' legacyDocMetric # LegacyDocNegate
     | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
     | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus
@@ -264,6 +270,8 @@ jqlDocMetric
     | SIGNUM '(' jqlDocMetric ')' # DocSignum
     | LOG '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocLog
     | EXP '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocExp
+    | MIN '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMin
+    | MAX '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMax
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
     | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus

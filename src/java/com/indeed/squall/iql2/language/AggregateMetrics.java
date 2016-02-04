@@ -6,6 +6,7 @@ import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -314,6 +315,24 @@ public class AggregateMetrics {
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
                 accept(scopedField.wrap(new AggregateMetric.FieldMax(scopedField.field)));
+            }
+
+            @Override
+            public void enterAggregateMetricMin(JQLParser.AggregateMetricMinContext ctx) {
+                final List<AggregateMetric> metrics = new ArrayList<>();
+                for (final JQLParser.JqlAggregateMetricContext metric : ctx.metrics) {
+                    metrics.add(parseJQLAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                }
+                accept(new AggregateMetric.Min(metrics));
+            }
+
+            @Override
+            public void enterAggregateMetricMax(JQLParser.AggregateMetricMaxContext ctx) {
+                final List<AggregateMetric> metrics = new ArrayList<>();
+                for (final JQLParser.JqlAggregateMetricContext metric : ctx.metrics) {
+                    metrics.add(parseJQLAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                }
+                accept(new AggregateMetric.Max(metrics));
             }
 
             @Override

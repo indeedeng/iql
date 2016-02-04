@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
@@ -1415,6 +1416,150 @@ public interface AggregateMetric {
         public String toString() {
             return "FieldMax{" +
                     "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+    class Min implements AggregateMetric, JsonSerializable {
+        private final List<AggregateMetric> metrics;
+
+        public Min(List<AggregateMetric> metrics) {
+            this.metrics = metrics;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
+            for (final AggregateMetric metric : metrics) {
+                newMetrics.add(metric.transform(f, g, h, i, groupByFunction));
+            }
+            return f.apply(new Min(newMetrics));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
+            for (final AggregateMetric metric : metrics) {
+                newMetrics.add(f.apply(metric));
+            }
+            return new Min(newMetrics);
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final AggregateMetric metric : metrics) {
+                metric.validate(scope, datasetsFields, errorConsumer);
+            }
+        }
+
+        @Override
+        public boolean isOrdered() {
+            boolean isOrdered = false;
+            for (final AggregateMetric metric : metrics) {
+                isOrdered |= metric.isOrdered();
+            }
+            return isOrdered;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "min", "metrics", metrics));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Min min = (Min) o;
+            return Objects.equals(metrics, min.metrics);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metrics);
+        }
+
+        @Override
+        public String toString() {
+            return "Min{" +
+                    "metrics=" + metrics +
+                    '}';
+        }
+    }
+
+    class Max implements AggregateMetric, JsonSerializable {
+        private final List<AggregateMetric> metrics;
+
+        public Max(List<AggregateMetric> metrics) {
+            this.metrics = metrics;
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
+            for (final AggregateMetric metric : metrics) {
+                newMetrics.add(metric.transform(f, g, h, i, groupByFunction));
+            }
+            return f.apply(new Max(newMetrics));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
+            for (final AggregateMetric metric : metrics) {
+                newMetrics.add(f.apply(metric));
+            }
+            return new Max(newMetrics);
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            for (final AggregateMetric metric : metrics) {
+                metric.validate(scope, datasetsFields, errorConsumer);
+            }
+        }
+
+        @Override
+        public boolean isOrdered() {
+            boolean isOrdered = false;
+            for (final AggregateMetric metric : metrics) {
+                isOrdered |= metric.isOrdered();
+            }
+            return isOrdered;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "max", "metrics", metrics));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Max max = (Max) o;
+            return Objects.equals(metrics, max.metrics);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metrics);
+        }
+
+        @Override
+        public String toString() {
+            return "Max{" +
+                    "metrics=" + metrics +
                     '}';
         }
     }

@@ -1,8 +1,10 @@
 package com.indeed.squall.iql2.language;
 
+import com.google.common.collect.Lists;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -105,6 +107,16 @@ public class DocMetrics {
             public void enterLegacyDocExp(JQLParser.LegacyDocExpContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
+            }
+
+            @Override
+            public void enterLegacyDocMin(JQLParser.LegacyDocMinContext ctx) {
+                accept(new DocMetric.Min(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields)));
+            }
+
+            @Override
+            public void enterLegacyDocMax(JQLParser.LegacyDocMaxContext ctx) {
+                accept(new DocMetric.Max(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields)));
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
@@ -306,6 +318,26 @@ public class DocMetrics {
             public void enterDocExp(JQLParser.DocExpContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
                 accept(new DocMetric.Exponentiate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock), scaleFactor));
+            }
+
+            @Override
+            public void enterDocMin(JQLParser.DocMinContext ctx) {
+                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
+                for (int i = 1; i < metrics.size(); i++) {
+                    resultMetric = new DocMetric.Min(resultMetric, parseJQLDocMetric(metrics.get(i), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                }
+                accept(resultMetric);
+            }
+
+            @Override
+            public void enterDocMax(JQLParser.DocMaxContext ctx) {
+                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
+                for (int i = 1; i < metrics.size(); i++) {
+                    resultMetric = new DocMetric.Max(resultMetric, parseJQLDocMetric(metrics.get(i), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                }
+                accept(resultMetric);
             }
 
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
