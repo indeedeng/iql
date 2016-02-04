@@ -229,6 +229,11 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
+    public FTGSIterator getFTGSIterator(String[] intFields, String[] stringFields, long termLimit) {
+        return wrapped.getFTGSIterator(rewriteArray(intFields), rewriteArray(stringFields), termLimit);
+    }
+
+    @Override
     public FTGSIterator getSubsetFTGSIterator(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
         return wrapped.getSubsetFTGSIterator(rewriteMap(intFields), rewriteMap(stringFields));
     }
@@ -244,13 +249,13 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
-    public RawFTGSIterator[] getFTGSIteratorSplits(String[] intFields, String[] stringFields) {
-        return wrapped.getFTGSIteratorSplits(rewriteArray(intFields), rewriteArray(stringFields));
+    public RawFTGSIterator[] getFTGSIteratorSplits(String[] intFields, String[] stringFields, long termLimit) {
+        return wrapped.getFTGSIteratorSplits(rewriteArray(intFields), rewriteArray(stringFields), termLimit);
     }
 
     @Override
-    public RawFTGSIterator getFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits) {
-        return wrapped.getFTGSIteratorSplit(rewriteArray(intFields), rewriteArray(stringFields), splitIndex, numSplits);
+    public RawFTGSIterator getFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit) {
+        return wrapped.getFTGSIteratorSplit(rewriteArray(intFields), rewriteArray(stringFields), splitIndex, numSplits, termLimit);
     }
 
     @Override
@@ -259,8 +264,8 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        return wrapped.mergeFTGSSplit(rewriteArray(intFields), rewriteArray(stringFields), sessionId, nodes, splitIndex);
+    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit) {
+        return wrapped.mergeFTGSSplit(rewriteArray(intFields), rewriteArray(stringFields), sessionId, nodes, splitIndex, termLimit);
     }
 
     @Override
@@ -431,8 +436,8 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
 
 
     @Override
-    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, Socket socket) throws ImhotepOutOfMemoryException {
-        wrapped.writeFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, socket);
+    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimt, Socket socket) throws ImhotepOutOfMemoryException {
+        wrapped.writeFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, termLimt, socket);
     }
 
     @Override
