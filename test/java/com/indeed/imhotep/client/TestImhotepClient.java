@@ -114,7 +114,7 @@ public class TestImhotepClient extends ImhotepClient {
                     }
 
                     @Override
-                    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, Socket socket) throws ImhotepOutOfMemoryException {
+                    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
                         throw new UnsupportedOperationException();
                     }
 
