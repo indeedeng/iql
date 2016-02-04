@@ -134,6 +134,16 @@ public class QueryServletTestUtils {
         }
     }
 
+    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
+        testIQL1(shards, expected, query, Options.create());
+    }
+
+    private static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
+        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
+
+    }
+
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
         testIQL2(shards, expected, query, Options.create());
     }
