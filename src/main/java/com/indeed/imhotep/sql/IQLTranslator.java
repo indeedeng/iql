@@ -339,6 +339,9 @@ public final class IQLTranslator {
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
+                    if(input.size() > 0) {
+                        throw new IllegalArgumentException("Only count() with no arguments is supported which returns the total number of documents in the group");
+                    }
                     return counts();
                 }
             });
