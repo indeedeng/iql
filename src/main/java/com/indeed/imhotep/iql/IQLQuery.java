@@ -149,9 +149,10 @@ public final class IQLQuery implements Closeable {
             }
 
             long conditionFilterMillis = 0;
-            for (Condition condition : conditions) {
+            for (int i = 0; i < conditions.size(); i++) {
+                final Condition condition = conditions.get(i);
                 checkTimeout(timeoutTS);
-                timer.push("Filtering " + condition.getClass().getSimpleName());
+                timer.push("Filter " + (i + 1));
                 condition.filter(session);
                 conditionFilterMillis += timer.pop();
                 count = updateProgress(progress, out, count);

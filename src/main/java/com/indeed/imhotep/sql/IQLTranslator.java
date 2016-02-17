@@ -339,6 +339,9 @@ public final class IQLTranslator {
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
+                    if(input.size() > 0) {
+                        throw new IllegalArgumentException("Only count() with no arguments is supported which returns the total number of documents in the group");
+                    }
                     return counts();
                 }
             });
@@ -548,12 +551,10 @@ public final class IQLTranslator {
                         if(field == null) {
                             throw new IllegalArgumentException("Field not found: " + fieldName);
                         }
-                        final FieldType fieldMetadataType = field.getType();
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
                             long value = parseInt(right);
                             return hasInt(fieldName, value);
-                        } else if(fieldMetadataType == FieldType.Integer && right instanceof NumberExpression ||
-                                fieldMetadataType == FieldType.String) {
+                        } else {
                             return hasString(fieldName, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
