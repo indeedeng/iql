@@ -46,7 +46,7 @@ public class StringRegroupFieldIn implements Command {
         }
         session.timer.pop();
 
-        session.regroup(remapRules, false);
+        session.regroup(remapRules, true);
 
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
         session.currentDepth += 1;
