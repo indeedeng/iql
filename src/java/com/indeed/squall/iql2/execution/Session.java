@@ -221,6 +221,10 @@ public class Session {
                 }
             }
         }
+        if(ret.getIntFields().isEmpty()) {
+            // Ramses
+            ret.getStringFields().add("time");
+        }
         return ret;
     }
 
