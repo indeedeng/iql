@@ -144,7 +144,7 @@ public class QueryServlet {
         this.subQueryTermLimit = subQueryTermLimit;
     }
 
-    private static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
+    static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
         final Map<String, Set<String>> upperCased = new HashMap<>();
         for (final Map.Entry<String, ? extends Set<String>> e : map.entrySet()) {
             final Set<String> upperCaseTerms = new HashSet<>(e.getValue().size());
