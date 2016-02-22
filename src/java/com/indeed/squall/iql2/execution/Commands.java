@@ -72,7 +72,7 @@ public class Commands {
                 final FieldIterateOpts opts = new FieldIterateOpts();
                 opts.parseFrom(command.get("opts"), namedMetricLookup);
                 final boolean streamResult = command.get("streamResult").booleanValue();
-                return new SimpleIterate(field, opts, selecting, streamResult);
+                return new SimpleIterate(field, opts, selecting, streamResult, null);
             }
             case "filterDocs": {
                 final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();
@@ -214,7 +214,7 @@ public class Commands {
                 final FieldIterateOpts fieldOpts = new FieldIterateOpts();
                 parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
 
-                return new IterateAndExplode(field, selecting, fieldOpts, explodeDefaultName);
+                return new IterateAndExplode(field, selecting, fieldOpts, explodeDefaultName, null);
             }
             case "computeAndCreateGroupStatsLookup": {
                 final Command computation = parseCommand(command.get("computation"), namedMetricLookup);

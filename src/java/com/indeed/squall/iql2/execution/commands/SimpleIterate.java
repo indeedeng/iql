@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -8,6 +9,7 @@ import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.DenseInt2ObjectMap;
 import com.indeed.squall.iql2.execution.QualifiedPush;
@@ -41,12 +43,15 @@ public class SimpleIterate implements Command {
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     public final boolean streamResult;
+    @Nullable
+    public final Set<String> scope;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult) {
+    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult, Set<String> scope) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.streamResult = streamResult;
+        this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
         if (this.streamResult && opts.topK.isPresent()) {
             throw new IllegalArgumentException("Can't stream results while doing top-k!");
         }
@@ -142,6 +147,17 @@ public class SimpleIterate implements Command {
         final AggregateFilter filterOrNull = opts.filter.orNull();
         session.timer.pop();
 
+        final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
+        final Map<String, ImhotepSession> sessionsToUse;
+        if (scope == null) {
+            sessionsToUse = sessionsMapRaw;
+        } else {
+            sessionsToUse = Maps.newHashMap();
+            for (final String dataset : scope) {
+                sessionsToUse.put(dataset, sessionsMapRaw.get(dataset));
+            }
+        }
+
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback;
             if (streamResult) {
@@ -150,7 +166,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, field, callback);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, field, callback);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -160,7 +176,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field, callback);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, field, callback);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);

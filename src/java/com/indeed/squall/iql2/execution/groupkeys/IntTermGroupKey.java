@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class IntTermGroupKey extends GroupKey {
-    private final long value;
+    public final long value;
 
     public IntTermGroupKey(long value) {
         this.value = value;

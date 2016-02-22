@@ -63,6 +63,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -279,7 +280,7 @@ public class Session {
                     sessionStringFields.add(entry.getKey());
                     upperCasedStringFields.add(entry.getKey().toUpperCase());
                 } else {
-                    throw new IllegalStateException();
+                    throw new IllegalStateException("Field [" + entry.getValue() + "] not found in index [" + datasetName + "]");
                 }
             }
 

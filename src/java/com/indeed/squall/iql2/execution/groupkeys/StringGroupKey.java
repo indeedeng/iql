@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class StringGroupKey extends GroupKey {
-    private final String term;
+    public final String term;
 
     public StringGroupKey(String term) {
         this.term = term;

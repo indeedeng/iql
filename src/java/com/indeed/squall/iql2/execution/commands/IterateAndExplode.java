@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -10,28 +11,34 @@ import com.indeed.squall.iql2.execution.TermSelects;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.sun.istack.internal.Nullable;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
+    @Nullable
+    public final Set<String> scope;
 
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName) {
+    // TODO: Null is horrible, put on some sort of options object
+    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName, Set<String> scope) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;
         this.explodeDefaultName = explodeDefaultName;
+        this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
     }
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         // TODO: Short-circuit group limit earlier in SimpleIterate, rather than in ExplodePerGroup::execute.
-        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, false).evaluate(session, out);
+        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, false, scope).evaluate(session, out);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
             if (groupResults.size() > 0) {
