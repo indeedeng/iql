@@ -11,8 +11,8 @@ import com.indeed.squall.iql2.execution.TermSelects;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
-import com.sun.istack.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
