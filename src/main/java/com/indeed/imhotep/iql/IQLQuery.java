@@ -81,6 +81,7 @@ public final class IQLQuery implements Closeable {
     private final List<ShardIdWithVersion> shardVersionList;
     private final List<Interval> timeIntervalsMissingShards;
     private final ImhotepClient.SessionBuilder sessionBuilder;
+    private final long shardsSelectionMillis;
     // session used for the current execution
     private EZImhotepSession session;
 
@@ -103,10 +104,13 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.metadata = metadata;
 
+        long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit).username(username);
         shardVersionList = sessionBuilder.getChosenShards();
+        shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
+
         timeIntervalsMissingShards = sessionBuilder.getTimeIntervalsMissingShards();
     }
 
@@ -114,6 +118,7 @@ public final class IQLQuery implements Closeable {
      * Not thread safe due to session reference caching for close().
      */
     public ExecutionResult execute(boolean progress, OutputStream outputStream, boolean getTotals, SelectExecutionStats selectExecutionStats) throws ImhotepOutOfMemoryException {
+        selectExecutionStats.setPhase("shardsSelectionMillis", shardsSelectionMillis);
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8)) : null;
 
