@@ -287,7 +287,7 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep.version>1.0.67</imhotep.version>
+        <imhotep.version>1.0.72</imhotep.version>
         <indeed-util.version>1.0.15</indeed-util.version>
         <ims.version>1.0.12</ims.version>
         <google-guava.version>16.0.1</google-guava.version>
