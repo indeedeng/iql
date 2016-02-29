@@ -58,12 +58,12 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final AtomicReference<String> reference = new AtomicReference<>();
-                final List<Session.GroupStats> groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<List<Session.GroupStats>>() {});
                 ((Command) computation).execute(session, new Consumer<String>() {
                     public void accept(String s) {
                         reference.set(s);
                     }
                 });
+                final List<Session.GroupStats> groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<List<Session.GroupStats>>() {});
                 final double[] results = new double[groupStats.size()];
                 for (int i = 0; i < groupStats.size(); i++) {
                     results[i] = groupStats.get(i).stats[0];
