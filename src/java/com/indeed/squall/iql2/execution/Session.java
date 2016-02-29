@@ -163,7 +163,6 @@ public class Session {
             final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
-                log.debug("Evaluating command: " + command);
                 final boolean isLast = i == commands.size() - 1;
                 if (isLast) {
                     session.evaluateCommandToTSV(command, out);
@@ -393,7 +392,8 @@ public class Session {
     }
 
     public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        timer.push("evaluateCommand " + commandTree);
+        final String commandTreeString = commandTree.toString();
+        timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
         try {
             final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
                 public PerGroupConstant apply(String s) {
