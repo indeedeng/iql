@@ -30,8 +30,6 @@
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
-        <dependency org="google" name="gag" rev="${gag.version}"/>
-        <dependency org="opencsv" name="opencsv" rev="${opencsv.version}"/>
 
         <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
     </dependencies>

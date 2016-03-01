@@ -2,7 +2,6 @@ package com.indeed.squall.iql2.language.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.gag.annotation.remark.ThisWouldBeOneLineIn;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -14,10 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ExtractNames {
-    @ThisWouldBeOneLineIn (
-        language = "haskell",
-        toWit = "M.fromList [ (name, metric) | Aggregate.Named metric name <- universeBi q ]"
-    )
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
         query.transform(
