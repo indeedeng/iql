@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -13,6 +14,7 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
+import com.indeed.squall.iql2.language.query.CannotMakeTotalException;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.Optionals;
@@ -185,11 +187,23 @@ public class ExtractPrecomputed {
                 }
             } else if (input instanceof AggregateMetric.SumAcross) {
                 final AggregateMetric.SumAcross sumAcross = (AggregateMetric.SumAcross) input;
+                if (sumAcross.groupBy instanceof GroupBy.GroupByMetric) {
+                    final GroupBy.GroupByMetric groupByMetric = (GroupBy.GroupByMetric) sumAcross.groupBy;
+                    if (!groupByMetric.excludeGutters) {
+                        throw new IllegalArgumentException("SUM_OVER(BUCKET(), metric) with gutters is very likely not what you want. It will sum over all documents.");
+                    }
+                }
                 if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
-                } else {
+                } else if (sumAcross.groupBy.isTotal()) {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
+                } else {
+                    final GroupBy totalized = sumAcross.groupBy.makeTotal();
+                    if (!totalized.isTotal()) {
+                        throw new IllegalStateException("groupBy.makeTotal() returned non-total GroupBy!");
+                    }
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(totalized.traverse1(this), apply(new AggregateMetric.IfThenElse(new AggregateFilter.IsDefaultGroup(), new AggregateMetric.Constant(0), sumAcross.metric))));
                 }
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;

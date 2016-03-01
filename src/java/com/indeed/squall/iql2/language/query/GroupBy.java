@@ -8,13 +8,10 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,13 +31,16 @@ public interface GroupBy {
 
     ExecutionStep executionStep(Set<String> scope);
 
+    boolean isTotal();
+    GroupBy makeTotal() throws CannotMakeTotalException;
+
     class GroupByMetric implements GroupBy {
-        private final DocMetric metric;
-        private final long min;
-        private final long max;
-        private final long interval;
-        private final boolean excludeGutters;
-        private final boolean withDefault;
+        public final DocMetric metric;
+        public final long min;
+        public final long max;
+        public final long interval;
+        public final boolean excludeGutters;
+        public final boolean withDefault;
 
         public GroupByMetric(DocMetric metric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
             this.metric = metric;
@@ -68,6 +68,19 @@ public interface GroupBy {
                 perDatasetMetric.put(dataset, metric);
             }
             return new ExecutionStep.ExplodeMetric(perDatasetMetric, min, max, interval, scope, excludeGutters, withDefault);
+        }
+
+        @Override
+        public boolean isTotal() {
+            return withDefault || !excludeGutters;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            if (isTotal()) {
+                return this;
+            }
+            return new GroupByMetric(metric, min, max, interval, true, true);
         }
 
         @Override
@@ -137,6 +150,16 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -194,6 +217,16 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -246,6 +279,16 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeMonthOfYear();
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
         }
 
         @Override
@@ -316,6 +359,16 @@ public interface GroupBy {
             } else {
                 return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field, stringTerms, withDefault);
             }
+        }
+
+        @Override
+        public boolean isTotal() {
+            return withDefault;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return new GroupByFieldIn(field, intTerms, stringTerms, true);
         }
 
         @Override
@@ -402,6 +455,16 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean isTotal() {
+            return withDefault || (!filter.isPresent() && !limit.isPresent());
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return new GroupByField(field, filter, limit, metric, true, forceNonStreaming);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -457,6 +520,16 @@ public interface GroupBy {
         }
 
         @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
         public boolean equals(Object obj) {
             return obj instanceof GroupByDayOfWeek;
         }
@@ -486,6 +559,16 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeSessionNames();
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
         }
 
         @Override
@@ -526,6 +609,17 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
+        }
+
+        @Override
+        public boolean isTotal() {
+            // TODO: This should be dependent on whether or not every document has said field
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
         }
 
         @Override
@@ -580,6 +674,16 @@ public interface GroupBy {
                 perDatasetMetric.put(dataset, docFilter.asZeroOneMetric(dataset));
             }
             return new ExecutionStep.ExplodeMetric(perDatasetMetric, 0, 2, 1, scope, true, false);
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
         }
 
         @Override

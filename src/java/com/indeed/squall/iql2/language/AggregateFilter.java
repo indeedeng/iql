@@ -802,4 +802,52 @@ public interface AggregateFilter {
             return "Never{}";
         }
     }
+
+    class IsDefaultGroup implements AggregateFilter, JsonSerializable {
+        @Override
+        public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return h.apply(this);
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "isDefaultGroup"));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public int hashCode() {
+            return 101;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return getClass().equals(obj.getClass());
+        }
+
+
+        @Override
+        public String toString() {
+            return "IsDefaultGroup{}";
+        }
+    }
 }
