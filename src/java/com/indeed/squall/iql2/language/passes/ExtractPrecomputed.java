@@ -185,7 +185,7 @@ public class ExtractPrecomputed {
                 }
             } else if (input instanceof AggregateMetric.SumAcross) {
                 final AggregateMetric.SumAcross sumAcross = (AggregateMetric.SumAcross) input;
-                if (sumAcross.groupBy instanceof GroupBy.GroupByField) {
+                if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
                 } else {
