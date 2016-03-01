@@ -9,6 +9,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
+import com.indeed.squall.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
@@ -39,6 +40,8 @@ public class ExplodePerGroup implements Command {
         nextGroupParents.add(-1);
 
         final Map<String, GroupKey> stringTermGroupKeys = new HashMap<>();
+
+        final Map<String, GroupKey> defaultGroupKeys = new HashMap<>(); // Probably shared.
 
         for (int group = 1; group <= session.numGroups; group++) {
             final Commands.TermsWithExplodeOpts termsWithExplodeOpts = this.termsWithExplodeOpts.get(group);
@@ -74,8 +77,11 @@ public class ExplodePerGroup implements Command {
             final int negativeGroup;
             if (termsWithExplodeOpts.defaultName.isPresent()) {
                 negativeGroup = nextGroup++;
-                // TODO: Memoize this?
-                nextGroupKeys.add(new StringGroupKey(termsWithExplodeOpts.defaultName.get()));
+                final String defaultName = termsWithExplodeOpts.defaultName.get();
+                if (!defaultGroupKeys.containsKey(defaultName)) {
+                    defaultGroupKeys.put(defaultName, DefaultGroupKey.create(defaultName));
+                }
+                nextGroupKeys.add(defaultGroupKeys.get(defaultName));
                 nextGroupParents.add(group);
             } else {
                 negativeGroup = 0;

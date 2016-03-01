@@ -67,7 +67,7 @@ public class RegroupIntoParent implements Command {
         final RegroupCondition[] fakeConditions = new RegroupCondition[]{new RegroupCondition("fakeField", true, 1, null, false)};
         for (int group = 1; group <= session.numGroups; group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
-            rules[group - 1] = new GroupMultiRemapRule(group, group, new int[]{newGroup}, fakeConditions);
+            rules[group - 1] = new GroupMultiRemapRule(group, newGroup, new int[]{newGroup}, fakeConditions);
         }
         session.timer.pop();
         session.regroup(rules, false);

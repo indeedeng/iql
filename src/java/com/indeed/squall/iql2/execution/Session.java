@@ -63,7 +63,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -399,7 +398,7 @@ public class Session {
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
-            });
+            }, groupKeySet);
             progressCallback.startCommand(command, false);
             try {
                 command.execute(this, out);
@@ -419,7 +418,7 @@ public class Session {
                 public PerGroupConstant apply(String s) {
                     return namedMetricLookup(s);
                 }
-            });
+            }, groupKeySet);
             try {
                 progressCallback.startCommand(command, true);
                 if (command instanceof SimpleIterate) {

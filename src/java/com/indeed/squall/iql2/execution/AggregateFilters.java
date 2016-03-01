@@ -3,39 +3,40 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 
 public class AggregateFilters {
-    public static AggregateFilter fromJson(final JsonNode node, final Function<String, PerGroupConstant> namedMetricLookup) {
+    public static AggregateFilter fromJson(final JsonNode node, final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
         final Supplier<AggregateMetric> m1 = new Supplier<AggregateMetric>() {
             @Override
             public AggregateMetric get() {
-                return AggregateMetrics.fromJson(node.get("arg1"), namedMetricLookup);
+                return AggregateMetrics.fromJson(node.get("arg1"), namedMetricLookup, groupKeySet);
             }
         };
         final Supplier<AggregateMetric> m2 = new Supplier<AggregateMetric>() {
             @Override
             public AggregateMetric get() {
-                return AggregateMetrics.fromJson(node.get("arg2"), namedMetricLookup);
+                return AggregateMetrics.fromJson(node.get("arg2"), namedMetricLookup, groupKeySet);
             }
         };
         final Supplier<AggregateFilter> f1 = new Supplier<AggregateFilter>() {
             public AggregateFilter get() {
-                return fromJson(node.get("arg1"), namedMetricLookup);
+                return fromJson(node.get("arg1"), namedMetricLookup, groupKeySet);
             }
         };
         final Supplier<AggregateFilter> f2 = new Supplier<AggregateFilter>() {
             public AggregateFilter get() {
-                return fromJson(node.get("arg2"), namedMetricLookup);
+                return fromJson(node.get("arg2"), namedMetricLookup, groupKeySet);
             }
         };
         switch (node.get("type").textValue()) {
             case "termEquals":
                 return new AggregateFilter.TermEquals(Term.fromJson(node.get("value")));
             case "not":
-                return new AggregateFilter.Not(fromJson(node.get("value"), namedMetricLookup));
+                return new AggregateFilter.Not(fromJson(node.get("value"), namedMetricLookup, groupKeySet));
             case "regex":
                 return new AggregateFilter.RegexFilter(node.get("value").textValue());
             case "metricEquals":
@@ -56,6 +57,8 @@ public class AggregateFilters {
                 return new AggregateFilter.Or(f1.get(), f2.get());
             case "always":
                 return new AggregateFilter.Constant(true);
+            case "isDefaultGroup":
+                return new AggregateFilter.IsDefaultGroup(groupKeySet);
         }
         throw new RuntimeException("Oops: " + node);
     }

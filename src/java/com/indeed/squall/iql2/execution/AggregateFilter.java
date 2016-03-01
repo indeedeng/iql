@@ -490,4 +490,41 @@ public interface AggregateFilter extends Pushable{
             return value;
         }
     }
+
+    class IsDefaultGroup implements AggregateFilter {
+        private final GroupKeySet keySet;
+
+        public IsDefaultGroup(GroupKeySet keySet) {
+            this.keySet = keySet;
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            final boolean[] result = new boolean[numGroups + 1];
+            for (int i = 0; i <= numGroups; i++) {
+                result[i] = keySet.isPresent(i) && keySet.groupKey(i).isDefault();
+            }
+            return result;
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return keySet.groupKey(group).isDefault();
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return keySet.groupKey(group).isDefault();
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+
+        }
+    }
 }

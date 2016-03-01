@@ -6,25 +6,26 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.AggregateFilters;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AggregateMetrics {
-    public static AggregateMetric fromJson(final JsonNode node, final Function<String, PerGroupConstant> namedMetricLookup) {
+    public static AggregateMetric fromJson(final JsonNode node, final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
         final Supplier<AggregateMetric> m1 = new Supplier<AggregateMetric>() {
             public AggregateMetric get() {
-                return fromJson(node.get("m1"), namedMetricLookup);
+                return fromJson(node.get("m1"), namedMetricLookup, groupKeySet);
             }
         };
         final Supplier<AggregateMetric> m2 = new Supplier<AggregateMetric>() {
             public AggregateMetric get() {
-                return fromJson(node.get("m2"), namedMetricLookup);
+                return fromJson(node.get("m2"), namedMetricLookup, groupKeySet);
             }
         };
         final Supplier<AggregateMetric> value = new Supplier<AggregateMetric>() {
             public AggregateMetric get() {
-                return fromJson(node.get("value"), namedMetricLookup);
+                return fromJson(node.get("value"), namedMetricLookup, groupKeySet);
             }
         };
         switch (node.get("type").textValue()) {
@@ -62,12 +63,12 @@ public class AggregateMetrics {
             }
             case "lag": {
                 final int delay = node.get("delay").intValue();
-                final AggregateMetric metric = fromJson(node.get("m"), namedMetricLookup);
+                final AggregateMetric metric = fromJson(node.get("m"), namedMetricLookup, groupKeySet);
                 return new ParentLag(delay, metric);
             }
             case "iterateLag": {
                 final int delay = node.get("delay").intValue();
-                final AggregateMetric metric = fromJson(node.get("m"), namedMetricLookup);
+                final AggregateMetric metric = fromJson(node.get("m"), namedMetricLookup, groupKeySet);
                 return new IterateLag(delay, metric);
             }
             case "modulus": {
@@ -83,16 +84,16 @@ public class AggregateMetrics {
                 return new SumChildren(value.get());
             }
             case "ifThenElse": {
-                final AggregateFilter condition = AggregateFilters.fromJson(node.get("condition"), namedMetricLookup);
-                final AggregateMetric trueCase = fromJson(node.get("trueCase"), namedMetricLookup);
-                final AggregateMetric falseCase = fromJson(node.get("falseCase"), namedMetricLookup);
+                final AggregateFilter condition = AggregateFilters.fromJson(node.get("condition"), namedMetricLookup, groupKeySet);
+                final AggregateMetric trueCase = fromJson(node.get("trueCase"), namedMetricLookup, groupKeySet);
+                final AggregateMetric falseCase = fromJson(node.get("falseCase"), namedMetricLookup, groupKeySet);
                 return new IfThenElse(condition, trueCase, falseCase);
             }
             case "min": {
                 final List<AggregateMetric> metrics = new ArrayList<>();
                 final JsonNode jsonMetrics = node.get("metrics");
                 for (int i = 0; i < jsonMetrics.size(); i++) {
-                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup));
+                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup, groupKeySet));
                 }
                 return new Min(metrics);
             }
@@ -100,7 +101,7 @@ public class AggregateMetrics {
                 final List<AggregateMetric> metrics = new ArrayList<>();
                 final JsonNode jsonMetrics = node.get("metrics");
                 for (int i = 0; i < jsonMetrics.size(); i++) {
-                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup));
+                    metrics.add(fromJson(jsonMetrics.get(i), namedMetricLookup, groupKeySet));
                 }
                 return new Max(metrics);
             }

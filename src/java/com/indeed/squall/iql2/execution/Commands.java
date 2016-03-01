@@ -41,6 +41,7 @@ import com.indeed.squall.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -60,17 +61,17 @@ import java.util.Set;
 public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
-    public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup) {
+    public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         switch (command.get("command").textValue()) {
             case "simpleIterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final JsonNode selects = command.get("selects");
                 for (int i = 0; i < selects.size(); i++) {
-                    selecting.add(AggregateMetrics.fromJson(selects.get(i), namedMetricLookup));
+                    selecting.add(AggregateMetrics.fromJson(selects.get(i), namedMetricLookup, groupKeySet));
                 }
                 final String field = command.get("field").textValue();
                 final FieldIterateOpts opts = new FieldIterateOpts();
-                opts.parseFrom(command.get("opts"), namedMetricLookup);
+                opts.parseFrom(command.get("opts"), namedMetricLookup, groupKeySet);
                 final boolean streamResult = command.get("streamResult").booleanValue();
                 return new SimpleIterate(field, opts, selecting, streamResult, null);
             }
@@ -92,7 +93,7 @@ public class Commands {
             case "getGroupStats": {
                 final List<AggregateMetric> metrics = Lists.newArrayListWithCapacity(command.get("metrics").size());
                 for (final JsonNode metric : command.get("metrics")) {
-                    metrics.add(AggregateMetrics.fromJson(metric, namedMetricLookup));
+                    metrics.add(AggregateMetrics.fromJson(metric, namedMetricLookup, groupKeySet));
                 }
                 boolean returnGroupKeys = false;
                 for (final JsonNode opt : command.get("opts")) {
@@ -124,7 +125,7 @@ public class Commands {
                 if (filterNode.isNull()) {
                     filter = Optional.absent();
                 } else {
-                    filter = Optional.of(AggregateFilters.fromJson(filterNode, namedMetricLookup));
+                    filter = Optional.of(AggregateFilters.fromJson(filterNode, namedMetricLookup, groupKeySet));
                 }
                 return new GetGroupDistincts(scope, field, filter, windowSize);
             }
@@ -212,19 +213,19 @@ public class Commands {
 
                 final List<AggregateMetric> selecting = Lists.newArrayList();
                 final FieldIterateOpts fieldOpts = new FieldIterateOpts();
-                parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"));
+                parseIterateOpts(namedMetricLookup, selecting, fieldOpts, command.get("iterOpts"), groupKeySet);
 
                 return new IterateAndExplode(field, selecting, fieldOpts, explodeDefaultName, null);
             }
             case "computeAndCreateGroupStatsLookup": {
-                final Command computation = parseCommand(command.get("computation"), namedMetricLookup);
+                final Command computation = parseCommand(command.get("computation"), namedMetricLookup, groupKeySet);
                 validatePrecomputedCommand(computation);
                 return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
             }
             case "computeAndCreateGroupStatsLookups": {
                 final List<Pair<Command, String>> namedComputations = Lists.newArrayList();
                 for (final JsonNode namedComputation : command.get("computations")) {
-                    final Command computation = parseCommand(namedComputation.get(0), namedMetricLookup);
+                    final Command computation = parseCommand(namedComputation.get(0), namedMetricLookup, groupKeySet);
                     validatePrecomputedCommand(computation);
                     final String name = namedComputation.get(1).textValue();
                     namedComputations.add(Pair.of(computation, name));
@@ -233,7 +234,7 @@ public class Commands {
             }
             case "explodeByAggregatePercentile": {
                 final String field = command.get("field").textValue();
-                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
+                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup, groupKeySet);
                 final int numBuckets = command.get("numBuckets").intValue();
                 return new ExplodeByAggregatePercentile(field, metric, numBuckets);
             }
@@ -245,12 +246,12 @@ public class Commands {
             case "sumAcross": {
                 final Set<String> scope = parseScope(command);
                 final String field = command.get("field").textValue();
-                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup);
+                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup, groupKeySet);
                 final Optional<AggregateFilter> filter;
                 if (command.get("filter").isNull()) {
                     filter = Optional.absent();
                 } else {
-                    filter = Optional.of(AggregateFilters.fromJson(command.get("filter"), namedMetricLookup));
+                    filter = Optional.of(AggregateFilters.fromJson(command.get("filter"), namedMetricLookup, groupKeySet));
                 }
                 return new SumAcross(scope, field, metric, filter);
             }
@@ -258,7 +259,7 @@ public class Commands {
                 return new RegroupIntoParent(GroupLookupMergeType.parseJson(command.get("mergeType")));
             }
             case "regroupIntoLastSiblingWhere": {
-                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup);
+                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup, groupKeySet);
                 final GroupLookupMergeType mergeType = GroupLookupMergeType.parseJson(command.get("mergeType"));
                 return new RegroupIntoLastSiblingWhere(filter, mergeType);
             }
@@ -313,7 +314,7 @@ public class Commands {
                 return new GetFieldMin(parseScope(command), command.get("field").textValue());
             }
             case "applyGroupFilter": {
-                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup);
+                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup, groupKeySet);
                 return new ApplyGroupFilter(filter);
             }
             case "regroupFieldIn": {
@@ -374,17 +375,17 @@ public class Commands {
         return name;
     }
 
-    public static void parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, FieldIterateOpts defaultOpts, JsonNode globalOpts) {
+    public static void parseIterateOpts(Function<String, PerGroupConstant> namedMetricLookup, List<AggregateMetric> selecting, FieldIterateOpts defaultOpts, JsonNode globalOpts, GroupKeySet groupKeySet) {
         for (final JsonNode globalOpt : globalOpts) {
             switch (globalOpt.get("type").textValue()) {
                 case "selecting": {
                     for (final JsonNode metric : globalOpt.get("metrics")) {
-                        selecting.add(AggregateMetrics.fromJson(metric, namedMetricLookup));
+                        selecting.add(AggregateMetrics.fromJson(metric, namedMetricLookup, groupKeySet));
                     }
                     break;
                 }
                 case "defaultedFieldOpts": {
-                    defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup);
+                    defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup, groupKeySet);
                     break;
                 }
             }

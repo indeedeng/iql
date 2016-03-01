@@ -86,7 +86,7 @@ public class IntRegroupFieldIn implements Command {
         public GroupKey groupKey(int group) {
             final int termIndex = (group - 1) % groupsPerOldGroup();
             if (termIndex == this.groupKeys.length) {
-                return DefaultGroupKey.INSTANCE;
+                return DefaultGroupKey.DEFAULT_INSTANCE;
             }
             return this.groupKeys[(termIndex)];
         }

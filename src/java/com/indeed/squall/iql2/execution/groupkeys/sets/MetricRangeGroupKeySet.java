@@ -44,7 +44,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
         } else if (!excludeGutters && innerGroup == numBuckets - 2) {
             return new LowGutterGroupKey(min);
         } else if (withDefaultBucket && innerGroup == numBuckets - 1) {
-            return DefaultGroupKey.INSTANCE;
+            return DefaultGroupKey.DEFAULT_INSTANCE;
         } else {
             if (interval == 1) {
                 return new SingleValueGroupKey(min + innerGroup);

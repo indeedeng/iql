@@ -12,6 +12,11 @@ public class InitialGroupKey extends GroupKey {
     }
 
     @Override
+    public boolean isDefault() {
+        return false;
+    }
+
+    @Override
     public String toString() {
         return "InitialGroupKey{}";
     }
