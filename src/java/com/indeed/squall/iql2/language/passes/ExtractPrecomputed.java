@@ -35,6 +35,7 @@ public class ExtractPrecomputed {
             final GroupByMaybeHaving groupBy = query.groupBys.get(i);
             processor.setDepth(i + 1);
             processor.setStartDepth(i + 1);
+            processor.setMaxDepth(i + 1);
             groupBys.add(groupBy.traverse1(processor));
         }
         final List<AggregateMetric> selects = new ArrayList<>();
