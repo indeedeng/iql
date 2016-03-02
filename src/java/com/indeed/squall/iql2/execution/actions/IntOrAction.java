@@ -48,7 +48,7 @@ public class IntOrAction implements Action {
                     }
                     Arrays.sort(terms);
                     session.timer.pop();
-                    session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(field));
+                    session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(e.getKey()));
                 }
             }
         }
