@@ -428,16 +428,23 @@ public class Session {
                     if (simpleIterate.streamResult) {
                         // result already sent
                     } else {
+                        final String[] formatStrings = new String[simpleIterate.selecting.size()];
+                        for (int i = 0; i < formatStrings.length; i++) {
+                            final Optional<String> opt = simpleIterate.formatStrings.get(i);
+                            formatStrings[i] = opt.isPresent() ? opt.get() : null;
+                        }
+
                         for (final List<List<TermSelects>> groupFieldTerms : result) {
                             final List<TermSelects> groupTerms = groupFieldTerms.get(0);
                             for (final TermSelects termSelect : groupTerms) {
                                 if (!groupKeySet.isPresent(termSelect.group)) {
                                     continue;
                                 }
+                                // TODO: propagate PRINTF info
                                 if (termSelect.isIntTerm) {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects, formatStrings));
                                 } else {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.stringTerm, termSelect.selects));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.stringTerm, termSelect.selects, formatStrings));
                                 }
                             }
                         }
@@ -446,6 +453,13 @@ public class Session {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
                     final List<GroupStats> results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
+
+                    final String[] formatStrings = new String[getGroupStats.metrics.size()];
+                    for (int i = 0; i < formatStrings.length; i++) {
+                        final Optional<String> opt = getGroupStats.formatStrings.get(i);
+                        formatStrings[i] = opt.isPresent() ? opt.get() : null;
+                    }
+
                     for (final GroupStats result : results) {
                         if (!groupKeySet.isPresent(result.group)) {
                             continue;
@@ -458,8 +472,12 @@ public class Session {
                                 sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                             }
                         }
-                        for (final double stat : result.stats) {
-                            if (DoubleMath.isMathematicalInteger(stat)) {
+                        final double[] stats = result.stats;
+                        for (int i = 0; i < stats.length; i++) {
+                            final double stat = stats[i];
+                            if (formatStrings[i] != null) {
+                                sb.append(String.format(formatStrings[i], stat)).append('\t');
+                            } else if (DoubleMath.isMathematicalInteger(stat)) {
                                 sb.append(String.format("%.0f", stat)).append('\t');
                             } else {
                                 sb.append(stat).append('\t');

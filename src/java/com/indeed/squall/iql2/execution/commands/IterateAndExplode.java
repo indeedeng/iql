@@ -38,7 +38,7 @@ public class IterateAndExplode implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         // TODO: Short-circuit group limit earlier in SimpleIterate, rather than in ExplodePerGroup::execute.
-        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, false, scope).evaluate(session, out);
+        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
             if (groupResults.size() > 0) {

@@ -3,9 +3,11 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.indeed.common.datastruct.Iterables2;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.actions.Action;
@@ -49,7 +51,9 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +77,8 @@ public class Commands {
                 final FieldIterateOpts opts = new FieldIterateOpts();
                 opts.parseFrom(command.get("opts"), namedMetricLookup, groupKeySet);
                 final boolean streamResult = command.get("streamResult").booleanValue();
-                return new SimpleIterate(field, opts, selecting, streamResult, null);
+                final List<Optional<String>> formatStrings = readFormatStrings(command, selecting.size());
+                return new SimpleIterate(field, opts, selecting, formatStrings, streamResult, null);
             }
             case "filterDocs": {
                 final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();
@@ -104,7 +109,8 @@ public class Commands {
                         }
                     }
                 }
-                return new GetGroupStats(metrics, returnGroupKeys);
+                final List<Optional<String>> formatStrings = readFormatStrings(command, metrics.size());
+                return new GetGroupStats(metrics, formatStrings, returnGroupKeys);
             }
             case "createGroupStatsLookup": {
                 final JsonNode valuesNode = command.get("values");
@@ -338,6 +344,26 @@ public class Commands {
             }
         }
         throw new RuntimeException("oops:" + command);
+    }
+
+    @Nonnull
+    private static List<Optional<String>> readFormatStrings(JsonNode command, int numMetrics) {
+        final List<Optional<String>> formatStrings;
+        if (command.has("formatStrings")) {
+            final JsonNode strings = command.get("formatStrings");
+            formatStrings = new ArrayList<>(strings.size());
+            for (int i = 0; i < strings.size(); i++) {
+                final JsonNode string = strings.get(i);
+                if (string.isNull()) {
+                    formatStrings.add(Optional.<String>absent());
+                } else {
+                    formatStrings.add(Optional.of(string.textValue()));
+                }
+            }
+        } else {
+            formatStrings = Collections.nCopies(numMetrics, Optional.<String>absent());
+        }
+        return formatStrings;
     }
 
     public static Set<String> parseScope(JsonNode command) {

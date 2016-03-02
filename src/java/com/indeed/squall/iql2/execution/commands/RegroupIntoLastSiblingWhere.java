@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Optional;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -15,6 +16,7 @@ import com.indeed.squall.iql2.execution.metrics.aggregate.IfThenElse;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class RegroupIntoLastSiblingWhere implements Command {
@@ -30,7 +32,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, JsonProcessingException {
         // TODO: This could be made way more efficient, but I think this should work.
         session.timer.push("GetGroupStats(IfThenElse(filter, 1, 0))");
-        final GetGroupStats getGroupStats = new GetGroupStats(Arrays.<AggregateMetric>asList(new IfThenElse(filter, new Constant(1), new Constant(0))), false);
+        final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new IfThenElse(filter, new Constant(1), new Constant(0))), Collections.singletonList(Optional.<String>absent()), false);
         final List<Session.GroupStats> theStats = getGroupStats.evaluate(session);
         session.timer.pop();
 

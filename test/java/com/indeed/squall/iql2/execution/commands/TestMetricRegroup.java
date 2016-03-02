@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -46,7 +47,7 @@ public class TestMetricRegroup {
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, false, false);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
-            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), false);
+            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
@@ -71,7 +72,7 @@ public class TestMetricRegroup {
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, false);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
-            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), false);
+            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
@@ -94,7 +95,7 @@ public class TestMetricRegroup {
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, true);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
-            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), false);
+            final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(

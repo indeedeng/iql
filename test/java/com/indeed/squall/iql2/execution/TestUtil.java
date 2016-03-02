@@ -8,7 +8,6 @@ import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepJavaLocalSession;
-import com.indeed.imhotep.local.ImhotepLocalSession;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
@@ -123,7 +122,7 @@ public class TestUtil {
                 commands.add(new GetGroupDistincts(Collections.singleton(dataset), field, Optional.<AggregateFilter>absent(), 1));
             }
         }
-        commands.add(new GetGroupStats(metrics, false));
+        commands.add(new GetGroupStats(metrics, Collections.nCopies(metrics.size(), Optional.<String>absent()), false));
         return commands;
     }
 

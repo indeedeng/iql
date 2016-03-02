@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -19,16 +20,56 @@ import java.util.Set;
 
 public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
+    public final List<Optional<String>> formatStrings;
     public final boolean returnGroupKeys;
 
-    public GetGroupStats(List<AggregateMetric> metrics, boolean returnGroupKeys) {
+    public GetGroupStats(List<AggregateMetric> metrics, List<Optional<String>> formatStrings, boolean returnGroupKeys) {
         this.metrics = metrics;
+        this.formatStrings = formatStrings;
         this.returnGroupKeys = returnGroupKeys;
     }
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        out.accept(Session.MAPPER.writeValueAsString(evaluate(session)));
+        out.accept(stringify(evaluate(session)));
+    }
+
+    private String stringify(List<Session.GroupStats> groupStatses) {
+        final String[] formatStrings = new String[metrics.size()];
+        for (int i = 0; i < formatStrings.length; i++) {
+            formatStrings[i] = this.formatStrings.get(i).orNull();
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        // TODO: This is all horrible. Like seriously.
+        sb.append('[');
+        boolean firstGs = true;
+        for (final Session.GroupStats gs : groupStatses) {
+            if (!firstGs) {
+                sb.append(',');
+            }
+            firstGs = false;
+            sb.append('{');
+            sb.append("\"group\":").append(gs.group);
+            sb.append(',').append("\"stats\":");
+            sb.append('[');
+            double[] stats = gs.stats;
+            for (int i = 0; i < stats.length; i++) {
+                final double stat = stats[i];
+                if (i > 0) {
+                    sb.append(',');
+                }
+                if (formatStrings[i] == null) {
+                    sb.append(String.valueOf(stat));
+                } else {
+                    sb.append(String.format(formatStrings[i], stat));
+                }
+            }
+            sb.append(']');
+            sb.append('}');
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {

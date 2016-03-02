@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,14 +43,16 @@ public class SimpleIterate implements Command {
     public final String field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
+    public final List<Optional<String>> formatStrings;
     public final boolean streamResult;
     @Nullable
     public final Set<String> scope;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult, Set<String> scope) {
+    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
+        this.formatStrings = formatStrings;
         this.streamResult = streamResult;
         this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
         if (this.streamResult && opts.topK.isPresent()) {
@@ -210,16 +213,19 @@ public class SimpleIterate implements Command {
     }
 
     // TODO: Move this
-    public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer) {
+    public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer, String[] formatStrings) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
             sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
         sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(term).replaceAll("\uFFFD")).append('\t');
-        for (final double stat : selectBuffer) {
-            if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append((long)stat).append('\t');
+        for (int i = 0; i < selectBuffer.length; i++) {
+            final double stat = selectBuffer[i];
+            if (formatStrings[i] != null) {
+                sb.append(String.format(formatStrings[i], stat)).append('\t');
+            } else if (DoubleMath.isMathematicalInteger(stat)) {
+                sb.append((long) stat).append('\t');
             } else {
                 sb.append(stat).append('\t');
             }
@@ -231,16 +237,19 @@ public class SimpleIterate implements Command {
     }
 
     // TODO: Move this
-    public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer) {
+    public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer, String[] formatStrings) {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
             sb.append(k).append('\t');
         }
         sb.append(term).append('\t');
-        for (final double stat : selectBuffer) {
-            if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append((long)stat).append('\t');
+        for (int i = 0; i < selectBuffer.length; i++) {
+            final double stat = selectBuffer[i];
+            if (formatStrings[i] != null) {
+                sb.append(String.format(formatStrings[i], stat)).append('\t');
+            } else if (DoubleMath.isMathematicalInteger(stat)) {
+                sb.append((long) stat).append('\t');
             } else {
                 sb.append(stat).append('\t');
             }
@@ -252,6 +261,8 @@ public class SimpleIterate implements Command {
     }
 
     private Session.StringIterateCallback streamingStringCallback(final Session session, final AggregateFilter filterOrNull, final Consumer<String> out) {
+        final String[] formatStrings = formFormatStrings();
+
         return new Session.StringIterateCallback() {
             @Override
             public void term(String term, long[] stats, int group) {
@@ -262,9 +273,19 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                out.accept(createRow(session.groupKeySet, group, term, selectBuffer));
+                out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
             }
         };
+    }
+
+    @Nonnull
+    private String[] formFormatStrings() {
+        final String[] formatStrings = new String[selecting.size()];
+        for (int i = 0; i < formatStrings.length; i++) {
+            final Optional<String> opt = this.formatStrings.get(i);
+            formatStrings[i] = opt.isPresent() ? opt.get() : null;
+        }
+        return formatStrings;
     }
 
     private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final DenseInt2ObjectMap<Queue<TermSelects>> pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
@@ -290,6 +311,7 @@ public class SimpleIterate implements Command {
     }
 
     private Session.IntIterateCallback streamingIntCallback(final Session session, final AggregateFilter filterOrNull, final Consumer<String> out) {
+        final String[] formatStrings = formFormatStrings();
         return new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
@@ -300,7 +322,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                out.accept(createRow(session.groupKeySet, group, term, selectBuffer));
+                out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
             }
         };
     }
