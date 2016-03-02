@@ -82,6 +82,8 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -856,7 +858,7 @@ public class QueryServlet {
 
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
-        final Set<DatasetWithTimeRange> datasetsWithTimeRange = Sets.newHashSet();
+        final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
         final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
@@ -868,7 +870,11 @@ public class QueryServlet {
                 // This needs to be associated with the session name, not just the actualDataset.
                 shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
             }
-            datasetsWithTimeRange.add(new DatasetWithTimeRange(actualDataset, dataset.startInclusive.getMillis(), dataset.endExclusive.getMillis()));
+            final Set<FieldAlias> fieldAliases = Sets.newHashSet();
+            for (final Map.Entry<String, String> e : dataset.fieldAliases.entrySet()) {
+                fieldAliases.add(new FieldAlias(e.getValue(), e.getKey()));
+            }
+            datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.getMillis(), dataset.endExclusive.getMillis(), fieldAliases));
             final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
             if (oldShards != null) {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
@@ -921,7 +927,7 @@ public class QueryServlet {
         }
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRange> datasets, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -933,10 +939,20 @@ public class QueryServlet {
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }
-        for (final DatasetWithTimeRange dataset : datasets) {
+        for (final DatasetWithTimeRangeAndAliases dataset : datasets) {
             sha1.update(dataset.dataset.getBytes(Charsets.UTF_8));
             sha1.update(Longs.toByteArray(dataset.start));
             sha1.update(Longs.toByteArray(dataset.end));
+            final List<FieldAlias> sortedFieldAliases = Lists.newArrayList(dataset.fieldAliases);
+            Collections.sort(sortedFieldAliases, new Comparator<FieldAlias>() {
+                @Override
+                public int compare(FieldAlias o1, FieldAlias o2) {
+                    return o1.newName.compareTo(o2.newName);
+                }
+            });
+            for (final FieldAlias fieldAlias : sortedFieldAliases) {
+                sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
+            }
         }
         sha1.update(Ints.toByteArray(rowLimit.or(-1)));
         for (final Pair<String, String> pair : shards) {
@@ -1004,38 +1020,42 @@ public class QueryServlet {
         log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
     }
 
-    private static class DatasetWithTimeRange {
+    private static class DatasetWithTimeRangeAndAliases {
         public final String dataset;
         public final long start;
         public final long end;
+        public final Set<FieldAlias> fieldAliases;
 
-        private DatasetWithTimeRange(String dataset, long start, long end) {
+        private DatasetWithTimeRangeAndAliases(String dataset, long start, long end, Set<FieldAlias> fieldAliases) {
             this.dataset = dataset;
             this.start = start;
             this.end = end;
+            this.fieldAliases = fieldAliases;
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            DatasetWithTimeRange that = (DatasetWithTimeRange) o;
+            DatasetWithTimeRangeAndAliases that = (DatasetWithTimeRangeAndAliases) o;
             return start == that.start &&
                     end == that.end &&
-                    Objects.equals(dataset, that.dataset);
+                    Objects.equals(dataset, that.dataset) &&
+                    Objects.equals(fieldAliases, that.fieldAliases);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(dataset, start, end);
+            return Objects.hash(dataset, start, end, fieldAliases);
         }
 
         @Override
         public String toString() {
-            return "DatasetWithTimeRange{" +
+            return "DatasetWithTimeRangeAndAliases{" +
                     "dataset='" + dataset + '\'' +
                     ", start=" + start +
                     ", end=" + end +
+                    ", fieldAliases=" + fieldAliases +
                     '}';
         }
     }
@@ -1047,6 +1067,38 @@ public class QueryServlet {
         private ComputeCacheKey(Map<String, List<ShardIdWithVersion>> datasetToChosenShards, String cacheFileName) {
             this.datasetToChosenShards = datasetToChosenShards;
             this.cacheFileName = cacheFileName;
+        }
+    }
+
+    private static class FieldAlias {
+        public final String originalName;
+        public final String newName;
+
+        private FieldAlias(String originalName, String newName) {
+            this.originalName = originalName;
+            this.newName = newName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldAlias that = (FieldAlias) o;
+            return Objects.equals(originalName, that.originalName) &&
+                    Objects.equals(newName, that.newName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(originalName, newName);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldAlias{" +
+                    "originalName='" + originalName + '\'' +
+                    ", newName='" + newName + '\'' +
+                    '}';
         }
     }
 }
