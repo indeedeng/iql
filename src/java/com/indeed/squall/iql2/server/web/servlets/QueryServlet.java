@@ -688,11 +688,14 @@ public class QueryServlet {
                             final ScopedField scopedField = fieldInQuery.field;
 
                             final List<DocFilter> filters = new ArrayList<>();
-                            if (!p.getFirst().isEmpty()) {
-                                filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
-                            }
                             if (!p.getSecond().isEmpty()) {
-                                filters.add(new DocFilter.StringFieldIn(getKeywordAnalyzerWhitelist(), scopedField.field, p.getSecond()));
+                                final Set<String> terms = Sets.newHashSet(p.getSecond());
+                                for (final long v : p.getFirst()) {
+                                    terms.add(String.valueOf(v));
+                                }
+                                filters.add(new DocFilter.StringFieldIn(getKeywordAnalyzerWhitelist(), scopedField.field, terms));
+                            } else if (!p.getFirst().isEmpty()) {
+                                filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
                             }
                             final DocFilter.Ors orred = new DocFilter.Ors(filters);
                             final DocFilter maybeNegated;
