@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.*;
 
+import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
+
 public class DocFilters {
     public static DocFilter and(List<DocFilter> filters) {
         if (filters == null || filters.isEmpty()) {
@@ -46,7 +48,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final String field = parseIdentifier(ctx.field);
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
                 accept(new DocFilter.Between(field, lowerBound, upperBound));
@@ -54,7 +56,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIn(JQLParser.LegacyDocFieldInContext ctx) {
-                String field = ctx.field.getText().toUpperCase();
+                String field = parseIdentifier(ctx.field);
                 final List<JQLParser.LegacyTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
                 final ArrayList<Term> termsList = new ArrayList<>();
@@ -66,12 +68,12 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIsnt(JQLParser.LegacyDocFieldIsntContext ctx) {
-                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal())));
+                accept(new DocFilter.FieldIsnt(datasetToKeywordAnalyzerFields, parseIdentifier(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
             public void enterLegacyDocSample(JQLParser.LegacyDocSampleContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final String field = parseIdentifier(ctx.field);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -95,17 +97,17 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocRegex(JQLParser.LegacyDocRegexContext ctx) {
-                accept(new DocFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.Regex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override
             public void enterLegacyDocFieldIs(JQLParser.LegacyDocFieldIsContext ctx) {
-                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal())));
+                accept(new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, parseIdentifier(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal())));
             }
 
             @Override
             public void enterLegacyDocLuceneFieldIs(JQLParser.LegacyDocLuceneFieldIsContext ctx) {
-                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, ctx.field.getText().toUpperCase(), Term.parseLegacyTerm(ctx.legacyTermVal()));
+                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, parseIdentifier(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal()));
                 if (ctx.negate == null) {
                     accept(fieldIs);
                 } else {
@@ -172,7 +174,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocNotRegex(JQLParser.LegacyDocNotRegexContext ctx) {
-                accept(new DocFilter.NotRegex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new DocFilter.NotRegex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             @Override

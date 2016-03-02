@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
+
 public class DocMetrics {
     public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         if (metricContext.jqlDocMetric() != null) {
@@ -143,24 +145,24 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomHasString(JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText())));
+                accept(new DocMetric.HasString(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.term.getText())));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasntString(JQLParser.LegacyDocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.term.getText()))));
+                accept(negateMetric(new DocMetric.HasString(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.term.getText()))));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final String field = parseIdentifier(ctx.field);
                 final long term = Long.parseLong(ctx.integer().getText());
                 accept(new DocMetric.HasInt(field, term));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasntInt(JQLParser.LegacyDocMetricAtomHasntIntContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final String field = parseIdentifier(ctx.field);
                 final long term = Long.parseLong(ctx.integer().getText());
                 accept(negateMetric(new DocMetric.HasInt(field, term)));
             }
@@ -180,7 +182,7 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomFloatScale(JQLParser.LegacyDocMetricAtomFloatScaleContext ctx) {
-                final String field = ctx.field.getText().toUpperCase();
+                final String field = parseIdentifier(ctx.field);
                 final double mult = ctx.mult == null ? 1.0 : Double.parseDouble(ctx.mult.getText());
                 final double add = ctx.add == null ? 0.0 : Double.parseDouble(ctx.add.getText());
                 accept(new DocMetric.FloatScale(field, mult, add));
@@ -188,7 +190,7 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomRawField(JQLParser.LegacyDocMetricAtomRawFieldContext ctx) {
-                accept(new DocMetric.Field(ctx.identifier().getText().toUpperCase()));
+                accept(new DocMetric.Field(parseIdentifier(ctx.identifier())));
             }
         });
 

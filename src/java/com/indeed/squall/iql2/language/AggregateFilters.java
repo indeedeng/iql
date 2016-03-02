@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
+
 public class AggregateFilters {
     public static AggregateFilter aggregateInHelper(List<JQLParser.TermValContext> terms, boolean negate) {
         AggregateFilter filter = null;
@@ -47,7 +49,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
-                accept(new AggregateFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new AggregateFilter.Regex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             public void enterAggregateFalse(JQLParser.AggregateFalseContext ctx) {
@@ -59,7 +61,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
-                accept(new AggregateFilter.Not(new AggregateFilter.Regex(ctx.field.getText().toUpperCase(), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new AggregateFilter.Not(new AggregateFilter.Regex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             public void enterAggregateTrue(JQLParser.AggregateTrueContext ctx) {

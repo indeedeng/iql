@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
+import com.indeed.squall.iql2.language.Identifiers;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
@@ -20,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
 public class Dataset {
     static {
@@ -51,12 +54,12 @@ public class Dataset {
     }
 
     public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
-        final String dataset = datasetContext.index.getText().toUpperCase();
+        final String dataset = parseIdentifier(datasetContext.index);
         final DateTime start = parseDateTime(datasetContext.start, clock);
         final DateTime end = parseDateTime(datasetContext.end, clock);
         final Optional<String> name;
         if (datasetContext.name != null) {
-            name = Optional.of(datasetContext.name.getText().toUpperCase());
+            name = Optional.of(parseIdentifier(datasetContext.name));
         } else {
             name = Optional.absent();
         }
@@ -90,10 +93,10 @@ public class Dataset {
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
-                final String dataset = ctx.index.getText().toUpperCase();
+                final String dataset = parseIdentifier(ctx.index);
                 final Optional<String> name;
                 if (ctx.name != null) {
-                    name = Optional.of(ctx.name.getText().toUpperCase());
+                    name = Optional.of(parseIdentifier(ctx.name));
                 } else {
                     name = Optional.absent();
                 }
@@ -128,8 +131,8 @@ public class Dataset {
         }
         final Map<String, String> result = new HashMap<>();
         for (int i = 0; i < aliases.virtual.size(); i++) {
-            final String actual = aliases.actual.get(i).getText().toUpperCase();
-            final String virtual = aliases.virtual.get(i).getText().toUpperCase();
+            final String actual = parseIdentifier(aliases.actual.get(i));
+            final String virtual = parseIdentifier(aliases.virtual.get(i));
             result.put(virtual, actual);
         }
         return result;

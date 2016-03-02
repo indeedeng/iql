@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
+
 public class AggregateMetrics {
     public static AggregateMetric parseAggregateMetric(JQLParser.AggregateMetricContext metricContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         if (metricContext.jqlAggregateMetric() != null) {
@@ -40,7 +42,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregatePercentile(JQLParser.LegacyAggregatePercentileContext ctx) {
-                accept(new AggregateMetric.Percentile(ctx.identifier().getText(), Double.parseDouble(ctx.number().getText())));
+                accept(new AggregateMetric.Percentile(parseIdentifier(ctx.identifier()), Double.parseDouble(ctx.number().getText())));
             }
 
             @Override
@@ -61,7 +63,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDistinct(JQLParser.LegacyAggregateDistinctContext ctx) {
-                accept(new AggregateMetric.Distinct(ctx.identifier().getText().toUpperCase(), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
+                accept(new AggregateMetric.Distinct(parseIdentifier(ctx.identifier()), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
             }
 
             @Override
@@ -126,7 +128,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateQualified(JQLParser.AggregateQualifiedContext ctx) {
-                final List<String> scope = Collections.singletonList(ctx.field.getText().toUpperCase());
+                final List<String> scope = Collections.singletonList(parseIdentifier(ctx.field));
                 final AggregateMetric metric;
                 if (ctx.syntacticallyAtomicJqlAggregateMetric() != null) {
                     metric = parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -171,7 +173,7 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateNamed(JQLParser.AggregateNamedContext ctx) {
                 final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final String name = ctx.name.getText().toUpperCase();
+                final String name = parseIdentifier(ctx.name);
                 accept(new AggregateMetric.Named(metric, name));
             }
 
@@ -297,12 +299,12 @@ public class AggregateMetrics {
                 if (ctx.havingBrackets != null) {
                     warn.accept("Used square brackets in AVG_OVER HAVING. This is no longer necessary and is deprecated.");
                 }
-                final String field = ctx.field.getText().toUpperCase();
-                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
-                accept(new AggregateMetric.Divide(
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
+                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                accept(scopedField.wrap(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)),
-                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
-                ));
+                        new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())
+                )));
             }
 
             @Override
