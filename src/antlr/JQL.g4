@@ -67,6 +67,7 @@ EXP : 'EXP' ;
 WINDOW_SUM : 'WINDOW_SUM' ;
 MIN : 'MIN' ;
 MAX : 'MAX' ;
+PRINTF : 'PRINTF' ;
 
 Y : 'Y' ;
 
@@ -107,6 +108,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
+    | PRINTF
     | BACKQUOTED_ID
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
@@ -458,8 +460,13 @@ groupByContents [boolean useLegacy]
     : (groupByElementWithHaving[$ctx.useLegacy] (',' groupByElementWithHaving[$ctx.useLegacy])*)?
     ;
 
+formattedAggregateMetric [boolean useLegacy]
+    : aggregateMetric[$ctx.useLegacy]
+    | PRINTF '(' aggregateMetric[$ctx.useLegacy] ',' STRING_LITERAL ')'
+    ;
+
 selectContents [boolean useLegacy]
-    : (aggregateMetric[$ctx.useLegacy] (',' aggregateMetric[$ctx.useLegacy])*)?
+    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)?
     ;
 
 query [boolean useLegacy]

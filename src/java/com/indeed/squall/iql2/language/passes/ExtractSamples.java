@@ -36,7 +36,7 @@ public class ExtractSamples {
         if (query.filter.isPresent()) {
             final Set<String> globalScope = query.extractDatasetNames();
             final Result result = extractSamples(query.filter.get(), globalScope);
-            final Query newQuery = new Query(query.datasets, Optional.of(result.sampleFree), query.groupBys, query.selects, query.rowLimit);
+            final Query newQuery = new Query(query.datasets, Optional.of(result.sampleFree), query.groupBys, query.selects, query.formatStrings, query.rowLimit);
             if (containsSamples(newQuery)) {
                 throw new IllegalArgumentException("Query contains SAMPLE() filter outside of top spine of WHERE filter! [" + query + "]");
             }

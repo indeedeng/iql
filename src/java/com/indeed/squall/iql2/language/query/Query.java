@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
@@ -29,13 +30,15 @@ public class Query {
     public final Optional<DocFilter> filter;
     public final List<GroupByMaybeHaving> groupBys;
     public final List<AggregateMetric> selects;
+    public final List<Optional<String>> formatStrings;
     public final Optional<Integer> rowLimit;
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, Optional<Integer> rowLimit) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, Optional<Integer> rowLimit) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
         this.selects = selects;
+        this.formatStrings = formatStrings;
         this.rowLimit = rowLimit;
     }
 
@@ -80,11 +83,22 @@ public class Query {
         }
 
         final List<AggregateMetric> selectedMetrics;
+        final List<Optional<String>> formatStrings;
         if (selects.isEmpty()) {
             selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+            formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
-            final List<JQLParser.AggregateMetricContext> metrics = selectSet.aggregateMetric();
+            final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(selectSet.formattedAggregateMetric().size());
+            formatStrings = new ArrayList<>();
+            for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
+                metrics.add(formattedMetric.aggregateMetric());
+                if (formattedMetric.STRING_LITERAL() != null) {
+                    formatStrings.add(Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText())));
+                } else {
+                    formatStrings.add(Optional.<String>absent());
+                }
+            }
             selectedMetrics = new ArrayList<>();
             for (final JQLParser.AggregateMetricContext metric : metrics) {
                 selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
@@ -100,7 +114,7 @@ public class Query {
             rowLimit = Optional.of(Integer.parseInt(limit.getText()));
         }
 
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, rowLimit);
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit);
 
     }
 
@@ -139,7 +153,7 @@ public class Query {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, rowLimit);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit);
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
@@ -151,7 +165,7 @@ public class Query {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.traverse1(f));
         }
-        return new Query(datasets, filter, groupBys, selects, rowLimit);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit);
     }
 
     public Set<String> extractDatasetNames() {

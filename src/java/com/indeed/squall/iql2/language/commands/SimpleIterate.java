@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -11,19 +12,24 @@ import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
+    private final List<Optional<String>> formatStrings;
     public final boolean streamResult;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, boolean streamResult) {
+    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
+        this.formatStrings = formatStrings;
         this.streamResult = streamResult;
         if (this.streamResult && opts.topK.isPresent()) {
             throw new IllegalArgumentException("Can't stream results while doing top-k!");
@@ -32,7 +38,18 @@ public class SimpleIterate implements Command, JsonSerializable {
 
     @Override
     public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeObject(ImmutableMap.of("command", "simpleIterate", "field", field, "opts", opts, "selects", selecting, "streamResult", streamResult));
+        final Map<String, Object> obj = new HashMap<>();
+        obj.put("command", "simpleIterate");
+        obj.put("field", field);
+        obj.put("opts", opts);
+        obj.put("selects", selecting);
+        obj.put("streamResult", streamResult);
+        final List<String> serializableFormatStrings = new ArrayList<>(formatStrings.size());
+        for (final Optional<String> opt : formatStrings) {
+            serializableFormatStrings.add(opt.orNull());
+        }
+        obj.put("formatStrings", serializableFormatStrings);
+        gen.writeObject(obj);
     }
 
     @Override
@@ -69,15 +86,16 @@ public class SimpleIterate implements Command, JsonSerializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SimpleIterate that = (SimpleIterate) o;
-        return Objects.equals(streamResult, that.streamResult) &&
+        return streamResult == that.streamResult &&
                 Objects.equals(field, that.field) &&
                 Objects.equals(opts, that.opts) &&
-                Objects.equals(selecting, that.selecting);
+                Objects.equals(selecting, that.selecting) &&
+                Objects.equals(formatStrings, that.formatStrings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, opts, selecting, streamResult);
+        return Objects.hash(field, opts, selecting, formatStrings, streamResult);
     }
 
     @Override
@@ -86,6 +104,7 @@ public class SimpleIterate implements Command, JsonSerializable {
                 "field='" + field + '\'' +
                 ", opts=" + opts +
                 ", selecting=" + selecting +
+                ", formatStrings=" + formatStrings +
                 ", streamResult=" + streamResult +
                 '}';
     }

@@ -150,7 +150,7 @@ public interface Precomputed {
                     metric = new AggregateMetric.Add(aMetric, metric);
                 }
             }
-            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), false));
+            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false));
         }
 
         @Override
@@ -248,7 +248,7 @@ public interface Precomputed {
         public Precomputation commands(Set<String> scope) {
             return new Precomputation(
                     groupBy.executionStep(scope).commands(),
-                    new GetGroupStats(Collections.singletonList(metric), false),
+                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false),
                     Collections.<Command>singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
             );
         }

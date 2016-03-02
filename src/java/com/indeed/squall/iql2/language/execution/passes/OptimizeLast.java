@@ -44,6 +44,7 @@ public class OptimizeLast {
                             explodeAndRegroup.limit,
                             explodeAndRegroup.metric,
                             fixForIteration(getGroupStats.stats),
+                            getGroupStats.formatStrings,
                             explodeAndRegroup.forceNonStreaming
                     ));
                     return newSteps;

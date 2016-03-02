@@ -2,7 +2,6 @@ package com.indeed.squall.iql2.language.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -14,15 +13,12 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
-import com.indeed.squall.iql2.language.query.CannotMakeTotalException;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +44,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.rowLimit), processor.precomputedNames);
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit), processor.precomputedNames);
     }
 
     public static Map<Integer, List<PrecomputedInfo>> computationStages(Map<PrecomputedInfo, String> extracted) {
@@ -100,7 +96,7 @@ public class ExtractPrecomputed {
             }
         }
         if (!query.selects.isEmpty()) {
-            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects));
+            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
         }
         return resultSteps;
     }

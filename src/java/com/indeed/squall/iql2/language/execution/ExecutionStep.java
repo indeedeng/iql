@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -436,14 +435,16 @@ public interface ExecutionStep {
         private final Optional<Long> limit;
         private final Optional<AggregateMetric> metric;
         private final List<AggregateMetric> stats;
+        private final List<Optional<String>> formatStrings;
         private final boolean forceNonStreaming;
 
-        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, List<AggregateMetric> stats, boolean forceNonStreaming) {
+        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.metric = metric;
             this.stats = stats;
+            this.formatStrings = formatStrings;
             this.forceNonStreaming = forceNonStreaming;
         }
 
@@ -454,7 +455,7 @@ public interface ExecutionStep {
                 opts.topK = Optional.of(new TopK(limit, metric));
             }
             opts.filter = filter;
-            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
+            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
             return Collections.<Command>singletonList(simpleIterate);
         }
 
@@ -476,7 +477,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, metric, stats, forceNonStreaming);
+            return new IterateStats(field, filter, limit, metric, stats, formatStrings, forceNonStreaming);
         }
 
         @Override
@@ -487,20 +488,24 @@ public interface ExecutionStep {
                     ", limit=" + limit +
                     ", metric=" + metric +
                     ", stats=" + stats +
+                    ", formatStrings=" + formatStrings +
+                    ", forceNonStreaming=" + forceNonStreaming +
                     '}';
         }
     }
 
     class GetGroupStats implements ExecutionStep {
         public final List<AggregateMetric> stats;
+        public final List<Optional<String>> formatStrings;
 
-        public GetGroupStats(List<AggregateMetric> stats) {
+        public GetGroupStats(List<AggregateMetric> stats, List<Optional<String>> formatStrings) {
             this.stats = stats;
+            this.formatStrings = formatStrings;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.squall.iql2.language.commands.GetGroupStats(stats, true));
+            return Collections.<Command>singletonList(new com.indeed.squall.iql2.language.commands.GetGroupStats(stats, formatStrings, true));
         }
 
         @Override
@@ -509,13 +514,14 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new GetGroupStats(stats);
+            return new GetGroupStats(stats, formatStrings);
         }
 
         @Override
         public String toString() {
             return "GetGroupStats{" +
                     "stats=" + stats +
+                    ", formatStrings=" + formatStrings +
                     '}';
         }
     }
