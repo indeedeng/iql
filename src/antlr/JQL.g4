@@ -462,7 +462,7 @@ groupByContents [boolean useLegacy]
 
 formattedAggregateMetric [boolean useLegacy]
     : aggregateMetric[$ctx.useLegacy]
-    | PRINTF '(' aggregateMetric[$ctx.useLegacy] ',' STRING_LITERAL ')'
+    | PRINTF '(' STRING_LITERAL ',' aggregateMetric[$ctx.useLegacy] ')'
     ;
 
 selectContents [boolean useLegacy]
