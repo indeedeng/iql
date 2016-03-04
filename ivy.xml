@@ -53,7 +53,7 @@
         <dependency org="tomcat" name="servlet-api" rev="${servlet-api7.version}" conf="compile->default"/>
         <dependency org="tomcat" name="jsp-api" rev="${jsp-api7.version}" conf="compile->default"/>
 
-        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer,test,webapp->default"/>
+        <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer,test->default"/>
         <dependency org="indeed" name="hadoop" rev="${hadoop.version}"/>
 
         <!-- Elaborations dependencies -->
