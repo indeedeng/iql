@@ -287,9 +287,9 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep.version>1.0.72</imhotep.version>
+        <imhotep.version>3.1.3</imhotep.version>
         <indeed-util.version>1.0.15</indeed-util.version>
-        <ims.version>1.0.12</ims.version>
+        <ims.version>3.0.0</ims.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
