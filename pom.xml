@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>iql</artifactId>
-    <version>1.0.22-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
     <packaging>war</packaging>
 
     <name>IQL Server</name>
@@ -144,7 +144,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.0.0-cdh4.4.0</version>
+            <version>2.6.0-cdh5.4.9</version>
             <exclusions>
                 <exclusion>
                     <artifactId>hadoop-yarn-api</artifactId>
@@ -289,8 +289,8 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep.version>[1.0.49, 2.0.0)</imhotep.version>
-        <ims.version>[1.0.0-SNAPSHOT,)</ims.version>
+        <imhotep.version>[3.0.0, 4.0.0)</imhotep.version>
+        <ims.version>[3.0.0-SNAPSHOT, 4.0.0)</ims.version>
         <indeed-util.version>[1.0.15,)</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
