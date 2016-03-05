@@ -9,7 +9,7 @@
 
     <artifactId>iql</artifactId>
     <version>1.0.46-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <name>IQL Server</name>
     <url>http://github.com/indeedeng</url>
