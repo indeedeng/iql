@@ -492,16 +492,12 @@ public class QueryServlet {
                 headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
                 headerMap.put("Imhotep-Session-IDs", progressCallback.getSessionIds());
                 headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
+                if (!warnings.isEmpty()) {
+                    headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
+                }
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
                 outputStream.println();
 
-                if (!warnings.isEmpty()) {
-                    outputStream.println("event: warnings");
-                    for (final String warning : warnings) {
-                        outputStream.println("data: " + warning);
-                    }
-                    outputStream.println();
-                }
 
                 outputStream.println("event: complete");
                 outputStream.println("data: :)");
