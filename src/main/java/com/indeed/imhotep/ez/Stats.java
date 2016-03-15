@@ -273,6 +273,36 @@ public class Stats {
         }
     }
 
+    static class HasStringFieldStat extends Stat {
+        private final String field;
+        public HasStringFieldStat(String field) {
+            this.field = field;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            return Lists.newArrayList("hasstrfield " + field);
+        }
+        @Override
+        public String toString() {
+            return "hasstrfield:" + field;
+        }
+    }
+
+    static class HasIntFieldStat extends Stat {
+        private final String field;
+        public HasIntFieldStat(String field) {
+            this.field = field;
+        }
+        @Override
+        protected List<String> pushes(EZImhotepSession session) {
+            return Lists.newArrayList("hasintfield " + field);
+        }
+        @Override
+        public String toString() {
+            return "hasintfield:" + field;
+        }
+    }
+
     static class LuceneQueryStat extends Stat {
         private final Query luceneQuery;
         public LuceneQueryStat(Query luceneQuery) {

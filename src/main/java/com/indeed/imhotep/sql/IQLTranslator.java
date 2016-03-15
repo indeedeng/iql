@@ -498,6 +498,30 @@ public final class IQLTranslator {
                     return hasInt(field, value);
                 }
             });
+            builder.put("hasstrfield", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new IllegalArgumentException("hasstrfield() requires the field name as the argument. Example: hasstrfield(\"rcv\")");
+                    }
+                    final String field = getStr(input.get(0));
+                    if(Strings.isNullOrEmpty(field)) {
+                        throw new IllegalArgumentException("incorrect usage in hasstrfield(). Example: hasstrfield(\"rcv\")");
+                    }
+                    return hasStringField(field);
+                }
+            });
+            builder.put("hasintfield", new Function<List<Expression>, Stat>() {
+                public Stat apply(final List<Expression> input) {
+                    if (input.size() != 1) {
+                        throw new IllegalArgumentException("hasintfield() requires the field name as the argument. Example: hasintfield(\"sjc\")");
+                    }
+                    final String field = getStr(input.get(0));
+                    if(Strings.isNullOrEmpty(field)) {
+                        throw new IllegalArgumentException("incorrect usage in hasintfield(). Example: hasintfield(\"sjc\")");
+                    }
+                    return hasIntField(field);
+                }
+            });
             builder.put("floatscale", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() == 3) {

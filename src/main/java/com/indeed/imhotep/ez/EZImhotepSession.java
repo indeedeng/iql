@@ -60,6 +60,8 @@ import static com.indeed.imhotep.ez.Stats.LogStat;
 import static com.indeed.imhotep.ez.Stats.HasIntStat;
 import static com.indeed.imhotep.ez.Stats.HasStringStat;
 import static com.indeed.imhotep.ez.Stats.IntFieldStat;
+import static com.indeed.imhotep.ez.Stats.HasStringFieldStat;
+import static com.indeed.imhotep.ez.Stats.HasIntFieldStat;
 import static com.indeed.imhotep.ez.Stats.Stat;
 import static com.indeed.imhotep.ez.Stats.StatRefStat;
 import static com.indeed.imhotep.ez.Stats.requireValid;
@@ -1075,6 +1077,12 @@ public class EZImhotepSession implements Closeable {
     }
     public static Stat hasString(String field, String value) {
         return new HasStringStat(field, value);
+    }
+    public static Stat hasIntField(String field) {
+        return new HasIntFieldStat(field);
+    }
+    public static Stat hasStringField(String field) {
+        return new HasStringFieldStat(field);
     }
     public static Stat lucene(Query luceneQuery) {
         return new Stats.LuceneQueryStat(luceneQuery);
