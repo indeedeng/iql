@@ -15,6 +15,7 @@
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.io.Files;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.ImhotepSession;
@@ -117,23 +118,28 @@ public class TopTermsCache {
                 continue;
             }
 
-            for(FieldMetadata fieldMetadata : datasetMetadata.getFields().values()) {
-                if(fieldMetadata.getType() != FieldType.String) {
-                    continue; // we are trying to get some values for enum like string fields. can skip the random integer values
-                }
-                final String field = fieldMetadata.getName();
-                final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
+            try {
+                for (FieldMetadata fieldMetadata : datasetMetadata.getFields().values()) {
+                    if (fieldMetadata.getType() != FieldType.String) {
+                        continue; // we are trying to get some values for enum like string fields. can skip the random integer values
+                    }
+                    final String field = fieldMetadata.getName();
+                    final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
 
-                if(termCounts.size() == 0) {
-                    log.debug(dataset + "." + field + " has no terms");
-                }
+                    if (termCounts.size() == 0) {
+                        log.debug(dataset + "." + field + " has no terms");
+                    }
 
-                final List<String> terms = Lists.newArrayList();
-                for(TermCount termCount : termCounts) {
-                    terms.add(termCount.getTerm().getTermStringVal());
+                    final List<String> terms = Lists.newArrayList();
+                    for (TermCount termCount : termCounts) {
+                        terms.add(termCount.getTerm().getTermStringVal());
+                    }
+                    fieldToTerms.put(field, terms);
                 }
-                fieldToTerms.put(field, terms);
+            } finally {
+                Closeables2.closeQuietly(imhotepSession, log);
             }
+
             if(fieldToTerms.size() > 0) {
                 newDatasetToFieldToTerms.put(dataset, fieldToTerms);
             }
