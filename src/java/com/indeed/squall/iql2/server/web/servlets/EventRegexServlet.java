@@ -6,25 +6,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
+import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
-import com.indeed.squall.iql2.execution.AggregateFilter;
-import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.actions.Actions;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
-import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
-import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
-import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
-import com.indeed.squall.iql2.execution.metrics.aggregate.Constant;
-import com.indeed.squall.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
@@ -33,6 +24,7 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import dk.brics.automaton.Automaton;
 import dk.brics.automaton.RegExp;
@@ -47,13 +39,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,6 +52,8 @@ import java.util.Set;
 @Controller
 public class EventRegexServlet {
     private static final Logger log = Logger.getLogger(EventRegexServlet.class);
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    public static final String JOIN_FIELD = "THEONETRUEJOINFIELD";
 
     private final ImhotepClient imhotepClient;
     private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
@@ -82,10 +75,13 @@ public class EventRegexServlet {
             @RequestParam("endDate") final String endDate,
             @RequestParam("regexp") final String regexp
     ) throws Exception {
-        final ObjectMapper objectMapper = new ObjectMapper();
+        log.info("Request received");
         try (final Closer closer = Closer.create()) {
             // Man this Session API SUCKS. jwolfe sure messed that one up.
             final TreeTimer timer = new TreeTimer();
+
+            timer.push("total");
+
             final Consumer<String> out = new Consumer<String>() {
                 @Override
                 public void accept(String s) {
@@ -93,58 +89,10 @@ public class EventRegexServlet {
                 }
             };
 
-            final JsonNode eventsArray = objectMapper.readTree(events);
-            final List<EventDescription> eventDescriptions = new ArrayList<>();
-            for (int i = 0; i < eventsArray.size(); i++) {
-                final JsonNode entry = eventsArray.get(i);
-                final Optional<DocFilter> filter;
-                final String filterText = entry.get("filter").textValue();
-                if (filterText.trim().isEmpty()) {
-                    filter = Optional.absent();
-                } else {
-                    filter = Optional.of(parseDocFilter(filterText));
-                }
-                final String characterText = entry.get("character").textValue();
-                if (characterText.length() != 1) {
-                    throw new IllegalArgumentException("character must be one character: [" + characterText + "]");
-                }
-                final char character = characterText.charAt(0);
-                final String idField = entry.get("idField").textValue();
-                final String index = entry.get("index").textValue();
-                eventDescriptions.add(new EventDescription(character, index, filter, idField));
-            }
+            final List<EventDescription> eventDescriptions = getEventDescriptions(OBJECT_MAPPER.readTree(events));
 
-            final List<Map<String, String>> datasets = new ArrayList<>();
-            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = new HashMap<>();
-            final DateTime start = DateTime.parse(startDate);
-            final DateTime end = DateTime.parse(endDate);
-            for (final EventDescription description : eventDescriptions) {
-                datasets.add(ImmutableMap.of(
-                        "dataset", description.index.toUpperCase(),
-                        "start", start.toString(),
-                        "end", end.toString(),
-                        "fieldAliases", "{\"THEONETRUEJOINFIELD\": \"" + description.joinField.toUpperCase() + "\"}",
-                        "name", description.name()
-                ));
-                datasetToChosenShards.put(description.name(), imhotepClient.sessionBuilder(description.index, start, end).getChosenShards());
-            }
-
-            final String json = objectMapper.writeValueAsString(datasets);
-            final Session.CreateSessionResult createSessionResult = Session.createSession(
-                    imhotepClient,
-                    datasetToChosenShards,
-                    objectMapper.readTree(json),
-                    closer,
-                    out,
-                    Collections.<String, DatasetDimensions>emptyMap(),
-                    timer,
-                    new NoOpProgressCallback(),
-                    -1L,
-                    -1L,
-                    new DefaultWallClock(),
-                    "jwolfe"
-            );
-            final Session session = createSessionResult.session.get();
+            final CreateSessionResult createSessionResult = createSession(startDate, endDate, closer, timer, out, eventDescriptions);
+            final Session session = createSessionResult.session;
 
             for (final EventDescription description : eventDescriptions) {
                 if (description.filter.isPresent()) {
@@ -154,84 +102,244 @@ public class EventRegexServlet {
                     final List<com.indeed.squall.iql2.execution.actions.Action> executionActions = new ArrayList<>();
                     for (final Action action : actions) {
                         // SERIOUSLY?
-                        executionActions.add(Actions.parseFrom(objectMapper.readTree(objectMapper.writeValueAsString(action))));
+                        executionActions.add(Actions.parseFrom(OBJECT_MAPPER.readTree(OBJECT_MAPPER.writeValueAsString(action))));
                     }
                     new ApplyFilterActions(executionActions).execute(session, out);
                 }
             }
 
-            final Automaton automaton = new RegExp(regexp).toAutomaton(true);
-            final Set<String> required = new HashSet<>();
-            for (final EventDescription description : eventDescriptions) {
-                final char c = description.c;
-                final Automaton noCs = new RegExp("[^" + c + "]*").toAutomaton(false);
-                if (automaton.intersection(noCs).isEmpty()) {
-                    required.add(description.name());
-                    log.info(c + " is required");
-                }
+            final Automaton automaton = new RegExp(regexp).toAutomaton();
+
+            new TimePeriodRegroup(1000, Optional.<String>absent(), Optional.<String>absent()).execute(session, out, true);
+
+            final Map<String, Integer> presenceIndexes = new HashMap<>();
+            final Map<Integer, Character> indexToChar = new HashMap<>();
+
+            for (final EventDescription eventDescription : eventDescriptions) {
+                final int ix = presenceIndexes.size();
+                presenceIndexes.put(eventDescription.name(), ix);
+                indexToChar.put(ix, eventDescription.c);
             }
 
-            final RunAutomaton runAutomaton = new RunAutomaton(automaton);
+            final StringBuilder output = new StringBuilder();
+            final Map<String, Integer> sequenceToCounts;
+            final Map<String, ?> representative;
 
-            final FieldIterateOpts fieldOpts = new FieldIterateOpts();
-            if (required.size() > 0) {
-                AggregateFilter filter = null;
-                for (final String dataset : required) {
-                    final AggregateFilter.GreaterThan singleFilter = new AggregateFilter.GreaterThan(new DocumentLevelMetric(dataset, Collections.singletonList("count()")), new Constant(0));
-                    if (filter == null) {
-                        filter = singleFilter;
-                    } else {
-                        filter = new AggregateFilter.And(filter, singleFilter);
-                    }
-                }
-                fieldOpts.filter = Optional.of(filter);
-            }
-            new IterateAndExplode("THEONETRUEJOINFIELD", Collections.<AggregateMetric>emptyList(), fieldOpts, Optional.<String>absent(), required.isEmpty() ? null : required).execute(session, out);
-            final GroupKeySet groupKeySet = session.groupKeySet;
-
-
-            final int[] states = new int[groupKeySet.numGroups() + 1];
-            Arrays.fill(states, runAutomaton.getInitialState());
-
-            final Set<QualifiedPush> qualifiedPushes = new HashSet<>();
-            final Map<QualifiedPush, Character> pushToChar = new HashMap<>();
-            for (final EventDescription description : eventDescriptions) {
-                final QualifiedPush push = new QualifiedPush(description.name(), Collections.singletonList("count()"));
-                qualifiedPushes.add(push);
-                pushToChar.put(push, description.c);
-            }
-            final Map<QualifiedPush, Integer> metricIndexes = new HashMap<>();
-            final Map<String, IntList> sessionMetricIndexes = new HashMap<>();
-            session.pushMetrics(qualifiedPushes, metricIndexes, sessionMetricIndexes);
-
-            final char[] indexToChar = new char[eventDescriptions.size()];
-            for (final QualifiedPush push : qualifiedPushes) {
-                final int index = metricIndexes.get(push);
-                final char c = pushToChar.get(push);
-                indexToChar[index] = c;
+            if (session.isIntField(JOIN_FIELD)) {
+                final IntCallback callback = new IntCallback(automaton, indexToChar);
+                Session.iterateMultiInt(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback);
+                sequenceToCounts = callback.sequenceToCounts;
+                representative = callback.representative;
+            } else if (session.isStringField(JOIN_FIELD)) {
+                final StringCallback callback = new StringCallback(automaton, indexToChar);
+                Session.iterateMultiString(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback);
+                sequenceToCounts = callback.sequenceToCounts;
+                representative = callback.representative;
+            } else {
+                throw new IllegalStateException("Unknown field or something: " + JOIN_FIELD);
             }
 
-            final IterateCallback callback = new IterateCallback(indexToChar, states, runAutomaton);
-            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, "UNIXTIME", callback);
-            final BitSet matched = new BitSet(states.length);
-            for (int i = 0; i < states.length; i++) {
-                if (runAutomaton.isAccept(states[i])) {
-                    matched.set(i);
-                }
+            final BoundedPriorityQueue<Pair<Integer, String>> pq = BoundedPriorityQueue.newInstance(100, new Pair.HalfPairComparator());
+            for (final Map.Entry<String, Integer> entry : sequenceToCounts.entrySet()) {
+                pq.offer(Pair.of(entry.getValue(), entry.getKey()));
             }
-            final int numMatched = matched.cardinality();
-            final int collisionCount = callback.collisionCount;
-            final List<String> ctks = new ArrayList<>();
-            for (int i = matched.nextSetBit(0); i != -1; i = matched.nextSetBit(i + 1)) {
-                final GroupKey groupKey = session.groupKeySet.groupKey(i);
-                if (groupKey instanceof StringGroupKey) {
-                    ctks.add(((StringGroupKey) groupKey).term);
-                } else if (groupKey instanceof IntTermGroupKey) {
-                    ctks.add(String.valueOf(((IntTermGroupKey) groupKey).value));
-                }
+            while (!pq.isEmpty()) {
+                final Pair<Integer, String> p = pq.poll();
+                output.append(String.format("%s: %d\t%s\n", p.getSecond(), p.getFirst(), representative.get(p.getSecond())));
             }
-            return String.valueOf(numMatched) + "\t" + collisionCount + "\n" + ctks;
+
+            timer.pop();
+
+            log.info(timer.toString());
+
+            return output.toString();
         }
+    }
+
+    private static class IntCallback implements Session.IntIterateCallback {
+        private final Automaton automaton;
+        private final Map<Integer, Character> indexToChar;
+
+        private final Map<String, Integer> sequenceToCounts = new HashMap<>();
+        private final Map<String, Long> representative = new HashMap<>();
+
+        private boolean anySeen = false;
+        private long lastTerm = Long.MAX_VALUE;
+
+        private final StringBuilder sb = new StringBuilder();
+        private final StringBuilder regexSb = new StringBuilder();
+
+        private IntCallback(Automaton automaton, Map<Integer, Character> indexToChar) {
+            this.automaton = automaton;
+            this.indexToChar = indexToChar;
+        }
+
+        @Override
+        public void term(long term, long[] stats, int group) {
+            if (anySeen && term != lastTerm) {
+                final String sequence = sb.toString();
+                final boolean matches = !automaton.intersection(new RegExp(this.regexSb.toString()).toAutomaton()).isEmpty();
+                if (matches) {
+                    log.info(String.format("%s: %s", term, sequence));
+                    Integer curCount = sequenceToCounts.get(sequence);
+                    if (curCount == null) {
+                        curCount = 0;
+                        representative.put(sequence, lastTerm);
+                    }
+                    sequenceToCounts.put(sequence, curCount + 1);
+                }
+                sb.setLength(0);
+                regexSb.setLength(0);
+            }
+            anySeen = true;
+            lastTerm = term;
+            boolean anyFound = false;
+            regexSb.append('(');
+            for (int i = 0; i < stats.length; i++) {
+                if (stats[i] == 1) {
+                    final char c = indexToChar.get(i);
+                    if (anyFound) {
+                        regexSb.append('|');
+                    }
+                    regexSb.append(c);
+                    if (!anyFound) {
+                        sb.append(c);
+                    }
+                    anyFound = true;
+                }
+            }
+            regexSb.append(')');
+        }
+    }
+
+    private static class StringCallback implements Session.StringIterateCallback {
+        private final Automaton automaton;
+        private final Map<Integer, Character> indexToChar;
+
+        private final Map<String, Integer> sequenceToCounts = new HashMap<>();
+        private final Map<String, String> representative = new HashMap<>();
+
+        private boolean anySeen = false;
+        private String lastTerm = null;
+
+        private final StringBuilder sb = new StringBuilder();
+        private final StringBuilder regexSb = new StringBuilder();
+
+        private StringCallback(Automaton automaton, Map<Integer, Character> indexToChar) {
+            this.automaton = automaton;
+            this.indexToChar = indexToChar;
+        }
+
+        @Override
+        public void term(String term, long[] stats, int group) {
+            if (anySeen && term.equals(lastTerm)) {
+                final String sequence = sb.toString();
+                final boolean matches = !automaton.intersection(new RegExp(this.regexSb.toString()).toAutomaton()).isEmpty();
+                if (matches) {
+                    log.info(String.format("%s: %s", term, sequence));
+                    Integer curCount = sequenceToCounts.get(sequence);
+                    if (curCount == null) {
+                        curCount = 0;
+                        representative.put(sequence, lastTerm);
+                    }
+                    sequenceToCounts.put(sequence, curCount + 1);
+                }
+                sb.setLength(0);
+                regexSb.setLength(0);
+            }
+            anySeen = true;
+            lastTerm = term;
+            boolean anyFound = false;
+            regexSb.append('(');
+            for (int i = 0; i < stats.length; i++) {
+                if (stats[i] == 1) {
+                    final char c = indexToChar.get(i);
+                    if (anyFound) {
+                        regexSb.append('|');
+                    }
+                    regexSb.append(c);
+                    if (!anyFound) {
+                        sb.append(c);
+                    }
+                    anyFound = true;
+                }
+            }
+            regexSb.append(')');
+        }
+    }
+
+    private static class CreateSessionResult {
+        public final Session session;
+        public final int numShards;
+
+        private CreateSessionResult(Session session, int numShards) {
+            this.session = session;
+            this.numShards = numShards;
+        }
+    }
+
+    private CreateSessionResult createSession(@RequestParam("startDate") String startDate, @RequestParam("endDate") String endDate, Closer closer, TreeTimer timer, Consumer<String> out, List<EventDescription> eventDescriptions) throws com.indeed.imhotep.api.ImhotepOutOfMemoryException, IOException {
+        final List<Map<String, String>> datasets = new ArrayList<>();
+        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = new HashMap<>();
+        final DateTime start = DateTime.parse(startDate);
+        final DateTime end = DateTime.parse(endDate);
+        for (final EventDescription description : eventDescriptions) {
+            datasets.add(ImmutableMap.of(
+                    "dataset", description.index.toUpperCase(),
+                    "start", start.toString(),
+                    "end", end.toString(),
+                    "fieldAliases", "{\"THEONETRUEJOINFIELD\": \"" + description.joinField.toUpperCase() + "\"}",
+                    "name", description.name()
+            ));
+            datasetToChosenShards.put(description.name(), imhotepClient.sessionBuilder(description.index, start, end).getChosenShards());
+        }
+
+        final String json = OBJECT_MAPPER.writeValueAsString(datasets);
+        final Session.CreateSessionResult createSessionResult = Session.createSession(
+                imhotepClient,
+                datasetToChosenShards,
+                OBJECT_MAPPER.readTree(json),
+                closer,
+                out,
+                Collections.<String, DatasetDimensions>emptyMap(),
+                timer,
+                new NoOpProgressCallback(),
+                -1L,
+                -1L,
+                new DefaultWallClock(),
+                "jwolfe"
+        );
+
+        int numShards = 0;
+        for (final List<ShardIdWithVersion> shards : datasetToChosenShards.values()) {
+            numShards += shards.size();
+        }
+
+        return new CreateSessionResult(createSessionResult.session.get(), numShards);
+    }
+
+    @Nonnull
+    private List<EventDescription> getEventDescriptions(JsonNode eventsArray) throws IOException {
+        final List<EventDescription> eventDescriptions = new ArrayList<>();
+        for (int i = 0; i < eventsArray.size(); i++) {
+            final JsonNode entry = eventsArray.get(i);
+            final Optional<DocFilter> filter;
+            final String filterText = entry.get("filter").textValue();
+            if (filterText.trim().isEmpty()) {
+                filter = Optional.absent();
+            } else {
+                filter = Optional.of(parseDocFilter(filterText));
+            }
+            final String characterText = entry.get("character").textValue();
+            if (characterText.length() != 1) {
+                throw new IllegalArgumentException("character must be one character: [" + characterText + "]");
+            }
+            final char character = characterText.charAt(0);
+            final String idField = entry.get("idField").textValue();
+            final String index = entry.get("index").textValue();
+            eventDescriptions.add(new EventDescription(character, index, filter, idField));
+        }
+        return eventDescriptions;
     }
 
     private static class IterateCallback implements Session.IntIterateCallback {
