@@ -21,6 +21,7 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class ExplodeByAggregatePercentile implements Command {
 
         if (session.isIntField(field)) {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, field,
+            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field,
                     new Session.IntIterateCallback() {
                         @Override
                         public void term(long term, long[] stats, int group) {
@@ -111,7 +112,7 @@ public class ExplodeByAggregatePercentile implements Command {
             session.regroup(rulesArr, true);
         } else if (session.isStringField(field)) {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-            Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, field, new Session.StringIterateCallback() {
+            Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.StringIterateCallback() {
                 @Override
                 public void term(String term, long[] stats, int group) {
                     Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);

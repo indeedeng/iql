@@ -19,6 +19,10 @@ public class TimePeriodRegroup implements Command {
 
     @Override
     public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        this.execute(session, out, false);
+    }
+
+    public void execute(final Session session, Consumer<String> out, boolean skipDensify) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long shardEnd = session.getLatestEnd();
         final long realEnd;
@@ -34,7 +38,12 @@ public class TimePeriodRegroup implements Command {
         session.performTimeRegroup(earliestStart, realEnd, periodMillis, timeField);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
 
-        session.densify(new DateTimeRangeGroupKeySet(session.groupKeySet, earliestStart, periodMillis, numBuckets, format));
+        final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, earliestStart, periodMillis, numBuckets, format);
+        if (skipDensify) {
+            session.assumeDense(groupKeySet);
+        } else {
+            session.densify(groupKeySet);
+        }
         session.currentDepth += 1;
 
         out.accept("TimePeriodRegrouped");

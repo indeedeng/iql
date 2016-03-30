@@ -844,19 +844,22 @@ public class Session {
     private static class SessionIntIterationState {
         public final FTGSIterator iterator;
         private final IntList metricIndexes;
+        @Nullable
+        private final Integer presenceIndex;
         public final long[] statsBuff;
         public long nextTerm;
         public int nextGroup;
 
-        private SessionIntIterationState(FTGSIterator iterator, IntList metricIndexes, long[] statsBuff, long nextTerm, int nextGroup) {
+        private SessionIntIterationState(FTGSIterator iterator, IntList metricIndexes, @Nullable Integer presenceIndex, long[] statsBuff, long nextTerm, int nextGroup) {
             this.iterator = iterator;
             this.metricIndexes = metricIndexes;
+            this.presenceIndex = presenceIndex;
             this.statsBuff = statsBuff;
             this.nextTerm = nextTerm;
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionIntIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes) {
+        static Optional<SessionIntIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex) {
             final FTGSIterator it = closer.register(session.getFTGSIterator(new String[]{field}, new String[0]));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
@@ -864,7 +867,7 @@ public class Session {
                 while (it.nextTerm()) {
                     while (it.nextGroup()) {
                         it.groupStats(statsBuff);
-                        return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, statsBuff, it.termIntVal(), it.group()));
+                        return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, presenceIndex, statsBuff, it.termIntVal(), it.group()));
                     }
                 }
             }
@@ -876,7 +879,7 @@ public class Session {
         void term(long term, long[] stats, int group);
     }
 
-    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, IntIterateCallback callback) throws IOException {
+    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -894,12 +897,13 @@ public class Session {
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
-                final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(closer, session, field, sessionMetricIndexes);
+                final Integer presenceIndex = presenceIndexes.get(sessionName);
+                final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
             }
-            final long[] realBuffer = new long[numMetrics];
+            final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
@@ -945,24 +949,30 @@ public class Session {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
             dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];
         }
+        if (state.presenceIndex != null) {
+            dst[state.presenceIndex] = 1;
+        }
     }
 
     private static class SessionStringIterationState {
         public final FTGSIterator iterator;
         private final IntList metricIndexes;
+        @Nullable
+        private final Integer presenceIndex;
         public final long[] statsBuff;
         public String nextTerm;
         public int nextGroup;
 
-        private SessionStringIterationState(FTGSIterator iterator, IntList metricIndexes, long[] statsBuff, String nextTerm, int nextGroup) {
+        private SessionStringIterationState(FTGSIterator iterator, IntList metricIndexes, @Nullable Integer presenceIndex, long[] statsBuff, String nextTerm, int nextGroup) {
             this.iterator = iterator;
             this.metricIndexes = metricIndexes;
+            this.presenceIndex = presenceIndex;
             this.statsBuff = statsBuff;
             this.nextTerm = nextTerm;
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes) {
+        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable  Integer presenceIndex) {
             final FTGSIterator it = closer.register(session.getFTGSIterator(new String[0], new String[]{field}));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
@@ -970,7 +980,7 @@ public class Session {
                 while (it.nextTerm()) {
                     while (it.nextGroup()) {
                         it.groupStats(statsBuff);
-                        return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, statsBuff, it.termStringVal(), it.group()));
+                        return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, presenceIndex, statsBuff, it.termStringVal(), it.group()));
                     }
                 }
             }
@@ -982,7 +992,7 @@ public class Session {
         void term(String term, long[] stats, int group);
     }
 
-    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, String field, StringIterateCallback callback) throws IOException {
+    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -999,12 +1009,13 @@ public class Session {
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
-                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes);
+                final Integer presenceIndex = presenceIndexes.get(sessionName);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
             }
-            final long[] realBuffer = new long[numMetrics];
+            final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
@@ -1049,6 +1060,9 @@ public class Session {
     private static void copyStats(SessionStringIterationState state, long[] dst) {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
             dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];
+        }
+        if (state.presenceIndex != null) {
+            dst[state.presenceIndex] = 1;
         }
     }
 

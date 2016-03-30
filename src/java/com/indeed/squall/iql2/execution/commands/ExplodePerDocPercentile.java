@@ -18,6 +18,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +57,7 @@ public class ExplodePerDocPercentile implements Command {
             metricIndexes.put(k, new IntArrayList(new int[]{0}));
         }
         session.timer.push("compute cutoffs (iterateMultiInt)");
-        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, field, new Session.IntIterateCallback() {
+        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
                 runningCounts[group] += stats[0];
