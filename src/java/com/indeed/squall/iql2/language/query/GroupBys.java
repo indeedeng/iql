@@ -110,35 +110,25 @@ public class GroupBys {
 
             @Override
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
-                if (ctx.not != null) {
-                    final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, true);
-                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
-                } else {
-                    final List<Term> terms = new ArrayList<>();
-                    boolean anyString = false;
-                    for (final JQLParser.TermValContext term : ctx.terms) {
-                        final Term t = Term.parseTerm(term);
-                        anyString |= !t.isIntTerm;
-                        terms.add(t);
-                    }
-                    final List<String> strings;
-                    final LongList ints;
-                    if (anyString) {
-                        strings = new ArrayList<>();
-                        for (final Term term : terms) {
-                            strings.add(term.isIntTerm ? String.valueOf(term.intTerm) : term.stringTerm);
-                        }
-                        ints = LongLists.EMPTY_LIST;
+                AggregateFilter filter = null;
+                for (final JQLParser.TermValContext term : ctx.terms) {
+                    final AggregateFilter.TermIs f = new AggregateFilter.TermIs(Term.parseTerm(term));
+                    if (filter == null) {
+                        filter = f;
                     } else {
-                        ints = new LongArrayList();
-                        for (final Term term : terms) {
-                            ints.add(term.intTerm);
-                        }
-                        strings = Collections.emptyList();
+                        filter = new AggregateFilter.Or(filter, f);
                     }
-                    final boolean withDefault = ctx.withDefault != null;
-                    accept(new GroupBy.GroupByFieldIn(parseIdentifier(ctx.field), ints, strings, withDefault));
                 }
+                if (filter == null) {
+                    filter = new AggregateFilter.Never();
+                }
+                if (ctx.not != null) {
+                    filter = new AggregateFilter.Not(filter);
+                }
+
+                final boolean withDefault = ctx.withDefault != null;
+
+                accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), withDefault, false));
             }
 
             @Override
