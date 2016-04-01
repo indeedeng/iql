@@ -35,6 +35,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.ScopedField;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
@@ -715,20 +716,24 @@ public class QueryServlet {
 
         timer.push("validate commands");
         final List<String> errors = new ArrayList<>();
+        final List<String> warnings = new ArrayList<>();
 
-        // Urgh different Consumer types...
-        // TODO: Where in common/ to put this?
-        final com.indeed.squall.iql2.language.compat.Consumer<String> errorConsumer = new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+        final Validator validator = new Validator() {
             @Override
-            public void accept(String s) {
-                errors.add(s);
+            public void error(String error) {
+                errors.add(error);
+            }
+
+            @Override
+            public void warn(String warn) {
+                warnings.add(warn);
             }
         };
 
         final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
         if (!skipValidation) {
             for (final Command command : commands) {
-                command.validate(datasetsFields, errorConsumer);
+                command.validate(datasetsFields, validator);
             }
         }
 
