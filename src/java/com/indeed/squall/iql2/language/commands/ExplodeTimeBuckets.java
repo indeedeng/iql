@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
@@ -39,11 +39,11 @@ public class ExplodeTimeBuckets implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         if (timeField.isPresent()) {
             for (final String dataset : datasetsFields.datasets()) {
                 if (!datasetsFields.getAllFields(dataset).contains(timeField.get())) {
-                    errorConsumer.accept(ErrorMessages.missingField(dataset, timeField.get(), this));
+                    validator.error(ErrorMessages.missingField(dataset, timeField.get(), this));
                 }
             }
         }

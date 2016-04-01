@@ -14,7 +14,6 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
@@ -48,7 +47,7 @@ public interface DocFilter {
 
     List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
 
-    void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
+    void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
     class FieldIs implements DocFilter {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
@@ -116,14 +115,14 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
                 if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
                 }
             } else {
                 if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                    validator.error(ErrorMessages.missingStringField(dataset, field, this));
                 }
             }
         }
@@ -212,14 +211,14 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
                 if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
                 }
             } else {
                 if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                    validator.error(ErrorMessages.missingStringField(dataset, field, this));
                 }
             }
         }
@@ -276,7 +275,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             // TODO: Should we do anything here? I don't think so...
         }
 
@@ -342,9 +341,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                validator.error(ErrorMessages.missingIntField(dataset, field, this));
             }
         }
 
@@ -410,9 +409,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -480,9 +479,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -547,9 +546,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -614,9 +613,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -681,9 +680,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -748,9 +747,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(final String dataset, final DatasetsFields datasetsFields, final Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -813,9 +812,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            f1.validate(dataset, datasetsFields, errorConsumer);
-            f2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            f1.validate(dataset, datasetsFields, validator);
+            f2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -878,9 +877,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            f1.validate(dataset, datasetsFields, errorConsumer);
-            f2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            f1.validate(dataset, datasetsFields, validator);
+            f2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -947,9 +946,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             for (final DocFilter filter : filters) {
-                filter.validate(dataset, datasetsFields, errorConsumer);
+                filter.validate(dataset, datasetsFields, validator);
             }
         }
 
@@ -998,8 +997,8 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            filter.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            filter.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -1048,9 +1047,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -1102,9 +1101,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -1166,11 +1165,11 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (scope.contains(dataset)) {
-                filter.validate(dataset, datasetsFields, errorConsumer);
+                filter.validate(dataset, datasetsFields, validator);
             }
-            ValidationUtil.validateScope(scope, datasetsFields, errorConsumer);
+            ValidationUtil.validateScope(scope, datasetsFields, validator);
         }
 
         @Override
@@ -1260,8 +1259,8 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, getFlamdexQuery(dataset))), errorConsumer, this, true);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, getFlamdexQuery(dataset))), validator, this, true);
         }
 
         @Override
@@ -1315,9 +1314,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
@@ -1365,7 +1364,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -1402,7 +1401,7 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -1461,9 +1460,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -1526,9 +1525,9 @@ public interface DocFilter {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 

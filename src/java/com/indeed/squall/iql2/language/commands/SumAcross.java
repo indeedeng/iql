@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
@@ -45,17 +45,17 @@ public class SumAcross implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
         
-        metric.validate(scope, datasetsFields, errorConsumer);
+        metric.validate(scope, datasetsFields, validator);
 
         if (filter.isPresent()) {
-            filter.get().validate(scope, datasetsFields, errorConsumer);
+            filter.get().validate(scope, datasetsFields, validator);
         }
     }
 

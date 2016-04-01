@@ -2,7 +2,6 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -18,7 +17,7 @@ public abstract class DocMetric {
 
     protected abstract List<String> getPushes(String dataset);
 
-    public abstract void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
+    public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
     public static class PushableDocMetric extends DocMetric {
         private final DocMetric metric;
@@ -38,8 +37,8 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -78,7 +77,7 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
         }
 
         @Override
@@ -115,9 +114,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
@@ -177,8 +176,8 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
         }
     }
 
@@ -204,8 +203,8 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -258,8 +257,8 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -384,9 +383,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(dataset, datasetsFields, errorConsumer);
-            m2.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
         }
     }
 
@@ -618,9 +617,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -669,9 +668,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -718,7 +717,7 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -762,7 +761,7 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             // Don't validate, since this is used for investigating field presence
         }
 
@@ -806,7 +805,7 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             // Don't validate, since this is used for investigating field presence
         }
 
@@ -851,9 +850,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                validator.error(ErrorMessages.missingIntField(dataset, field, this));
             }
         }
 
@@ -900,9 +899,9 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingStringField(dataset, field, this));
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
 
@@ -952,10 +951,10 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            condition.validate(dataset, datasetsFields, errorConsumer);
-            trueCase.validate(dataset, datasetsFields, errorConsumer);
-            falseCase.validate(dataset, datasetsFields, errorConsumer);
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            condition.validate(dataset, datasetsFields, validator);
+            trueCase.validate(dataset, datasetsFields, validator);
+            falseCase.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -1006,11 +1005,11 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!dataset.equals(this.dataset)) {
-                errorConsumer.accept("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
+                validator.error("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
             }
-            metric.validate(this.dataset, datasetsFields, errorConsumer);
+            metric.validate(this.dataset, datasetsFields, validator);
         }
 
         @Override

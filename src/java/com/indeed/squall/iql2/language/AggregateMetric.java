@@ -9,7 +9,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -25,7 +24,7 @@ public interface AggregateMetric {
 
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
-    void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
+    void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
     boolean isOrdered();
 
     abstract class Unop implements AggregateMetric, JsonSerializable {
@@ -74,8 +73,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
         }
     }
 
@@ -177,9 +176,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
     }
 
@@ -297,8 +296,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -357,8 +356,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -419,8 +418,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -481,8 +480,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -543,9 +542,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(Sets.newHashSet(this.scope), datasetsFields, errorConsumer);
-            ValidationUtil.validateScope(this.scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(Sets.newHashSet(this.scope), datasetsFields, validator);
+            ValidationUtil.validateScope(this.scope, datasetsFields, validator);
         }
 
         @Override
@@ -606,9 +605,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            pushes.validate(dataset, datasetsFields, errorConsumer);
-            ValidationUtil.validateDataset(dataset, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            pushes.validate(dataset, datasetsFields, validator);
+            ValidationUtil.validateDataset(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -667,9 +666,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                metric.validate(dataset, datasetsFields, errorConsumer);
+                metric.validate(dataset, datasetsFields, validator);
             }
         }
 
@@ -730,9 +729,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                docMetric.validate(dataset, datasetsFields, errorConsumer);
+                docMetric.validate(dataset, datasetsFields, validator);
             }
         }
 
@@ -790,7 +789,7 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -850,10 +849,10 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
                 if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingIntField(dataset, field, this));
+                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
                 }
             }
         }
@@ -916,8 +915,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -986,15 +985,15 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
                 if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                    validator.error(ErrorMessages.missingField(dataset, field, this));
                 }
             }
 
             if (filter.isPresent()) {
-                filter.get().validate(scope, datasetsFields, errorConsumer);
+                filter.get().validate(scope, datasetsFields, validator);
             }
         }
 
@@ -1058,8 +1057,8 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            metric.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -1118,7 +1117,7 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -1178,9 +1177,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             // TODO: Validate groupBy somehow?
-            metric.validate(scope, datasetsFields, errorConsumer);
+            metric.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -1250,10 +1249,10 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            condition.validate(scope, datasetsFields, errorConsumer);
-            trueCase.validate(scope, datasetsFields, errorConsumer);
-            falseCase.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            condition.validate(scope, datasetsFields, validator);
+            trueCase.validate(scope, datasetsFields, validator);
+            falseCase.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -1314,10 +1313,10 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
                 if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                    validator.error(ErrorMessages.missingField(dataset, field, this));
                 }
             }
         }
@@ -1376,10 +1375,10 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
                 if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                    validator.error(ErrorMessages.missingField(dataset, field, this));
                 }
             }
         }
@@ -1446,9 +1445,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, datasetsFields, errorConsumer);
+                metric.validate(scope, datasetsFields, validator);
             }
         }
 
@@ -1518,9 +1517,9 @@ public interface AggregateMetric {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, datasetsFields, errorConsumer);
+                metric.validate(scope, datasetsFields, validator);
             }
         }
 

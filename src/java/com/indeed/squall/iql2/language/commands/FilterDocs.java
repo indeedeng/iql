@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -44,9 +44,9 @@ public class FilterDocs implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final Map.Entry<String, DocMetric.PushableDocMetric> entry : perDatasetFilterMetric.entrySet()) {
-            entry.getValue().validate(entry.getKey(), datasetsFields, errorConsumer);
+            entry.getValue().validate(entry.getKey(), datasetsFields, validator);
         }
     }
 

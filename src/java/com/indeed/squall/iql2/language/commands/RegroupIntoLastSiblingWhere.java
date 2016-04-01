@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateFilter;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -32,8 +32,8 @@ public class RegroupIntoLastSiblingWhere implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        filter.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        filter.validate(datasetsFields.datasets(), datasetsFields, validator);
     }
 
     @Override

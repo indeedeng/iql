@@ -2,7 +2,7 @@ package com.indeed.squall.iql2.language.util;
 
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 
 import java.util.Collection;
 import java.util.Map;
@@ -51,13 +51,13 @@ public class ValidationUtil {
         }
     }
 
-    public static void ensureSubset(DatasetsFields superset, DatasetsFields subset, Consumer<String> errorConsumer, Object source, boolean allowStringFieldsForInts) {
+    public static void ensureSubset(DatasetsFields superset, DatasetsFields subset, Validator validator, Object source, boolean allowStringFieldsForInts) {
         for (final String dataset : subset.datasets()) {
             final ImmutableSet<String> expectedStringFields = subset.getStringFields(dataset);
             final ImmutableSet<String> actualStringFields = superset.getStringFields(dataset);
             for (final String field : expectedStringFields) {
                 if (!actualStringFields.contains(field)) {
-                    errorConsumer.accept("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in ["  + source + "]");
+                    validator.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in ["  + source + "]");
                 }
             }
 
@@ -66,24 +66,24 @@ public class ValidationUtil {
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
                     if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {
-                        errorConsumer.accept("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in ["  + source + "]");
+                        validator.error("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in ["  + source + "]");
                     }
                 }
             }
         }
     }
 
-    public static void validateScope(Collection<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public static void validateScope(Collection<String> scope, DatasetsFields datasetsFields, Validator validator) {
         for (final String s : scope) {
             if (!datasetsFields.datasets().contains(s)) {
-                errorConsumer.accept(ErrorMessages.missingDataset(s));
+                validator.error(ErrorMessages.missingDataset(s));
             }
         }
     }
 
-    public static void validateDataset(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public static void validateDataset(String dataset, DatasetsFields datasetsFields, Validator validator) {
         if (!datasetsFields.datasets().contains(dataset)) {
-            errorConsumer.accept(ErrorMessages.missingDataset(dataset));
+            validator.error(ErrorMessages.missingDataset(dataset));
         }
     }
 }

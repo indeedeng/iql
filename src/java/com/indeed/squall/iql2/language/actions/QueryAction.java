@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
@@ -55,8 +55,8 @@ public class QueryAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(perDatasetQuery), errorConsumer, this, true);
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(perDatasetQuery), validator, this, true);
     }
 
     @Override

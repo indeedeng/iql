@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -54,9 +54,9 @@ public class MetricAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
-            filter.validate(dataset, datasetsFields, errorConsumer);
+            filter.validate(dataset, datasetsFields, validator);
         }
     }
 

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -53,9 +53,9 @@ public class GetGroupStats implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final AggregateMetric metric : metrics) {
-            metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            metric.validate(datasetsFields.datasets(), datasetsFields, validator);
         }
     }
 

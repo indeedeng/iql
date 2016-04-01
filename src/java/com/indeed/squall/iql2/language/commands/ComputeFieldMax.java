@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
@@ -23,10 +23,10 @@ public class ComputeFieldMax implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
     }

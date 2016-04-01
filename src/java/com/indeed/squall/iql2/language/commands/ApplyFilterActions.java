@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.actions.Action;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -32,9 +32,9 @@ public class ApplyFilterActions implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final Action action : actions) {
-            action.validate(datasetsFields, errorConsumer);
+            action.validate(datasetsFields, validator);
         }
     }
 

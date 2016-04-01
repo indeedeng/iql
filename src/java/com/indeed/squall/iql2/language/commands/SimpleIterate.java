@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
@@ -58,26 +57,26 @@ public class SimpleIterate implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : datasetsFields.datasets()) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, validator);
             }
         }
 
         if (opts.filter.isPresent()) {
-            opts.filter.get().validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            opts.filter.get().validate(datasetsFields.datasets(), datasetsFields, validator);
         }
 
         for (final AggregateMetric metric : selecting) {
-            metric.validate(datasetsFields.datasets(), datasetsFields, errorConsumer);
+            metric.validate(datasetsFields.datasets(), datasetsFields, validator);
         }
     }
 

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -21,7 +20,7 @@ public interface AggregateFilter {
 
     AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer);
+    void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
 
     boolean isOrdered();
 
@@ -43,7 +42,7 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
         }
 
         @Override
@@ -102,9 +101,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -165,9 +164,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -228,9 +227,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -291,9 +290,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -354,9 +353,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -417,9 +416,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            m1.validate(scope, datasetsFields, errorConsumer);
-            m2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -480,9 +479,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            f1.validate(scope, datasetsFields, errorConsumer);
-            f2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            f1.validate(scope, datasetsFields, validator);
+            f2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -543,9 +542,9 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            f1.validate(scope, datasetsFields, errorConsumer);
-            f2.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            f1.validate(scope, datasetsFields, validator);
+            f2.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -604,8 +603,8 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-            filter.validate(scope, datasetsFields, errorConsumer);
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            filter.validate(scope, datasetsFields, validator);
         }
 
         @Override
@@ -664,10 +663,10 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
                 if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    errorConsumer.accept(ErrorMessages.missingField(dataset, field, this));
+                    validator.error(ErrorMessages.missingField(dataset, field, this));
                 }
             }
         }
@@ -722,7 +721,7 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -769,7 +768,7 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
 
         }
 
@@ -815,7 +814,7 @@ public interface AggregateFilter {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
 
         }
 

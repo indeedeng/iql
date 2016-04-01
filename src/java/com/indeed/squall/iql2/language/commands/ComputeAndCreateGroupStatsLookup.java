@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
 import java.io.IOException;
@@ -35,8 +35,8 @@ public class ComputeAndCreateGroupStatsLookup implements Command, JsonSerializab
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
-        computation.validate(datasetsFields, errorConsumer);
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        computation.validate(datasetsFields, validator);
     }
 
     @Override
