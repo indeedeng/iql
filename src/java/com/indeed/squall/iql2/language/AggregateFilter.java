@@ -104,6 +104,12 @@ public interface AggregateFilter {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             m1.validate(scope, datasetsFields, validator);
             m2.validate(scope, datasetsFields, validator);
+            if (m1.equals(new AggregateMetric.Constant(1.0))) {
+                validator.warn("Direct comparison of aggregate [" + m2 + "] to 1 is likely in error. Consider what happens when multiple docs occur in the aggregate");
+            }
+            if (m2.equals(new AggregateMetric.Constant(1.0))) {
+                validator.warn("Direct comparison of aggregate [" + m1 + "] to 1 is likely in error. Consider what happens when multiple docs occur in the aggregate");
+            }
         }
 
         @Override
