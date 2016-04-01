@@ -543,7 +543,11 @@ public interface AggregateMetric {
 
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            metric.validate(Sets.newHashSet(this.scope), datasetsFields, validator);
+            final Set<String> thisScope = Sets.newHashSet(this.scope);
+            if (!scope.containsAll(thisScope)) {
+                validator.error("Qualified scope is not a subset of outer scope! qualified scope = [" + this.scope + "], outer scope = [" + scope + "]");
+            }
+            metric.validate(thisScope, datasetsFields, validator);
             ValidationUtil.validateScope(this.scope, datasetsFields, validator);
         }
 
