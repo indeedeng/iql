@@ -623,7 +623,7 @@ public class QueryServlet {
         timer.pop();
 
         final HashMap<Query, Boolean> queryCached = new HashMap<>();
-        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached, username);
+        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached, username, warn);
         timer.pop();
 
         return result;
@@ -638,8 +638,8 @@ public class QueryServlet {
             final @Nullable Integer initialGroupLimit,
             final WallClock clock,
             final Map<Query, Boolean> queryCached,
-            final String username
-    ) throws IOException {
+            final String username,
+            final com.indeed.squall.iql2.language.compat.Consumer<String> warn) throws IOException {
 
         final int[] totalBytesWritten = {0};
 
@@ -675,7 +675,7 @@ public class QueryServlet {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, new SessionCollectingProgressCallback(new NoOpProgressCallback()), q, skipValidation, initialGroupLimit, clock, queryCached, username);
+                                    }, timer, new SessionCollectingProgressCallback(new NoOpProgressCallback()), q, skipValidation, initialGroupLimit, clock, queryCached, username, warn);
                                     totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                 } catch (IOException e) {
                                     throw Throwables.propagate(e);
@@ -735,6 +735,10 @@ public class QueryServlet {
             for (final Command command : commands) {
                 command.validate(datasetsFields, validator);
             }
+        }
+
+        for (final String warning : warnings) {
+            warn.accept(warning);
         }
 
         if (errors.size() > 0) {
