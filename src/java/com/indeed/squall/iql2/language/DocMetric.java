@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public abstract class DocMetric {
 
@@ -1032,6 +1034,61 @@ public abstract class DocMetric {
             return "Qualified{" +
                     "dataset='" + dataset + '\'' +
                     ", metric=" + metric +
+                    '}';
+        }
+    }
+
+    public static class Extract extends DocMetric {
+        private final String field;
+        private final String regex;
+        private final int groupNumber;
+
+        public Extract(String field, String regex, int groupNumber) {
+            this.field = field;
+            this.regex = regex;
+            this.groupNumber = groupNumber;
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            return Collections.singletonList("regexmatch " + field + " " + groupNumber + " " + regex);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+            try {
+                Pattern.compile(regex);
+            } catch (PatternSyntaxException e) {
+                errorConsumer.accept("Invalid pattern: " + regex);
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Extract extract = (Extract) o;
+            return groupNumber == extract.groupNumber &&
+                    Objects.equals(field, extract.field) &&
+                    Objects.equals(regex, extract.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, regex, groupNumber);
+        }
+
+        @Override
+        public String toString() {
+            return "Extract{" +
+                    "field='" + field + '\'' +
+                    ", regex='" + regex + '\'' +
+                    ", groupNumber=" + groupNumber +
                     '}';
         }
     }

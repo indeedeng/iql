@@ -411,6 +411,19 @@ public class DocMetrics {
             }
 
             @Override
+            public void enterDocMetricAtomExtract(JQLParser.DocMetricAtomExtractContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                final String regex = ParserCommon.unquote(ctx.regex.getText());
+                final int groupNumber;
+                if (ctx.groupNumber != null) {
+                    groupNumber = Integer.parseInt(ctx.groupNumber.getText());
+                } else {
+                    groupNumber = 1;
+                }
+                accept(scopedField.wrap(new DocMetric.Extract(scopedField.field, regex, groupNumber)));
+            }
+
+            @Override
             public void enterSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
                 accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom()));
             }
