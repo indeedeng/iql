@@ -145,7 +145,11 @@ public class ExtractPrecomputed {
             } else if (input instanceof AggregateMetric.Qualified) {
                 final AggregateMetric.Qualified qualified = (AggregateMetric.Qualified) input;
                 final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
-                setScope(Sets.newHashSet(qualified.scope));
+                final Set<String> newScope = Sets.newHashSet(qualified.scope);
+                if (!oldScope.containsAll(newScope)) {
+                    throw new IllegalStateException("Cannot have a sub-scope that is a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
+                }
+                setScope(newScope);
                 final AggregateMetric result = apply(qualified.metric);
                 setScope(oldScope);
                 return result;
