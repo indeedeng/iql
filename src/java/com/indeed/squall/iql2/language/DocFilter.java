@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.squall.iql2.language.actions.Action;
@@ -14,6 +15,8 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
+import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
@@ -372,13 +375,39 @@ public interface DocFilter {
         }
     }
 
-    class MetricEqual implements DocFilter {
+    abstract class MetricBinop implements DocFilter {
         public final DocMetric m1;
         public final DocMetric m2;
 
-        public MetricEqual(DocMetric m1, DocMetric m2) {
+        public MetricBinop(DocMetric m1, DocMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            final Set<String> qualifications = Sets.union(ExtractQualifieds.extractDocMetricDatasets(m1), ExtractQualifieds.extractDocMetricDatasets(m2));
+            if (qualifications.size() > 1) {
+                throw new IllegalStateException("DocFilter cannot have multiple different qualifications! docFilter = [" + this + "], qualifications = [" + qualifications + "]");
+            } else if (!scope.keySet().containsAll(qualifications)) {
+                throw new IllegalArgumentException("Scope does not contain qualifications! scope = [" + scope.keySet() + "], qualifications = [" + qualifications + "]");
+            } else if (qualifications.size() == 1) {
+                return Collections.<Action>singletonList(new MetricAction(qualifications, this, target, positive, negative));
+            } else {
+                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+            }
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(dataset, datasetsFields, validator);
+            m2.validate(dataset, datasetsFields, validator);
+        }
+    }
+
+    class MetricEqual extends MetricBinop {
+        public MetricEqual(DocMetric m1, DocMetric m2) {
+            super(m1, m2);
         }
 
         @Override
@@ -393,6 +422,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -404,14 +434,8 @@ public interface DocFilter {
 //                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
 //                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -437,13 +461,9 @@ public interface DocFilter {
         }
     }
 
-    class MetricNotEqual implements DocFilter {
-        public final DocMetric m1;
-        public final DocMetric m2;
-
+    class MetricNotEqual extends MetricBinop {
         public MetricNotEqual(DocMetric m1, DocMetric m2) {
-            this.m1 = m1;
-            this.m2 = m2;
+            super(m1, m2);
         }
 
         @Override
@@ -458,6 +478,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
             // TODO: Not duplicate logic across these two branches
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
@@ -468,7 +489,7 @@ public interface DocFilter {
 //                final long value = ((DocMetric.Constant) m1).value;
 //                return getFieldNotEqualValue(scope, field, value, target, positive, negative);
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
         }
 
@@ -476,12 +497,6 @@ public interface DocFilter {
             final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
             final com.indeed.flamdex.query.Query negated = com.indeed.flamdex.query.Query.newBooleanQuery(BooleanOp.NOT, Collections.singletonList(query));
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, negated), target, positive, negative));
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -507,13 +522,9 @@ public interface DocFilter {
         }
     }
 
-    class MetricGt implements DocFilter {
-        public final DocMetric m1;
-        public final DocMetric m2;
-
+    class MetricGt extends MetricBinop {
         public MetricGt(DocMetric m1, DocMetric m2) {
-            this.m1 = m1;
-            this.m2 = m2;
+            super(m1, m2);
         }
 
         @Override
@@ -528,6 +539,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -541,14 +553,8 @@ public interface DocFilter {
 //                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, false);
 //                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -574,13 +580,9 @@ public interface DocFilter {
         }
     }
 
-    class MetricGte implements DocFilter {
-        public final DocMetric m1;
-        public final DocMetric m2;
-
+    class MetricGte extends MetricBinop {
         public MetricGte(DocMetric m1, DocMetric m2) {
-            this.m1 = m1;
-            this.m2 = m2;
+            super(m1, m2);
         }
 
         @Override
@@ -595,6 +597,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -608,14 +611,8 @@ public interface DocFilter {
 //                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, Long.MIN_VALUE, value, true);
 //                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -641,13 +638,9 @@ public interface DocFilter {
         }
     }
 
-    class MetricLt implements DocFilter {
-        public final DocMetric m1;
-        public final DocMetric m2;
-
+    class MetricLt extends MetricBinop {
         public MetricLt(DocMetric m1, DocMetric m2) {
-            this.m1 = m1;
-            this.m2 = m2;
+            super(m1, m2);
         }
 
         @Override
@@ -662,6 +655,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -675,14 +669,8 @@ public interface DocFilter {
 //                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value + 1, Long.MAX_VALUE, true);
 //                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
@@ -708,13 +696,9 @@ public interface DocFilter {
         }
     }
 
-    class MetricLte implements DocFilter {
-        public final DocMetric m1;
-        public final DocMetric m2;
-
+    class MetricLte extends MetricBinop {
         public MetricLte(DocMetric m1, DocMetric m2) {
-            this.m1 = m1;
-            this.m2 = m2;
+            super(m1, m2);
         }
 
         @Override
@@ -729,6 +713,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -742,14 +727,8 @@ public interface DocFilter {
 //                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, value, Long.MAX_VALUE, true);
 //                return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
 //            } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+//                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
-
-        @Override
-        public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            m1.validate(dataset, datasetsFields, validator);
-            m2.validate(dataset, datasetsFields, validator);
         }
 
         @Override
