@@ -18,9 +18,9 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
-import com.indeed.imhotep.ez.StatReference;
 import org.apache.log4j.Logger;
 
+import java.text.DecimalFormat;
 import java.util.Map;
 
 import static com.indeed.imhotep.ez.Stats.Stat;
@@ -38,6 +38,9 @@ public final class StatRangeGrouping extends Grouping {
     private final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
     private final boolean isTimeGrouping;
+    private final long expectedBucketCount;
+    private final DecimalFormat df = new DecimalFormat("###,###");
+
 
     public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize,
                              final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping) {
@@ -52,10 +55,10 @@ public final class StatRangeGrouping extends Grouping {
         this.stringFormatter = stringFormatter;
         this.isTimeGrouping = isTimeGrouping;
 
-        final long expectedBucketCount = (maxValue - minValue) / intervalSize;
+        expectedBucketCount = (maxValue - minValue) / intervalSize;
         if(expectedBucketCount > EZImhotepSession.GROUP_LIMIT || expectedBucketCount < 0) {
-            throw new IllegalArgumentException("Requested bucket count for metric " + stat.toString() +
-                    " is " + expectedBucketCount + " which is over the limit of " + EZImhotepSession.GROUP_LIMIT);
+            throw new IllegalArgumentException("Requested bucket count for metric " + this.stat.toString() +
+                    " is " + df.format(expectedBucketCount) + " which is over the limit of " + df.format(EZImhotepSession.GROUP_LIMIT));
         }
     }
 
@@ -63,6 +66,13 @@ public final class StatRangeGrouping extends Grouping {
         if(groupKeys.isEmpty()) {
             return groupKeys;
         }
+        final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
+        if(expectedNumberOfRows > EZImhotepSession.GROUP_LIMIT || expectedNumberOfRows < 0) {
+            throw new IllegalArgumentException("Expected number of rows after bucketing by " + this.stat.toString() +
+                    " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(EZImhotepSession.GROUP_LIMIT) +
+                    " rows in memory. Please optimize the query.");
+        }
+
         final SingleStatReference statRef = session.pushStat(stat);
         boolean noGutters = this.noGutters;
         // Special case for Time regroups:
