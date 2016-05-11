@@ -101,7 +101,7 @@ public class GroupBys {
                     metric = Optional.absent();
                 }
                 if (metric.isPresent() && ctx2.order != null) {
-                    if (VALID_ORDERINGS.contains(ctx2.order.getText())) {
+                    if (VALID_ORDERINGS.contains(ctx2.order.getText().toLowerCase())) {
                         metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
@@ -228,7 +228,7 @@ public class GroupBys {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
                 final String field = parseIdentifier(ctx2.field);
                 final boolean reverseOrder;
-                if (ctx2.order != null && ctx2.order.getText().equals("bottom")) {
+                if (ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom")) {
                     reverseOrder = true;
                 } else {
                     reverseOrder = false;
@@ -247,7 +247,11 @@ public class GroupBys {
                     }
                     metric = Optional.of(theMetric);
                 } else {
-                    metric = Optional.absent();
+                    if (reverseOrder) {
+                        metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(new AggregateMetric.DocStats(new DocMetric.Count())));
+                    } else {
+                        metric = Optional.absent();
+                    }
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
