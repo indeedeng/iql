@@ -44,6 +44,18 @@ public class FieldRegroupTest {
         testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], (true) select count(), ojc");
     }
 
+    // IF THIS BREAKS, READ THE TODO BEFORE TRYING TO FIGURE OUT WHAT YOU DID
+    @Test
+    public void testImplicitOrderingBackwards() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        // TODO: Determinism amongst ties? This will almost certainly break
+        expected.add(ImmutableList.of("15", "1", "15"));
+        expected.add(ImmutableList.of("5", "1", "5"));
+        expected.add(ImmutableList.of("2", "1", "2"));
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3], (true) select count(), ojc");
+    }
+
     @Test
     public void testTopKOrdering() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
@@ -56,6 +68,16 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("0", "2", "0"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc");
         testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], (true) select count(), ojc");
+    }
+
+    @Test
+    public void testTopKBottomOrdering() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2", "0"));
+        expected.add(ImmutableList.of("2", "1", "2"));
+        expected.add(ImmutableList.of("5", "1", "5"));
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BOTTOM 3 BY ojc] select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3 BY ojc], (true) select count(), ojc");
     }
 
     @Test
