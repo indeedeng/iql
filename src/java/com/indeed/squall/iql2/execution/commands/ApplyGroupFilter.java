@@ -37,7 +37,7 @@ public class ApplyGroupFilter implements Command {
         final Set<QualifiedPush> requires = filter.requires();
         final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
-        session.pushMetrics(requires, metricIndexes, sessionMetricIndexes);
+        session.pushMetrics(requires, metricIndexes, sessionMetricIndexes, true);
         filter.register(metricIndexes, session.groupKeySet);
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
@@ -61,7 +61,7 @@ public class ApplyGroupFilter implements Command {
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
         final List<GroupRemapRule> rules = new ArrayList<>();
-        final RegroupCondition fakeCondition = new RegroupCondition("foo", true, 0, null, false);
+        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
         final IntList newGroupParents = new IntArrayList();

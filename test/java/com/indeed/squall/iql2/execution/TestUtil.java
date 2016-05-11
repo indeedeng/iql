@@ -132,7 +132,11 @@ public class TestUtil {
         for (final Session.GroupStats groupStats : groupStatses) {
             final ArrayList<String> groupKey = new ArrayList<>();
             session.groupKeySet.groupKey(groupStats.group).addToList(groupKey);
-            output.add(groupKey.get(0)+"\t"+makeNumber(groupStats.stats[0]));
+            if (groupKey.isEmpty()) {
+                output.add(makeNumber(groupStats.stats[0]));
+            } else {
+                output.add(groupKey.get(0)+"\t"+makeNumber(groupStats.stats[0]));
+            }
         }
         return output;
     }

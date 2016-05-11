@@ -570,12 +570,18 @@ public class Session {
     }
 
     public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
+        pushMetrics(allPushes, metricIndexes, sessionMetricIndexes, false);
+    }
+
+    public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes, boolean dryRun) throws ImhotepOutOfMemoryException {
         int numStats = 0;
         for (final QualifiedPush push : allPushes) {
             final int index = numStats++;
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
-            sessions.get(sessionName).session.pushStats(push.pushes);
+            if (!dryRun) {
+                sessions.get(sessionName).session.pushStats(push.pushes);
+            }
             // TODO: Terrible variable names.
             IntList sessionMetricIndex = sessionMetricIndexes.get(sessionName);
             if (sessionMetricIndex == null) {
