@@ -90,12 +90,7 @@ public class ExplodePerGroup implements Command {
         }
         session.timer.pop();
 
-        session.timer.push("regroup");
-        // TODO: Parallelize
-        for (final ImhotepSession s : session.getSessionsMapRaw().values()) {
-            s.regroup(rules, true);
-        }
-        session.timer.pop();
+        session.regroup(rules, true);
 
         session.numGroups = nextGroup - 1;
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
