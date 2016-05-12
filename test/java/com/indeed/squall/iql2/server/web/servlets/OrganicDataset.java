@@ -105,6 +105,7 @@ class OrganicDataset {
         doc.addIntTerm("unixtime", timestamp.getMillis() / 1000);
         doc.addIntTerm("oji", oji);
         doc.addIntTerm("ojc", ojc);
+        doc.addIntTerm("allbit", 1);
         doc.addStringTerm("tk", tk);
 
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.

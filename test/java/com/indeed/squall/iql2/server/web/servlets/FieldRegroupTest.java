@@ -20,7 +20,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("10", "2", "20"));
         expected.add(ImmutableList.of("15", "1", "15"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc");
     }
 
     @Test
@@ -30,7 +30,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("2", "1", "2"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc select count(), ojc LIMIT 3");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, (true) select count(), ojc LIMIT 3");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc LIMIT 3");
     }
 
     @Test
@@ -41,7 +41,7 @@ public class FieldRegroupTest {
         // TODO: Introduce fully deterministic ordering for ties and increase to top 3?
 //        expected.add(ImmutableList.of("0", "2", "0"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[2] select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], allbit select count(), ojc");
     }
 
     // IF THIS BREAKS, READ THE TODO BEFORE TRYING TO FIGURE OUT WHAT YOU DID
@@ -53,7 +53,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("5", "1", "5"));
         expected.add(ImmutableList.of("2", "1", "2"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3], (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3], allbit select count(), ojc");
     }
 
     @Test
@@ -67,7 +67,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], allbit select count(), ojc");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("2", "1", "2"));
         expected.add(ImmutableList.of("5", "1", "5"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BOTTOM 3 BY ojc] select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3 BY ojc], (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3 BY ojc], allbit select count(), ojc");
     }
 
     @Test
@@ -91,6 +91,6 @@ public class FieldRegroupTest {
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc");
-        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BY ojc/count()], (true) select count(), ojc");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BY ojc/count()], allbit select count(), ojc");
     }
 }

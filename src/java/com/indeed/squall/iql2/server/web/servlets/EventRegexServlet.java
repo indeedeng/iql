@@ -42,7 +42,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -110,7 +109,7 @@ public class EventRegexServlet {
 
             final Automaton automaton = new RegExp(regexp).toAutomaton();
 
-            new TimePeriodRegroup(1000, Optional.<String>absent(), Optional.<String>absent()).execute(session, out, true);
+            new TimePeriodRegroup(1000, Optional.<String>absent(), Optional.<String>absent()).execute(session, out);
 
             final Map<String, Integer> presenceIndexes = new HashMap<>();
             final Map<Integer, Character> indexToChar = new HashMap<>();
