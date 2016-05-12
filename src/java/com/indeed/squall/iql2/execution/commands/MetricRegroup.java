@@ -96,7 +96,7 @@ public class MetricRegroup implements Command {
             }
         });
 
-        session.densify(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket));
+        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket));
 
         session.currentDepth += 1;
 
