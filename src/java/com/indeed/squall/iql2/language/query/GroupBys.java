@@ -227,12 +227,7 @@ public class GroupBys {
             public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
                 final String field = parseIdentifier(ctx2.field);
-                final boolean reverseOrder;
-                if (ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom")) {
-                    reverseOrder = true;
-                } else {
-                    reverseOrder = false;
-                }
+                final boolean reverseOrder = ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom");
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
