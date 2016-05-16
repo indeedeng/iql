@@ -57,6 +57,8 @@ public class AggregateFilters {
                 return new AggregateFilter.Or(f1.get(), f2.get());
             case "always":
                 return new AggregateFilter.Constant(true);
+            case "never":
+                return new AggregateFilter.Constant(false);
             case "isDefaultGroup":
                 return new AggregateFilter.IsDefaultGroup(groupKeySet);
         }
