@@ -2,9 +2,11 @@ package com.indeed.squall.iql2.language.execution.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.indeed.squall.iql2.language.AggregateFilter;
+import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -20,16 +22,18 @@ public class OptimizeLast {
     public static List<ExecutionStep> optimize(List<ExecutionStep> steps) {
         steps = Collections.unmodifiableList(steps);
         if (steps.size() > 1) {
-            if (steps.get(steps.size() - 1) instanceof ExecutionStep.GetGroupStats
-                    && steps.get(steps.size() - 2) instanceof ExecutionStep.ExplodeAndRegroup) {
-                final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) steps.get(steps.size() - 1);
+            final ExecutionStep last = steps.get(steps.size() - 1);
+            final ExecutionStep penultimate = steps.get(steps.size() - 2);
+            if (last instanceof ExecutionStep.GetGroupStats
+                    && penultimate instanceof ExecutionStep.ExplodeAndRegroup) {
+                final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
                 final boolean selectIsOrdered = Iterables.any(getGroupStats.stats, new Predicate<AggregateMetric>() {
                     @Override
                     public boolean apply(AggregateMetric input) {
                         return input.isOrdered();
                     }
                 });
-                final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) steps.get(steps.size() - 2);
+                final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) penultimate;
                 // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
                 // TODO: Figure out wtf the above TODO means.
                 final boolean isReordered = explodeAndRegroup.limit.isPresent();
@@ -50,6 +54,21 @@ public class OptimizeLast {
                     ));
                     return newSteps;
                 }
+            } else if (last instanceof ExecutionStep.GetGroupStats && penultimate instanceof ExecutionStep.ExplodeFieldIn) {
+                final ExecutionStep.ExplodeFieldIn explodeFieldIn = (ExecutionStep.ExplodeFieldIn) penultimate;
+                final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
+                final List<ExecutionStep> newSteps = new ArrayList<>();
+                newSteps.addAll(steps.subList(0, steps.size() - 2));
+                newSteps.add(new ExecutionStep.IterateStats(
+                        explodeFieldIn.field,
+                        Optional.of(explodeFieldIn.termsAsFilter()),
+                        Optional.<Long>absent(),
+                        Optional.<AggregateMetric>absent(),
+                        fixForIteration(getGroupStats.stats),
+                        getGroupStats.formatStrings,
+                        false
+                ));
+                return newSteps;
             }
         }
         return steps;

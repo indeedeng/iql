@@ -7,6 +7,7 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.language.commands.ApplyGroupFilter;
@@ -189,12 +190,12 @@ public interface ExecutionStep {
     }
 
     class ExplodeFieldIn implements ExecutionStep {
-        private final Set<String> scope;
-        private final String field;
-        private final List<String> stringTerms;
-        private final LongList intTerms;
-        private final boolean isIntField;
-        private final boolean withDefault;
+        public final Set<String> scope;
+        public final String field;
+        public final List<String> stringTerms;
+        public final LongList intTerms;
+        public final boolean isIntField;
+        public final boolean withDefault;
 
         private ExplodeFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
             this.scope = scope;
@@ -223,6 +224,20 @@ public interface ExecutionStep {
             return this;
         }
 
+
+        public AggregateFilter termsAsFilter() {
+            AggregateFilter result = new AggregateFilter.Never();
+            if (isIntField) {
+                for (final long term : intTerms) {
+                    result = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.term(term)), result);
+                }
+            } else {
+                for (final String term : stringTerms) {
+                    result = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.term(term)), result);
+                }
+            }
+            return result;
+        }
 
         @Override
         public String toString() {
