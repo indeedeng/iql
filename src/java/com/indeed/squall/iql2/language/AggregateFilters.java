@@ -10,6 +10,26 @@ import java.util.Set;
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
 public class AggregateFilters {
+    public static AggregateFilter aggregateInHelper(List<JQLParser.TermValContext> terms, boolean negate) {
+        AggregateFilter filter = null;
+        for (final JQLParser.TermValContext term : terms) {
+            if (filter == null) {
+                filter = new AggregateFilter.TermIs(Term.parseTerm(term));
+            } else {
+                filter = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.parseTerm(term)), filter);
+            }
+        }
+        if (filter == null) {
+            // TODO (optional): Make this new Always() and don't negate if (ctx.not != null).
+            // TODO cont:       Alternatively, add optimization pass for Not(Always) and Not(Never).
+            filter = new AggregateFilter.Never();
+        }
+        if (negate) {
+            filter = new AggregateFilter.Not(filter);
+        }
+        return filter;
+    }
+
     public static AggregateFilter parseAggregateFilter(JQLParser.AggregateFilterContext aggregateFilterContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         if (aggregateFilterContext.jqlAggregateFilter() != null) {
             return parseJQLAggregateFilter(aggregateFilterContext.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);

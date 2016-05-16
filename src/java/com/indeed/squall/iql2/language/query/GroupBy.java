@@ -319,6 +319,85 @@ public interface GroupBy {
         }
     }
 
+    class GroupByFieldIn implements GroupBy {
+        public final String field;
+        public final LongList intTerms;
+        public final List<String> stringTerms;
+        public final boolean withDefault;
+
+        public GroupByFieldIn(String field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
+            this.field = field;
+            this.intTerms = intTerms;
+            this.stringTerms = stringTerms;
+            this.withDefault = withDefault;
+
+            if (Sets.newHashSet(stringTerms).size() != stringTerms.size()) {
+                throw new IllegalArgumentException("String terms must be unique: " + stringTerms);
+            }
+            if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
+                throw new IllegalArgumentException("Int terms must be unique: " + intTerms);
+            }
+            if (intTerms.size() > 0 && stringTerms.size() > 0) {
+                throw new IllegalArgumentException("Cannot have both int terms and string terms.");
+            }
+        }
+
+        @Override
+        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            if (intTerms.size() > 0) {
+                return ExecutionStep.ExplodeFieldIn.intExplode(scope, field, intTerms, withDefault);
+            } else {
+                return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field, stringTerms, withDefault);
+            }
+        }
+
+        @Override
+        public boolean isTotal() {
+            return withDefault;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return new GroupByFieldIn(field, intTerms, stringTerms, true);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupByFieldIn that = (GroupByFieldIn) o;
+            return withDefault == that.withDefault &&
+                    Objects.equals(field, that.field) &&
+                    Objects.equals(intTerms, that.intTerms) &&
+                    Objects.equals(stringTerms, that.stringTerms);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, intTerms, stringTerms, withDefault);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByFieldIn{" +
+                    "field='" + field + '\'' +
+                    ", intTerms=" + intTerms +
+                    ", stringTerms=" + stringTerms +
+                    ", withDefault=" + withDefault +
+                    '}';
+        }
+    }
+
     class GroupByField implements GroupBy {
         public final String field;
         public final Optional<AggregateFilter> filter;
