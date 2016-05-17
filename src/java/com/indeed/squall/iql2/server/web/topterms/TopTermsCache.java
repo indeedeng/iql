@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.topterms;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.common.util.io.Closeables2;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.util.io.Files;
 import com.indeed.imhotep.TermCount;
@@ -90,34 +91,39 @@ public class TopTermsCache {
 
             final Map<String, List<String>> fieldToTerms = Maps.newHashMap();
 
-            final ImhotepSession imhotepSession;
+            ImhotepSession imhotepSession = null;
             try {
-                final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startTime, endTime).username("IQL: topterms");
-                if(sessionBuilder.getChosenShards().size() == 0) {
-                    log.info("Index " + dataset + " has no shards for midday " + DAYS_DELAY + " days ago");
+                try {
+                    final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startTime, endTime).username("IQL: topterms");
+                    if(sessionBuilder.getChosenShards().size() == 0) {
+                        log.info("Index " + dataset + " has no shards for midday " + DAYS_DELAY + " days ago");
+                        continue;
+                    }
+                    imhotepSession = sessionBuilder.build();
+                } catch (Exception e) {
+                    log.warn("Failed to create a session for " + dataset + " " + startTime + " - " + endTime);
                     continue;
                 }
-                imhotepSession = sessionBuilder.build();
-            } catch (Exception e) {
-                log.warn("Failed to create a session for " + dataset + " " + startTime + " - " + endTime);
-                continue;
+
+                final Collection<String> stringFields = Session.getDatasetShardList(client, dataset).getStringFields();
+
+                for(final String field : stringFields) {
+                    final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
+
+                    if(termCounts.size() == 0) {
+                        log.debug(dataset + "." + field + " has no terms");
+                    }
+
+                    final List<String> terms = Lists.newArrayList();
+                    for(TermCount termCount : termCounts) {
+                        terms.add(termCount.getTerm().getTermStringVal());
+                    }
+                    fieldToTerms.put(field, terms);
+                }
+            } finally {
+                Closeables2.closeQuietly(imhotepSession, log);
             }
 
-            final Collection<String> stringFields = Session.getDatasetShardList(client, dataset).getStringFields();
-
-            for(final String field : stringFields) {
-                final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
-
-                if(termCounts.size() == 0) {
-                    log.debug(dataset + "." + field + " has no terms");
-                }
-
-                final List<String> terms = Lists.newArrayList();
-                for(TermCount termCount : termCounts) {
-                    terms.add(termCount.getTerm().getTermStringVal());
-                }
-                fieldToTerms.put(field, terms);
-            }
             if(fieldToTerms.size() > 0) {
                 newDatasetToFieldToTerms.put(dataset, fieldToTerms);
             }
