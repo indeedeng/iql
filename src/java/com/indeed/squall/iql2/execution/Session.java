@@ -53,6 +53,7 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.MaskingGroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
+import com.indeed.squall.iql2.execution.workarounds.GroupMultiRemapRuleRewriter;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
@@ -336,7 +337,8 @@ public class Session {
         final DimensionsTranslator translated = new DimensionsTranslator(build, datasetDimensions);
         final CaseInsensitiveImhotepSession caseInsensitive = new CaseInsensitiveImhotepSession(translated, fieldNames);
         final FieldAliasingImhotepSession aliased = new FieldAliasingImhotepSession(caseInsensitive, fieldAliases);
-        return aliased;
+        final GroupMultiRemapRuleRewriter groupMultiRemapRuleRewriter = new GroupMultiRemapRuleRewriter(aliased);
+        return groupMultiRemapRuleRewriter;
     }
 
     private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
