@@ -105,7 +105,7 @@ public class TopTermsCache {
                     continue;
                 }
 
-                final Collection<String> stringFields = Session.getDatasetShardList(client, dataset).getStringFields();
+                final Collection<String> stringFields = client.getDatasetShardInfo(dataset).getStringFields();
 
                 for(final String field : stringFields) {
                     final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);

@@ -326,7 +326,7 @@ public class QueryServlet {
     }
 
     private void processDescribeField(HttpServletResponse response, String contentType, String dataset, String field) throws IOException {
-        final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
+        final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
 
         final String type;
         final String imhotepType;
@@ -359,7 +359,7 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(Session.getDatasetShardList(imhotepClient, dataset), getDimensions().get(dataset), getDatasetToIntFields().get(dataset));
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(imhotepClient.getDatasetShardInfo(dataset), getDimensions().get(dataset), getDatasetToIntFields().get(dataset));
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
         } else {
@@ -534,7 +534,7 @@ public class QueryServlet {
         for (final Map.Entry<String, String> entry : nameToUppercaseDataset.entrySet()) {
             final String dataset = datasetUpperCaseToActual.get(entry.getValue());
 
-            final DatasetInfo datasetInfo = Session.getDatasetShardList(imhotepClient, dataset);
+            final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
             final DatasetDimensions dimension = dimensions.get(dataset);
             final Set<String> intFields = datasetToIntFields.get(entry.getValue());
 
