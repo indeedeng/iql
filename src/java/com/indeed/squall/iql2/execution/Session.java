@@ -30,7 +30,6 @@ import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
-import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
@@ -208,26 +207,6 @@ public class Session {
         return result;
     }
 
-    public static DatasetInfo getDatasetShardList(ImhotepClient client, String dataset) {
-        final Map<Host, List<DatasetInfo>> shardListMap = client.getShardList();
-        final DatasetInfo ret = new DatasetInfo(dataset, new HashSet<ShardInfo>(), new HashSet<String>(), new HashSet<String>(), new HashSet<String>());
-        for (final List<DatasetInfo> datasetList : shardListMap.values()) {
-            for (final DatasetInfo d : datasetList) {
-                if (d.getDataset().equals(dataset)) {
-                    ret.getShardList().addAll(d.getShardList());
-                    ret.getIntFields().addAll(d.getIntFields());
-                    ret.getStringFields().addAll(d.getStringFields());
-                    ret.getMetrics().addAll(d.getMetrics());
-                }
-            }
-        }
-        if(ret.getIntFields().isEmpty()) {
-            // Ramses
-            ret.getStringFields().add("time");
-        }
-        return ret;
-    }
-
     private static void createSubSessions(
             final ImhotepClient client,
             final JsonNode sessionRequest,
@@ -257,8 +236,8 @@ public class Session {
             final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {});
 
             treeTimer.push("get dataset info");
-            treeTimer.push("getDatasetShardList");
-            final DatasetInfo datasetInfo = getDatasetShardList(client, actualDataset);
+            treeTimer.push("getDatasetShardInfo");
+            final DatasetInfo datasetInfo = client.getDatasetShardInfo(actualDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
             final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
