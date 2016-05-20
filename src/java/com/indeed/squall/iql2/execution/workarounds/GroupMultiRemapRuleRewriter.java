@@ -159,8 +159,13 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     }
 
     @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] strings, String[] strings1, String s, InetSocketAddress[] inetSocketAddresses, int i, long l) {
-        return wrapped.mergeFTGSSplit(strings, strings1, s, inetSocketAddresses, i, l);
+    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
+        return wrapped.mergeFTGSSplit(intFields, stringFields, sessionId, nodes, splitIndex, termLimit, sortStat);
+    }
+
+    @Override
+    public FTGSIterator getFTGSIterator(String[] intFields, String[] stringFields, long termLimit, int sortStat) {
+        return wrapped.getFTGSIterator(intFields, stringFields, termLimit, sortStat);
     }
 
     @Override

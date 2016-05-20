@@ -234,6 +234,11 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
+    public FTGSIterator getFTGSIterator(String[] intFields, String[] stringFields, long termLimit, int sortStat) {
+        return wrapped.getFTGSIterator(rewriteArray(intFields), rewriteArray(stringFields), termLimit, sortStat);
+    }
+
+    @Override
     public FTGSIterator getSubsetFTGSIterator(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
         return wrapped.getSubsetFTGSIterator(rewriteMap(intFields), rewriteMap(stringFields));
     }
@@ -264,8 +269,8 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit) {
-        return wrapped.mergeFTGSSplit(rewriteArray(intFields), rewriteArray(stringFields), sessionId, nodes, splitIndex, termLimit);
+    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
+        return wrapped.mergeFTGSSplit(rewriteArray(intFields), rewriteArray(stringFields), sessionId, nodes, splitIndex, termLimit, sortStat);
     }
 
     @Override

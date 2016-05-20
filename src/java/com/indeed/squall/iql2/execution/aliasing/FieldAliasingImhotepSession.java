@@ -219,6 +219,11 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
     }
 
     @Override
+    public FTGSIterator getFTGSIterator(String[] intFields, String[] stringFields, long termLimit, int sortStat) {
+        return wrapped.getFTGSIterator(rewriteFields(intFields), rewriteFields(stringFields), termLimit, sortStat);
+    }
+
+    @Override
     public FTGSIterator getSubsetFTGSIterator(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
         return wrapped.getSubsetFTGSIterator(rewriteMap(intFields), rewriteMap(stringFields));
     }
@@ -249,8 +254,8 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
     }
 
     @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit) {
-        return wrapped.mergeFTGSSplit(rewriteFields(intFields), rewriteFields(stringFields), sessionId, nodes, splitIndex, termLimit);
+    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
+        return wrapped.mergeFTGSSplit(rewriteFields(intFields), rewriteFields(stringFields), sessionId, nodes, splitIndex, termLimit, sortStat);
     }
 
     @Override
