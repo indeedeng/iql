@@ -1059,11 +1059,11 @@ public abstract class DocMetric {
         }
 
         @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Consumer<String> errorConsumer) {
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             try {
                 Pattern.compile(regex);
             } catch (PatternSyntaxException e) {
-                errorConsumer.accept("Invalid pattern: " + regex);
+                validator.error("Invalid pattern: " + regex);
             }
         }
 
