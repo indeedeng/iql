@@ -68,6 +68,7 @@ WINDOW_SUM : 'WINDOW_SUM' ;
 MIN : 'MIN' ;
 MAX : 'MAX' ;
 PRINTF : 'PRINTF' ;
+EXTRACT : 'EXTRACT' ;
 
 Y : 'Y' ;
 
@@ -108,7 +109,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF
+    | PRINTF | EXTRACT
     | BACKQUOTED_ID
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
@@ -244,6 +245,7 @@ jqlDocMetricAtom
     | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
+    | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 

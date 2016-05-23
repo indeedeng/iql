@@ -14,6 +14,7 @@ public class ParserCommon {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
 
+    // TODO: Shouldn't this unescape things like \n and whatnot..?
     public static String unquote(String text) {
         if (!((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("\'") && text.endsWith("\'")))) {
             return text;
