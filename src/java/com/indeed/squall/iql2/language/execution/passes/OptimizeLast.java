@@ -57,18 +57,20 @@ public class OptimizeLast {
             } else if (last instanceof ExecutionStep.GetGroupStats && penultimate instanceof ExecutionStep.ExplodeFieldIn) {
                 final ExecutionStep.ExplodeFieldIn explodeFieldIn = (ExecutionStep.ExplodeFieldIn) penultimate;
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
-                final List<ExecutionStep> newSteps = new ArrayList<>();
-                newSteps.addAll(steps.subList(0, steps.size() - 2));
-                newSteps.add(new ExecutionStep.IterateStats(
-                        explodeFieldIn.field,
-                        Optional.of(explodeFieldIn.termsAsFilter()),
-                        Optional.<Long>absent(),
-                        Optional.<AggregateMetric>absent(),
-                        fixForIteration(getGroupStats.stats),
-                        getGroupStats.formatStrings,
-                        false
-                ));
-                return newSteps;
+                if (!explodeFieldIn.withDefault) {
+                    final List<ExecutionStep> newSteps = new ArrayList<>();
+                    newSteps.addAll(steps.subList(0, steps.size() - 2));
+                    newSteps.add(new ExecutionStep.IterateStats(
+                            explodeFieldIn.field,
+                            Optional.of(explodeFieldIn.termsAsFilter()),
+                            Optional.<Long>absent(),
+                            Optional.<AggregateMetric>absent(),
+                            fixForIteration(getGroupStats.stats),
+                            getGroupStats.formatStrings,
+                            false
+                    ));
+                    return newSteps;
+                }
             }
         }
         return steps;
