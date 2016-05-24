@@ -6,6 +6,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.withoutLastColumn;
+
 public class FieldInTermsTest {
     @Test
     public void testStringFieldInTerms() throws Exception {
@@ -14,6 +16,7 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "145", "2"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by tk in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -23,6 +26,7 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "6", "2"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk not in ('a', \"b\") with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by tk not in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -32,6 +36,7 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "65", "4"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by ojc in (1, 10) with default select count()");
     }
 
     @Test
@@ -44,5 +49,6 @@ public class FieldInTermsTest {
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "86", "3"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()");
     }
 }
