@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingImhotepSession {
     private final ImhotepSession wrapped;
@@ -116,6 +118,8 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
         }
     }
 
+    private static final Pattern REGEXMATCH_COMMAND = Pattern.compile("regexmatch\\s+(\\w+)\\s+([0-9]+)\\s(.+)");
+
     private String rewriteStat(String statName) {
         if (upperCaseToActual.containsKey(statName.toUpperCase())) {
             return rewrite(statName);
@@ -136,6 +140,14 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
         } else if (statName.startsWith("floatscale ")) {
             final int multIndex = statName.indexOf('*');
             return "floatscale " + rewrite(statName.substring("floatscale ".length(), multIndex)) + statName.substring(multIndex);
+        } else if (statName.startsWith("regexmatch ")) {
+            final Matcher matcher = REGEXMATCH_COMMAND.matcher(statName);
+            if (matcher.matches()) {
+                final String field = matcher.group(1);
+                return "regexmatch " + rewrite(field) + " " + matcher.group(2) + " " + matcher.group(3);
+            } else {
+                throw new IllegalArgumentException("Invalid regexmatch command: [" + statName + "]");
+            }
         }
         return statName;
     }
