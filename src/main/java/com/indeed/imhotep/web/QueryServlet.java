@@ -78,14 +78,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -304,6 +297,11 @@ public class QueryServlet {
         final QueryMetadata queryMetadata = new QueryMetadata();
 
         queryMetadata.addItem("IQL-Cached", isCached, true);
+
+        final DateTime startTime = iqlQuery.getStart();
+        final DateTime endTime = iqlQuery.getEnd();
+
+        final int bufferTime = 12*3600*1000;
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
@@ -311,9 +309,49 @@ public class QueryServlet {
         queryMetadata.addItem("IQL-Shard-List", shardList, args.returnShardlist);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
-        if(timeIntervalsMissingShards.size() > 0) {
-            final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
+        final List<Interval> properTimeIntervalsMissingShards = new ArrayList<Interval>();
+
+        for (Interval interval: timeIntervalsMissingShards){
+
+            if (interval.getStartMillis() + bufferTime <= System.currentTimeMillis()){
+
+                if (interval.getEndMillis() <= System.currentTimeMillis()) {
+                    properTimeIntervalsMissingShards.add(interval);
+                } else {
+                    Interval properInterval = new Interval(interval.getStartMillis(),System.currentTimeMillis());
+                    properTimeIntervalsMissingShards.add(properInterval);
+                }
+            }
+        }
+
+        String warningList = "";
+
+        if(properTimeIntervalsMissingShards.size() > 0) {
+            int millisMissing = 0;
+            final String missingIntervals;
+            final int countMissingIntervals = properTimeIntervalsMissingShards.size();
+
+
+            for (Interval interval: properTimeIntervalsMissingShards){
+                millisMissing += interval.getEndMillis()-interval.getStartMillis();
+            }
+
+            final double totalPeriod = endTime.getMillis()-startTime.getMillis();
+
+            final double percentMissing = millisMissing/totalPeriod*100;
+            final String percentAbsent = String.format("%.2f",percentMissing);
+
+            if (countMissingIntervals>5) {
+                final List<Interval> properSubList =properTimeIntervalsMissingShards.subList(0, 5);
+                 missingIntervals = intervalListToString(properSubList);
+                warningList += percentAbsent + "% of the queried time period is missing. Click arrow for more info.;The first 5 missing time periods are: " + missingIntervals + " (total of " + countMissingIntervals + ").";
+            } else {
+                missingIntervals = intervalListToString(properTimeIntervalsMissingShards);
+                warningList += percentAbsent + "% of the queried time period is missing. Click arrow for more info.;The missing time periods are: " + missingIntervals;
+            }
+
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
+            queryMetadata.addItem("IQL-Warning", warningList);
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -372,8 +410,18 @@ public class QueryServlet {
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 if (writeResults.exceedsLimit) {
-                    queryMetadata.addItem("IQL-Warning", "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
+                    //warnings.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
+                    if (warningList.length() == 0){
+                        warningList += "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
+                    } else{
+                        warningList += ";Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
+                    }
+                    queryMetadata.addItem("IQL-Warning", warningList);
+
                 }
+
+
+
                 if(args.progress) {
                     completeStream(outputStream, queryMetadata);
                 }
@@ -496,7 +544,7 @@ public class QueryServlet {
         return sb.toString();
     }
 
-    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyyMMdd.HH").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd.HH").withZone(DateTimeZone.forOffsetHours(-6));
 
     private static String intervalListToString(List<Interval> intervals) {
         if(intervals == null) {
@@ -506,13 +554,13 @@ public class QueryServlet {
         final StringBuilder sb = new StringBuilder();
         for(Interval interval: intervals) {
             if(sb.length() != 0) {
-                sb.append(",");
+                sb.append(", ");
             }
             if(sb.length() > 6000) {
                 sb.append("...");   // truncated to not blow past the header size limit in Tomcat
                 break;
             }
-            sb.append(interval.getStart().toString(yyyymmddhh)).append("-").append(interval.getEnd().toString(yyyymmddhh));
+            sb.append(interval.getStart().toString(yyyymmddhh)).append(" - ").append(interval.getEnd().toString(yyyymmddhh));
         }
         return sb.toString();
     }

@@ -597,6 +597,10 @@ public final class IQLQuery implements Closeable {
         return rowLimit;
     }
 
+    public DateTime getStart(){ return start; }
+
+    public DateTime getEnd() { return end; }
+
     @Override
     public void close() throws IOException {
         if(session != null) {
