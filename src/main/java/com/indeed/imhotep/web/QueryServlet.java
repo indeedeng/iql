@@ -302,6 +302,7 @@ public class QueryServlet {
         final DateTime endTime = iqlQuery.getEnd();
 
         final int bufferTime = 12*3600*1000;
+        
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
