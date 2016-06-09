@@ -125,6 +125,7 @@ public class QueryServlet {
     private final ExecutorService executorService;
     private final long imhotepLocalTempFileSizeLimit;
     private final long imhotepDaemonTempFileSizeLimit;
+    private final long docCountLimit;
     private final AccessControl accessControl;
 
     @Autowired
@@ -138,6 +139,7 @@ public class QueryServlet {
                         Integer rowLimit,
                         Long imhotepLocalTempFileSizeLimit,
                         Long imhotepDaemonTempFileSizeLimit,
+                        Long docCountLimit,
                         AccessControl accessControl) {
         this.imhotepClient = imhotepClient;
         this.imhotepInteractiveClient = imhotepInteractiveClient;
@@ -148,6 +150,7 @@ public class QueryServlet {
         this.executorService = executorService;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
+        this.docCountLimit = docCountLimit;
         this.accessControl = accessControl;
         EZImhotepSession.GROUP_LIMIT = rowLimit;
     }
@@ -288,7 +291,7 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
-                args.imhotepUserName, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+                args.imhotepUserName, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, docCountLimit);
 
         selectExecutionStats.shardCount = iqlQuery.getShardVersionList().size();
 
@@ -360,6 +363,7 @@ public class QueryServlet {
                 executionResult = iqlQuery.execute(args.progress, outputStream, true, selectExecutionStats);
                 queryMetadata.addItem("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress);
                 queryMetadata.addItem("IQL-Imhotep-Temp-Bytes-Written", executionResult.getImhotepTempFilesBytesWritten(), args.progress);
+                queryMetadata.addItem("IQL-Doc-Count", selectExecutionStats.numDocs);
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
                 queryMetadata.addItem("Imhotep-Session-ID", selectExecutionStats.sessionId);
                 queryMetadata.addItem("IQL-Execution-Time", execStartTime.toString());
@@ -807,6 +811,7 @@ public class QueryServlet {
         logEntry.setProperty("groupbycnt", groupByCount);
 
         logEntry.setProperty("sessionid", selectExecutionStats.sessionId);
+        logEntry.setProperty("numdocs", selectExecutionStats.numDocs);
         logEntry.setProperty("cached", selectExecutionStats.cached ? "1" : "0");
         logEntry.setProperty("rows", selectExecutionStats.rowsWritten);
         logEntry.setProperty("shards", selectExecutionStats.shardCount);
