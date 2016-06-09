@@ -127,6 +127,7 @@ public final class IQLQuery implements Closeable {
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
+        session = new EZImhotepSession(imhotepSession);
 
         final long numDocs = imhotepSession.getNumDocs();
         if (docCountLimit > 0 && numDocs > docCountLimit) {
@@ -140,7 +141,6 @@ public final class IQLQuery implements Closeable {
             selectExecutionStats.sessionId = ((HasSessionId) imhotepSession).getSessionId();
         }
 
-        session = new EZImhotepSession(imhotepSession);
         selectExecutionStats.setPhase("createSessionMillis", timer.pop());
 
         final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
