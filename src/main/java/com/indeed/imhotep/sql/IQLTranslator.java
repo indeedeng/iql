@@ -88,7 +88,8 @@ public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
     public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
-                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit) {
+                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit,
+                                     long docCountLimit) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -141,7 +142,8 @@ public final class IQLTranslator {
         optimizeGroupings(groupings);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit,
+                imhotepDaemonTempFileSizeLimit, docCountLimit);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {

@@ -171,6 +171,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
+    public Long docCountLimit() {
+        return env.getProperty("query.document.count.limit", Long.class, 0l);
+    }
+
+    @Bean
     public AccessControl accessControl() {
         @SuppressWarnings("unchecked")
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
