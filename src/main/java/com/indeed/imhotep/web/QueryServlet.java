@@ -328,7 +328,7 @@ public class QueryServlet {
         }
 
         ArrayList<String> warningList = new ArrayList<>();
-        String warning = "";
+
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             int millisMissing = 0;
@@ -357,7 +357,7 @@ public class QueryServlet {
             }
 
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
-            
+
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -418,7 +418,7 @@ public class QueryServlet {
                 if (writeResults.exceedsLimit) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
-                warning+= "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
+                String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
                 queryMetadata.addItem("IQL-Warning", warning);
 
 
