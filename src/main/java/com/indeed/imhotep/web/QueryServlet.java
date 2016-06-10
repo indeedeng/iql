@@ -315,7 +315,7 @@ public class QueryServlet {
 
         for (Interval interval: timeIntervalsMissingShards){
 
-            if (interval.getStartMillis()  + bufferTime <= System.currentTimeMillis()){
+            if (interval.getStartMillis() + bufferTime <= System.currentTimeMillis()){
 
                 if (interval.getEndMillis() <= System.currentTimeMillis()) {
                     properTimeIntervalsMissingShards.add(interval);
@@ -326,9 +326,8 @@ public class QueryServlet {
             }
         }
 
-        //String warningList = "";
-
         ArrayList<String> warningList = new ArrayList<>();
+
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             int millisMissing = 0;
@@ -357,7 +356,8 @@ public class QueryServlet {
             }
 
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
-            queryMetadata.addItem("IQL-Warning", warningList.toString().substring(1,warningList.toString().length()-1));
+            String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
+            queryMetadata.addItem("IQL-Warning", warning);
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -416,14 +416,9 @@ public class QueryServlet {
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 if (writeResults.exceedsLimit) {
-                    //warnings.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
-                    /*if (warningList.length() == 0){
-                        warningList += "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
-                    } else{
-                        warningList += ";Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
-                    }*/
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
-                    queryMetadata.addItem("IQL-Warning", warningList.toString().substring(1,warningList.toString().length()-1));
+                    String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
+                    queryMetadata.addItem("IQL-Warning", warning);
 
                 }
 
