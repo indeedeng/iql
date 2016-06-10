@@ -41,7 +41,6 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.util.core.io.Closeables2;
-import org.apache.avro.generic.GenericData;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -82,6 +81,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
 * @author dwahler
@@ -302,8 +302,6 @@ public class QueryServlet {
         final DateTime startTime = iqlQuery.getStart();
         final DateTime endTime = iqlQuery.getEnd();
 
-        final int bufferTime = 12*3600*1000;
-
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
@@ -315,8 +313,11 @@ public class QueryServlet {
 
         for (Interval interval: timeIntervalsMissingShards){
 
-            if (interval.getStartMillis() + bufferTime <= System.currentTimeMillis()){
+            if (interval.getStart().withTimeAtStartOfDay().equals(DateTime.now().withTimeAtStartOfDay())) {
+                continue;
+            }
 
+            if (interval.getStartMillis() + TimeUnit.HOURS.toMillis(12) <= System.currentTimeMillis()){
                 if (interval.getEndMillis() <= System.currentTimeMillis()) {
                     properTimeIntervalsMissingShards.add(interval);
                 } else {
@@ -327,7 +328,7 @@ public class QueryServlet {
         }
 
         ArrayList<String> warningList = new ArrayList<>();
-
+        String warning = "";
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             int millisMissing = 0;
@@ -356,8 +357,7 @@ public class QueryServlet {
             }
 
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
-            String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
-            queryMetadata.addItem("IQL-Warning", warning);
+            
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -417,11 +417,9 @@ public class QueryServlet {
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 if (writeResults.exceedsLimit) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
-                    String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
-                    queryMetadata.addItem("IQL-Warning", warning);
-
                 }
-
+                warning+= "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
+                queryMetadata.addItem("IQL-Warning", warning);
 
 
                 if(args.progress) {
