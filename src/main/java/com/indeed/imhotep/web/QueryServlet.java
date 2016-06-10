@@ -41,6 +41,7 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.util.core.io.Closeables2;
+import org.apache.avro.generic.GenericData;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -302,7 +303,7 @@ public class QueryServlet {
         final DateTime endTime = iqlQuery.getEnd();
 
         final int bufferTime = 12*3600*1000;
-        
+
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
@@ -314,7 +315,7 @@ public class QueryServlet {
 
         for (Interval interval: timeIntervalsMissingShards){
 
-            if (interval.getStartMillis() + bufferTime <= System.currentTimeMillis()){
+            if (interval.getStartMillis()  + bufferTime <= System.currentTimeMillis()){
 
                 if (interval.getEndMillis() <= System.currentTimeMillis()) {
                     properTimeIntervalsMissingShards.add(interval);
@@ -325,7 +326,9 @@ public class QueryServlet {
             }
         }
 
-        String warningList = "";
+        //String warningList = "";
+
+        ArrayList<String> warningList = new ArrayList<>();
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             int millisMissing = 0;
@@ -344,15 +347,17 @@ public class QueryServlet {
 
             if (countMissingIntervals>5) {
                 final List<Interval> properSubList =properTimeIntervalsMissingShards.subList(0, 5);
-                 missingIntervals = intervalListToString(properSubList);
-                warningList += percentAbsent + "% of the queried time period is missing. Click arrow for more info.;The first 5 missing time periods are: " + missingIntervals + " (total of " + countMissingIntervals + ").";
+                missingIntervals = intervalListToString(properSubList);
+                warningList.add( percentAbsent + "% of the queried time period is missing. Click arrow for more info.");
+                warningList.add("The first 5 missing time periods are: " + missingIntervals + " (total of " + countMissingIntervals + ").");
             } else {
                 missingIntervals = intervalListToString(properTimeIntervalsMissingShards);
-                warningList += percentAbsent + "% of the queried time period is missing. Click arrow for more info.;The missing time periods are: " + missingIntervals;
+                warningList.add(percentAbsent + "% of the queried time period is missing. Click arrow for more info. ");
+                warningList.add( "The missing time periods are: " + missingIntervals);
             }
 
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
-            queryMetadata.addItem("IQL-Warning", warningList);
+            queryMetadata.addItem("IQL-Warning", warningList.toString().substring(1,warningList.toString().length()-1));
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -412,12 +417,13 @@ public class QueryServlet {
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 if (writeResults.exceedsLimit) {
                     //warnings.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
-                    if (warningList.length() == 0){
+                    /*if (warningList.length() == 0){
                         warningList += "Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
                     } else{
                         warningList += ";Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column";
-                    }
-                    queryMetadata.addItem("IQL-Warning", warningList);
+                    }*/
+                    warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
+                    queryMetadata.addItem("IQL-Warning", warningList.toString().substring(1,warningList.toString().length()-1));
 
                 }
 
