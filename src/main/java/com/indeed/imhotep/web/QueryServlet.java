@@ -331,10 +331,8 @@ public class QueryServlet {
 
 
         if(properTimeIntervalsMissingShards.size() > 0) {
-            int millisMissing = 0;
-            final String missingIntervals;
+            long millisMissing = 0;
             final int countMissingIntervals = properTimeIntervalsMissingShards.size();
-
 
             for (Interval interval: properTimeIntervalsMissingShards){
                 millisMissing += interval.getEndMillis()-interval.getStartMillis();
@@ -343,21 +341,20 @@ public class QueryServlet {
             final double totalPeriod = endTime.getMillis()-startTime.getMillis();
 
             final double percentMissing = millisMissing/totalPeriod*100;
-            final String percentAbsent = String.format("%.2f",percentMissing);
+            final String percentAbsent = percentMissing > 1 ?
+                    String.valueOf((int) percentMissing) : String.format("%.2f", percentMissing);
 
+            final String shortenedMissingIntervalsString;
             if (countMissingIntervals>5) {
                 final List<Interval> properSubList =properTimeIntervalsMissingShards.subList(0, 5);
-                missingIntervals = intervalListToString(properSubList);
-                warningList.add( percentAbsent + "% of the queried time period is missing. Click arrow for more info.");
-                warningList.add("The first 5 missing time periods are: " + missingIntervals + " (total of " + countMissingIntervals + ").");
+                shortenedMissingIntervalsString = intervalListToString(properSubList) + ", " + (countMissingIntervals - 5) + " more intervals";
             } else {
-                missingIntervals = intervalListToString(properTimeIntervalsMissingShards);
-                warningList.add(percentAbsent + "% of the queried time period is missing. Click arrow for more info. ");
-                warningList.add( "The missing time periods are: " + missingIntervals);
+                shortenedMissingIntervalsString = intervalListToString(properTimeIntervalsMissingShards);
             }
+            warningList.add(percentAbsent + "% of the queried time period is missing: " + shortenedMissingIntervalsString);
 
-            queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
-
+            final String allMissingIntervalsString = intervalListToString(timeIntervalsMissingShards);
+            queryMetadata.addItem("IQL-Missing-Shards", allMissingIntervalsString);
         }
 
         queryMetadata.setPendingHeaders(resp);
@@ -544,7 +541,8 @@ public class QueryServlet {
         return sb.toString();
     }
 
-    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd.HH").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));
 
     private static String intervalListToString(List<Interval> intervals) {
         if(intervals == null) {
@@ -560,7 +558,12 @@ public class QueryServlet {
                 sb.append("...");   // truncated to not blow past the header size limit in Tomcat
                 break;
             }
-            sb.append(interval.getStart().toString(yyyymmddhh)).append(" - ").append(interval.getEnd().toString(yyyymmddhh));
+            if(interval.getStart().getMillisOfDay() == 0 && interval.getEnd().getMillisOfDay() == 0) {
+                //don't have to include hours
+                sb.append(interval.getStart().toString(yyyymmdd)).append("/").append(interval.getEnd().toString(yyyymmdd));
+            } else {
+                sb.append(interval.getStart().toString(yyyymmddhh)).append("/").append(interval.getEnd().toString(yyyymmddhh));
+            }
         }
         return sb.toString();
     }
