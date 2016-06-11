@@ -78,6 +78,7 @@ public final class IQLQuery implements Closeable {
     private final List<Grouping> groupings;
     private final int rowLimit;
     private final ImhotepMetadataCache metadata;
+    private final long docCountLimit;
     private final List<ShardIdWithVersion> shardVersionList;
     private final List<Interval> timeIntervalsMissingShards;
     private final ImhotepClient.SessionBuilder sessionBuilder;
@@ -88,13 +89,13 @@ public final class IQLQuery implements Closeable {
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
                     final String username, ImhotepMetadataCache metadata) {
-        this(client, stats, dataset, start, end, conditions, groupings, rowLimit, username, metadata, -1, -1);
+        this(client, stats, dataset, start, end, conditions, groupings, rowLimit, username, metadata, -1, -1, 0);
     }
 
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
                     final String username, ImhotepMetadataCache metadata, final long imhotepLocalTempFileSizeLimit,
-                    final long imhotepDaemonTempFileSizeLimit) {
+                    final long imhotepDaemonTempFileSizeLimit, final long docCountLimit) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -103,6 +104,7 @@ public final class IQLQuery implements Closeable {
         this.groupings = groupings;
         this.rowLimit = rowLimit;
         this.metadata = metadata;
+        this.docCountLimit = docCountLimit;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -125,12 +127,20 @@ public final class IQLQuery implements Closeable {
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
+        session = new EZImhotepSession(imhotepSession);
+
+        final long numDocs = imhotepSession.getNumDocs();
+        if (docCountLimit > 0 && numDocs > docCountLimit) {
+            DecimalFormat df = new DecimalFormat("###,###");
+            throw new LimitExceededException("The query on " + df.format(numDocs) +
+                    " documents exceeds the limit of " + df.format(docCountLimit) + ". Please reduce the time range.");
+        }
+        selectExecutionStats.numDocs = numDocs;
 
         if(imhotepSession instanceof HasSessionId && selectExecutionStats != null) {
             selectExecutionStats.sessionId = ((HasSessionId) imhotepSession).getSessionId();
         }
 
-        session = new EZImhotepSession(imhotepSession);
         selectExecutionStats.setPhase("createSessionMillis", timer.pop());
 
         final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;

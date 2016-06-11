@@ -14,6 +14,7 @@ public class SelectExecutionStats {
     public String sessionId;
     public int maxImhotepGroups;
     public Object2LongMap<String> phases = new Object2LongArrayMap<String>();
+    public long numDocs;
 
     public SelectExecutionStats() {
         this.headOnly = false;
@@ -25,6 +26,7 @@ public class SelectExecutionStats {
         imhotepTempFilesBytesWritten = 0;
         maxImhotepGroups = 1;
         sessionId = "";
+        numDocs = 0;
     }
 
     public void setPhase(final String phase, long elapsedtimemillis) {
