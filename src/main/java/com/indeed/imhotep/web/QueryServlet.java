@@ -419,9 +419,11 @@ public class QueryServlet {
                 if (writeResults.exceedsLimit) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
-                String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
-                queryMetadata.addItem("IQL-Warning", warning);
 
+                if (warningList.size()>0){
+                    String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
+                    queryMetadata.addItem("IQL-Warning", warning);
+                }
 
                 if(args.progress) {
                     completeStream(outputStream, queryMetadata);
