@@ -196,7 +196,7 @@ public final class IQLTranslator {
                     continue;
                 }
                 FieldGrouping fieldGrouping = (FieldGrouping) grouping;
-                if(!field.equals(fieldGrouping.getField())) {
+                if(!field.equals(fieldGrouping.getField()) || fieldGrouping.isTopK()) {
                     continue;
                 }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
