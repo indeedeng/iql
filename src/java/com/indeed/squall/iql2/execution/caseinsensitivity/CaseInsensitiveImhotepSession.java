@@ -451,6 +451,11 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
         wrapped.rebuildAndFilterIndexes(rewriteList(intFields), rewriteList(stringFields));
     }
 
+    @Override
+    public long getNumDocs() {
+        return wrapped.getNumDocs();
+    }
+
 
     @Override
     public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimt, Socket socket) throws ImhotepOutOfMemoryException {

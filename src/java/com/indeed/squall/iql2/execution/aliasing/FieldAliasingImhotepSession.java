@@ -449,4 +449,9 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
     public ImhotepSession wrapped() {
         return wrapped;
     }
+
+    @Override
+    public long getNumDocs() {
+        return wrapped.getNumDocs();
+    }
 }

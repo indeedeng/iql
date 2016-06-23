@@ -317,5 +317,10 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     public void removeObserver(Instrumentation.Observer observer) {
         wrapped.removeObserver(observer);
     }
+
+    @Override
+    public long getNumDocs() {
+        return wrapped.getNumDocs();
+    }
 }
 
