@@ -42,6 +42,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.server.NumDocLimitingProgressCallback;
 import com.indeed.squall.iql2.server.SessionCollectingProgressCallback;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
@@ -425,7 +426,7 @@ public class QueryServlet {
                 };
             }
             final Set<String> warnings = new HashSet<>();
-            final SessionCollectingProgressCallback progressCallback = new SessionCollectingProgressCallback(new NoOpProgressCallback() {
+            final SessionCollectingProgressCallback progressCallback = new SessionCollectingProgressCallback(new NumDocLimitingProgressCallback(50000000000L, new NoOpProgressCallback() {
                 private int completedChunks = 0;
 
                 @Override
@@ -473,7 +474,7 @@ public class QueryServlet {
                     }
                     incrementChunksCompleted();
                 }
-            });
+            }));
             final SelectExecutionInformation execInfo = executeSelect(query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), out, timer, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
                 @Override
                 public void accept(String s) {
