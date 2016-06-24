@@ -108,7 +108,8 @@ public class QueryServlet {
     private static final byte VERSION_FOR_HASHING = 2;
     private static String hostname;
 
-    private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive", "nocache");
+    private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
+            "nocache", "head", "progress", "totals", "getshardlist", "nocacheread", "nocachewrite", "async");
 
     private final ImhotepClient imhotepClient;
     private final ImhotepClient imhotepInteractiveClient;
@@ -355,9 +356,11 @@ public class QueryServlet {
                 shortenedMissingIntervalsString = intervalListToString(properTimeIntervalsMissingShards);
             }
             warningList.add(percentAbsent + "% of the queried time period is missing: " + shortenedMissingIntervalsString);
+        }
 
-            final String allMissingIntervalsString = intervalListToString(timeIntervalsMissingShards);
-            queryMetadata.addItem("IQL-Missing-Shards", allMissingIntervalsString);
+        if(timeIntervalsMissingShards.size() > 0) {
+            final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
+            queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
         }
 
         queryMetadata.setPendingHeaders(resp);
