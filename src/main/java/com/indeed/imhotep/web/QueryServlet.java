@@ -356,9 +356,11 @@ public class QueryServlet {
                 shortenedMissingIntervalsString = intervalListToString(properTimeIntervalsMissingShards);
             }
             warningList.add(percentAbsent + "% of the queried time period is missing: " + shortenedMissingIntervalsString);
+        }
 
-            final String allMissingIntervalsString = intervalListToString(timeIntervalsMissingShards);
-            queryMetadata.addItem("IQL-Missing-Shards", allMissingIntervalsString);
+        if(timeIntervalsMissingShards.size() > 0) {
+            final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
+            queryMetadata.addItem("IQL-Missing-Shards", missingIntervals);
         }
 
         queryMetadata.setPendingHeaders(resp);
