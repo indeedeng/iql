@@ -38,13 +38,13 @@
         <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
         <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
 
-        <dependency org="spring" name="spring-beans" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-context" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-core" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-jdbc" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-web" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-webmvc" rev="3.2.4.RELEASE"/>
-        <dependency org="spring" name="spring-test" rev="3.2.4.RELEASE" />
+        <dependency org="spring" name="spring-beans" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-context" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-core" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-jdbc" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-web" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-webmvc" rev="${spring.version}"/>
+        <dependency org="spring" name="spring-test" rev="${spring.version}" />
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
@@ -71,7 +71,7 @@
         <exclude org="hadoop" module="hadoop-yarn.*"/>
         <!-- Jersey conflicts with RESTEasy -->
         <exclude org="com.sun.jersey" module="*"/>
-        <conflict org="spring" module="*" rev="3.2.4.RELEASE"/>
+        <conflict org="spring" module="*" rev="${spring.version}"/>
     </dependencies>
 </ivy-module>
 
