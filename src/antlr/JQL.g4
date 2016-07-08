@@ -160,6 +160,8 @@ jqlAggregateMetric
     | (old=WINDOW | WINDOW_SUM) '(' NAT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
+    | SINGLESCORE '(' grp1=jqlAggregateMetric ',' grp2=jqlAggregateMetric ')' # AggregateSingleScorer
+    | KLDIVSCORE '(' m1 = jqlAggregateMetric ',' m2=jqlAggregateMetric ',' m3=jqlAggregateMetric ',' m4=jqlAggregateMetric ')' #KLDivScorer
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation

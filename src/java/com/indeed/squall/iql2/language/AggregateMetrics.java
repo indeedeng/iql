@@ -225,6 +225,19 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateSingleScorer(JQLParser.AggregateSingleScorerContext ctx){
+                final AggregateMetric grp1 = parseJQLAggregateMetric(ctx.grp1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric grp2 = parseJQLAggregateMetric(ctx.grp2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric parent1 = new AggregateMetric.Parent(grp1);
+                final AggregateMetric parent2 = new AggregateMetric.Parent(grp2);
+                final AggregateFilter singleCondition = new AggregateFilter.Lt(grp1, new AggregateMetric.Subtract(parent1, grp1));
+
+                final AggregateMetric trueCase = new AggregateMetric.Subtract(new AggregateMetric.Subtract(parent2,grp2), new AggregateMetric.Subtract(parent1,grp1));
+                final AggregateMetric falseCase = new AggregateMetric.Constant(0);
+                accept(new AggregateMetric.IfThenElse(singleCondition, trueCase, falseCase)));
+            }
+
+            @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
                 accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }
