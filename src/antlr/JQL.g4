@@ -8,7 +8,11 @@ DISTINCT_WINDOW : 'DISTINCT_WINDOW' ;
 WINDOW : 'WINDOW' ;
 PERCENTILE : 'PERCENTILE' ;
 PDIFF : 'PDIFF' ;
-AVG : 'AVG' ;
+DIFF : 'DIFF' ;
+RATIODIFF: 'RATIODIFF';
+SINGLESCORE : 'SINGLESCORE' ;
+RATIOSCORE : 'RATIOSCORE' ;
+AVG: 'AVG' ;
 VARIANCE : 'VARIANCE' ;
 STDEV : 'STDEV' ;
 LOG : 'LOG' ;
@@ -103,8 +107,8 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 
 // TODO: How to keep this up to date with new lexer tokens..?
 identifier
-    : TIME_UNIT | Y | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | AVG
-    | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
+    : TIME_UNIT | Y | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | DIFF | RATIODIFF | SINGLESCORE
+    | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
@@ -160,6 +164,10 @@ jqlAggregateMetric
     | (old=WINDOW | WINDOW_SUM) '(' NAT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
+    | DIFF '(' grp1 = jqlAggregateMetric ',' grp2 = jqlAggregateMetric ')' #AggregateDiff
+    | RATIODIFF '(' m1 = jqlAggregateMetric ',' m2=jqlAggregateMetric ',' m3=jqlAggregateMetric ',' m4=jqlAggregateMetric ')' #AggregateRatioDiff
+    | SINGLESCORE '(' grp1=jqlAggregateMetric ',' grp2=jqlAggregateMetric ')' # AggregateSingleScorer
+    | RATIOSCORE '(' m1 = jqlAggregateMetric ',' m2=jqlAggregateMetric ',' m3=jqlAggregateMetric ',' m4=jqlAggregateMetric ')' #AggregateRatioScorer
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation

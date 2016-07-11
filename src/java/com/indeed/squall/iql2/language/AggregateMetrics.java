@@ -225,6 +225,70 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateDiff(JQLParser.AggregateDiffContext ctx) {
+
+                final AggregateMetric grp1 = parseJQLAggregateMetric(ctx.grp1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric grp2 = parseJQLAggregateMetric(ctx.grp2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+
+                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(grp1, grp2)));
+            }
+
+            @Override
+            public void enterAggregateRatioDiff(JQLParser.AggregateRatioDiffContext ctx) {
+
+                final AggregateMetric clcMetric1 = parseJQLAggregateMetric(ctx.m1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric impMetric1 = parseJQLAggregateMetric(ctx.m2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric clcMetric2 = parseJQLAggregateMetric(ctx.m3, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric impMetric2 = parseJQLAggregateMetric(ctx.m4, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+
+                final AggregateMetric ratio1 = new AggregateMetric.Divide(clcMetric1,impMetric1);
+                final AggregateMetric ratio2 = new AggregateMetric.Divide(clcMetric2,impMetric2);
+
+                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(ratio1, ratio2)));
+            }
+
+            @Override
+            public void enterAggregateSingleScorer(JQLParser.AggregateSingleScorerContext ctx){
+                final AggregateMetric grp1 = parseJQLAggregateMetric(ctx.grp1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric grp2 = parseJQLAggregateMetric(ctx.grp2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric parent1 = new AggregateMetric.Parent(grp1);
+                final AggregateMetric parent2 = new AggregateMetric.Parent(grp2);
+                
+                final AggregateFilter singleCondition = new AggregateFilter.Lt(grp1, new AggregateMetric.Subtract(parent1, grp1));
+
+                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(new AggregateMetric.Subtract(parent2,grp2), new AggregateMetric.Subtract(parent1,grp1)));
+                final AggregateMetric falseCase = new AggregateMetric.Constant(0);
+
+                accept(new AggregateMetric.IfThenElse(singleCondition, trueCase, falseCase));
+            }
+
+
+
+            @Override
+            public void enterAggregateRatioScorer(JQLParser.AggregateRatioScorerContext ctx){
+
+                final AggregateMetric clcMetric1 = parseJQLAggregateMetric(ctx.m1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric impMetric1 = parseJQLAggregateMetric(ctx.m2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric clcMetric2 = parseJQLAggregateMetric(ctx.m3, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric impMetric2 = parseJQLAggregateMetric(ctx.m4, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+
+                final AggregateMetric parentClcMetric1 = new AggregateMetric.Parent(clcMetric1);
+                final AggregateMetric parentImpMetric1 = new AggregateMetric.Parent(impMetric1);
+                final AggregateMetric parentClcMetric2 = new AggregateMetric.Parent(clcMetric2);
+                final AggregateMetric parentImpMetric2 = new AggregateMetric.Parent(impMetric2);
+
+                final AggregateFilter ratioCondition = new AggregateFilter.Lt(impMetric1, new AggregateMetric.Subtract(parentImpMetric1, impMetric1));
+
+                final AggregateMetric ratio1 = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentClcMetric1,clcMetric1), new AggregateMetric.Subtract(parentImpMetric1,impMetric1));
+                final AggregateMetric ratio2 = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentClcMetric2,clcMetric2), new AggregateMetric.Subtract(parentImpMetric2,impMetric2));
+
+                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(ratio1, ratio2));
+                final AggregateMetric falseCase = new AggregateMetric.Constant(0);
+
+                accept(new AggregateMetric.IfThenElse(ratioCondition, trueCase, falseCase));
+            }
+
+            @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
                 accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }
