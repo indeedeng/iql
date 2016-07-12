@@ -165,9 +165,9 @@ jqlAggregateMetric
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | DIFF '(' grp1 = jqlAggregateMetric ',' grp2 = jqlAggregateMetric ')' #AggregateDiff
-    | RATIODIFF '(' m1 = jqlAggregateMetric ',' m2=jqlAggregateMetric ',' m3=jqlAggregateMetric ',' m4=jqlAggregateMetric ')' #AggregateRatioDiff
+    | RATIODIFF '(' clcMetric1 = jqlAggregateMetric ',' impMetric1=jqlAggregateMetric ',' clcMetric2=jqlAggregateMetric ',' impMetric2=jqlAggregateMetric ')' #AggregateRatioDiff
     | SINGLESCORE '(' grp1=jqlAggregateMetric ',' grp2=jqlAggregateMetric ')' # AggregateSingleScorer
-    | RATIOSCORE '(' m1 = jqlAggregateMetric ',' m2=jqlAggregateMetric ',' m3=jqlAggregateMetric ',' m4=jqlAggregateMetric ')' #AggregateRatioScorer
+    | RATIOSCORE '(' clcMetric1 = jqlAggregateMetric ',' impMetric1=jqlAggregateMetric ',' clcMetric2=jqlAggregateMetric ',' impMetric2=jqlAggregateMetric ')' #AggregateRatioScorer
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
