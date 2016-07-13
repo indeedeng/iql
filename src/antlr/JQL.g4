@@ -164,10 +164,10 @@ jqlAggregateMetric
     | (old=WINDOW | WINDOW_SUM) '(' NAT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
-    | DIFF '(' grp1 = jqlAggregateMetric ',' grp2 = jqlAggregateMetric ')' #AggregateDiff
-    | RATIODIFF '(' clcMetric1 = jqlAggregateMetric ',' impMetric1=jqlAggregateMetric ',' clcMetric2=jqlAggregateMetric ',' impMetric2=jqlAggregateMetric ')' #AggregateRatioDiff
-    | SINGLESCORE '(' grp1=jqlAggregateMetric ',' grp2=jqlAggregateMetric ')' # AggregateSingleScorer
-    | RATIOSCORE '(' clcMetric1 = jqlAggregateMetric ',' impMetric1=jqlAggregateMetric ',' clcMetric2=jqlAggregateMetric ',' impMetric2=jqlAggregateMetric ')' #AggregateRatioScorer
+    | DIFF '(' controlGrp = jqlAggregateMetric ',' testGrp = jqlAggregateMetric ')' #AggregateDiff
+    | RATIODIFF '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioDiff
+    | SINGLESCORE '(' controlGrp=jqlAggregateMetric ',' testGrp=jqlAggregateMetric ')' # AggregateSingleScorer
+    | RATIOSCORE '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioScorer
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
