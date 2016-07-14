@@ -15,6 +15,7 @@
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
@@ -56,7 +57,7 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
         if(allTermsCount == 0 || !allTerms.get(allTermsCount-1).equals(term)) {
             allTerms.add(term); // got a new term. relying on terms being passed in sorted order
             if(allTermsCount > termLimit) {
-                throw new IllegalArgumentException("Number of groups exceeds the limit " +
+                throw new GroupLimitExceededException("Number of groups exceeds the limit " +
                         new DecimalFormat("###,###").format(EZImhotepSession.GROUP_LIMIT) +
                         ". Please simplify the query. " +
                         "Try adding [] suffix to non-first groupings to disable addition of 0 rows. (e.g. 'group by country, lang[]')");

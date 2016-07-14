@@ -1,15 +1,28 @@
-package com.indeed.imhotep.iql;
+/*
+ * Copyright (C) 2014 Indeed Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.indeed.imhotep.exceptions;
 
 /**
  * @author vladimir
  */
 
-public class LimitExceededException extends RuntimeException {
+public class DocumentsLimitExceededException extends LimitExceededException {
     /**
      * Constructs an <code>LimitExceededException</code> with no
      * detail message.
      */
-    public LimitExceededException() {
+    public DocumentsLimitExceededException() {
         super();
     }
 
@@ -19,7 +32,7 @@ public class LimitExceededException extends RuntimeException {
      *
      * @param   s   the detail message.
      */
-    public LimitExceededException(String s) {
+    public DocumentsLimitExceededException(String s) {
         super(s);
     }
 
@@ -38,7 +51,7 @@ public class LimitExceededException extends RuntimeException {
      *         is permitted, and indicates that the cause is nonexistent or
      *         unknown.)
      */
-    public LimitExceededException(String message, Throwable cause) {
+    public DocumentsLimitExceededException(String message, Throwable cause) {
         super(message, cause);
     }
 }
