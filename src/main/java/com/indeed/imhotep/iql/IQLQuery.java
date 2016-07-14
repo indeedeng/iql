@@ -19,6 +19,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.HasSessionId;
@@ -109,7 +110,7 @@ public final class IQLQuery implements Closeable {
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
-                .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit).username(username);
+                .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit).username(username).clientName("IQL");
         shardVersionList = sessionBuilder.getChosenShards();
         shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
 
@@ -132,7 +133,7 @@ public final class IQLQuery implements Closeable {
         final long numDocs = imhotepSession.getNumDocs();
         if (docCountLimit > 0 && numDocs > docCountLimit) {
             DecimalFormat df = new DecimalFormat("###,###");
-            throw new LimitExceededException("The query on " + df.format(numDocs) +
+            throw new DocumentsLimitExceededException("The query on " + df.format(numDocs) +
                     " documents exceeds the limit of " + df.format(docCountLimit) + ". Please reduce the time range.");
         }
         selectExecutionStats.numDocs = numDocs;
