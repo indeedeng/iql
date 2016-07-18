@@ -300,6 +300,32 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateCtrAccuracy(JQLParser.AggregateCtrAccuracyContext ctx){
+
+                final int lowerLimit = Integer.parseInt(ctx.lowerLimit.getText());
+                final int upperLimit = Integer.parseInt(ctx.upperLimit.getText());
+                final int stepSize = Integer.parseInt(ctx.stepSize.getText());
+
+                final AggregateMetric predictedCTR = parseJQLAggregateMetric(ctx.predictedVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric actualCTR = parseJQLAggregateMetric(ctx.actualVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric totalCount = parseJQLAggregateMetric(ctx.total, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+
+                final AggregateMetric rawDev = new AggregateMetric.Subtract(new AggregateMetric.Divide(new AggregateMetric.Divide(predictedCTR,actualCTR), new AggregateMetric.Constant(100000)), new AggregateMetric.Constant(1));
+                final AggregateMetric squaredDev = new AggregateMetric.Power(rawDev, new AggregateMetric.Constant(2));
+                final AggregateMetric weightedDev = new AggregateMetric.Multiply(totalCount, squaredDev);
+
+                String prediction = ctx.predictedVal.getText();
+                String[] qualified = prediction.split("[.]");
+                if (qualified.length==1){
+                    accept(new AggregateMetric.SumAcross(new GroupBy.GroupByMetric(new DocMetric.Field(prediction.toUpperCase()), lowerLimit, upperLimit, stepSize, true, true), weightedDev));
+                } else if (qualified.length == 2){
+                    accept(new AggregateMetric.SumAcross(new GroupBy.GroupByMetric(new DocMetric.Qualified(qualified[0].toUpperCase(),new DocMetric.Field(qualified[1].toUpperCase())), lowerLimit, upperLimit, stepSize, true, true), weightedDev));
+                } else {
+                    throw new IllegalArgumentException("Invalid prediction metric!");
+                }
+            }
+
+            @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
                 accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }

@@ -12,6 +12,7 @@ DIFF : 'DIFF' ;
 RATIODIFF: 'RATIODIFF';
 SINGLESCORE : 'SINGLESCORE' ;
 RATIOSCORE : 'RATIOSCORE' ;
+CTRACCURACY: 'CTRACCURACY' ;
 AVG: 'AVG' ;
 VARIANCE : 'VARIANCE' ;
 STDEV : 'STDEV' ;
@@ -168,6 +169,7 @@ jqlAggregateMetric
     | RATIODIFF '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioDiff
     | SINGLESCORE '(' controlGrp=jqlAggregateMetric ',' testGrp=jqlAggregateMetric ')' # AggregateSingleScorer
     | RATIOSCORE '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioScorer
+    | CTRACCURACY '('  predictedVal = jqlAggregateMetric ',' actualVal=jqlAggregateMetric ',' total=jqlAggregateMetric ',' lowerLimit=integer ',' upperLimit=integer ',' stepSize=integer ')' #AggregateCtrAccuracy
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
