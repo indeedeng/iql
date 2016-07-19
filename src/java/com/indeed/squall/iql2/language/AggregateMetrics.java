@@ -300,29 +300,33 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterAggregateCtrAccuracy(JQLParser.AggregateCtrAccuracyContext ctx){
+            public void enterAggregateRMSError(JQLParser.AggregateRMSErrorContext ctx){
 
                 final int lowerLimit = Integer.parseInt(ctx.lowerLimit.getText());
                 final int upperLimit = Integer.parseInt(ctx.upperLimit.getText());
                 final int stepSize = Integer.parseInt(ctx.stepSize.getText());
+                final String useRatio = ctx.useRatio!=null ? ctx.useRatio.getText() : null;
 
-                final AggregateMetric predictedCTR = parseJQLAggregateMetric(ctx.predictedVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric actualCTR = parseJQLAggregateMetric(ctx.actualVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric predictedVal = parseJQLAggregateMetric(ctx.predictedVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric actualVal = parseJQLAggregateMetric(ctx.actualVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                 final AggregateMetric totalCount = parseJQLAggregateMetric(ctx.total, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final DocMetric groupingMetric = DocMetrics.parseJQLDocMetric(ctx.grouping, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
 
-                final AggregateMetric rawDev = new AggregateMetric.Subtract(new AggregateMetric.Divide(new AggregateMetric.Divide(predictedCTR,actualCTR), new AggregateMetric.Constant(100000)), new AggregateMetric.Constant(1));
-                final AggregateMetric squaredDev = new AggregateMetric.Power(rawDev, new AggregateMetric.Constant(2));
+                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);;
+
+                final AggregateMetric modelRatio;
+                if (useRatio != null && useRatio.toLowerCase().equals("true")){
+                    modelRatio = new AggregateMetric.Subtract(new AggregateMetric.Divide(predictedVal,actualVal),new AggregateMetric.Constant(1.0));
+                } else {
+                    modelRatio = new AggregateMetric.Subtract(predictedVal,actualVal);
+                }
+
+                final AggregateMetric squaredDev = new AggregateMetric.Power(modelRatio, new AggregateMetric.Constant(2));
                 final AggregateMetric weightedDev = new AggregateMetric.Multiply(totalCount, squaredDev);
 
-                String prediction = ctx.predictedVal.getText();
-                String[] qualified = prediction.split("[.]");
-                if (qualified.length==1){
-                    accept(new AggregateMetric.SumAcross(new GroupBy.GroupByMetric(new DocMetric.Field(prediction.toUpperCase()), lowerLimit, upperLimit, stepSize, true, true), weightedDev));
-                } else if (qualified.length == 2){
-                    accept(new AggregateMetric.SumAcross(new GroupBy.GroupByMetric(new DocMetric.Qualified(qualified[0].toUpperCase(),new DocMetric.Field(qualified[1].toUpperCase())), lowerLimit, upperLimit, stepSize, true, true), weightedDev));
-                } else {
-                    throw new IllegalArgumentException("Invalid prediction metric!");
-                }
+                final AggregateMetric totalError = new AggregateMetric.SumAcross(modelGrouping, weightedDev);
+                final AggregateMetric meanError = new AggregateMetric.Divide(totalError,totalCount);
+                accept(new AggregateMetric.Power(meanError, new AggregateMetric.Constant(0.5)));
             }
 
             @Override
