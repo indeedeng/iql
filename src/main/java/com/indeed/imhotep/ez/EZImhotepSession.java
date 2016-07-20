@@ -17,6 +17,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
@@ -506,7 +507,7 @@ public class EZImhotepSession implements Closeable {
     private static void checkGroupLimit(double newNumGroups) {
         if(newNumGroups > GROUP_LIMIT) {
             DecimalFormat df = new DecimalFormat("###,###");
-            throw new IllegalArgumentException("Number of groups " + df.format(newNumGroups) + " exceeds the limit " + df.format(GROUP_LIMIT)+
+            throw new GroupLimitExceededException("Number of groups " + df.format(newNumGroups) + " exceeds the limit " + df.format(GROUP_LIMIT)+
                     ". Please simplify the query.");
         }
     }

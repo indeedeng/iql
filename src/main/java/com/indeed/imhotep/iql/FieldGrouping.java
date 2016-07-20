@@ -18,6 +18,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
@@ -90,7 +91,7 @@ public final class FieldGrouping extends Grouping {
         // validation
         if(topK > EZImhotepSession.GROUP_LIMIT) {
             DecimalFormat df = new DecimalFormat("###,###");
-            throw new IllegalArgumentException("Number of requested top terms (" + df.format(topK) + ") for field " +
+            throw new GroupLimitExceededException("Number of requested top terms (" + df.format(topK) + ") for field " +
                     field.getFieldName() + " exceeds the limit (" + df.format(EZImhotepSession.GROUP_LIMIT) +
                     "). Please simplify the query.");
         }

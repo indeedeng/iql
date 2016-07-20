@@ -20,6 +20,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.ImhotepErrorResolver;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
@@ -196,6 +197,9 @@ public class QueryServlet {
             }
         } catch (Throwable e) {
             final boolean progress = req.getParameter("progress") != null;
+            if (e instanceof Exception) {
+                e = ImhotepErrorResolver.resolve((Exception) e);
+            }
             handleError(resp, json, e, true, progress);
             errorOccurred = e;
         } finally {
@@ -921,7 +925,7 @@ public class QueryServlet {
             progress = req.getParameter("progress") != null;
             getTotals = req.getParameter("totals") != null;
             final String clientName = Strings.nullToEmpty(req.getParameter("client"));
-            imhotepUserName = "IQL:" + (!Strings.isNullOrEmpty(userName) ? userName : clientName);
+            imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
         }
     }

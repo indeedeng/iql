@@ -15,6 +15,7 @@
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.util.core.Pair;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
@@ -99,7 +100,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
             topTerms.add(getStats(count, group, term));
 
             if(++newGroupCount > EZImhotepSession.GROUP_LIMIT) {
-                throw new IllegalArgumentException("Number of groups exceeds the limit " +
+                throw new GroupLimitExceededException("Number of groups exceeds the limit " +
                         new DecimalFormat("###,###").format(EZImhotepSession.GROUP_LIMIT) +
                         ". Please simplify the query.");
             }
