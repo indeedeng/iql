@@ -468,6 +468,7 @@ public class QueryServlet {
             }
             outputStream.close();
             selectExecutionStats.rowsWritten = writeResults.rowsWritten;
+            selectExecutionStats.overflowedToDisk = writeResults.didOverflowToDisk();
             selectExecutionStats.imhotepTempFilesBytesWritten = executionResult.getImhotepTempFilesBytesWritten();
         } else {
             // TODO: rework the async case to use the same code path as the sync case above except running under an executor
