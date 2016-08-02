@@ -213,6 +213,7 @@ public class QueryServlet {
         public @Nullable Integer rows;
         public @Nullable Set<String> cacheHashes;
         public @Nullable Integer maxGroups;
+        public @Nullable Integer maxConcurrentSessions;
     }
 
     @RequestMapping("query")
@@ -533,6 +534,7 @@ public class QueryServlet {
         queryInfo.rows = countingOut.getCount();
         queryInfo.cacheHashes = ImmutableSet.copyOf(execInfo.cacheKeys);
         queryInfo.maxGroups = progressCallback.getMaxNumGroups();
+        queryInfo.maxConcurrentSessions = progressCallback.getMaxConcurrentSessions();
     }
 
     private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
@@ -1055,6 +1057,7 @@ public class QueryServlet {
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
         logInteger(logEntry, "maxgroups", queryInfo.maxGroups);
+        logInteger(logEntry, "maxconcurrentsessions", queryInfo.maxConcurrentSessions);
         logInteger(logEntry, "rows", queryInfo.rows);
         logSet(logEntry, "sessionid", queryInfo.sessionIDs);
         logInteger(logEntry, "shards", queryInfo.numShards);

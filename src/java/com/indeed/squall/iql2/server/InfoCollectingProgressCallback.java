@@ -17,6 +17,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     private final List<String> sessionIds = new ArrayList<>();
     private long totalNumDocs = 0;
     private int maxNumGroups = 0;
+    private int maxConcurrentSessions = 0;
 
     public List<String> getSessionIds() {
         return ImmutableList.copyOf(sessionIds);
@@ -34,6 +35,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
             }
             totalNumDocs += session.getNumDocs();
         }
+        maxConcurrentSessions = Math.max(maxConcurrentSessions, sessions.size());
     }
 
     @Override
@@ -60,5 +62,9 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
 
     public int getMaxNumGroups() {
         return maxNumGroups;
+    }
+
+    public int getMaxConcurrentSessions() {
+        return maxConcurrentSessions;
     }
 }
