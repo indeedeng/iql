@@ -4,22 +4,18 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
-import com.indeed.squall.iql2.server.SessionCollectingProgressCallback;
 
 import java.util.Map;
 
 public class NumDocLimitingProgressCallback implements ProgressCallback {
     private final long docLimit;
-    private final ProgressCallback wrapped;
 
-    public NumDocLimitingProgressCallback(long docLimit, ProgressCallback wrapped) {
+    public NumDocLimitingProgressCallback(long docLimit) {
         this.docLimit = docLimit;
-        this.wrapped = wrapped;
     }
 
     @Override
     public void startSession(Optional<Integer> numCommands) {
-        wrapped.startSession(numCommands);
     }
 
     @Override
@@ -35,16 +31,13 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
                     docLimit
             ));
         }
-        wrapped.sessionsOpened(sessions);
     }
 
     @Override
-    public void startCommand(Command command, boolean streamingToTSV) {
-        wrapped.startCommand(command, streamingToTSV);
+    public void startCommand(Session session, Command command, boolean streamingToTSV) {
     }
 
     @Override
-    public void endCommand(Command command) {
-        wrapped.endCommand(command);
+    public void endCommand(Session session, Command command) {
     }
 }
