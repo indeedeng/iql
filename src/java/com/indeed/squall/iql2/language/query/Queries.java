@@ -3,12 +3,16 @@ package com.indeed.squall.iql2.language.query;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.WallClock;
+import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
+import com.indeed.squall.iql2.language.DocFilter;
+import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
@@ -40,6 +44,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -233,5 +238,20 @@ public class Queries {
             commands.addAll(executionStep.commands());
         }
         return commands;
+    }
+
+    public static List<Dataset> findAllDatasets(Query query) {
+        // Cannot be Set, need to know duplicates.
+        final List<Dataset> result = new ArrayList<>();
+        result.addAll(query.datasets);
+        query.transform(Functions.<GroupBy>identity(), Functions.<AggregateMetric>identity(), Functions.<DocMetric>identity(), Functions.<AggregateFilter>identity(), new Function<DocFilter, DocFilter>() {
+            public DocFilter apply(DocFilter docFilter) {
+                if (docFilter instanceof DocFilter.FieldInQuery) {
+                    result.addAll(Queries.findAllDatasets(((DocFilter.FieldInQuery) docFilter).query));
+                }
+                return docFilter;
+            }
+        });
+        return result;
     }
 }
