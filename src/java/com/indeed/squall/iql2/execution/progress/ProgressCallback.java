@@ -14,7 +14,7 @@ public interface ProgressCallback {
 
     void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions);
 
-    void startCommand(Command command, boolean streamingToTSV);
+    void startCommand(Session session, Command command, boolean streamingToTSV);
 
-    void endCommand(Command command);
+    void endCommand(Session session, Command command);
 }

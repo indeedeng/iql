@@ -18,12 +18,12 @@ public class NoOpProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void startCommand(Command command, boolean streamingToTSV) {
+    public void startCommand(Session session, Command command, boolean streamingToTSV) {
 
     }
 
     @Override
-    public void endCommand(Command command) {
+    public void endCommand(Session session, Command command) {
 
     }
 }

@@ -380,11 +380,11 @@ public class Session {
                     return namedMetricLookup(s);
                 }
             }, groupKeySet);
-            progressCallback.startCommand(command, false);
+            progressCallback.startCommand(this, command, false);
             try {
                 command.execute(this, out);
             } finally {
-                progressCallback.endCommand(command);
+                progressCallback.endCommand(this, command);
             }
         } finally {
             timer.pop();
@@ -401,7 +401,7 @@ public class Session {
                 }
             }, groupKeySet);
             try {
-                progressCallback.startCommand(command, true);
+                progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
                     final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
@@ -474,7 +474,7 @@ public class Session {
                     throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");
                 }
             } finally {
-                progressCallback.endCommand(command);
+                progressCallback.endCommand(this, command);
             }
         } finally {
             timer.pop();
