@@ -57,4 +57,8 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     public long getTotalNumDocs() {
         return totalNumDocs;
     }
+
+    public int getMaxNumGroups() {
+        return maxNumGroups;
+    }
 }

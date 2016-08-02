@@ -212,7 +212,6 @@ public class QueryServlet {
         public @Nullable Boolean cached;
         public @Nullable Integer rows;
         public @Nullable Set<String> cacheHashes;
-
         public @Nullable Integer maxGroups;
     }
 
@@ -533,6 +532,7 @@ public class QueryServlet {
         queryInfo.numDocs = progressCallback.getTotalNumDocs();
         queryInfo.rows = countingOut.getCount();
         queryInfo.cacheHashes = ImmutableSet.copyOf(execInfo.cacheKeys);
+        queryInfo.maxGroups = progressCallback.getMaxNumGroups();
     }
 
     private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
@@ -651,11 +651,17 @@ public class QueryServlet {
 
         {
             queryInfo.statementType = "select";
+
+            final Map<String, String> upperCaseToActualDataset = new HashMap<>();
+            for (final String dataset : Session.getDatasets(imhotepClient)) {
+                upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
+            }
+
             final List<Dataset> allDatasets = Queries.findAllDatasets(query);
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
-                queryInfo.datasets.add(dataset.dataset);
+                queryInfo.datasets.add(upperCaseToActualDataset.get(dataset.dataset.toUpperCase()));
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive, dataset.endExclusive));
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
