@@ -298,12 +298,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.sf.trove4j</groupId>
-            <artifactId>trove4j</artifactId>
-            <version>${gnu-trove.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
             <version>6.2.2</version>
@@ -354,7 +348,6 @@
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
-        <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
         <jackson2.version>2.5.2</jackson2.version>

@@ -16,18 +16,18 @@
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author jplaisance
  */
 public final class GroupingFTGSCallbackNoExplode extends EZImhotepSession.FTGSIteratingCallback<GroupStats> {
     private final List<StatReference> statRefs;
-    private final Map<Integer, GroupKey> groupKeys;
+    private final Int2ObjectMap<GroupKey> groupKeys;
 
-    public GroupingFTGSCallbackNoExplode(int numStats, List<StatReference> statRefs, Map<Integer, GroupKey> groupKeys) {
+    public GroupingFTGSCallbackNoExplode(int numStats, List<StatReference> statRefs, Int2ObjectMap<GroupKey> groupKeys) {
         super(numStats);
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;

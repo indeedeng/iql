@@ -20,10 +20,16 @@ import com.indeed.util.core.Pair;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * @author jplaisance
@@ -31,54 +37,25 @@ import java.util.*;
 public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
     private static final Logger log = Logger.getLogger(TopKGroupingFTGSCallback.class);
 
-    private final Map<Integer, PriorityQueue<Pair<Double, GroupStats>>> groupToTopK = Maps.newHashMap();
-    private final Comparator<Pair<Double, GroupStats>> comparator;
+    private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<GroupStats>>>();
+    private final Comparator<ScoredObject> comparator;
     private final int topK;
     private final boolean isBottom;
     private final StatReference countStat;
     private final List<StatReference> statRefs;
-    private final Map<Integer, GroupKey> groupKeys;
+    private final Int2ObjectMap<GroupKey> groupKeys;
     private int newGroupCount = 0;
 
     public TopKGroupingFTGSCallback(final int numStats, int topK, StatReference countStat, List<StatReference> statRefs,
-                                    Map<Integer, GroupKey> groupKeys, boolean isBottom) {
+                                    Int2ObjectMap<GroupKey> groupKeys, boolean isBottom) {
         super(numStats);
         this.topK = topK;
         this.isBottom = isBottom;
         this.countStat = countStat;
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;
-        // do a custom comparator to ensure that real numbers are preferred to NaNs
-        final Comparator<Pair<Double, GroupStats>> baseComparator = new Comparator<Pair<Double, GroupStats>>() {
-            @Override
-            public int compare(Pair<Double, GroupStats> o1, Pair<Double, GroupStats> o2) {
-                Double a = o1.getFirst();
-                if(a.isNaN()) {
-                    a = Double.NEGATIVE_INFINITY;
-                }
-                Double b = o2.getFirst();
-                if(b.isNaN()) {
-                    b = Double.NEGATIVE_INFINITY;
-                }
-                return a.compareTo(b);
-            }
-        };
-        final Comparator<Pair<Double, GroupStats>> reverseComparator = new Comparator<Pair<Double, GroupStats>>() {
-            @Override
-            public int compare(Pair<Double, GroupStats> o1, Pair<Double, GroupStats> o2) {
-                Double a = o1.getFirst();
-                if(a.isNaN()) {
-                    a = Double.POSITIVE_INFINITY;
-                }
-                Double b = o2.getFirst();
-                if(b.isNaN()) {
-                    b = Double.POSITIVE_INFINITY;
-                }
-                return b.compareTo(a);  // reverse the result by swapping the sides
-            }
-        };
 
-        this.comparator = isBottom ? reverseComparator : baseComparator;
+        this.comparator = isBottom ? ScoredObject.BOTTOM_SCORE_COMPARATOR : ScoredObject.TOP_SCORE_COMPARATOR;
     }
 
     protected void intTermGroup(final String field, final long term, final int group) {
@@ -90,9 +67,9 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
     }
 
     private void termGroup(final Object term, final int group) {
-        PriorityQueue<Pair<Double, GroupStats>> topTerms = groupToTopK.get(group);
+        PriorityQueue<ScoredObject<GroupStats>> topTerms = groupToTopK.get(group);
         if (topTerms == null) {
-            topTerms = new PriorityQueue<Pair<Double, GroupStats>>(topK, comparator);
+            topTerms = new PriorityQueue<ScoredObject<GroupStats>>(topK, comparator);
             groupToTopK.put(group, topTerms);
         }
         final double count = getStat(countStat);
@@ -105,36 +82,35 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
                         ". Please simplify the query.");
             }
         } else {
-            final Double headCount = topTerms.peek().getFirst();
+            final double headCount = topTerms.peek().getScore();
             if ((!isBottom && count > headCount) ||
                     (isBottom && count < headCount) ||
-                    (headCount.isNaN() && !Double.isNaN(count))) {
+                    (Double.isNaN(headCount) && !Double.isNaN(count))) {
                 topTerms.remove();
                 topTerms.add(getStats(count, group, term));
             }
         }
     }
 
-    private Pair<Double, GroupStats> getStats(double count, int group, Object term) {
+    private ScoredObject<GroupStats> getStats(double count, int group, Object term) {
         final double[] stats = new double[statRefs.size()];
         for (int i = 0; i < statRefs.size(); i++) {
             stats[i] = getStat(statRefs.get(i));
         }
-        return Pair.of(count, new GroupStats(groupKeys.get(group).add(term), stats));
+        return new ScoredObject<GroupStats>(count, new GroupStats(groupKeys.get(group).add(term), stats));
     }
 
     public List<GroupStats> getResults() {
         final List<GroupStats> ret = Lists.newArrayList();
-        final ArrayDeque<Pair<Double, GroupStats>> stack = new ArrayDeque<Pair<Double, GroupStats>>();
+        final GroupStats[] buffer = new GroupStats[topK];
         for (int group = 1; group <= groupKeys.size(); group++) {
-            final PriorityQueue<Pair<Double, GroupStats>> pairs = groupToTopK.get(group);
-            if (pairs != null) {
-                while (!pairs.isEmpty()) {
-                    stack.push(pairs.remove());
+            final PriorityQueue<ScoredObject<GroupStats>> topTerms = groupToTopK.get(group);
+            if (topTerms != null) {
+                final int numTopTerms = topTerms.size();
+                for (int i = numTopTerms - 1; i >= 0; i--) {
+                    buffer[i] = topTerms.remove().getObject();
                 }
-                while (!stack.isEmpty()) {
-                    ret.add(stack.remove().getSecond());
-                }
+                ret.addAll(Arrays.asList(buffer).subList(0, numTopTerms));
             } else {    // TODO: do we want these empty rows?
                 ret.add(new GroupStats(groupKeys.get(group).add(""), new double[statRefs.size()]));
             }

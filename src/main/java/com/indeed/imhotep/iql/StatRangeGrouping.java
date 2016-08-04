@@ -13,11 +13,12 @@
  */
  package com.indeed.imhotep.iql;
 
-import com.indeed.util.serialization.Stringifier;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
+import com.indeed.util.serialization.Stringifier;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
@@ -62,7 +63,7 @@ public final class StatRangeGrouping extends Grouping {
         }
     }
 
-    public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {
             return groupKeys;
         }
@@ -83,7 +84,7 @@ public final class StatRangeGrouping extends Grouping {
         if(isTimeGrouping) {
             noGutters = groupKeys.size() > 1;
         }
-        final Map<Integer, GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
+        final Int2ObjectMap<GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
         session.popStat();
         return ret;
     }

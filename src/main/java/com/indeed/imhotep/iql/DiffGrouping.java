@@ -6,6 +6,7 @@ import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import com.indeed.imhotep.ez.Stats;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import java.util.Iterator;
 import java.util.List;
@@ -45,12 +46,12 @@ public class DiffGrouping extends Grouping {
     }
 
     @Override
-    public Map<Integer, GroupKey> regroup(EZImhotepSession session, Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException();  // This should always be rewritten in the IQLTranslator so that it never gets invoked
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Map<Integer, GroupKey> groupKeys, List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException();  // This should always be rewritten in the IQLTranslator so that it never gets invoked
     }
 }
