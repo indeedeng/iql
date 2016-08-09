@@ -28,6 +28,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.execution.DatasetDescriptor;
 import com.indeed.squall.iql2.execution.FieldDescriptor;
 import com.indeed.squall.iql2.execution.Session;
@@ -48,8 +49,8 @@ import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.server.EventStreamProgressCallback;
-import com.indeed.squall.iql2.server.NumDocLimitingProgressCallback;
 import com.indeed.squall.iql2.server.InfoCollectingProgressCallback;
+import com.indeed.squall.iql2.server.NumDocLimitingProgressCallback;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.CountingConsumer;
@@ -289,6 +290,9 @@ public class QueryServlet {
                         );
             }
         } catch (Throwable e) {
+            if (e instanceof Exception) {
+                e = ImhotepErrorResolver.resolve((Exception) e);
+            }
             final boolean isJson = false;
             final boolean status500 = true;
             handleError(response, isJson, e, status500, isStream);
