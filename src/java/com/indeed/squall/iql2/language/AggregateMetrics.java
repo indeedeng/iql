@@ -227,36 +227,42 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateDiff(JQLParser.AggregateDiffContext ctx) {
 
-                final AggregateMetric grp1 = parseJQLAggregateMetric(ctx.grp1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric grp2 = parseJQLAggregateMetric(ctx.grp2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlGrp = parseJQLAggregateMetric(ctx.controlGrp, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testGrp = parseJQLAggregateMetric(ctx.testGrp, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
 
-                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(grp1, grp2)));
+                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(controlGrp, testGrp)));
             }
 
             @Override
             public void enterAggregateRatioDiff(JQLParser.AggregateRatioDiffContext ctx) {
 
-                final AggregateMetric clcMetric1 = parseJQLAggregateMetric(ctx.m1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric impMetric1 = parseJQLAggregateMetric(ctx.m2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric clcMetric2 = parseJQLAggregateMetric(ctx.m3, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric impMetric2 = parseJQLAggregateMetric(ctx.m4, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlClcMetric = parseJQLAggregateMetric(ctx.controlClcMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlImpMetric = parseJQLAggregateMetric(ctx.controlImpMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testClcMetric = parseJQLAggregateMetric(ctx.testClcMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testImpMetric = parseJQLAggregateMetric(ctx.testImpMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
 
-                final AggregateMetric ratio1 = new AggregateMetric.Divide(clcMetric1,impMetric1);
-                final AggregateMetric ratio2 = new AggregateMetric.Divide(clcMetric2,impMetric2);
+                final AggregateMetric controlRatio = new AggregateMetric.Divide(controlClcMetric,controlImpMetric);
+                final AggregateMetric testRatio = new AggregateMetric.Divide(testClcMetric,testImpMetric);
 
-                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(ratio1, ratio2)));
+                accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(controlRatio, testRatio)));
             }
 
             @Override
             public void enterAggregateSingleScorer(JQLParser.AggregateSingleScorerContext ctx){
-                final AggregateMetric grp1 = parseJQLAggregateMetric(ctx.grp1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric grp2 = parseJQLAggregateMetric(ctx.grp2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric parent1 = new AggregateMetric.Parent(grp1);
-                final AggregateMetric parent2 = new AggregateMetric.Parent(grp2);
-                
-                final AggregateFilter singleCondition = new AggregateFilter.Lt(grp1, new AggregateMetric.Subtract(parent1, grp1));
+                final AggregateMetric controlGrp = parseJQLAggregateMetric(ctx.controlGrp, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testGrp = parseJQLAggregateMetric(ctx.testGrp, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlParent = new AggregateMetric.Parent(controlGrp);
+                final AggregateMetric testParent = new AggregateMetric.Parent(testGrp);
 
-                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(new AggregateMetric.Subtract(parent2,grp2), new AggregateMetric.Subtract(parent1,grp1)));
+                final AggregateFilter singleCondition = new AggregateFilter.Lt(controlGrp, new AggregateMetric.Subtract(controlParent, controlGrp));
+
+                final AggregateMetric actualDiff = new AggregateMetric.Subtract(new AggregateMetric.Subtract(controlParent,controlGrp), new AggregateMetric.Subtract(testParent,testGrp));
+
+                final AggregateMetric defaultFraction = new AggregateMetric.Divide(new AggregateMetric.Subtract(controlParent,controlGrp), controlParent);
+                final AggregateMetric totalDiff = new AggregateMetric.Subtract(controlParent, testParent);
+                final AggregateMetric expectedDiff = new AggregateMetric.Multiply(defaultFraction,totalDiff);
+
+                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(actualDiff,expectedDiff));
                 final AggregateMetric falseCase = new AggregateMetric.Constant(0);
 
                 accept(new AggregateMetric.IfThenElse(singleCondition, trueCase, falseCase));
@@ -267,25 +273,60 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateRatioScorer(JQLParser.AggregateRatioScorerContext ctx){
 
-                final AggregateMetric clcMetric1 = parseJQLAggregateMetric(ctx.m1, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric impMetric1 = parseJQLAggregateMetric(ctx.m2, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric clcMetric2 = parseJQLAggregateMetric(ctx.m3, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final AggregateMetric impMetric2 = parseJQLAggregateMetric(ctx.m4, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlClcMetric = parseJQLAggregateMetric(ctx.controlClcMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric controlImpMetric = parseJQLAggregateMetric(ctx.controlImpMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testClcMetric = parseJQLAggregateMetric(ctx.testClcMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric testImpMetric = parseJQLAggregateMetric(ctx.testImpMetric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
 
-                final AggregateMetric parentClcMetric1 = new AggregateMetric.Parent(clcMetric1);
-                final AggregateMetric parentImpMetric1 = new AggregateMetric.Parent(impMetric1);
-                final AggregateMetric parentClcMetric2 = new AggregateMetric.Parent(clcMetric2);
-                final AggregateMetric parentImpMetric2 = new AggregateMetric.Parent(impMetric2);
+                final AggregateMetric parentControlClcMetric = new AggregateMetric.Parent(controlClcMetric);
+                final AggregateMetric parentControlImpMetric = new AggregateMetric.Parent(controlImpMetric);
+                final AggregateMetric parentTestClcMetric = new AggregateMetric.Parent(testClcMetric);
+                final AggregateMetric parentTestImpMetric = new AggregateMetric.Parent(testImpMetric);
 
-                final AggregateFilter ratioCondition = new AggregateFilter.Lt(impMetric1, new AggregateMetric.Subtract(parentImpMetric1, impMetric1));
+                final AggregateFilter ratioCondition = new AggregateFilter.Lt(controlImpMetric, new AggregateMetric.Subtract(parentControlImpMetric, controlImpMetric));
 
-                final AggregateMetric ratio1 = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentClcMetric1,clcMetric1), new AggregateMetric.Subtract(parentImpMetric1,impMetric1));
-                final AggregateMetric ratio2 = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentClcMetric2,clcMetric2), new AggregateMetric.Subtract(parentImpMetric2,impMetric2));
+                final AggregateMetric controlDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentControlClcMetric,controlClcMetric), new AggregateMetric.Subtract(parentControlImpMetric,controlImpMetric));
+                final AggregateMetric testDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentTestClcMetric,testClcMetric), new AggregateMetric.Subtract(parentTestImpMetric,testImpMetric));
+                final AggregateMetric actualDiff = new AggregateMetric.Subtract(controlDefaultRatio, testDefaultRatio);
 
-                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(ratio1, ratio2));
+                final AggregateMetric controlTotalRatio = new AggregateMetric.Divide(parentControlClcMetric, parentControlImpMetric);
+                final AggregateMetric testTotalRatio = new AggregateMetric.Divide(parentTestClcMetric, parentTestImpMetric);
+                final AggregateMetric expectedDiff = new AggregateMetric.Subtract(controlTotalRatio, testTotalRatio);
+
+                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(actualDiff, expectedDiff));
                 final AggregateMetric falseCase = new AggregateMetric.Constant(0);
 
                 accept(new AggregateMetric.IfThenElse(ratioCondition, trueCase, falseCase));
+            }
+
+            @Override
+            public void enterAggregateRMSError(JQLParser.AggregateRMSErrorContext ctx){
+
+                final int lowerLimit = Integer.parseInt(ctx.lowerLimit.getText());
+                final int upperLimit = Integer.parseInt(ctx.upperLimit.getText());
+                final int stepSize = Integer.parseInt(ctx.stepSize.getText());
+                final String useRatio = ctx.useRatio!=null ? ctx.useRatio.getText() : null;
+
+                final AggregateMetric predictedVal = parseJQLAggregateMetric(ctx.predictedVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric actualVal = parseJQLAggregateMetric(ctx.actualVal, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final AggregateMetric totalCount = parseJQLAggregateMetric(ctx.total, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final DocMetric groupingMetric = DocMetrics.parseJQLDocMetric(ctx.grouping, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+
+                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);;
+
+                final AggregateMetric modelRatio;
+                if (useRatio != null && useRatio.toLowerCase().equals("true")){
+                    modelRatio = new AggregateMetric.Subtract(new AggregateMetric.Divide(predictedVal,actualVal),new AggregateMetric.Constant(1.0));
+                } else {
+                    modelRatio = new AggregateMetric.Subtract(predictedVal,actualVal);
+                }
+
+                final AggregateMetric squaredDev = new AggregateMetric.Power(modelRatio, new AggregateMetric.Constant(2));
+                final AggregateMetric weightedDev = new AggregateMetric.Multiply(totalCount, squaredDev);
+
+                final AggregateMetric totalError = new AggregateMetric.SumAcross(modelGrouping, weightedDev);
+                final AggregateMetric meanError = new AggregateMetric.Divide(totalError,totalCount);
+                accept(new AggregateMetric.Power(meanError, new AggregateMetric.Constant(0.5)));
             }
 
             @Override
