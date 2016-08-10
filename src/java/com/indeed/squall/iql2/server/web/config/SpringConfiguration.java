@@ -16,6 +16,7 @@ import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
+import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {ConfigurationPackageMarker.class, ServletsPackageMarker.class, WebPackageMarker.class, HealthcheckPackageMarker.class})
+@ComponentScan(basePackageClasses = {ConfigurationPackageMarker.class, ServletsPackageMarker.class, QueryServletPackageMarker.class, WebPackageMarker.class, HealthcheckPackageMarker.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 

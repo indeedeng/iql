@@ -5,6 +5,7 @@ import com.indeed.common.util.time.StoppedClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.util.core.TreeTimer;
 import junit.framework.Assert;
 import org.joda.time.DateTime;

@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,18 +48,15 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.server.EventStreamProgressCallback;
-import com.indeed.squall.iql2.server.InfoCollectingProgressCallback;
-import com.indeed.squall.iql2.server.NumDocLimitingProgressCallback;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
-import com.indeed.squall.iql2.server.web.CountingConsumer;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
@@ -174,7 +171,7 @@ public class QueryServlet {
         this.subQueryTermLimit = subQueryTermLimit;
     }
 
-    static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
+    public static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
         final Map<String, Set<String>> upperCased = new HashMap<>();
         for (final Map.Entry<String, ? extends Set<String>> e : map.entrySet()) {
             final Set<String> upperCaseTerms = new HashSet<>(e.getValue().size());

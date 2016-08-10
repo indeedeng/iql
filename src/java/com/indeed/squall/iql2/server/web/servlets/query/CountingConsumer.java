@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server.web;
+package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.indeed.squall.iql2.execution.compat.Consumer;
 

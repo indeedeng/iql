@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server;
+package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;

@@ -24,6 +24,7 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import dk.brics.automaton.Automaton;
