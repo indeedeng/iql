@@ -2,10 +2,13 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.common.util.time.StoppedClock;
+import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
+import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
@@ -14,6 +17,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class CacheTest {
@@ -30,7 +34,7 @@ public class CacheTest {
             "from organic yesterday today where rcv=\"jsv\" group by time(1h) select oji"
     );
 
-    private static String getCacheKey(QueryServlet queryServlet, String queryString) {
+    private static String getCacheKey(ImhotepClient imhotepClient, String queryString) {
         final HashMap<String, Set<String>> datasetToKeywordAnalyzerFields = new HashMap<>();
         final HashMap<String, Set<String>> datasetToIntFields = new HashMap<>();
         final Query query = Queries.parseQuery(queryString, false /* todo: param? */, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
@@ -39,15 +43,15 @@ public class CacheTest {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis()));
-        return queryServlet.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query)).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query), imhotepClient).cacheFileName;
     }
 
     @Test
     public void testUniqueCacheValues() {
         final Set<String> values = new HashSet<>();
-        final QueryServlet queryServlet = QueryServletTestUtils.create(OrganicDataset.create(), new QueryServletTestUtils.Options());
+        final ImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create());
         for (final String query : uniqueQueries) {
-            final String cacheKey = getCacheKey(queryServlet, query);
+            final String cacheKey = getCacheKey(imhotepClient, query);
             Assert.assertFalse(values.contains(cacheKey));
             values.add(cacheKey);
         }
@@ -55,10 +59,10 @@ public class CacheTest {
 
     @Test
     public void testConsistentCaching() {
-        final QueryServlet queryServlet = QueryServletTestUtils.create(OrganicDataset.create(), new QueryServletTestUtils.Options());
+        final TestImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create());
         for (final String query : uniqueQueries) {
-            final String cacheKey1 = getCacheKey(queryServlet, query);
-            final String cacheKey2 = getCacheKey(queryServlet, query);
+            final String cacheKey1 = getCacheKey(imhotepClient, query);
+            final String cacheKey2 = getCacheKey(imhotepClient, query);
             Assert.assertEquals(cacheKey1, cacheKey2);
         }
 

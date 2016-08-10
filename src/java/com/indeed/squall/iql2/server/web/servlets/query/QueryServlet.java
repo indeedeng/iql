@@ -1,53 +1,20 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.execution.FieldDescriptor;
-import com.indeed.squall.iql2.execution.Session;
-import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
-import com.indeed.squall.iql2.execution.progress.ProgressCallback;
-import com.indeed.squall.iql2.language.AggregateFilter;
-import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.DocFilter;
-import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.ScopedField;
-import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.commands.Command;
-import com.indeed.squall.iql2.language.query.Dataset;
-import com.indeed.squall.iql2.language.query.GroupBy;
-import com.indeed.squall.iql2.language.query.Queries;
-import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
@@ -58,16 +25,9 @@ import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
-import org.joda.time.Duration;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -78,38 +38,25 @@ import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Controller
 public class QueryServlet {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Logger log = Logger.getLogger(QueryServlet.class);
     private static final Logger dataLog = Logger.getLogger("indeed.logentry");
     private static String hostname;
@@ -126,8 +73,6 @@ public class QueryServlet {
             hostname = "(unknown)";
         }
     }
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
@@ -198,22 +143,6 @@ public class QueryServlet {
         return dimensionsLoader.getDimensions();
     }
 
-    private static class QueryInfo {
-        public @Nullable String statementType;
-        public @Nullable Set<String> datasets;
-        public @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
-        public @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
-        public @Nullable Long ftgsMB;
-        public @Nullable Collection<String> sessionIDs;
-        public @Nullable Integer numShards;
-        public @Nullable Long numDocs;
-        public @Nullable Boolean cached;
-        public @Nullable Integer rows;
-        public @Nullable Set<String> cacheHashes;
-        public @Nullable Integer maxGroups;
-        public @Nullable Integer maxConcurrentSessions;
-    }
-
     @RequestMapping("query")
     public void query(
             final HttpServletRequest request,
@@ -240,7 +169,7 @@ public class QueryServlet {
 
         long queryStartTimestamp = System.currentTimeMillis();
 
-        final QueryInfo queryInfo = new QueryInfo();
+        final SelectQueryExecution.QueryInfo queryInfo = new SelectQueryExecution.QueryInfo();
 
         final boolean isStream = contentType.contains("text/event-stream");
         queryInfo.statementType = "invalid";
@@ -272,10 +201,16 @@ public class QueryServlet {
                 } else {
                     groupLimit = null;
                 }
+
+                if (isStream) {
+                    response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
+                } else {
+                    response.setHeader("Content-Type", "text/plain;charset=utf-8");
+                }
+
                 queryStartTimestamp =
-                        processSelect(
-                                queryInfo,
-                                response,
+                        SelectQueryExecution.processSelect(
+                                response.getWriter(), queryInfo,
                                 query,
                                 version,
                                 username,
@@ -283,7 +218,7 @@ public class QueryServlet {
                                 isStream,
                                 skipValidation,
                                 groupLimit,
-                                clock
+                                clock, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), imhotepClient, executionManager, subQueryTermLimit, getDimensions(), queryCache, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit
                         );
             }
         } catch (Throwable e) {
@@ -432,597 +367,6 @@ public class QueryServlet {
         return value;
     }
 
-    private long processSelect(QueryInfo queryInfo, HttpServletResponse response, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation, Integer groupLimit, WallClock clock) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
-        if (isStream) {
-            response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
-        } else {
-            response.setHeader("Content-Type", "text/plain;charset=utf-8");
-        }
-        final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
-        long queryStartTimestamp;
-        try {
-            timer.push("Acquire concurrent query lock");
-            queryTracker.acquireLocks(); // blocks and waits if necessary
-            final long startTime = clock.currentTimeMillis();
-            timer.pop();
-            queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
-            final PrintWriter outputStream = response.getWriter();
-            if (isStream) {
-                outputStream.println(": This is the start of the IQL Query Stream");
-                outputStream.println();
-            }
-            final Consumer<String> out;
-            if (isStream) {
-                out = new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        outputStream.print("data: ");
-                        outputStream.println(s);
-                    }
-                };
-            } else {
-                out = new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        outputStream.println(s);
-                    }
-                };
-            }
-
-            final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
-            final Set<String> warnings = new HashSet<>();
-
-            final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
-            final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(50000000000L);
-            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
-            final ProgressCallback progressCallback = CompositeProgressCallback.create(infoCollectingProgressCallback, numDocLimitingProgressCallback, eventStreamProgressCallback);
-
-            final SelectExecutionInformation execInfo = executeSelect(queryInfo, query, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), countingOut, timer, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    warnings.add(s);
-                }
-            }, skipValidation, groupLimit, clock, username, infoCollectingProgressCallback);
-            extractCompletedQueryInfoData(queryInfo, infoCollectingProgressCallback, execInfo, countingOut);
-            if (isStream) {
-                outputStream.println();
-                outputStream.println("event: header");
-
-                // TODO: Fix these headers
-                final Map<String, Object> headerMap = new HashMap<>();
-                headerMap.put("IQL-Cached", execInfo.allCached());
-                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
-                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
-                headerMap.put("Imhotep-Session-IDs", infoCollectingProgressCallback.getSessionIds());
-                headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
-                if (!warnings.isEmpty()) {
-                    headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
-                }
-                outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
-                outputStream.println();
-
-
-                outputStream.println("event: complete");
-                outputStream.println("data: :)");
-                outputStream.println();
-            }
-        } finally {
-            if (!queryTracker.isAsynchronousRelease()) {
-                queryTracker.close();
-            }
-        }
-        return queryStartTimestamp;
-    }
-
-    private void extractCompletedQueryInfoData(QueryInfo queryInfo, InfoCollectingProgressCallback progressCallback, SelectExecutionInformation execInfo, CountingConsumer<String> countingOut) {
-        int shardCount = 0;
-        Duration totalShardPeriod = Duration.ZERO;
-        for (final List<String> shardList : execInfo.perDatasetShardIds().values()) {
-            shardCount += shardList.size();
-            for (final String shardID : shardList) {
-                final ShardInfo.DateTimeRange shardInfo = ShardInfo.parseDateTime(shardID);
-                totalShardPeriod = totalShardPeriod.plus(new Duration(shardInfo.start, shardInfo.end));
-            }
-        }
-        queryInfo.numShards = shardCount;
-        queryInfo.totalShardPeriod = totalShardPeriod;
-        queryInfo.cached = execInfo.allCached();
-        queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;
-        queryInfo.sessionIDs = progressCallback.getSessionIds();
-        queryInfo.numDocs = progressCallback.getTotalNumDocs();
-        queryInfo.rows = countingOut.getCount();
-        queryInfo.cacheHashes = ImmutableSet.copyOf(execInfo.cacheKeys);
-        queryInfo.maxGroups = progressCallback.getMaxNumGroups();
-        queryInfo.maxConcurrentSessions = progressCallback.getMaxConcurrentSessions();
-    }
-
-    private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
-        final Set<String> relevantUpperCaseDatasets = new HashSet<>();
-        for (final Dataset dataset : relevantDatasets) {
-            relevantUpperCaseDatasets.add(dataset.dataset.toUpperCase());
-        }
-
-        final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
-        for (final String dataset : Session.getDatasets(imhotepClient)) {
-            final String normalized = dataset.toUpperCase();
-            if (!relevantUpperCaseDatasets.contains(normalized)) {
-                continue;
-            }
-            if (datasetUpperCaseToActual.containsKey(normalized)) {
-                throw new IllegalStateException("Multiple datasets with same uppercase name!");
-            }
-            datasetUpperCaseToActual.put(normalized, dataset);
-        }
-
-        final DatasetsFields.Builder builder = DatasetsFields.builder();
-        for (final Map.Entry<String, String> entry : nameToUppercaseDataset.entrySet()) {
-            final String dataset = datasetUpperCaseToActual.get(entry.getValue());
-
-            final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
-            final DatasetDimensions dimension = dimensions.get(dataset);
-            final Set<String> intFields = datasetToIntFields.get(entry.getValue());
-
-            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
-
-            final String name = entry.getKey().toUpperCase();
-            for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {
-                switch (fieldDescriptor.getType()) {
-                    case "Integer":
-                        builder.addIntField(name, fieldDescriptor.getName().toUpperCase());
-                        break;
-                    case "String":
-                        builder.addStringField(name, fieldDescriptor.getName().toUpperCase());
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
-                }
-            }
-
-            builder.addIntField(name, "count()");
-        }
-
-        return builder.build();
-    }
-
-    private static class SelectExecutionInformation {
-        public final Multimap<String, List<ShardIdWithVersion>> shards;
-        public final Map<Query, Boolean> queryCached;
-        public final long imhotepTempBytesWritten;
-        public final Set<String> cacheKeys;
-
-        private SelectExecutionInformation(Multimap<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys) {
-            this.shards = shards;
-            this.queryCached = queryCached;
-            this.imhotepTempBytesWritten = imhotepTempBytesWritten;
-            this.cacheKeys = ImmutableSet.copyOf(cacheKeys);
-        }
-
-        public boolean allCached() {
-            for (final boolean b : queryCached.values()) {
-                if (!b) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public Multimap<String, List<String>> perDatasetShardIds() {
-            return Multimaps.transformValues(shards, new Function<List<ShardIdWithVersion>, List<String>>() {
-                public List<String> apply(List<ShardIdWithVersion> shardIdWithVersions) {
-                    return ShardIdWithVersion.keepShardIds(shardIdWithVersions);
-                }
-            });
-        }
-
-        public long newestShard() {
-            long newest = -1;
-            for (final List<ShardIdWithVersion> shardset : shards.values()) {
-                for (final ShardIdWithVersion shard : shardset) {
-                    newest = Math.max(newest, shard.getVersion());
-                }
-            }
-            if (newest == -1) {
-                throw new IllegalArgumentException("No shards!");
-            }
-            return DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newest));
-        }
-    }
-
-    // TODO: These parameters are nuts
-    private SelectExecutionInformation executeSelect(
-            final QueryInfo queryInfo,
-            final String q,
-            final boolean useLegacy,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final Map<String, Set<String>> datasetToIntFields,
-            final Consumer<String> out,
-            final TreeTimer timer,
-            final ProgressCallback progressCallback,
-            final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
-            final boolean skipValidation,
-            final Integer groupLimit,
-            final WallClock clock,
-            final String username,
-            final InfoCollectingProgressCallback infoCollectingProgressCallback) throws IOException, ImhotepOutOfMemoryException {
-        timer.push(q);
-
-        timer.push("parse query");
-        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
-        timer.pop();
-
-        {
-            queryInfo.statementType = "select";
-
-            final Map<String, String> upperCaseToActualDataset = new HashMap<>();
-            for (final String dataset : Session.getDatasets(imhotepClient)) {
-                upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
-            }
-
-            final List<Dataset> allDatasets = Queries.findAllDatasets(query);
-            Duration datasetRangeSum = Duration.ZERO;
-            queryInfo.datasets = new HashSet<>();
-            for (final Dataset dataset : allDatasets) {
-                queryInfo.datasets.add(upperCaseToActualDataset.get(dataset.dataset.toUpperCase()));
-                datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive, dataset.endExclusive));
-            }
-            queryInfo.totalDatasetRange = datasetRangeSum;
-        }
-
-        final HashMap<Query, Boolean> queryCached = new HashMap<>();
-        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached, username, warn, infoCollectingProgressCallback);
-        timer.pop();
-
-        return result;
-    }
-
-    private SelectExecutionInformation executeParsedQuery(
-            Consumer<String> out,
-            final TreeTimer timer,
-            final ProgressCallback progressCallback,
-            Query query,
-            final boolean skipValidation,
-            final @Nullable Integer initialGroupLimit,
-            final WallClock clock,
-            final Map<Query, Boolean> queryCached,
-            final String username,
-            final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
-            final InfoCollectingProgressCallback infoCollectingProgressCallback) throws IOException {
-
-        final int[] totalBytesWritten = {0};
-        final Set<String> cacheKeys = new HashSet<>();
-        final ListMultimap<String, List<ShardIdWithVersion>> allShardsUsed = ArrayListMultimap.create();
-
-        query = query.transform(
-                Functions.<GroupBy>identity(),
-                Functions.<AggregateMetric>identity(),
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                new Function<DocFilter, DocFilter>() {
-                    final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
-
-                    @Nullable
-                    @Override
-                    public DocFilter apply(DocFilter input) {
-                        if (input instanceof DocFilter.FieldInQuery) {
-                            final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
-                            final Query q = fieldInQuery.query;
-                            if (!queryToResults.containsKey(q)) {
-                                final Set<Long> terms = new LongOpenHashSet();
-                                final Set<String> stringTerms = new HashSet<>();
-                                timer.push("Execute sub-query: \"" + q + "\"");
-                                try {
-                                    final SelectExecutionInformation execInfo = executeParsedQuery(new Consumer<String>() {
-                                        @Override
-                                        public void accept(String s) {
-                                            if (subQueryTermLimit > 0 && terms.size() + stringTerms.size() >= subQueryTermLimit) {
-                                                throw new IllegalStateException("Sub query cannot have more than [" + subQueryTermLimit + "] terms!");
-                                            }
-                                            final String term = s.split("\t")[0];
-                                            try {
-                                                terms.add(Long.parseLong(term));
-                                            } catch (NumberFormatException e) {
-                                                stringTerms.add(term);
-                                            }
-                                        }
-                                    }, timer, infoCollectingProgressCallback, q, skipValidation, initialGroupLimit, clock, queryCached, username, warn, infoCollectingProgressCallback);
-                                    totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
-                                    cacheKeys.addAll(execInfo.cacheKeys);
-                                    allShardsUsed.putAll(execInfo.shards);
-                                } catch (IOException e) {
-                                    throw Throwables.propagate(e);
-                                }
-                                timer.pop();
-                                queryToResults.put(q, Pair.of(terms, stringTerms));
-                            }
-                            final Pair<Set<Long>, Set<String>> p = queryToResults.get(q);
-                            final ScopedField scopedField = fieldInQuery.field;
-
-                            final List<DocFilter> filters = new ArrayList<>();
-                            if (!p.getSecond().isEmpty()) {
-                                final Set<String> terms = Sets.newHashSet(p.getSecond());
-                                for (final long v : p.getFirst()) {
-                                    terms.add(String.valueOf(v));
-                                }
-                                filters.add(new DocFilter.StringFieldIn(getKeywordAnalyzerWhitelist(), scopedField.field, terms));
-                            } else if (!p.getFirst().isEmpty()) {
-                                filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
-                            }
-                            final DocFilter.Ors orred = new DocFilter.Ors(filters);
-                            final DocFilter maybeNegated;
-                            if (fieldInQuery.isNegated) {
-                                maybeNegated = new DocFilter.Not(orred);
-                            } else {
-                                maybeNegated = orred;
-                            }
-                            return scopedField.wrap(maybeNegated);
-                        }
-                        return input;
-                    }
-                }
-        );
-
-        timer.push("compute commands");
-        final List<Command> commands = Queries.queryCommands(query);
-        timer.pop();
-
-        timer.push("validate commands");
-        final List<String> errors = new ArrayList<>();
-        final List<String> warnings = new ArrayList<>();
-
-        final Validator validator = new Validator() {
-            @Override
-            public void error(String error) {
-                errors.add(error);
-            }
-
-            @Override
-            public void warn(String warn) {
-                warnings.add(warn);
-            }
-        };
-
-        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex(), imhotepClient, getDimensions(), getDatasetToIntFields()));
-        if (!skipValidation) {
-            for (final Command command : commands) {
-                command.validate(datasetsFields, validator);
-            }
-        }
-
-        for (final String warning : warnings) {
-            warn.accept(warning);
-        }
-
-        if (errors.size() > 0) {
-            throw new IllegalArgumentException("Errors found when validating query: " + errors);
-        }
-
-        timer.pop();
-
-        final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands);
-        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
-        allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
-
-        final AtomicBoolean errorOccurred = new AtomicBoolean(false);
-
-        cacheKeys.add(computeCacheKey.rawHash);
-
-        try (final Closer closer = Closer.create()) {
-            if (queryCache.isEnabled()) {
-                timer.push("cache check");
-                final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
-                timer.pop();
-
-                queryCached.put(query, isCached);
-
-                if (isCached) {
-                    timer.push("read cache");
-                    // TODO: Don't have this hack
-                    progressCallback.startCommand(null, null, true);
-                    sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit);
-                    timer.pop();
-                    return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys);
-                } else {
-                    final Consumer<String> oldOut = out;
-                    final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
-                    final File cacheFile = tmpFile.toFile();
-                    final BufferedWriter cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
-                    closer.register(new Closeable() {
-                        @Override
-                        public void close() throws IOException {
-                            // TODO: Do this stuff asynchronously
-                            cacheWriter.close();
-                            if (!errorOccurred.get()) {
-                                queryCache.writeFromFile(computeCacheKey.cacheFileName, cacheFile);
-                            }
-                            if (!cacheFile.delete()) {
-                                log.warn("Failed to delete  " + cacheFile);
-                            }
-                        }
-                    });
-                    out = new Consumer<String>() {
-                        @Override
-                        public void accept(String s) {
-                            oldOut.accept(s);
-                            try {
-                                cacheWriter.write(s);
-                                cacheWriter.newLine();
-                            } catch (IOException e) {
-                                throw Throwables.propagate(e);
-                            }
-                        }
-                    };
-                }
-            }
-
-            if (query.rowLimit.isPresent()) {
-                final int rowLimit = query.rowLimit.get();
-                final Consumer<String> oldOut = out;
-                out = new Consumer<String>() {
-                    int rowsWritten = 0;
-
-                    @Override
-                    public void accept(String s) {
-                        if (rowsWritten < rowLimit) {
-                            oldOut.accept(s);
-                            rowsWritten += 1;
-                        }
-                    }
-                };
-            }
-
-            final ObjectMapper objectMapper = new ObjectMapper();
-            if (log.isDebugEnabled()) {
-                log.debug("commands = " + commands);
-                for (final Command command : commands) {
-                    log.debug("command = " + command);
-                    final String s = objectMapper.writeValueAsString(command);
-                    log.debug("s = " + s);
-                }
-                final String commandList = objectMapper.writeValueAsString(commands);
-                log.debug("commandList = " + commandList);
-            }
-
-            final Map<String, Object> request = new HashMap<>();
-            request.put("datasets", Queries.createDatasetMap(query));
-            request.put("commands", commands);
-
-            final Integer groupLimit;
-            if (initialGroupLimit == null) {
-                groupLimit = 1000000;
-            } else {
-                groupLimit = initialGroupLimit;
-            }
-            request.put("groupLimit", groupLimit);
-
-            final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
-
-            try {
-                final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, getDimensions(), timer, progressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
-                return new SelectExecutionInformation(allShardsUsed, queryCached, createResult.tempFileBytesWritten + totalBytesWritten[0], cacheKeys);
-            } catch (Exception e) {
-                errorOccurred.set(true);
-                throw Throwables.propagate(e);
-            }
-        }
-    }
-
-    public ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands) {
-        timer.push("compute dataset normalization");
-        final Set<String> datasets = Session.getDatasets(imhotepClient);
-        final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
-        for (final String dataset : datasets) {
-            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
-        }
-        timer.pop();
-
-        timer.push("compute hash");
-        final Set<Pair<String, String>> shards = Sets.newHashSet();
-        final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
-        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
-        for (final Dataset dataset : query.datasets) {
-            timer.push("get chosen shards");
-            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
-            final String sessionName = dataset.alias.or(dataset.dataset);
-            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
-            timer.pop();
-            for (final ShardIdWithVersion chosenShard : chosenShards) {
-                // This needs to be associated with the session name, not just the actualDataset.
-                shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
-            }
-            final Set<FieldAlias> fieldAliases = Sets.newHashSet();
-            for (final Map.Entry<String, String> e : dataset.fieldAliases.entrySet()) {
-                fieldAliases.add(new FieldAlias(e.getValue(), e.getKey()));
-            }
-            datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.getMillis(), dataset.endExclusive.getMillis(), fieldAliases));
-            final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
-            if (oldShards != null) {
-                throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
-            }
-        }
-        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, 8);
-        final String cacheFileName = "IQL2-" + queryHash + ".tsv";
-        timer.pop();
-
-        return new ComputeCacheKey(datasetToChosenShards, queryHash, cacheFileName);
-    }
-
-    private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
-        final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
-        for (final Dataset dataset : datasets) {
-            aliasToDataset.put(dataset.alias.or(dataset.dataset), dataset);
-        }
-
-        final DatasetsFields.Builder builder = DatasetsFields.builderFrom(datasetsFields);
-        for (final String dataset : datasetsFields.datasets()) {
-            final ImmutableSet<String> intFields = datasetsFields.getIntFields(dataset);
-            final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
-            final Map<String, String> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
-            for (final Map.Entry<String, String> entry : aliasToActual.entrySet()) {
-                if (intFields.contains(entry.getValue().toUpperCase())) {
-                    builder.addIntField(dataset, entry.getKey().toUpperCase());
-                } else if (stringFields.contains(entry.getValue().toUpperCase())) {
-                    builder.addStringField(dataset, entry.getKey().toUpperCase());
-                } else {
-                    throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
-                }
-            }
-        }
-
-        return builder.build();
-    }
-
-    private void sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit) throws IOException {
-        final int limit = rowLimit.or(Integer.MAX_VALUE);
-        int rowsWritten = 0;
-        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
-            String line;
-            while ((line = stream.readLine()) != null) {
-                out.accept(line);
-                rowsWritten += 1;
-                if (rowsWritten >= limit) {
-                    break;
-                }
-            }
-        }
-    }
-
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
-        final MessageDigest sha1;
-        try {
-            sha1 = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to init SHA1", e);
-            throw Throwables.propagate(e);
-        }
-        sha1.update(Ints.toByteArray(version));
-        for (final Command command : commands) {
-            sha1.update(command.toString().getBytes(Charsets.UTF_8));
-        }
-        for (final DatasetWithTimeRangeAndAliases dataset : datasets) {
-            sha1.update(dataset.dataset.getBytes(Charsets.UTF_8));
-            sha1.update(Longs.toByteArray(dataset.start));
-            sha1.update(Longs.toByteArray(dataset.end));
-            final List<FieldAlias> sortedFieldAliases = Lists.newArrayList(dataset.fieldAliases);
-            Collections.sort(sortedFieldAliases, new Comparator<FieldAlias>() {
-                @Override
-                public int compare(FieldAlias o1, FieldAlias o2) {
-                    return o1.newName.compareTo(o2.newName);
-                }
-            });
-            for (final FieldAlias fieldAlias : sortedFieldAliases) {
-                sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
-            }
-        }
-        sha1.update(Ints.toByteArray(rowLimit.or(-1)));
-        for (final Pair<String, String> pair : shards) {
-            sha1.update(pair.getFirst().getBytes(Charsets.UTF_8));
-            sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
-        }
-        return Base64.encodeBase64URLSafeString(sha1.digest());
-    }
-
     private static final int QUERY_LENGTH_LIMIT = 55000; // trying to not cause the logentry to overflow from being larger than 2^16
 
     private void logQuery(HttpServletRequest req,
@@ -1031,7 +375,7 @@ public class QueryServlet {
                           long queryStartTimestamp,
                           Throwable errorOccurred,
                           String remoteAddr,
-                          QueryInfo queryInfo) {
+                          SelectQueryExecution.QueryInfo queryInfo) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
@@ -1138,87 +482,4 @@ public class QueryServlet {
         log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
     }
 
-    private static class DatasetWithTimeRangeAndAliases {
-        public final String dataset;
-        public final long start;
-        public final long end;
-        public final Set<FieldAlias> fieldAliases;
-
-        private DatasetWithTimeRangeAndAliases(String dataset, long start, long end, Set<FieldAlias> fieldAliases) {
-            this.dataset = dataset;
-            this.start = start;
-            this.end = end;
-            this.fieldAliases = fieldAliases;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            DatasetWithTimeRangeAndAliases that = (DatasetWithTimeRangeAndAliases) o;
-            return start == that.start &&
-                    end == that.end &&
-                    Objects.equals(dataset, that.dataset) &&
-                    Objects.equals(fieldAliases, that.fieldAliases);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dataset, start, end, fieldAliases);
-        }
-
-        @Override
-        public String toString() {
-            return "DatasetWithTimeRangeAndAliases{" +
-                    "dataset='" + dataset + '\'' +
-                    ", start=" + start +
-                    ", end=" + end +
-                    ", fieldAliases=" + fieldAliases +
-                    '}';
-        }
-    }
-
-    public static class ComputeCacheKey {
-        public final Map<String, List<ShardIdWithVersion>> datasetToChosenShards;
-        public final String rawHash;
-        public final String cacheFileName;
-
-        private ComputeCacheKey(Map<String, List<ShardIdWithVersion>> datasetToChosenShards, String rawHash, String cacheFileName) {
-            this.datasetToChosenShards = datasetToChosenShards;
-            this.rawHash = rawHash;
-            this.cacheFileName = cacheFileName;
-        }
-    }
-
-    private static class FieldAlias {
-        public final String originalName;
-        public final String newName;
-
-        private FieldAlias(String originalName, String newName) {
-            this.originalName = originalName;
-            this.newName = newName;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FieldAlias that = (FieldAlias) o;
-            return Objects.equals(originalName, that.originalName) &&
-                    Objects.equals(newName, that.newName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(originalName, newName);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldAlias{" +
-                    "originalName='" + originalName + '\'' +
-                    ", newName='" + newName + '\'' +
-                    '}';
-        }
-    }
 }
