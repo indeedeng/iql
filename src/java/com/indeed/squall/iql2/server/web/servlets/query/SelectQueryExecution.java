@@ -81,17 +81,98 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- *
- */
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public static long processSelect(final PrintWriter outputStream, QueryInfo queryInfo, String query, int version, String username, TreeTimer timer, final boolean isStream, boolean skipValidation, Integer groupLimit, WallClock clock, Map<String, Set<String>> keywordAnalyzerWhitelist, Map<String, Set<String>> datasetToIntFields, ImhotepClient imhotepClient, ExecutionManager executionManager, Long subQueryTermLimit, Map<String, DatasetDimensions> dimensions, QueryCache queryCache, Long imhotepLocalTempFileSizeLimit, Long imhotepDaemonTempFileSizeLimit) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    // IQL2 server systems
+    private final QueryCache queryCache;
+    private final ExecutionManager executionManager;
+
+    // Query sanity limits
+    private final Long subQueryTermLimit;
+    private final Long imhotepLocalTempFileSizeLimit;
+    private final Long imhotepDaemonTempFileSizeLimit;
+    private final Integer groupLimit;
+
+    // IQL2 Imhotep-based state
+    private final ImhotepClient imhotepClient;
+    private final Map<String, Set<String>> keywordAnalyzerWhitelist;
+    private final Map<String, Set<String>> datasetToIntFields;
+    private final Map<String, DatasetDimensions> dimensions;
+
+    // Query output state
+    private final PrintWriter outputStream;
+    private final QueryInfo queryInfo;
+    private final TreeTimer timer;
+
+    // Query inputs
+    private final String username;
+    private final String query;
+    private final int version;
+    private final boolean isStream;
+    private final boolean skipValidation;
+    private final WallClock clock;
+
+    private boolean ran = false;
+    private long queryStartTimestamp = -1L;
+
+    public SelectQueryExecution(
+            final QueryCache queryCache,
+            final ExecutionManager executionManager,
+            final Long subQueryTermLimit,
+            final Long imhotepLocalTempFileSizeLimit,
+            final Long imhotepDaemonTempFileSizeLimit,
+            final Integer groupLimit, ImhotepClient imhotepClient,
+            final Map<String, Set<String>> keywordAnalyzerWhitelist,
+            final Map<String, Set<String>> datasetToIntFields,
+            final Map<String, DatasetDimensions> dimensions,
+            final PrintWriter outputStream,
+            final QueryInfo queryInfo,
+            final TreeTimer timer,
+            final String username,
+            final String query,
+            final int version,
+            final boolean isStream,
+            final boolean skipValidation,
+            final WallClock clock
+    ) {
+        this.outputStream = outputStream;
+        this.queryInfo = queryInfo;
+        this.query = query;
+        this.version = version;
+        this.username = username;
+        this.timer = timer;
+        this.isStream = isStream;
+        this.skipValidation = skipValidation;
+        this.groupLimit = groupLimit;
+        this.clock = clock;
+        this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
+        this.datasetToIntFields = datasetToIntFields;
+        this.imhotepClient = imhotepClient;
+        this.executionManager = executionManager;
+        this.subQueryTermLimit = subQueryTermLimit;
+        this.dimensions = dimensions;
+        this.queryCache = queryCache;
+        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
+        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
+    }
+
+    public long getQueryStartTimestamp() {
+        return queryStartTimestamp;
+    }
+
+    public void processSelect() throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+        // .. just in case.
+        synchronized (this) {
+            if (ran) {
+                throw new IllegalArgumentException("Cannot run multiple times!");
+            }
+            ran = true;
+        }
+
         final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
-        long queryStartTimestamp;
         try {
             timer.push("Acquire concurrent query lock");
             queryTracker.acquireLocks(); // blocks and waits if necessary
@@ -128,13 +209,13 @@ public class SelectQueryExecution {
             final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
             final ProgressCallback progressCallback = CompositeProgressCallback.create(infoCollectingProgressCallback, numDocLimitingProgressCallback, eventStreamProgressCallback);
 
-            final SelectExecutionInformation execInfo = executeSelect(queryInfo, query, version == 1, keywordAnalyzerWhitelist, datasetToIntFields, countingOut, timer, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+            final SelectExecutionInformation execInfo = executeSelect(queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     warnings.add(s);
                 }
-            }, skipValidation, groupLimit, clock, username, infoCollectingProgressCallback, imhotepClient, subQueryTermLimit, dimensions, queryCache, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
-            extractCompletedQueryInfoData(queryInfo, infoCollectingProgressCallback, execInfo, countingOut);
+            }, infoCollectingProgressCallback);
+            extractCompletedQueryInfoData(infoCollectingProgressCallback, execInfo, countingOut);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -164,10 +245,9 @@ public class SelectQueryExecution {
                 queryTracker.close();
             }
         }
-        return queryStartTimestamp;
     }
 
-    private static void extractCompletedQueryInfoData(QueryInfo queryInfo, InfoCollectingProgressCallback progressCallback, SelectExecutionInformation execInfo, CountingConsumer<String> countingOut) {
+    private void extractCompletedQueryInfoData(InfoCollectingProgressCallback progressCallback, SelectExecutionInformation execInfo, CountingConsumer<String> countingOut) {
         int shardCount = 0;
         Duration totalShardPeriod = Duration.ZERO;
         for (final List<String> shardList : execInfo.perDatasetShardIds().values()) {
@@ -189,7 +269,7 @@ public class SelectQueryExecution {
         queryInfo.maxConcurrentSessions = progressCallback.getMaxConcurrentSessions();
     }
 
-    private static DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset, ImhotepClient imhotepClient, Map<String, DatasetDimensions> dimensions, Map<String, Set<String>> datasetToIntFields) {
+    private DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset) {
         final Set<String> relevantUpperCaseDatasets = new HashSet<>();
         for (final Dataset dataset : relevantDatasets) {
             relevantUpperCaseDatasets.add(dataset.dataset.toUpperCase());
@@ -238,25 +318,15 @@ public class SelectQueryExecution {
     }
 
     // TODO: These parameters are nuts
-    private static SelectExecutionInformation executeSelect(
+    private SelectExecutionInformation executeSelect(
             final QueryInfo queryInfo,
             final String q,
             final boolean useLegacy,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final Map<String, Set<String>> datasetToIntFields,
             final Consumer<String> out,
-            final TreeTimer timer,
             final ProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
-            final boolean skipValidation,
-            final Integer groupLimit,
-            final WallClock clock,
-            final String username,
-            final InfoCollectingProgressCallback infoCollectingProgressCallback,
-            final ImhotepClient imhotepClient,
-            final Long subQueryTermLimit,
-            final Map<String, DatasetDimensions> dimensions,
-            final QueryCache queryCache, Long imhotepLocalTempFileSizeLimit, Long imhotepDaemonTempFileSizeLimit) throws IOException, ImhotepOutOfMemoryException {
+            final InfoCollectingProgressCallback infoCollectingProgressCallback
+    ) throws IOException, ImhotepOutOfMemoryException {
         timer.push(q);
 
         timer.push("parse query");
@@ -282,31 +352,20 @@ public class SelectQueryExecution {
         }
 
         final HashMap<Query, Boolean> queryCached = new HashMap<>();
-        final SelectExecutionInformation result = executeParsedQuery(out, timer, progressCallback, query, skipValidation, groupLimit, clock, queryCached, username, warn, infoCollectingProgressCallback, subQueryTermLimit, keywordAnalyzerWhitelist, imhotepClient, dimensions, datasetToIntFields, queryCache, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+        final SelectExecutionInformation result = executeParsedQuery(out, progressCallback, query, groupLimit, queryCached, warn, infoCollectingProgressCallback);
         timer.pop();
 
         return result;
     }
 
-    private static SelectExecutionInformation executeParsedQuery(
+    private SelectExecutionInformation executeParsedQuery(
             Consumer<String> out,
-            final TreeTimer timer,
             final ProgressCallback progressCallback,
             Query query,
-            final boolean skipValidation,
             final @Nullable Integer initialGroupLimit,
-            final WallClock clock,
             final Map<Query, Boolean> queryCached,
-            final String username,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn,
-            final InfoCollectingProgressCallback infoCollectingProgressCallback,
-            final Long subQueryTermLimit,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final ImhotepClient imhotepClient,
-            final Map<String, DatasetDimensions> dimensions,
-            final Map<String, Set<String>> datasetToIntFields,
-            final QueryCache queryCache,
-            final Long imhotepLocalTempFileSizeLimit, final Long imhotepDaemonTempFileSizeLimit
+            final InfoCollectingProgressCallback infoCollectingProgressCallback
     ) throws IOException {
 
         final int[] totalBytesWritten = {0};
@@ -332,6 +391,7 @@ public class SelectQueryExecution {
                                 final Set<String> stringTerms = new HashSet<>();
                                 timer.push("Execute sub-query: \"" + q + "\"");
                                 try {
+                                    // TODO: This use of ProgressCallbacks looks wrong.
                                     final SelectExecutionInformation execInfo = executeParsedQuery(new Consumer<String>() {
                                         @Override
                                         public void accept(String s) {
@@ -345,7 +405,7 @@ public class SelectQueryExecution {
                                                 stringTerms.add(term);
                                             }
                                         }
-                                    }, timer, infoCollectingProgressCallback, q, skipValidation, initialGroupLimit, clock, queryCached, username, warn, infoCollectingProgressCallback, subQueryTermLimit, keywordAnalyzerWhitelist, imhotepClient, dimensions, datasetToIntFields, queryCache, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit);
+                                    }, infoCollectingProgressCallback, q, initialGroupLimit, queryCached, warn, infoCollectingProgressCallback);
                                     totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                     cacheKeys.addAll(execInfo.cacheKeys);
                                     allShardsUsed.putAll(execInfo.shards);
@@ -402,7 +462,7 @@ public class SelectQueryExecution {
             }
         };
 
-        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex(), imhotepClient, dimensions, datasetToIntFields));
+        final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex()));
         if (!skipValidation) {
             for (final Command command : commands) {
                 command.validate(datasetsFields, validator);

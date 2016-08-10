@@ -208,18 +208,9 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
 
-                queryStartTimestamp =
-                        SelectQueryExecution.processSelect(
-                                response.getWriter(), queryInfo,
-                                query,
-                                version,
-                                username,
-                                timer,
-                                isStream,
-                                skipValidation,
-                                groupLimit,
-                                clock, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), imhotepClient, executionManager, subQueryTermLimit, getDimensions(), queryCache, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit
-                        );
+                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
+                selectQueryExecution.processSelect();
+                queryStartTimestamp = selectQueryExecution.getQueryStartTimestamp();
             }
         } catch (Throwable e) {
             if (e instanceof Exception) {
