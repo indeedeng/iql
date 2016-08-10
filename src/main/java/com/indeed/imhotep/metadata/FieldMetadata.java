@@ -33,8 +33,8 @@ public class FieldMetadata {
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType imhotepType) {
         this.name = name;
-        this.imhotepType = imhotepType;
-        this.type = imhotepType;
+        this.imhotepType = FieldType.Integer; //imhotepType;
+        this.type = FieldType.Integer; //imhotepType;
     }
 
     @Nonnull
