@@ -15,6 +15,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +66,23 @@ public class CacheTest {
             final String cacheKey2 = getCacheKey(imhotepClient, query);
             Assert.assertEquals(cacheKey1, cacheKey2);
         }
+    }
 
+    @Test
+    public void testStorageAndLoading() throws Exception {
+        for (final boolean withLimit : new boolean[]{false, true}) {
+            final List<Shard> shards = OrganicDataset.create();
+            final String query = "from organic yesterday today group by time(1h) select count()" + (withLimit ? " limit 100" : "");
+
+            final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
+            final InMemoryQueryCache queryCache = new InMemoryQueryCache();
+            options.setQueryCache(queryCache);
+            Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+            final List<List<String>> result1 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options);
+            Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+            final List<List<String>> result2 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options);
+            Assert.assertEquals(1, queryCache.getReadsTracked().size());
+            Assert.assertEquals(result1, result2);
+        }
     }
 }

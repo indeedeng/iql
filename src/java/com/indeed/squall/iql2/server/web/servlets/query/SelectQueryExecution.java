@@ -510,7 +510,7 @@ public class SelectQueryExecution {
                         timer.push("read cache");
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        sendCachedQuery(computeCacheKey.cacheFileName, externalOutput, query.rowLimit, queryCache);
+                        sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
                         return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys, Collections.<String>emptyList(), 0, 0, 0);
                     } else {
@@ -548,7 +548,7 @@ public class SelectQueryExecution {
 
                 if (query.rowLimit.isPresent()) {
                     final int rowLimit = query.rowLimit.get();
-                    final Consumer<String> oldOut = externalOutput;
+                    final Consumer<String> oldOut = out;
                     out = new Consumer<String>() {
                         int rowsWritten = 0;
 
