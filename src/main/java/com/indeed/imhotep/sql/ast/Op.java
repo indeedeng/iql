@@ -35,5 +35,5 @@ package com.indeed.imhotep.sql.ast;
  */
 public enum Op {
   PLUS, MINUS, MUL, DIV, AGG_DIV, MOD, IN, NOT_IN, EQ, NOT_EQ, AND, NEG, LESS, LESS_EQ, GREATER, GREATER_EQ, REGEX_EQ,
-    REGEX_NOT_EQ, EXPLODE
+    REGEX_NOT_EQ, @Deprecated EXPLODE
 }
