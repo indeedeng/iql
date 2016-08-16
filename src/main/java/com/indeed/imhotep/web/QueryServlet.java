@@ -20,10 +20,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
-import com.indeed.imhotep.ImhotepErrorResolver;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
@@ -468,6 +468,7 @@ public class QueryServlet {
             }
             outputStream.close();
             selectExecutionStats.rowsWritten = writeResults.rowsWritten;
+            selectExecutionStats.overflowedToDisk = writeResults.didOverflowToDisk();
             selectExecutionStats.imhotepTempFilesBytesWritten = executionResult.getImhotepTempFilesBytesWritten();
         } else {
             // TODO: rework the async case to use the same code path as the sync case above except running under an executor
