@@ -382,7 +382,7 @@ public class QueryServlet {
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
         logEntry.setProperty("tottime", (int)timeTaken);
 
-        logString(logEntry, "statementType", queryInfo.statementType);
+        logString(logEntry, "statement", queryInfo.statementType);
 
         logBoolean(logEntry, "cached", queryInfo.cached);
         logSet(logEntry, "dataset", queryInfo.datasets);
