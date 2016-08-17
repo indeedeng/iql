@@ -490,7 +490,7 @@ public class Session {
                 }
                 final List<String> keyColumns = GroupKeySets.asList(groupKeySet, termSelects.group);
                 for (final String k : keyColumns) {
-                    sb.append(k).append('\t');
+                    sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
                 }
                 if (termSelects.isIntTerm) {
                     sb.append(termSelects.intTerm).append('\t');

@@ -241,7 +241,7 @@ public class SimpleIterate implements Command {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
-            sb.append(k).append('\t');
+            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
         }
         sb.append(term).append('\t');
         for (int i = 0; i < selectBuffer.length; i++) {
