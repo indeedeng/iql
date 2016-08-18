@@ -106,7 +106,6 @@ public class Session {
     }
 
     public static final String INFINITY_SYMBOL = "∞";
-    public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
 
     public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer, ProgressCallback progressCallback, @Nullable Integer groupLimit) {
         this.sessions = sessions;
@@ -391,6 +390,17 @@ public class Session {
         }
     }
 
+    public static void appendGroupString(String groupString, StringBuilder sb) {
+        for (int i = 0; i < groupString.length(); i++) {
+            final char groupChar = groupString.charAt(i);
+            if (groupChar != '\t' && groupChar != '\r' && groupChar != '\n') {
+                sb.append(groupChar);
+            } else {
+                sb.append('\ufffd');
+            }
+        }
+    }
+
     public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
@@ -450,7 +460,8 @@ public class Session {
                             sb.append("\t");
                         } else {
                             for (final String k : keyColumns) {
-                                sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+                                appendGroupString(k, sb);
+                                sb.append('\t');
                             }
                         }
                         final double[] stats = result.stats;
@@ -490,7 +501,8 @@ public class Session {
                 }
                 final List<String> keyColumns = GroupKeySets.asList(groupKeySet, termSelects.group);
                 for (final String k : keyColumns) {
-                    sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+                    appendGroupString(k, sb);
+                    sb.append('\t');
                 }
                 if (termSelects.isIntTerm) {
                     sb.append(termSelects.intTerm).append('\t');

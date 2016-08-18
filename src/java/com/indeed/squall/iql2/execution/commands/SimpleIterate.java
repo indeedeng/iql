@@ -36,10 +36,8 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class SimpleIterate implements Command {
-    public static final Pattern SPECIAL_CHARACTERS_PATTERN = Pattern.compile("\\n|\\r|\\t");
     public final String field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
@@ -217,9 +215,11 @@ public class SimpleIterate implements Command {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
-            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+            Session.appendGroupString(k, sb);
+            sb.append('\t');
         }
-        sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(term).replaceAll("\uFFFD")).append('\t');
+        Session.appendGroupString(term, sb);
+        sb.append('\t');
         for (int i = 0; i < selectBuffer.length; i++) {
             final double stat = selectBuffer[i];
             if (formatStrings[i] != null) {
@@ -241,7 +241,8 @@ public class SimpleIterate implements Command {
         final StringBuilder sb = new StringBuilder();
         final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
         for (final String k : keyColumns) {
-            sb.append(SPECIAL_CHARACTERS_PATTERN.matcher(k).replaceAll("\uFFFD")).append('\t');
+            Session.appendGroupString(k, sb);
+            sb.append('\t');
         }
         sb.append(term).append('\t');
         for (int i = 0; i < selectBuffer.length; i++) {
