@@ -637,7 +637,7 @@ public class SelectQueryExecution {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
-        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, 8);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, 9);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
