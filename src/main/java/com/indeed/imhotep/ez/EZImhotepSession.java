@@ -18,12 +18,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.exceptions.GroupLimitExceededException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.query.Query;
-import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -454,55 +455,76 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
+    // @deprecated due to inefficiency. use splitAll()
+    @Deprecated
     public @Nullable Int2ObjectMap<GroupKey> explodeEachGroup(IntField field, long[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
             return new Int2ObjectOpenHashMap<GroupKey>();
         }
         checkGroupLimitWithFactor(terms.length);
-        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups-1];
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups-1];
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         int positiveGroup = 1;
+        final GroupMultiRemapMessage.Builder regroupMessageBuilder =  GroupMultiRemapMessage.newBuilder();
+        final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
         for (int group = 1; group < numGroups; group++) {
-            final RegroupCondition[] conditions = new RegroupCondition[terms.length];
-            final int[] positiveGroups = new int[terms.length];
+            regroupMessageBuilder.clear();
             for (int i = 0; i < terms.length; i++) {
                 final long term = terms[i];
                 final int newGroup = positiveGroup++;
-                positiveGroups[i] = newGroup;
+                regroupMessageBuilder.addPositiveGroup(newGroup);
                 if (groupKeys != null) {
                     ret.put(newGroup, groupKeys.get(group).add(term));
                 }
-                conditions[i] = new RegroupCondition(field.getFieldName(), true, term, null, false);
+                conditionMessageBuilder.clear();
+                conditionMessageBuilder.setField(field.getFieldName());
+                conditionMessageBuilder.setIntType(true);
+                conditionMessageBuilder.setIntTerm(term);
+                conditionMessageBuilder.setInequality(false);
+                regroupMessageBuilder.addCondition(conditionMessageBuilder.build());
             }
-            rules[group - 1] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+            regroupMessageBuilder.setTargetGroup(group);
+            regroupMessageBuilder.setNegativeGroup(0);
+
+            rules[group - 1] = regroupMessageBuilder.build();
         }
-        numGroups = session.regroup(rules, true);
+        numGroups = session.regroupWithProtos(rules, true);
         return ret;
     }
 
+    // @deprecated due to inefficiency. use splitAll()
+    @Deprecated
     public @Nullable Int2ObjectMap<GroupKey> explodeEachGroup(StringField field, String[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
             return new Int2ObjectOpenHashMap<GroupKey>();
         }
         checkGroupLimitWithFactor(terms.length);
-        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[numGroups-1];
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups-1];
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         int positiveGroup = 1;
+        final GroupMultiRemapMessage.Builder regroupMessageBuilder =  GroupMultiRemapMessage.newBuilder();
+        final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
         for (int group = 1; group < numGroups; group++) {
-            final RegroupCondition[] conditions = new RegroupCondition[terms.length];
-            final int[] positiveGroups = new int[terms.length];
-            for (int i = 0; i < terms.length; i++) {
-                final String term = terms[i];
+            regroupMessageBuilder.clear();
+            for (final String term : terms) {
                 final int newGroup = positiveGroup++;
-                positiveGroups[i] = newGroup;
+                regroupMessageBuilder.addPositiveGroup(newGroup);
                 if (groupKeys != null) {
                     ret.put(newGroup, groupKeys.get(group).add(term));
                 }
-                conditions[i] = new RegroupCondition(field.getFieldName(), false, 0, term, false);
+                conditionMessageBuilder.clear();
+                conditionMessageBuilder.setField(field.getFieldName());
+                conditionMessageBuilder.setIntType(false);
+                conditionMessageBuilder.setStringTerm(term);
+                conditionMessageBuilder.setInequality(false);
+                regroupMessageBuilder.addCondition(conditionMessageBuilder.build());
             }
-            rules[group - 1] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+            regroupMessageBuilder.setTargetGroup(group);
+            regroupMessageBuilder.setNegativeGroup(0);
+
+            rules[group - 1] = regroupMessageBuilder.build();
         }
-        numGroups = session.regroup(rules, true);
+        numGroups = session.regroupWithProtos(rules, true);
         return ret;
     }
 
@@ -523,11 +545,12 @@ public class EZImhotepSession implements Closeable {
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
+            // TODO: avoid row number explosion when current groupCount already = termLimit
             final Int2ObjectMap<LongList> termListsMap = getIntGroupTerms(intField, termLimit);
 
             final int newGroupCount = checkGroupLimitForTerms(termListsMap);
 
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[termListsMap.size()];
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[termListsMap.size()];
             int ruleIndex = 0;
             int positiveGroup = 1;
             for (int group = 1; group < numGroups; group++) {
@@ -539,7 +562,7 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroup(rules, true);
+                numGroups = session.regroupWithProtos(rules, true);
             }
         } else {
             final StringField stringField = (StringField) field;
@@ -547,7 +570,7 @@ public class EZImhotepSession implements Closeable {
 
             final int newGroupCount = checkGroupLimitForTerms(termListsMap);
 
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[termListsMap.size()];
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[termListsMap.size()];
             int ruleIndex = 0;
             int positiveGroup = 1;
             for (int group = 1; group < numGroups; group++) {
@@ -558,7 +581,7 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroup(rules, true);
+                numGroups = session.regroupWithProtos(rules, true);
             }
         }
         return ret;
@@ -592,7 +615,7 @@ public class EZImhotepSession implements Closeable {
             final IntField intField = (IntField) field;
             final Int2ObjectMap<PriorityQueue<ScoredLong>> termListsMap = getIntGroupTermsTopK(intField, topK, stat, bottom);
             checkGroupLimitForTerms(termListsMap);
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[termListsMap.size()];
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[termListsMap.size()];
             int ruleIndex = 0;
             int positiveGroup = 1;
             for (int group = 1; group < numGroups; group++) {
@@ -607,12 +630,12 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            numGroups = session.regroupWithProtos(rules, true);
         } else {
             final StringField stringField = (StringField) field;
             final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> termListsMap = getStringGroupTermsTopK(stringField, topK, stat, bottom);
             checkGroupLimitForTerms(termListsMap);
-            final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[termListsMap.size()];
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[termListsMap.size()];
             int ruleIndex = 0;
             int positiveGroup = 1;
             for (int group = 1; group < numGroups; group++) {
@@ -627,24 +650,26 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroup(rules, true);
+            numGroups = session.regroupWithProtos(rules, true);
         }
         return ret;
     }
 
-    private int getStringRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapRule[] rules, final int ruleIndex, int positiveGroup, final int group, final List<String> termList) {
-        final RegroupCondition[] conditions = new RegroupCondition[termList.size()];
-        final int[] positiveGroups = new int[termList.size()];
-        positiveGroup = getStringRegroupConditions(field, groupKeys, newGroupKeys, positiveGroup, group, termList, conditions, positiveGroups);
-        rules[ruleIndex] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+    private int getStringRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final List<String> termList) {
+        final GroupMultiRemapMessage.Builder remapMessageBuilder = GroupMultiRemapMessage.newBuilder();
+        remapMessageBuilder.setTargetGroup(group);
+        remapMessageBuilder.setNegativeGroup(0);
+        positiveGroup = getStringRegroupConditions(field, groupKeys, newGroupKeys, positiveGroup, group, termList, remapMessageBuilder);
+        rules[ruleIndex] = remapMessageBuilder.build();
         return positiveGroup;
     }
 
-    private int getIntRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, final Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapRule[] rules, final int ruleIndex, int positiveGroup, final int group, final long[] nativeArray) {
-        final RegroupCondition[] conditions = new RegroupCondition[nativeArray.length];
-        final int[] positiveGroups = new int[nativeArray.length];
-        positiveGroup = getIntRegroupConditions(field, groupKeys, newGroupKeys, positiveGroup, group, conditions, positiveGroups, nativeArray);
-        rules[ruleIndex] = new GroupMultiRemapRule(group, 0, positiveGroups, conditions);
+    private int getIntRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, final Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final long[] nativeArray) {
+        final GroupMultiRemapMessage.Builder remapMessageBuilder = GroupMultiRemapMessage.newBuilder();
+        remapMessageBuilder.setTargetGroup(group);
+        remapMessageBuilder.setNegativeGroup(0);
+        positiveGroup = getIntRegroupConditions(field, groupKeys, newGroupKeys, positiveGroup, group, nativeArray, remapMessageBuilder);
+        rules[ruleIndex] = remapMessageBuilder.build();
         return positiveGroup;
     }
 
@@ -655,17 +680,20 @@ public class EZImhotepSession implements Closeable {
             int positiveGroup,
             final int group,
             final List<String> termList,
-            final RegroupCondition[] conditions,
-            final int[] positiveGroups
-    ) {
-        for (int i = 0; i < termList.size(); i++) {
-            final String term = termList.get(i);
-            conditions[i] = new RegroupCondition(field.getFieldName(), false, 0, term, false);
+            final GroupMultiRemapMessage.Builder remapMessageBuilder
+            ) {
+        for (final String term : termList) {
+            final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
+            conditionMessageBuilder.setField(field.getFieldName());
+            conditionMessageBuilder.setIntType(false);
+            conditionMessageBuilder.setStringTerm(term);
+            conditionMessageBuilder.setInequality(false);
+            remapMessageBuilder.addCondition(conditionMessageBuilder.build());
             final int newGroup = positiveGroup++;
             if (groupKeys != null) {
                 newGroupKeys.put(newGroup, groupKeys.get(group).add(term));
             }
-            positiveGroups[i] = newGroup;
+            remapMessageBuilder.addPositiveGroup(newGroup);
         }
         return positiveGroup;
     }
@@ -676,18 +704,21 @@ public class EZImhotepSession implements Closeable {
             final Int2ObjectMap<GroupKey> newGroupKeys,
             int positiveGroup,
             final int group,
-            final RegroupCondition[] conditions,
-            final int[] positiveGroups,
-            final long[] nativeArray
+            final long[] nativeArray,
+            final GroupMultiRemapMessage.Builder remapMessageBuilder
     ) {
-        for (int i = 0; i < nativeArray.length; i++) {
-            final long term = nativeArray[i];
-            conditions[i] = new RegroupCondition(field.getFieldName(), true, term, null, false);
+        for (final long term : nativeArray) {
+            final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
+            conditionMessageBuilder.setField(field.getFieldName());
+            conditionMessageBuilder.setIntType(true);
+            conditionMessageBuilder.setIntTerm(term);
+            conditionMessageBuilder.setInequality(false);
+            remapMessageBuilder.addCondition(conditionMessageBuilder.build());
             final int newGroup = positiveGroup++;
             if (groupKeys != null) {
                 newGroupKeys.put(newGroup, groupKeys.get(group).add(term));
             }
-            positiveGroups[i] = newGroup;
+            remapMessageBuilder.addPositiveGroup(newGroup);
         }
         return positiveGroup;
     }
