@@ -9,6 +9,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -37,6 +38,7 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -273,7 +275,7 @@ public class SelectQueryExecution {
     private DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset) {
         final Set<String> relevantUpperCaseDatasets = new HashSet<>();
         for (final Dataset dataset : relevantDatasets) {
-            relevantUpperCaseDatasets.add(dataset.dataset.toUpperCase());
+            relevantUpperCaseDatasets.add(dataset.dataset.unwrap().toUpperCase());
         }
 
         final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
@@ -345,8 +347,8 @@ public class SelectQueryExecution {
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
-                queryInfo.datasets.add(upperCaseToActualDataset.get(dataset.dataset.toUpperCase()));
-                datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive, dataset.endExclusive));
+                queryInfo.datasets.add(upperCaseToActualDataset.get(dataset.dataset.unwrap().toUpperCase()));
+                datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
         }
@@ -619,19 +621,19 @@ public class SelectQueryExecution {
         final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
-            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset);
-            final String sessionName = dataset.alias.or(dataset.dataset);
-            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive, dataset.endExclusive).getChosenShards();
+            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
+            final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
+            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()).getChosenShards();
             timer.pop();
             for (final ShardIdWithVersion chosenShard : chosenShards) {
                 // This needs to be associated with the session name, not just the actualDataset.
                 shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
             }
             final Set<FieldAlias> fieldAliases = Sets.newHashSet();
-            for (final Map.Entry<String, String> e : dataset.fieldAliases.entrySet()) {
-                fieldAliases.add(new FieldAlias(e.getValue(), e.getKey()));
+            for (final Map.Entry<Positioned<String>, Positioned<String>> e : dataset.fieldAliases.entrySet()) {
+                fieldAliases.add(new FieldAlias(e.getValue().unwrap(), e.getKey().unwrap()));
             }
-            datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.getMillis(), dataset.endExclusive.getMillis(), fieldAliases));
+            datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.unwrap().getMillis(), dataset.endExclusive.unwrap().getMillis(), fieldAliases));
             final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
             if (oldShards != null) {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
@@ -647,19 +649,19 @@ public class SelectQueryExecution {
     private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
         final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
         for (final Dataset dataset : datasets) {
-            aliasToDataset.put(dataset.alias.or(dataset.dataset), dataset);
+            aliasToDataset.put(dataset.alias.or(dataset.dataset).unwrap(), dataset);
         }
 
         final DatasetsFields.Builder builder = DatasetsFields.builderFrom(datasetsFields);
         for (final String dataset : datasetsFields.datasets()) {
             final ImmutableSet<String> intFields = datasetsFields.getIntFields(dataset);
             final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
-            final Map<String, String> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
-            for (final Map.Entry<String, String> entry : aliasToActual.entrySet()) {
-                if (intFields.contains(entry.getValue().toUpperCase())) {
-                    builder.addIntField(dataset, entry.getKey().toUpperCase());
-                } else if (stringFields.contains(entry.getValue().toUpperCase())) {
-                    builder.addStringField(dataset, entry.getKey().toUpperCase());
+            final ImmutableMap<Positioned<String>, Positioned<String>> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
+            for (final Map.Entry<Positioned<String>, Positioned<String>> entry : aliasToActual.entrySet()) {
+                if (intFields.contains(entry.getValue().unwrap().toUpperCase())) {
+                    builder.addIntField(dataset, entry.getKey().unwrap().toUpperCase());
+                } else if (stringFields.contains(entry.getValue().unwrap().toUpperCase())) {
+                    builder.addStringField(dataset, entry.getKey().unwrap().toUpperCase());
                 } else {
                     throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
                 }
