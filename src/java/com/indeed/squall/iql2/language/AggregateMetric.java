@@ -21,6 +21,39 @@ import java.util.Set;
 
 // TODO: PerGroupConstants, SumChildren, IfThenElse ????
 public interface AggregateMetric {
+    interface Visitor<T, E extends Throwable> {
+        T visit(Add add) throws E;
+        T visit(Log log) throws E;
+        T visit(Negate negate) throws E;
+        T visit(Abs abs) throws E;
+        T visit(Subtract subtract) throws E;
+        T visit(Multiply multiply) throws E;
+        T visit(Divide divide) throws E;
+        T visit(Modulus modulus) throws E;
+        T visit(Power power) throws E;
+        T visit(Parent parent) throws E;
+        T visit(Lag lag) throws E;
+        T visit(IterateLag iterateLag) throws E;
+        T visit(Window window) throws E;
+        T visit(Qualified qualified) throws E;
+        T visit(DocStatsPushes docStatsPushes) throws E;
+        T visit(DocStats docStats) throws E;
+        T visit(ImplicitDocStats implicitDocStats) throws E;
+        T visit(Constant constant) throws E;
+        T visit(Percentile percentile) throws E;
+        T visit(Running running) throws E;
+        T visit(Distinct distinct) throws E;
+        T visit(Named named) throws E;
+        T visit(GroupStatsLookup groupStatsLookup) throws E;
+        T visit(SumAcross sumAcross) throws E;
+        T visit(IfThenElse ifThenElse) throws E;
+        T visit(FieldMin fieldMin) throws E;
+        T visit(FieldMax fieldMax) throws E;
+        T visit(Min min) throws E;
+        T visit(Max max) throws E;
+    }
+
+    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
@@ -52,6 +85,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -59,11 +97,11 @@ public interface AggregateMetric {
             return Objects.equals(m1, unop.m1);
         }
 
+
         @Override
         public int hashCode() {
             return Objects.hash(m1);
         }
-
 
         @Override
         public String toString() {
@@ -71,16 +109,16 @@ public interface AggregateMetric {
                     "m1=" + m1 +
                     '}';
         }
-
-        @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-        }
     }
 
     class Log extends Unop {
         public Log(AggregateMetric m1) {
             super(m1, "log");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -100,6 +138,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Negate(m1.transform(f, g, h, i, groupByFunction)));
         }
@@ -113,6 +156,11 @@ public interface AggregateMetric {
     class Abs extends Unop {
         public Abs(AggregateMetric m1) {
             super(m1, "abs");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -153,6 +201,12 @@ public interface AggregateMetric {
         }
 
         @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            m1.validate(scope, datasetsFields, validator);
+            m2.validate(scope, datasetsFields, validator);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -161,11 +215,11 @@ public interface AggregateMetric {
                     Objects.equals(m2, binop.m2);
         }
 
+
         @Override
         public int hashCode() {
             return Objects.hash(m1, m2);
         }
-
 
         @Override
         public String toString() {
@@ -174,17 +228,16 @@ public interface AggregateMetric {
                     ", m2=" + m2 +
                     '}';
         }
-
-        @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
-        }
     }
 
     class Add extends Binop {
         public Add(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "addition");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -204,6 +257,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Subtract(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction)));
         }
@@ -217,6 +275,11 @@ public interface AggregateMetric {
     class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "multiplication");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -236,6 +299,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Divide(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction)));
         }
@@ -249,6 +317,11 @@ public interface AggregateMetric {
     class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "modulus");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -268,6 +341,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Power(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction)));
         }
@@ -283,6 +361,11 @@ public interface AggregateMetric {
 
         public Parent(AggregateMetric metric) {
             this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -343,6 +426,11 @@ public interface AggregateMetric {
         public Lag(int lag, AggregateMetric metric) {
             this.lag = lag;
             this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -408,6 +496,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new IterateLag(lag, metric.transform(f, g, h, i, groupByFunction)));
         }
@@ -470,6 +563,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Window(window, metric.transform(f, g, h, i, groupByFunction)));
         }
@@ -529,6 +627,11 @@ public interface AggregateMetric {
         public Qualified(List<String> scope, AggregateMetric metric) {
             this.scope = scope;
             this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -599,6 +702,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -657,6 +765,11 @@ public interface AggregateMetric {
 
         public DocStats(DocMetric metric) {
             this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -723,6 +836,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new ImplicitDocStats(g.apply(docMetric)));
         }
@@ -783,6 +901,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -840,6 +963,11 @@ public interface AggregateMetric {
         public Percentile(String field, double percentile) {
             this.field = field;
             this.percentile = percentile;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -909,6 +1037,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Running(offset, metric.transform(f, g, h, i, groupByFunction)));
         }
@@ -968,6 +1101,11 @@ public interface AggregateMetric {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1051,6 +1189,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(new Named(metric.transform(f, g, h, i, groupByFunction), name));
         }
@@ -1111,6 +1254,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -1168,6 +1316,11 @@ public interface AggregateMetric {
         public SumAcross(GroupBy groupBy, AggregateMetric metric) {
             this.groupBy = groupBy;
             this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1234,6 +1387,11 @@ public interface AggregateMetric {
             this.condition = condition;
             this.trueCase = trueCase;
             this.falseCase = falseCase;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1307,6 +1465,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -1369,6 +1532,11 @@ public interface AggregateMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -1424,10 +1592,15 @@ public interface AggregateMetric {
     }
 
     class Min implements AggregateMetric, JsonSerializable {
-        private final List<AggregateMetric> metrics;
+        public final List<AggregateMetric> metrics;
 
         public Min(List<AggregateMetric> metrics) {
             this.metrics = metrics;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1496,10 +1669,15 @@ public interface AggregateMetric {
     }
 
     class Max implements AggregateMetric, JsonSerializable {
-        private final List<AggregateMetric> metrics;
+        public final List<AggregateMetric> metrics;
 
         public Max(List<AggregateMetric> metrics) {
             this.metrics = metrics;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override

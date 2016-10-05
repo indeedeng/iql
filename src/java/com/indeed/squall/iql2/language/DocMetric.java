@@ -23,10 +23,45 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public abstract class DocMetric {
+    public interface Visitor<T, E extends Throwable> {
+        T visit(Log log) throws E;
+        T visit(PushableDocMetric pushableDocMetric) throws E;
+        T visit(Count count) throws E;
+        T visit(Field field) throws E;
+        T visit(Exponentiate exponentiate) throws E;
+        T visit(Negate negate) throws E;
+        T visit(Abs abs) throws E;
+        T visit(Signum signum) throws E;
+        T visit(Add add) throws E;
+        T visit(Subtract subtract) throws E;
+        T visit(Multiply multiply) throws E;
+        T visit(Divide divide) throws E;
+        T visit(Modulus modulus) throws E;
+        T visit(Min min) throws E;
+        T visit(Max max) throws E;
+        T visit(MetricEqual metricEqual) throws E;
+        T visit(MetricNotEqual metricNotEqual) throws E;
+        T visit(MetricLt metricLt) throws E;
+        T visit(MetricLte metricLte) throws E;
+        T visit(MetricGt metricGt) throws E;
+        T visit(MetricGte metricGte) throws E;
+        T visit(RegexMetric regexMetric) throws E;
+        T visit(FloatScale floatScale) throws E;
+        T visit(Constant constant) throws E;
+        T visit(HasIntField hasIntField) throws E;
+        T visit(HasStringField hasStringField) throws E;
+        T visit(HasInt hasInt) throws E;
+        T visit(HasString hasString) throws E;
+        T visit(IfThenElse ifThenElse) throws E;
+        T visit(Qualified qualified) throws E;
+        T visit(Extract extract) throws E;
+    }
 
     public abstract DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     protected abstract List<String> getPushes(String dataset);
+
+    public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
@@ -45,6 +80,11 @@ public abstract class DocMetric {
         @Override
         public List<String> getPushes(String dataset) {
             return ConstantFolding.apply(metric).getPushes(dataset);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -88,6 +128,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
         }
 
@@ -122,6 +167,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList(field);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -214,6 +264,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             metric.validate(dataset, datasetsFields, validator);
         }
@@ -268,6 +323,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             metric.validate(dataset, datasetsFields, validator);
         }
@@ -314,6 +374,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return new PushableDocMetric(new Subtract(new Constant(0), m1)).getPushes(dataset);
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class Abs extends Unop {
@@ -329,6 +394,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return unop(dataset, "abs()");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -351,6 +421,11 @@ public abstract class DocMetric {
                             new Constant(0))
             );
             return new PushableDocMetric(m).getPushes(dataset);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -414,6 +489,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "+");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class Subtract extends Binop {
@@ -429,6 +509,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "-");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -446,6 +531,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "*");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class Divide extends Binop {
@@ -461,6 +551,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "/");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -478,6 +573,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "%");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class Min extends Binop {
@@ -493,6 +593,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "min()");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -510,6 +615,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "max()");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class MetricEqual extends Binop {
@@ -525,6 +635,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "=");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -542,6 +657,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "!=");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class MetricLt extends Binop {
@@ -557,6 +677,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "<");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -574,6 +699,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, "<=");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class MetricGt extends Binop {
@@ -589,6 +719,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return binop(dataset, ">");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
     }
 
@@ -606,11 +741,16 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             return binop(dataset, ">=");
         }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
     }
 
     public static class RegexMetric extends DocMetric {
-        private final String field;
-        private final String regex;
+        public final String field;
+        public final String regex;
 
         public RegexMetric(String field, String regex) {
             this.field = field;
@@ -625,6 +765,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("regex " + field + ":" + regex);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -658,9 +803,9 @@ public abstract class DocMetric {
     }
 
     public static class FloatScale extends DocMetric {
-        private final String field;
-        private final double mult;
-        private final double add;
+        public final String field;
+        public final double mult;
+        public final double add;
 
         public FloatScale(String field, double mult, double add) {
             this.field = field;
@@ -676,6 +821,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("floatscale " + field + "*" + mult + "+" + add);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -728,6 +878,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
 
         }
@@ -754,7 +909,7 @@ public abstract class DocMetric {
     }
 
     public static class HasIntField extends DocMetric {
-        private final String field;
+        public final String field;
 
         public HasIntField(String field) {
             this.field = field;
@@ -769,6 +924,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("hasintfield " + field);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -798,7 +958,7 @@ public abstract class DocMetric {
     }
 
     public static class HasStringField extends DocMetric {
-        private final String field;
+        public final String field;
 
         public HasStringField(String field) {
             this.field = field;
@@ -813,6 +973,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("hasstrfield " + field);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -842,8 +1007,8 @@ public abstract class DocMetric {
     }
 
     public static class HasInt extends DocMetric {
-        private final String field;
-        private final long term;
+        public final String field;
+        public final long term;
 
         public HasInt(String field, long term) {
             this.field = field;
@@ -858,6 +1023,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("hasint " + field + ":" + term);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -891,8 +1061,8 @@ public abstract class DocMetric {
     }
 
     public static class HasString extends DocMetric {
-        private final String field;
-        private final String term;
+        public final String field;
+        public final String term;
 
         public HasString(String field, String term) {
             this.field = field;
@@ -907,6 +1077,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("hasstr " + field + ":" + term);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -959,6 +1134,11 @@ public abstract class DocMetric {
         protected List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             return new PushableDocMetric(new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase))).getPushes(dataset);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1016,6 +1196,11 @@ public abstract class DocMetric {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!dataset.equals(this.dataset)) {
                 validator.error("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
@@ -1047,9 +1232,9 @@ public abstract class DocMetric {
     }
 
     public static class Extract extends DocMetric {
-        private final String field;
-        private final String regex;
-        private final int groupNumber;
+        public final String field;
+        public final String regex;
+        public final int groupNumber;
 
         public Extract(String field, String regex, int groupNumber) {
             this.field = field;
@@ -1065,6 +1250,11 @@ public abstract class DocMetric {
         @Override
         protected List<String> getPushes(String dataset) {
             return Collections.singletonList("regexmatch " + field + " " + groupNumber + " " + regex);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override

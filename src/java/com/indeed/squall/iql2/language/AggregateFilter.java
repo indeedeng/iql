@@ -15,6 +15,24 @@ import java.util.Objects;
 import java.util.Set;
 
 public interface AggregateFilter {
+    interface Visitor<T, E extends Throwable> {
+        T visit(TermIs termIs) throws E;
+        T visit(MetricIs metricIs) throws E;
+        T visit(MetricIsnt metricIsnt) throws E;
+        T visit(Gt gt) throws E;
+        T visit(Gte gte) throws E;
+        T visit(Lt lt) throws E;
+        T visit(Lte lte) throws E;
+        T visit(And and) throws E;
+        T visit(Or or) throws E;
+        T visit(Not not) throws E;
+        T visit(Regex regex) throws E;
+        T visit(Always always) throws E;
+        T visit(Never never) throws E;
+        T visit(IsDefaultGroup isDefaultGroup) throws E;
+    }
+
+    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
 
@@ -25,10 +43,15 @@ public interface AggregateFilter {
     boolean isOrdered();
 
     class TermIs implements AggregateFilter, JsonSerializable {
-        private final Term term;
+        public final Term term;
 
         public TermIs(Term term) {
             this.term = term;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -82,12 +105,17 @@ public interface AggregateFilter {
     }
 
     class MetricIs implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public MetricIs(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -151,12 +179,17 @@ public interface AggregateFilter {
     }
 
     class MetricIsnt implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public MetricIsnt(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -214,12 +247,17 @@ public interface AggregateFilter {
     }
 
     class Gt implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public Gt(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -277,12 +315,17 @@ public interface AggregateFilter {
     }
 
     class Gte implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public Gte(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -340,12 +383,17 @@ public interface AggregateFilter {
     }
 
     class Lt implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public Lt(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -403,12 +451,17 @@ public interface AggregateFilter {
     }
 
     class Lte implements AggregateFilter, JsonSerializable {
-        private final AggregateMetric m1;
-        private final AggregateMetric m2;
+        public final AggregateMetric m1;
+        public final AggregateMetric m2;
 
         public Lte(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -466,12 +519,17 @@ public interface AggregateFilter {
     }
 
     class And implements AggregateFilter, JsonSerializable {
-        private final AggregateFilter f1;
-        private final AggregateFilter f2;
+        public final AggregateFilter f1;
+        public final AggregateFilter f2;
 
         public And(AggregateFilter f1, AggregateFilter f2) {
             this.f1 = f1;
             this.f2 = f2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -529,12 +587,17 @@ public interface AggregateFilter {
     }
 
     class Or implements AggregateFilter, JsonSerializable {
-        private final AggregateFilter f1;
-        private final AggregateFilter f2;
+        public final AggregateFilter f1;
+        public final AggregateFilter f2;
 
         public Or(AggregateFilter f1, AggregateFilter f2) {
             this.f1 = f1;
             this.f2 = f2;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -592,10 +655,15 @@ public interface AggregateFilter {
     }
 
     class Not implements AggregateFilter, JsonSerializable {
-        private final AggregateFilter filter;
+        public final AggregateFilter filter;
 
         public Not(AggregateFilter filter) {
             this.filter = filter;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -650,12 +718,17 @@ public interface AggregateFilter {
     }
 
     class Regex implements AggregateFilter, JsonSerializable {
-        private final String field;
-        private final String regex;
+        public final String field;
+        public final String regex;
 
         public Regex(String field, String regex) {
             this.field = field;
             this.regex = regex;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -717,6 +790,11 @@ public interface AggregateFilter {
 
     class Always implements AggregateFilter, JsonSerializable {
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return h.apply(this);
         }
@@ -764,6 +842,11 @@ public interface AggregateFilter {
 
     class Never implements AggregateFilter, JsonSerializable {
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return h.apply(this);
         }
@@ -809,6 +892,11 @@ public interface AggregateFilter {
     }
 
     class IsDefaultGroup implements AggregateFilter, JsonSerializable {
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return h.apply(this);

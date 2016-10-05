@@ -46,11 +46,39 @@ import java.util.Set;
 
 public interface DocFilter {
 
+    interface Visitor<T, E extends Throwable> {
+        T visit(FieldIs fieldIs) throws E;
+        T visit(FieldIsnt fieldIsnt) throws E;
+        T visit(MetricEqual metricEqual) throws E;
+        T visit(FieldInQuery fieldInQuery) throws E;
+        T visit(Between between) throws E;
+        T visit(MetricNotEqual metricNotEqual) throws E;
+        T visit(MetricGt metricGt) throws E;
+        T visit(MetricGte metricGte) throws E;
+        T visit(MetricLt metricLt) throws E;
+        T visit(MetricLte metricLte) throws E;
+        T visit(And and) throws E;
+        T visit(Or or) throws E;
+        T visit(Ors ors) throws E;
+        T visit(Not not) throws E;
+        T visit(Regex regex) throws E;
+        T visit(NotRegex notRegex) throws E;
+        T visit(Qualified qualified) throws E;
+        T visit(Lucene lucene) throws E;
+        T visit(Sample sample) throws E;
+        T visit(Always always) throws E;
+        T visit(Never never) throws E;
+        T visit(StringFieldIn stringFieldIn) throws E;
+        T visit(IntFieldIn intFieldIn) throws E;
+    }
+
     DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     DocMetric asZeroOneMetric(String dataset);
 
     List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
+
+    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
@@ -117,6 +145,11 @@ public interface DocFilter {
                 }
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -216,6 +249,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
                 if (!datasetsFields.getIntFields(dataset).contains(field)) {
@@ -277,6 +315,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             throw new UnsupportedOperationException("Must transform the FieldInQuery out before doing a .getExecutionActions()");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -343,6 +386,11 @@ public interface DocFilter {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, lowerBound, upperBound, false);
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -441,6 +489,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -493,6 +546,11 @@ public interface DocFilter {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         private static List<Action> getFieldNotEqualValue(Map<String, String> scope, String field, long value, int target, int positive, int negative) {
@@ -560,6 +618,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -615,6 +678,11 @@ public interface DocFilter {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -676,6 +744,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -731,6 +804,11 @@ public interface DocFilter {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -790,6 +868,11 @@ public interface DocFilter {
                 groupSupplier.release(newGroup);
             }
             return result;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -855,6 +938,11 @@ public interface DocFilter {
                 groupSupplier.release(newGroup);
             }
             return result;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -927,6 +1015,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             for (final DocFilter filter : filters) {
                 filter.validate(dataset, datasetsFields, validator);
@@ -978,6 +1071,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             filter.validate(dataset, datasetsFields, validator);
         }
@@ -1025,6 +1123,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new RegexAction(scope.keySet(), field, regex, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1079,6 +1182,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return new Not(new Regex(field, regex)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1143,6 +1251,11 @@ public interface DocFilter {
                 restrictedScope.put(dataset, scope.get(dataset));
             }
             return filter.getExecutionActions(restrictedScope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1213,6 +1326,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
             final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
@@ -1270,6 +1388,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (!datasetsFields.getAllFields(dataset).contains(field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
@@ -1320,6 +1443,11 @@ public interface DocFilter {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
 
         }
@@ -1354,6 +1482,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new UnconditionalAction(scope.keySet(), target, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1413,6 +1546,11 @@ public interface DocFilter {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             // TODO: Should this care about the keyword analyzer fields?
             return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field, terms, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -1478,6 +1616,11 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.<Action>singletonList(new IntOrAction(scope.keySet(), field, terms, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override

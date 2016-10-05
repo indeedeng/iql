@@ -18,6 +18,20 @@ import java.util.Objects;
 import java.util.Set;
 
 public interface GroupBy {
+    interface Visitor<T, E extends Throwable> {
+        T visit(GroupByMetric groupByMetric) throws E;
+        T visit(GroupByTime groupByTime) throws E;
+        T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
+        T visit(GroupByMonth groupByMonth) throws E;
+        T visit(GroupByFieldIn groupByFieldIn) throws E;
+        T visit(GroupByField groupByField) throws E;
+        T visit(GroupByDayOfWeek groupByDayOfWeek) throws E;
+        T visit(GroupBySessionName groupBySessionName) throws E;
+        T visit(GroupByQuantiles groupByQuantiles) throws E;
+        T visit(GroupByPredicate groupByPredicate) throws E;
+    }
+
+    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
     
     GroupBy transform(
             Function<GroupBy, GroupBy> groupBy, 
@@ -49,6 +63,11 @@ public interface GroupBy {
             this.interval = interval;
             this.excludeGutters = excludeGutters;
             this.withDefault = withDefault;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -124,14 +143,19 @@ public interface GroupBy {
     }
 
     class GroupByTime implements GroupBy {
-        private final long periodMillis;
-        private final Optional<String> field;
-        private final Optional<String> format;
+        public final long periodMillis;
+        public final Optional<String> field;
+        public final Optional<String> format;
 
         public GroupByTime(long periodMillis, Optional<String> field, Optional<String> format) {
             this.periodMillis = periodMillis;
             this.field = field;
             this.format = format;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -191,14 +215,19 @@ public interface GroupBy {
     }
 
     class GroupByTimeBuckets implements GroupBy {
-        private final int numBuckets;
-        private final Optional<String> field;
-        private final Optional<String> format;
+        public final int numBuckets;
+        public final Optional<String> field;
+        public final Optional<String> format;
 
         public GroupByTimeBuckets(int numBuckets, Optional<String> field, Optional<String> format) {
             this.numBuckets = numBuckets;
             this.field = field;
             this.format = format;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -258,12 +287,17 @@ public interface GroupBy {
     }
 
     class GroupByMonth implements GroupBy {
-        private final Optional<String> field;
-        private final Optional<String> format;
+        public final Optional<String> field;
+        public final Optional<String> format;
 
         public GroupByMonth(Optional<String> field, Optional<String> format) {
             this.field = field;
             this.format = format;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -343,6 +377,11 @@ public interface GroupBy {
         }
 
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
         }
@@ -413,6 +452,11 @@ public interface GroupBy {
             this.forceNonStreaming = forceNonStreaming;
             this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
             this.withDefault = withDefault;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -505,6 +549,11 @@ public interface GroupBy {
 
     class GroupByDayOfWeek implements GroupBy {
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
         }
@@ -547,6 +596,11 @@ public interface GroupBy {
 
     class GroupBySessionName implements GroupBy {
         @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
             return groupBy.apply(this);
         }
@@ -588,12 +642,17 @@ public interface GroupBy {
     }
 
     class GroupByQuantiles implements GroupBy {
-        private final String field;
-        private final int numBuckets;
+        public final String field;
+        public final int numBuckets;
 
         public GroupByQuantiles(String field, int numBuckets) {
             this.field = field;
             this.numBuckets = numBuckets;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
@@ -651,10 +710,15 @@ public interface GroupBy {
     }
 
     class GroupByPredicate implements GroupBy {
-        private final DocFilter docFilter;
+        public final DocFilter docFilter;
 
         public GroupByPredicate(DocFilter docFilter) {
             this.docFilter = docFilter;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
