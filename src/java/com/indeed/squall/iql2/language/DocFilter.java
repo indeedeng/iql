@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.BooleanOp;
@@ -37,6 +38,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1198,10 +1200,10 @@ public interface DocFilter {
             return filter.asZeroOneMetric(dataset);
         }
 
-        private com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {
+        public static com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {
             if (query.getOperands() == null) {
-                com.indeed.flamdex.query.Term startTerm = query.getStartTerm();
-                com.indeed.flamdex.query.Term endTerm = query.getEndTerm();
+                final com.indeed.flamdex.query.Term startTerm = query.getStartTerm();
+                final com.indeed.flamdex.query.Term endTerm = query.getEndTerm();
                 if (endTerm == null) {
                     return com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal()));
                 } else {
@@ -1209,7 +1211,7 @@ public interface DocFilter {
                             startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal(), endTerm.getTermStringVal(), query.isMaxInclusive());
                 }
             } else {
-                List<com.indeed.flamdex.query.Query> upperOperands = new ArrayList<>();
+                List<com.indeed.flamdex.query.Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
                 for (com.indeed.flamdex.query.Query operand : query.getOperands()) {
                     upperOperands.add(uppercaseTermQuery(operand));
                 }
@@ -1243,7 +1245,6 @@ public interface DocFilter {
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
-            // TODO: Uppercase all of the fields.
             com.indeed.flamdex.query.Query luceneQuery = LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
             return uppercaseTermQuery(luceneQuery);
         }
