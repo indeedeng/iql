@@ -13,6 +13,8 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import java.net.InetSocketAddress;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImhotepSession {
     private static RegroupCondition THE_CONDITION = new RegroupCondition("fakeField", true, 0, null, false);
     private static RegroupCondition[] THE_CONDITIONS = new RegroupCondition[]{THE_CONDITION};
+    private static RegroupConditionMessage THE_CONDITION_PROTO = RegroupConditionMessage.newBuilder().setField("fakeField").setIntType(true).setIntTerm(0).setInequality(false).build();
 
     private final ImhotepSession wrapped;
 
@@ -49,8 +52,25 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
         return false;
     }
 
+    private static boolean requiresRewrite(GroupMultiRemapMessage rule) {
+        return rule.getConditionCount() == 0;
+    }
+
+    private static boolean requiresRewrite(GroupMultiRemapMessage[] rules) {
+        for (final GroupMultiRemapMessage rule : rules) {
+            if (requiresRewrite(rule)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static GroupMultiRemapRule makeRule(int targetGroup, int negativeGroup) {
         return new GroupMultiRemapRule(targetGroup, negativeGroup, new int[]{negativeGroup}, THE_CONDITIONS);
+    }
+
+    private static GroupMultiRemapMessage makeProtoRule(int targetGroup, int negativeGroup) {
+        return GroupMultiRemapMessage.newBuilder().setTargetGroup(targetGroup).setNegativeGroup(negativeGroup).addPositiveGroup(negativeGroup).addCondition(THE_CONDITION_PROTO).build();
     }
 
     private static GroupMultiRemapRule rewrite(GroupMultiRemapRule rule) {
@@ -64,6 +84,26 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     private static GroupMultiRemapRule[] rewrite(GroupMultiRemapRule[] rules) {
         if (requiresRewrite(rules)) {
             final GroupMultiRemapRule[] rewritten = new GroupMultiRemapRule[rules.length];
+            for (int i = 0; i < rules.length; i++) {
+                rewritten[i] = rewrite(rules[i]);
+            }
+            return rewritten;
+        } else {
+            return rules;
+        }
+    }
+
+    private static GroupMultiRemapMessage rewrite(GroupMultiRemapMessage rule) {
+        if (requiresRewrite(rule)) {
+            return makeProtoRule(rule.getTargetGroup(), rule.getNegativeGroup());
+        } else {
+            return rule;
+        }
+    }
+
+    private static GroupMultiRemapMessage[] rewrite(GroupMultiRemapMessage[] rules) {
+        if (requiresRewrite(rules)) {
+            final GroupMultiRemapMessage[] rewritten = new GroupMultiRemapMessage[rules.length];
             for (int i = 0; i < rules.length; i++) {
                 rewritten[i] = rewrite(rules[i]);
             }
@@ -94,6 +134,11 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     @Override
     public int regroup(GroupMultiRemapRule[] groupMultiRemapRules, boolean b) throws ImhotepOutOfMemoryException {
         return wrapped.regroup(rewrite(groupMultiRemapRules), b);
+    }
+
+    @Override
+    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(rewrite(rawRuleMessages), errorOnCollisions);
     }
 
     @Override

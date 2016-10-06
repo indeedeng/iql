@@ -11,6 +11,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import org.apache.log4j.Logger;
 
 import java.net.InetSocketAddress;
@@ -129,6 +130,12 @@ public class LoggingImhotepSession implements ImhotepSession {
     public int regroup(GroupMultiRemapRule[] rawRules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         log.info("LoggingImhotepSession.regroup: " + "rawRules = [" + Arrays.toString(rawRules) + "], errorOnCollisions = [" + errorOnCollisions + "]");
         return wrapped.regroup(rawRules, errorOnCollisions);
+    }
+
+    @Override
+    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        log.info("LoggingImhotepSession.rawRuleMessages = [" + rawRuleMessages + "], errorOnCollisions = [" + errorOnCollisions + "]");
+        return wrapped.regroupWithProtos(rawRuleMessages, errorOnCollisions);
     }
 
     @Override

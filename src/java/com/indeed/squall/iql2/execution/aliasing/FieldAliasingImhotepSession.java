@@ -17,6 +17,8 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import javax.annotation.Nullable;
@@ -170,6 +172,26 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
         return result;
     }
 
+    private RegroupConditionMessage rewriteConditionProto(RegroupConditionMessage condition) {
+        return condition.toBuilder().setField(rewrite(condition.getField())).build();
+    }
+
+    private GroupMultiRemapMessage rewriteProto(GroupMultiRemapMessage rawRule) {
+        final GroupMultiRemapMessage.Builder builder = rawRule.toBuilder();
+        for (int i = 0; i < builder.getConditionCount(); i++) {
+            builder.setCondition(i, rewriteConditionProto(builder.getCondition(i)));
+        }
+        return builder.build();
+    }
+
+    private GroupMultiRemapMessage[] rewriteProto(GroupMultiRemapMessage[] rawRules) {
+        final GroupMultiRemapMessage[] result = new GroupMultiRemapMessage[rawRules.length];
+        for (int i = 0; i < rawRules.length; i++) {
+            result[i] = rewriteProto(rawRules[i]);
+        }
+        return result;
+    }
+
     private GroupMultiRemapRule[] rewriteMulti(GroupMultiRemapRule[] rawRules) {
         final GroupMultiRemapRule[] result = new GroupMultiRemapRule[rawRules.length];
         for (int i = 0; i < rawRules.length; i++) {
@@ -288,6 +310,11 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
     @Override
     public int regroup(GroupMultiRemapRule[] rawRules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         return wrapped.regroup(rewriteMulti(rawRules), errorOnCollisions);
+    }
+
+    @Override
+    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(rewriteProto(rawRuleMessages), errorOnCollisions);
     }
 
     @Override

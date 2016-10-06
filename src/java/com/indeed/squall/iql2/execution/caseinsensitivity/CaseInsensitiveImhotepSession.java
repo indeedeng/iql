@@ -17,6 +17,8 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import javax.annotation.Nullable;
@@ -223,6 +225,24 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
         return result;
     }
 
+
+    private GroupMultiRemapMessage rewriteProto(GroupMultiRemapMessage message) {
+        final GroupMultiRemapMessage.Builder builder = message.toBuilder();
+        for (int i = 0; i < builder.getConditionCount(); i++) {
+            final RegroupConditionMessage.Builder conditionBuilder = builder.getCondition(i).toBuilder();
+            builder.setCondition(i, conditionBuilder.setField(rewrite(conditionBuilder.getField())));
+        }
+        return builder.build();
+    }
+
+    private GroupMultiRemapMessage[] rewriteProtos(GroupMultiRemapMessage[] rawRuleMessages) {
+        final GroupMultiRemapMessage[] result = new GroupMultiRemapMessage[rawRuleMessages.length];
+        for (int i = 0; i < rawRuleMessages.length; i++) {
+            result[i] = rewriteProto(rawRuleMessages[i]);
+        }
+        return result;
+    }
+
     // Delegation with rewriting
 
     @Override
@@ -307,6 +327,11 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     @Override
     public int regroup(GroupMultiRemapRule[] rawRules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         return wrapped.regroup(rewriteMulti(rawRules), errorOnCollisions);
+    }
+
+    @Override
+    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(rewriteProtos(rawRuleMessages), errorOnCollisions);
     }
 
     @Override
