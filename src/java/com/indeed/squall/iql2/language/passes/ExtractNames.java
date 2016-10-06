@@ -30,10 +30,10 @@ public class ExtractNames {
             public AggregateMetric apply(AggregateMetric input) {
                 if (input instanceof AggregateMetric.Named) {
                     final AggregateMetric.Named named = (AggregateMetric.Named) input;
-                    if (resultAggregator.containsKey(named.name)) {
-                        throw new IllegalArgumentException("Trying to name multiple metrics the same name: [" + named.name + "]!");
+                    if (resultAggregator.containsKey(named.name.unwrap())) {
+                        throw new IllegalArgumentException("Trying to name multiple metrics the same name: [" + named.name.unwrap() + "]!");
                     }
-                    resultAggregator.put(named.name, named.metric);
+                    resultAggregator.put(named.name.unwrap(), named.metric);
                 }
                 return input;
             }

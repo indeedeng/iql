@@ -16,7 +16,6 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
-import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -44,9 +43,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public interface DocFilter {
+public abstract class DocFilter extends AbstractPositional {
 
-    interface Visitor<T, E extends Throwable> {
+    public interface Visitor<T, E extends Throwable> {
         T visit(FieldIs fieldIs) throws E;
         T visit(FieldIsnt fieldIsnt) throws E;
         T visit(MetricEqual metricEqual) throws E;
@@ -72,22 +71,22 @@ public interface DocFilter {
         T visit(IntFieldIn intFieldIn) throws E;
     }
 
-    DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
+    public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
-    DocMetric asZeroOneMetric(String dataset);
+    public abstract DocMetric asZeroOneMetric(String dataset);
 
-    List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
+    public abstract List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
 
-    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
+    public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
-    void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
+    public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
-    class FieldIs implements DocFilter {
+    public static class FieldIs extends DocFilter {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
-        public final String field;
+        public final Positioned<String> field;
         public final Term term;
 
-        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Term term) {
+        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
             // TODO: Immutable clone
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             this.field = field;
@@ -124,7 +123,7 @@ public interface DocFilter {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
             if (term.isIntTerm) {
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field));
+                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field.unwrap()));
                 for (final String dataset : scope.keySet()) {
                     datasetToQuery.put(dataset, query);
                 }
@@ -133,7 +132,7 @@ public interface DocFilter {
                     final List<String> tokens = tokenize(scope.get(dataset));
                     final List<com.indeed.flamdex.query.Query> clauses = new ArrayList<>();
                     for (final String token : tokens) {
-                        clauses.add(com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(field, token)));
+                        clauses.add(com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(field.unwrap(), token)));
                     }
                     final com.indeed.flamdex.query.Query query;
                     if (clauses.size() == 1) {
@@ -155,12 +154,12 @@ public interface DocFilter {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
+                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
                 }
             } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field, this));
+                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -175,7 +174,7 @@ public interface DocFilter {
             } else {
                 keywordAnalyzerFields = Collections.emptySet();
             }
-            if (keywordAnalyzerFields.contains(field) || keywordAnalyzerFields.contains("*")) {
+            if (keywordAnalyzerFields.contains(field.unwrap()) || keywordAnalyzerFields.contains("*")) {
                 return Collections.singletonList(term.stringTerm);
             }
             final List<String> tokens = new ArrayList<>();
@@ -194,7 +193,7 @@ public interface DocFilter {
                 whitespaceAnalyzer.close();
             }
             if (tokens.isEmpty()) {
-                throw new IllegalStateException("Found no terms in WhitespaceAnalyzer field: " + field + ", term = [" + term + "]");
+                throw new IllegalStateException("Found no terms in WhitespaceAnalyzer field: " + field.unwrap() + ", term = [" + term + "]");
             }
             return tokens;
         }
@@ -222,12 +221,12 @@ public interface DocFilter {
         }
     }
 
-    class FieldIsnt implements DocFilter {
-        public final String field;
+    public static class FieldIsnt extends DocFilter {
+        public final Positioned<String> field;
         public final Term term;
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
 
-        public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Term term) {
+        public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             this.field = field;
             this.term = term;
@@ -256,12 +255,12 @@ public interface DocFilter {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
+                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
                 }
             } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field, this));
+                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -289,7 +288,7 @@ public interface DocFilter {
         }
     }
 
-    class FieldInQuery implements DocFilter {
+    public static class FieldInQuery extends DocFilter {
         public final com.indeed.squall.iql2.language.query.Query query;
         public final ScopedField field;
         public final boolean isNegated; // true if <field> NOT IN <query>
@@ -358,12 +357,12 @@ public interface DocFilter {
         }
     }
 
-    class Between implements DocFilter {
-        public final String field;
+    public static class Between extends DocFilter {
+        public final Positioned<String> field;
         public final long lowerBound;
         public final long upperBound;
 
-        public Between(String field, long lowerBound, long upperBound) {
+        public Between(Positioned<String> field, long lowerBound, long upperBound) {
             this.field = field;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
@@ -384,7 +383,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field, lowerBound, upperBound, false);
+            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field.unwrap(), lowerBound, upperBound, false);
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
         }
 
@@ -395,8 +394,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingIntField(dataset, field, this));
+            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
             }
         }
 
@@ -425,7 +424,7 @@ public interface DocFilter {
         }
     }
 
-    abstract class MetricBinop implements DocFilter {
+    public abstract static class MetricBinop extends DocFilter {
         public final DocMetric m1;
         public final DocMetric m2;
 
@@ -455,7 +454,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricEqual extends MetricBinop {
+    public static class MetricEqual extends MetricBinop {
         public MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -516,7 +515,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricNotEqual extends MetricBinop {
+    public static class MetricNotEqual extends MetricBinop {
         public MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -582,7 +581,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricGt extends MetricBinop {
+    public static class MetricGt extends MetricBinop {
         public MetricGt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -645,7 +644,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricGte extends MetricBinop {
+    public static class MetricGte extends MetricBinop {
         public MetricGte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -708,7 +707,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricLt extends MetricBinop {
+    public static class MetricLt extends MetricBinop {
         public MetricLt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -771,7 +770,7 @@ public interface DocFilter {
         }
     }
 
-    class MetricLte extends MetricBinop {
+    public static class MetricLte extends MetricBinop {
         public MetricLte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -834,7 +833,7 @@ public interface DocFilter {
         }
     }
 
-    class And implements DocFilter {
+    public static class And extends DocFilter {
         public final DocFilter f1;
         public final DocFilter f2;
 
@@ -904,7 +903,7 @@ public interface DocFilter {
         }
     }
 
-    class Or implements DocFilter {
+    public static class Or extends DocFilter {
         public final DocFilter f1;
         public final DocFilter f2;
 
@@ -974,7 +973,7 @@ public interface DocFilter {
         }
     }
 
-    class Ors implements DocFilter {
+    public static class Ors extends DocFilter {
         public final List<DocFilter> filters;
 
         public Ors(List<DocFilter> filters) {
@@ -1048,7 +1047,7 @@ public interface DocFilter {
         }
     }
 
-    class Not implements DocFilter {
+    public static class Not extends DocFilter {
         public final DocFilter filter;
 
         public Not(DocFilter filter) {
@@ -1101,11 +1100,11 @@ public interface DocFilter {
         }
     }
 
-    class Regex implements DocFilter {
-        public final String field;
+    public static class Regex extends DocFilter {
+        public final Positioned<String> field;
         public final String regex;
 
-        public Regex(String field, String regex) {
+        public Regex(Positioned<String> field, String regex) {
             this.field = field;
             this.regex = regex;
         }
@@ -1122,7 +1121,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new RegexAction(scope.keySet(), field, regex, target, positive, negative));
+            return Collections.<Action>singletonList(new RegexAction(scope.keySet(), field.unwrap(), regex, target, positive, negative));
         }
 
         @Override
@@ -1132,8 +1131,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingStringField(dataset, field, this));
+            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
 
@@ -1160,11 +1159,11 @@ public interface DocFilter {
         }
     }
 
-    class NotRegex implements DocFilter {
-        public final String field;
+    public static class NotRegex extends DocFilter {
+        public final Positioned<String> field;
         public final String regex;
 
-        public NotRegex(String field, String regex) {
+        public NotRegex(Positioned<String> field, String regex) {
             this.field = field;
             this.regex = regex;
         }
@@ -1191,8 +1190,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingStringField(dataset, field, this));
+            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
 
@@ -1219,7 +1218,7 @@ public interface DocFilter {
         }
     }
 
-    class Qualified implements DocFilter {
+    public static class Qualified extends DocFilter {
         // TODO: Why is this a List<String> instead of a single string? A per-document thing can only be one dataset!
         public final List<String> scope;
         public final DocFilter filter;
@@ -1289,7 +1288,7 @@ public interface DocFilter {
         }
     }
 
-    class Lucene implements DocFilter {
+    public static class Lucene extends DocFilter {
         public final String query;
         // TODO: Ensure capitalization
         private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
@@ -1358,13 +1357,13 @@ public interface DocFilter {
         }
     }
 
-    class Sample implements DocFilter {
-        public final String field;
+    public static class Sample extends DocFilter {
+        public final Positioned<String> field;
         public final long numerator;
         public final long denominator;
         public final String seed;
 
-        public Sample(String field, long numerator, long denominator, String seed) {
+        public Sample(Positioned<String> field, long numerator, long denominator, String seed) {
             this.field = field;
             this.numerator = numerator;
             this.denominator = denominator;
@@ -1384,7 +1383,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new SampleAction(scope.keySet(), field, (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.<Action>singletonList(new SampleAction(scope.keySet(), field.unwrap(), (double) numerator / denominator, seed, target, positive, negative));
         }
 
         @Override
@@ -1394,8 +1393,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
+            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }
 
@@ -1426,7 +1425,7 @@ public interface DocFilter {
         }
     }
 
-    class Always implements DocFilter {
+    public static class Always extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
@@ -1468,7 +1467,7 @@ public interface DocFilter {
         }
     }
 
-    class Never implements DocFilter {
+    public static class Never extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return i.apply(this);
@@ -1510,12 +1509,12 @@ public interface DocFilter {
         }
     }
 
-    class StringFieldIn implements DocFilter {
+    public static class StringFieldIn extends DocFilter {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
-        public final String field;
+        public final Positioned<String> field;
         public final Set<String> terms;
 
-        public StringFieldIn(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, Set<String> terms) {
+        public StringFieldIn(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Set<String> terms) {
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
@@ -1545,7 +1544,7 @@ public interface DocFilter {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             // TODO: Should this care about the keyword analyzer fields?
-            return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field, terms, target, positive, negative));
+            return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field.unwrap(), terms, target, positive, negative));
         }
 
         @Override
@@ -1555,8 +1554,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingStringField(dataset, field, this));
+            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
 
@@ -1583,11 +1582,11 @@ public interface DocFilter {
         }
     }
 
-    class IntFieldIn implements DocFilter {
-        public final String field;
+    public static class IntFieldIn extends DocFilter {
+        public final Positioned<String> field;
         public final Set<Long> terms;
 
-        public IntFieldIn(String field, Set<Long> terms) {
+        public IntFieldIn(Positioned<String> field, Set<Long> terms) {
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
             }
@@ -1615,7 +1614,7 @@ public interface DocFilter {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new IntOrAction(scope.keySet(), field, terms, target, positive, negative));
+            return Collections.<Action>singletonList(new IntOrAction(scope.keySet(), field.unwrap(), terms, target, positive, negative));
         }
 
         @Override
@@ -1625,8 +1624,8 @@ public interface DocFilter {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
+            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }
 

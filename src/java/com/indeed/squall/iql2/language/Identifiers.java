@@ -1,11 +1,13 @@
 package com.indeed.squall.iql2.language;
 
 public class Identifiers {
-    public static String parseIdentifier(JQLParser.IdentifierContext identifierContext) {
+    public static Positioned<String> parseIdentifier(JQLParser.IdentifierContext identifierContext) {
+        final String result;
         if (identifierContext.BACKQUOTED_ID() != null) {
-            return identifierContext.getText().substring(1, identifierContext.getText().length() - 1).toUpperCase();
+            result = identifierContext.getText().substring(1, identifierContext.getText().length() - 1).toUpperCase();
         } else {
-            return identifierContext.getText().toUpperCase();
+            result = identifierContext.getText().toUpperCase();
         }
+        return Positioned.from(result, identifierContext);
     }
 }

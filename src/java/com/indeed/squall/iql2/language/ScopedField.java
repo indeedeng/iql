@@ -10,9 +10,9 @@ import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
 public class ScopedField {
     public final List<String> scope;
-    public final String field;
+    public final Positioned<String> field;
 
-    private ScopedField(List<String> scope, String field) {
+    private ScopedField(List<String> scope, Positioned<String> field) {
         this.scope = ImmutableList.copyOf(scope);
         this.field = field;
     }
@@ -20,11 +20,11 @@ public class ScopedField {
     public static ScopedField parseFrom(JQLParser.ScopedFieldContext ctx) {
         final List<String> scope;
         if (ctx.manyScope.isEmpty()) {
-            scope = ctx.oneScope != null ? Collections.singletonList(parseIdentifier(ctx.oneScope)) : Collections.<String>emptyList();
+            scope = ctx.oneScope != null ? Collections.singletonList(parseIdentifier(ctx.oneScope).unwrap()) : Collections.<String>emptyList();
         } else {
             scope = Lists.newArrayListWithCapacity(ctx.manyScope.size());
             for (final JQLParser.IdentifierContext identifier : ctx.manyScope) {
-                scope.add(parseIdentifier(identifier));
+                scope.add(parseIdentifier(identifier).unwrap());
             }
         }
         return new ScopedField(scope, parseIdentifier(ctx.field));
@@ -33,7 +33,7 @@ public class ScopedField {
     public static ScopedField parseFrom(JQLParser.SinglyScopedFieldContext singlyScopedFieldContext) {
         final List<String> scope;
         if (singlyScopedFieldContext.oneScope != null) {
-            scope = Collections.singletonList(parseIdentifier(singlyScopedFieldContext.oneScope));
+            scope = Collections.singletonList(parseIdentifier(singlyScopedFieldContext.oneScope).unwrap());
         } else {
             scope = Collections.emptyList();
         }
@@ -64,5 +64,14 @@ public class ScopedField {
         } else {
             throw new IllegalArgumentException("Too large scope for a DocMetric!: " + this.scope);
         }
+    }
+
+
+    @Override
+    public String toString() {
+        return "ScopedField{" +
+                "scope=" + scope +
+                ", field=" + field +
+                '}';
     }
 }

@@ -30,7 +30,7 @@ public class SampleFields implements Command, JsonSerializable {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : this.perDatasetSamples.entrySet()) {
             final List<Map<String, Object>> l = new ArrayList<>();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                l.add(ImmutableMap.<String, Object>of("field", sample.field, "fraction", ((double) sample.numerator) / sample.denominator, "seed", sample.seed));
+                l.add(ImmutableMap.<String, Object>of("field", sample.field.unwrap(), "fraction", ((double) sample.numerator) / sample.denominator, "seed", sample.seed));
             }
             perDatasetSamples.put(entry.getKey(), l);
         }
@@ -47,8 +47,8 @@ public class SampleFields implements Command, JsonSerializable {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                if (!datasetsFields.getAllFields(dataset).contains(sample.field)) {
-                    validator.error(ErrorMessages.missingField(dataset, sample.field, this));
+                if (!datasetsFields.getAllFields(dataset).contains(sample.field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, sample.field.unwrap(), this));
                 }
             }
         }

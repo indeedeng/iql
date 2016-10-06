@@ -138,10 +138,10 @@ public class ExtractPrecomputed {
                 } else {
                     filter = Optional.absent();
                 }
-                return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field, filter, distinct.windowSize));
+                return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field.unwrap(), filter, distinct.windowSize));
             } else if (input instanceof AggregateMetric.Percentile) {
                 final AggregateMetric.Percentile percentile = (AggregateMetric.Percentile) input;
-                return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field, percentile.percentile));
+                return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field.unwrap(), percentile.percentile));
             } else if (input instanceof AggregateMetric.Qualified) {
                 final AggregateMetric.Qualified qualified = (AggregateMetric.Qualified) input;
                 final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
@@ -195,7 +195,7 @@ public class ExtractPrecomputed {
                 }
                 if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
-                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field.unwrap(), apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
                 } else if (sumAcross.groupBy.isTotal()) {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 } else {
@@ -207,10 +207,10 @@ public class ExtractPrecomputed {
                 }
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field));
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field.unwrap()));
             } else if (input instanceof AggregateMetric.FieldMax){
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field));
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field.unwrap()));
             } else {
                 return input.traverse1(this);
             }

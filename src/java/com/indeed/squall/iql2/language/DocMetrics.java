@@ -129,6 +129,9 @@ public class DocMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc metric: [" + legacyDocMetricContext.getText() + "]");
         }
+
+        ref[0].copyPosition(legacyDocMetricContext);
+
         return ref[0];
     }
 
@@ -159,14 +162,14 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
-                final String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final long term = Long.parseLong(ctx.integer().getText());
                 accept(new DocMetric.HasInt(field, term));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasntInt(JQLParser.LegacyDocMetricAtomHasntIntContext ctx) {
-                final String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final long term = Long.parseLong(ctx.integer().getText());
                 accept(negateMetric(new DocMetric.HasInt(field, term)));
             }
@@ -174,19 +177,19 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomHasStringQuoted(JQLParser.LegacyDocMetricAtomHasStringQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                accept(new DocMetric.HasString(hasTermQuote.getField().toUpperCase(), hasTermQuote.getTerm()));
+                accept(new DocMetric.HasString(Positioned.unpositioned(hasTermQuote.getField().toUpperCase()), hasTermQuote.getTerm()));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasIntQuoted(JQLParser.LegacyDocMetricAtomHasIntQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
                 final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(new DocMetric.HasInt(hasTermQuote.getField().toUpperCase(), termInt));
+                accept(new DocMetric.HasInt(Positioned.unpositioned(hasTermQuote.getField().toUpperCase()), termInt));
             }
 
             @Override
             public void enterLegacyDocMetricAtomFloatScale(JQLParser.LegacyDocMetricAtomFloatScaleContext ctx) {
-                final String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final double mult = ctx.mult == null ? 1.0 : Double.parseDouble(ctx.mult.getText());
                 final double add = ctx.add == null ? 0.0 : Double.parseDouble(ctx.add.getText());
                 accept(new DocMetric.FloatScale(field, mult, add));
@@ -206,6 +209,9 @@ public class DocMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled legacy doc metric atom: [" + legacyDocMetricAtomContext.getText() + "]");
         }
+
+        ref[0].copyPosition(legacyDocMetricAtomContext);
+
         return ref[0];
     }
 
@@ -231,6 +237,9 @@ public class DocMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled jql syntactically atomic doc metric: [" + jqlSyntacticallyAtomicDocMetricAtomContext.getText() + "]");
         }
+
+        ref[0].copyPosition(jqlSyntacticallyAtomicDocMetricAtomContext);
+
         return ref[0];
     }
 
@@ -364,6 +373,9 @@ public class DocMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc metric: [" + metricContext.getText() + "]");
         }
+
+        ref[0].copyPosition(metricContext);
+
         return ref[0];
     }
 
@@ -455,6 +467,9 @@ public class DocMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled jql doc metric atom: [" + jqlDocMetricAtomContext.getText() + "]");
         }
+
+        ref[0].copyPosition(jqlDocMetricAtomContext);
+
         return ref[0];
     }
 

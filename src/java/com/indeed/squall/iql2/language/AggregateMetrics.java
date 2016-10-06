@@ -81,6 +81,8 @@ public class AggregateMetrics {
             throw new UnsupportedOperationException("Unhandled legacy aggregate metric: [" + metricContext.getText() + "]");
         }
 
+        ref[0].copyPosition(metricContext);
+
         return ref[0];
     }
 
@@ -114,6 +116,8 @@ public class AggregateMetrics {
             throw new UnsupportedOperationException("Unhandled aggregate metric: [" + ctx.getText() + "]");
         }
 
+        ref[0].copyPosition(ctx);
+
         return ref[0];
     }
 
@@ -128,7 +132,7 @@ public class AggregateMetrics {
             }
 
             public void enterAggregateQualified(JQLParser.AggregateQualifiedContext ctx) {
-                final List<String> scope = Collections.singletonList(parseIdentifier(ctx.field));
+                final List<String> scope = Collections.singletonList(parseIdentifier(ctx.field).unwrap());
                 final AggregateMetric metric;
                 if (ctx.syntacticallyAtomicJqlAggregateMetric() != null) {
                     metric = parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
@@ -173,7 +177,7 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateNamed(JQLParser.AggregateNamedContext ctx) {
                 final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
-                final String name = parseIdentifier(ctx.name);
+                final Positioned<String> name = parseIdentifier(ctx.name);
                 accept(new AggregateMetric.Named(metric, name));
             }
 
@@ -456,6 +460,8 @@ public class AggregateMetrics {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled aggregate metric: [" + metricContext.getText() + "]");
         }
+
+        ref[0].copyPosition(metricContext);
 
         return ref[0];
     }

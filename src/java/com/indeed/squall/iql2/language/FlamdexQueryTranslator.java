@@ -12,7 +12,7 @@ public class FlamdexQueryTranslator {
         switch (query.getQueryType()) {
             case TERM:
                 final Term term = query.getStartTerm();
-                return new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, term.getFieldName(), translate(term));
+                return new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, Positioned.unpositioned(term.getFieldName()), translate(term));
             case BOOLEAN:
                 final List<Query> operands = query.getOperands();
                 if (operands.isEmpty()) {
@@ -22,12 +22,12 @@ public class FlamdexQueryTranslator {
                 switch (query.getOperator()) {
                     case AND:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.And(translate(operands.get(i), datasetToKeywordAnalyzerFields), filter);
+                            filter = new DocFilter.And(filter, translate(operands.get(i), datasetToKeywordAnalyzerFields));
                         }
                         return filter;
                     case OR:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.Or(translate(operands.get(i), datasetToKeywordAnalyzerFields), filter);
+                            filter = new DocFilter.Or(filter, translate(operands.get(i), datasetToKeywordAnalyzerFields));
                         }
                         return filter;
                     case NOT:
@@ -48,7 +48,7 @@ public class FlamdexQueryTranslator {
                 if (query.isMaxInclusive()) {
                     end = end + 1;
                 }
-                return new DocFilter.Between(field, start, end);
+                return new DocFilter.Between(Positioned.unpositioned(field), start, end);
         }
         throw new UnsupportedOperationException("Unhandled query: [" + query + "]");
     }

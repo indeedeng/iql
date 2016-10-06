@@ -20,8 +20,8 @@ import java.util.Objects;
 import java.util.Set;
 
 // TODO: PerGroupConstants, SumChildren, IfThenElse ????
-public interface AggregateMetric {
-    interface Visitor<T, E extends Throwable> {
+public abstract class AggregateMetric extends AbstractPositional {
+    public interface Visitor<T, E extends Throwable> {
         T visit(Add add) throws E;
         T visit(Log log) throws E;
         T visit(Negate negate) throws E;
@@ -53,14 +53,14 @@ public interface AggregateMetric {
         T visit(Max max) throws E;
     }
 
-    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
+    public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
-    AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
-    AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
-    void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
-    boolean isOrdered();
+    public abstract AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
+    public abstract AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
+    public abstract void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
+    public abstract boolean isOrdered();
 
-    abstract class Unop implements AggregateMetric, JsonSerializable {
+    public abstract static class Unop extends AggregateMetric implements JsonSerializable {
         public final AggregateMetric m1;
         private final String jsonType;
 
@@ -111,7 +111,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Log extends Unop {
+    public static class Log extends Unop {
         public Log(AggregateMetric m1) {
             super(m1, "log");
         }
@@ -132,7 +132,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Negate extends Unop {
+    public static class Negate extends Unop {
         public Negate(AggregateMetric m1) {
             super(m1, "negate");
         }
@@ -153,7 +153,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Abs extends Unop {
+    public static class Abs extends Unop {
         public Abs(AggregateMetric m1) {
             super(m1, "abs");
         }
@@ -174,7 +174,7 @@ public interface AggregateMetric {
         }
     }
 
-    abstract class Binop implements AggregateMetric, JsonSerializable {
+    public abstract static class Binop extends AggregateMetric implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
         private final String jsonType;
@@ -230,7 +230,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Add extends Binop {
+    public static class Add extends Binop {
         public Add(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "addition");
         }
@@ -251,7 +251,7 @@ public interface AggregateMetric {
         }
    }
 
-    class Subtract extends Binop {
+    public static class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "subtraction");
         }
@@ -272,7 +272,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Multiply extends Binop {
+    public static class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "multiplication");
         }
@@ -293,7 +293,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Divide extends Binop {
+    public static class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "division");
         }
@@ -314,7 +314,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Modulus extends Binop {
+    public static class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "modulus");
         }
@@ -335,7 +335,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Power extends Binop {
+    public static class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "power");
         }
@@ -356,7 +356,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Parent implements AggregateMetric, JsonSerializable {
+    public static class Parent extends AggregateMetric implements JsonSerializable {
         public final AggregateMetric metric;
 
         public Parent(AggregateMetric metric) {
@@ -419,7 +419,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Lag implements AggregateMetric, JsonSerializable {
+    public static class Lag extends AggregateMetric implements JsonSerializable {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -486,7 +486,7 @@ public interface AggregateMetric {
         }
     }
 
-    class IterateLag implements AggregateMetric, JsonSerializable {
+    public static class IterateLag extends AggregateMetric implements JsonSerializable {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -553,7 +553,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Window implements AggregateMetric, JsonSerializable {
+    public static class Window extends AggregateMetric implements JsonSerializable {
         public final int window;
         public final AggregateMetric metric;
 
@@ -620,7 +620,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Qualified implements AggregateMetric, JsonSerializable {
+    public static class Qualified extends AggregateMetric implements JsonSerializable {
         public final List<String> scope;
         public final AggregateMetric metric;
 
@@ -692,7 +692,7 @@ public interface AggregateMetric {
         }
     }
 
-    class DocStatsPushes implements AggregateMetric, JsonSerializable {
+    public static class DocStatsPushes extends AggregateMetric implements JsonSerializable {
         public final String dataset;
         public final DocMetric.PushableDocMetric pushes;
 
@@ -760,7 +760,7 @@ public interface AggregateMetric {
         }
     }
 
-    class DocStats implements AggregateMetric, JsonSerializable {
+    public static class DocStats extends AggregateMetric implements JsonSerializable {
         public final DocMetric metric;
 
         public DocStats(DocMetric metric) {
@@ -828,7 +828,7 @@ public interface AggregateMetric {
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
-    class ImplicitDocStats implements AggregateMetric, JsonSerializable {
+    public static class ImplicitDocStats extends AggregateMetric implements JsonSerializable {
         public final DocMetric docMetric;
 
         public ImplicitDocStats(DocMetric docMetric) {
@@ -893,7 +893,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Constant implements AggregateMetric, JsonSerializable {
+    public static class Constant extends AggregateMetric implements JsonSerializable {
         public final double value;
 
         public Constant(double value) {
@@ -956,11 +956,11 @@ public interface AggregateMetric {
         }
     }
 
-    class Percentile implements AggregateMetric, JsonSerializable {
-        public final String field;
+    public static class Percentile extends AggregateMetric implements JsonSerializable {
+        public final Positioned<String> field;
         public final double percentile;
 
-        public Percentile(String field, double percentile) {
+        public Percentile(Positioned<String> field, double percentile) {
             this.field = field;
             this.percentile = percentile;
         }
@@ -983,8 +983,8 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field, this));
+                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -1027,7 +1027,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Running implements AggregateMetric, JsonSerializable {
+    public static class Running extends AggregateMetric implements JsonSerializable {
         public final int offset;
         public final AggregateMetric metric;
 
@@ -1092,12 +1092,12 @@ public interface AggregateMetric {
         }
     }
 
-    class Distinct implements AggregateMetric, JsonSerializable {
-        public final String field;
+    public static class Distinct extends AggregateMetric implements JsonSerializable {
+        public final Positioned<String> field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
 
-        public Distinct(String field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
+        public Distinct(Positioned<String> field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
@@ -1129,8 +1129,8 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingField(dataset, field, this));
+                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
                 }
             }
 
@@ -1179,11 +1179,11 @@ public interface AggregateMetric {
         }
     }
 
-    class Named implements AggregateMetric, JsonSerializable {
+    public static class Named extends AggregateMetric implements JsonSerializable {
         public final AggregateMetric metric;
-        public final String name;
+        public final Positioned<String> name;
 
-        public Named(AggregateMetric metric, String name) {
+        public Named(AggregateMetric metric, Positioned<String> name) {
             this.metric = metric;
             this.name = name;
         }
@@ -1246,7 +1246,7 @@ public interface AggregateMetric {
         }
     }
 
-    class GroupStatsLookup implements AggregateMetric, JsonSerializable {
+    public static class GroupStatsLookup extends AggregateMetric implements JsonSerializable {
         public final String name;
 
         public GroupStatsLookup(String name) {
@@ -1309,7 +1309,7 @@ public interface AggregateMetric {
         }
     }
 
-    class SumAcross implements AggregateMetric, JsonSerializable {
+    public static class SumAcross extends AggregateMetric implements JsonSerializable {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
 
@@ -1378,7 +1378,7 @@ public interface AggregateMetric {
         }
     }
 
-    class IfThenElse implements AggregateMetric, JsonSerializable {
+    public static class IfThenElse extends AggregateMetric implements JsonSerializable {
         public final AggregateFilter condition;
         public final AggregateMetric trueCase;
         public final AggregateMetric falseCase;
@@ -1457,10 +1457,10 @@ public interface AggregateMetric {
         }
     }
     
-    class FieldMin implements AggregateMetric, JsonSerializable {
-        public final String field;
+    public static class FieldMin extends AggregateMetric implements JsonSerializable {
+        public final Positioned<String> field;
 
-        public FieldMin(String field) {
+        public FieldMin(Positioned<String> field) {
             this.field = field;
         }
 
@@ -1482,8 +1482,8 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingField(dataset, field, this));
+                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -1524,10 +1524,10 @@ public interface AggregateMetric {
         }
     }
     
-    class FieldMax implements AggregateMetric, JsonSerializable {
-        public final String field;
+    public static class FieldMax extends AggregateMetric implements JsonSerializable {
+        public final Positioned<String> field;
 
-        public FieldMax(String field) {
+        public FieldMax(Positioned<String> field) {
             this.field = field;
         }
 
@@ -1549,8 +1549,8 @@ public interface AggregateMetric {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingField(dataset, field, this));
+                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -1591,7 +1591,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Min implements AggregateMetric, JsonSerializable {
+    public static class Min extends AggregateMetric implements JsonSerializable {
         public final List<AggregateMetric> metrics;
 
         public Min(List<AggregateMetric> metrics) {
@@ -1668,7 +1668,7 @@ public interface AggregateMetric {
         }
     }
 
-    class Max implements AggregateMetric, JsonSerializable {
+    public static class Max extends AggregateMetric implements JsonSerializable {
         public final List<AggregateMetric> metrics;
 
         public Max(List<AggregateMetric> metrics) {

@@ -12,10 +12,10 @@ import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.DocMetrics;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
-import com.indeed.squall.iql2.language.Identifiers;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.TimeUnit;
@@ -87,7 +87,7 @@ public class GroupBys {
             @Override
             public void enterTopTermsGroupBy(JQLParser.TopTermsGroupByContext ctx) {
                 final JQLParser.TopTermsGroupByElemContext ctx2 = ctx.topTermsGroupByElem();
-                final String field = parseIdentifier(ctx2.field);
+                final Positioned<String> field = parseIdentifier(ctx2.field);
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
@@ -183,7 +183,7 @@ public class GroupBys {
 
             @Override
             public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
-                final Optional<String> timeField;
+                final Optional<Positioned<String>> timeField;
                 if (ctx.groupByTime().timeField != null) {
                     timeField = Optional.of(parseIdentifier(ctx.groupByTime().timeField));
                 } else {
@@ -236,7 +236,7 @@ public class GroupBys {
             @Override
             public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
-                final String field = parseIdentifier(ctx2.field);
+                final Positioned<String> field = parseIdentifier(ctx2.field);
                 final boolean reverseOrder = ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom");
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
@@ -279,6 +279,9 @@ public class GroupBys {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Failed to handle group by: " + groupByElementContext.getText());
         }
+
+        ref[0].copyPosition(groupByElementContext);
+
         return ref[0];
     }
 }

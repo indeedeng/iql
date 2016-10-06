@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
-public interface AggregateFilter {
-    interface Visitor<T, E extends Throwable> {
+public abstract class AggregateFilter extends AbstractPositional {
+    public interface Visitor<T, E extends Throwable> {
         T visit(TermIs termIs) throws E;
         T visit(MetricIs metricIs) throws E;
         T visit(MetricIsnt metricIsnt) throws E;
@@ -32,17 +32,17 @@ public interface AggregateFilter {
         T visit(IsDefaultGroup isDefaultGroup) throws E;
     }
 
-    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
+    public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
-    AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
+    public abstract AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
 
-    AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
+    public abstract AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
+    public abstract void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
 
-    boolean isOrdered();
+    public abstract boolean isOrdered();
 
-    class TermIs implements AggregateFilter, JsonSerializable {
+    public static class TermIs extends AggregateFilter implements JsonSerializable {
         public final Term term;
 
         public TermIs(Term term) {
@@ -104,7 +104,7 @@ public interface AggregateFilter {
         }
     }
 
-    class MetricIs implements AggregateFilter, JsonSerializable {
+    public static class MetricIs extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -178,7 +178,7 @@ public interface AggregateFilter {
         }
     }
 
-    class MetricIsnt implements AggregateFilter, JsonSerializable {
+    public static class MetricIsnt extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -246,7 +246,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Gt implements AggregateFilter, JsonSerializable {
+    public static class Gt extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -314,7 +314,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Gte implements AggregateFilter, JsonSerializable {
+    public static class Gte extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -382,7 +382,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Lt implements AggregateFilter, JsonSerializable {
+    public static class Lt extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -450,7 +450,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Lte implements AggregateFilter, JsonSerializable {
+    public static class Lte extends AggregateFilter implements JsonSerializable {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -518,7 +518,7 @@ public interface AggregateFilter {
         }
     }
 
-    class And implements AggregateFilter, JsonSerializable {
+    public static class And extends AggregateFilter implements JsonSerializable {
         public final AggregateFilter f1;
         public final AggregateFilter f2;
 
@@ -586,7 +586,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Or implements AggregateFilter, JsonSerializable {
+    public static class Or extends AggregateFilter implements JsonSerializable {
         public final AggregateFilter f1;
         public final AggregateFilter f2;
 
@@ -654,7 +654,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Not implements AggregateFilter, JsonSerializable {
+    public static class Not extends AggregateFilter implements JsonSerializable {
         public final AggregateFilter filter;
 
         public Not(AggregateFilter filter) {
@@ -717,11 +717,11 @@ public interface AggregateFilter {
         }
     }
 
-    class Regex implements AggregateFilter, JsonSerializable {
-        public final String field;
+    public static class Regex extends AggregateFilter implements JsonSerializable {
+        public final Positioned<String> field;
         public final String regex;
 
-        public Regex(String field, String regex) {
+        public Regex(Positioned<String> field, String regex) {
             this.field = field;
             this.regex = regex;
         }
@@ -744,8 +744,8 @@ public interface AggregateFilter {
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                    validator.error(ErrorMessages.missingField(dataset, field, this));
+                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
                 }
             }
         }
@@ -757,7 +757,7 @@ public interface AggregateFilter {
 
         @Override
         public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "regex", "field", field, "value", regex));
+            gen.writeObject(ImmutableMap.of("type", "regex", "field", field.unwrap(), "value", regex));
         }
 
         @Override
@@ -788,7 +788,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Always implements AggregateFilter, JsonSerializable {
+    public static class Always extends AggregateFilter implements JsonSerializable {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -840,7 +840,7 @@ public interface AggregateFilter {
         }
     }
 
-    class Never implements AggregateFilter, JsonSerializable {
+    public static class Never extends AggregateFilter implements JsonSerializable {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -891,7 +891,7 @@ public interface AggregateFilter {
         }
     }
 
-    class IsDefaultGroup implements AggregateFilter, JsonSerializable {
+    public static class IsDefaultGroup extends AggregateFilter implements JsonSerializable {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);

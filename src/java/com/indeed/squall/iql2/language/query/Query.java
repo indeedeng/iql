@@ -13,6 +13,8 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
+import com.indeed.squall.iql2.language.AbstractPositional;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;
@@ -25,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class Query {
+public class Query extends AbstractPositional {
     public final List<com.indeed.squall.iql2.language.query.Dataset> datasets;
     public final Optional<DocFilter> filter;
     public final List<GroupByMaybeHaving> groupBys;
@@ -119,7 +121,7 @@ public class Query {
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
-        return parseQuery(
+        final Query query = parseQuery(
                 queryContext.fromContents(),
                 Optional.fromNullable(queryContext.whereContents()),
                 Optional.fromNullable(queryContext.groupByContents()),
@@ -130,6 +132,8 @@ public class Query {
                 warn,
                 clock
         );
+        query.copyPosition(queryContext);
+        return query;
     }
 
     public Query transform(
@@ -171,16 +175,16 @@ public class Query {
     public Set<String> extractDatasetNames() {
         final Set<String> names = new HashSet<>();
         for (final Dataset dataset : datasets) {
-            final String name;
+            final Positioned<String> name;
             if (dataset.alias.isPresent()) {
                 name = dataset.alias.get();
             } else {
                 name = dataset.dataset;
             }
-            if (names.contains(name)) {
-                throw new IllegalArgumentException("Duplicate name encountered: " + name);
+            if (names.contains(name.unwrap())) {
+                throw new IllegalArgumentException("Duplicate name encountered: " + name.unwrap());
             }
-            names.add(name);
+            names.add(name.unwrap());
         }
         return names;
     }
@@ -188,16 +192,16 @@ public class Query {
     public Map<String, String> nameToIndex() {
         final Map<String, String> nameToIndex = new HashMap<>();
         for (final Dataset dataset : datasets) {
-            final String name;
+            final Positioned<String> name;
             if (dataset.alias.isPresent()) {
                 name = dataset.alias.get();
             } else {
                 name = dataset.dataset;
             }
-            if (nameToIndex.containsKey(name)) {
-                throw new IllegalArgumentException("Duplicate name encountered: " + name);
+            if (nameToIndex.containsKey(name.unwrap())) {
+                throw new IllegalArgumentException("Duplicate name encountered: " + name.unwrap());
             }
-            nameToIndex.put(name, dataset.dataset);
+            nameToIndex.put(name.unwrap(), dataset.dataset.unwrap());
         }
         return nameToIndex;
     }

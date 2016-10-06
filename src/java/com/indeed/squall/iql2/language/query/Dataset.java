@@ -5,10 +5,11 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
-import com.indeed.squall.iql2.language.Identifiers;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
+import com.indeed.squall.iql2.language.AbstractPositional;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.util.core.Pair;
@@ -24,18 +25,18 @@ import java.util.Set;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
-public class Dataset {
+public class Dataset extends AbstractPositional {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
 
-    public final String dataset;
-    public final DateTime startInclusive;
-    public final DateTime endExclusive;
-    public final Optional<String> alias;
-    public final ImmutableMap<String, String> fieldAliases;
+    public final Positioned<String> dataset;
+    public final Positioned<DateTime> startInclusive;
+    public final Positioned<DateTime> endExclusive;
+    public final Optional<Positioned<String>> alias;
+    public final ImmutableMap<Positioned<String>, Positioned<String>> fieldAliases;
 
-    public Dataset(String dataset, DateTime startInclusive, DateTime endExclusive, Optional<String> alias, Map<String, String> fieldAliases) {
+    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive, Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
         this.dataset = dataset;
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
@@ -48,33 +49,35 @@ public class Dataset {
         final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.getFirst().startInclusive, ds1.getFirst().endExclusive, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive.unwrap(), ds1.getFirst().endExclusive.unwrap(), dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
         }
         return result;
     }
 
     public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
-        final String dataset = parseIdentifier(datasetContext.index);
-        final DateTime start = parseDateTime(datasetContext.start, clock);
-        final DateTime end = parseDateTime(datasetContext.end, clock);
-        final Optional<String> name;
+        final Positioned<String> dataset = parseIdentifier(datasetContext.index);
+        final Positioned<DateTime> start = parseDateTime(datasetContext.start, clock);
+        final Positioned<DateTime> end = parseDateTime(datasetContext.end, clock);
+        final Optional<Positioned<String>> name;
         if (datasetContext.name != null) {
             name = Optional.of(parseIdentifier(datasetContext.name));
         } else {
             name = Optional.absent();
         }
-        final Map<String, String> fieldAliases = parseFieldAliases(datasetContext.aliases());
+        final Map<Positioned<String>, Positioned<String>> fieldAliases = parseFieldAliases(datasetContext.aliases());
         final Optional<DocFilter> initializerFilter;
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
                 filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
             }
-            initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
+            initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
         } else {
             initializerFilter = Optional.absent();
         }
-        return Pair.of(new Dataset(dataset, start, end, name, fieldAliases), initializerFilter);
+        final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases);
+        dataset1.copyPosition(datasetContext);
+        return Pair.of(dataset1, initializerFilter);
     }
 
     public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn, final WallClock clock) {
@@ -93,15 +96,15 @@ public class Dataset {
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
-                final String dataset = parseIdentifier(ctx.index);
-                final Optional<String> name;
+                final Positioned<String> dataset = parseIdentifier(ctx.index);
+                final Optional<Positioned<String>> name;
                 if (ctx.name != null) {
                     name = Optional.of(parseIdentifier(ctx.name));
                 } else {
                     name = Optional.absent();
                 }
 
-                final Map<String, String> fieldAliases = parseFieldAliases(ctx.aliases());
+                final Map<Positioned<String>, Positioned<String>> fieldAliases = parseFieldAliases(ctx.aliases());
 
                 final Optional<DocFilter> initializerFilter;
                 if (ctx.whereContents() != null) {
@@ -109,12 +112,14 @@ public class Dataset {
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
                         filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
                     }
-                    initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset)), DocFilters.and(filters)));
+                    initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
                 } else {
                     initializerFilter = Optional.absent();
                 }
 
-                accept(Pair.of(new Dataset(dataset, defaultStart, defaultEnd, name, fieldAliases), initializerFilter));
+                final Dataset dataset1 = new Dataset(dataset, Positioned.unpositioned(defaultStart), Positioned.unpositioned(defaultEnd), name, fieldAliases);
+                dataset1.copyPosition(ctx);
+                accept(Pair.of(dataset1, initializerFilter));
             }
         });
 
@@ -125,48 +130,48 @@ public class Dataset {
         return (Pair<Dataset, Optional<DocFilter>>) ref[0];
     }
 
-    private static Map<String, String> parseFieldAliases(JQLParser.AliasesContext aliases) {
+    private static Map<Positioned<String>, Positioned<String>> parseFieldAliases(JQLParser.AliasesContext aliases) {
         if (aliases == null) {
             return Collections.emptyMap();
         }
-        final Map<String, String> result = new HashMap<>();
+        final Map<Positioned<String>, Positioned<String>> result = new HashMap<>();
         for (int i = 0; i < aliases.virtual.size(); i++) {
-            final String actual = parseIdentifier(aliases.actual.get(i));
-            final String virtual = parseIdentifier(aliases.virtual.get(i));
+            final Positioned<String> actual = parseIdentifier(aliases.actual.get(i));
+            final Positioned<String> virtual = parseIdentifier(aliases.virtual.get(i));
             result.put(virtual, actual);
         }
         return result;
     }
 
-    public static DateTime parseDateTime(JQLParser.DateTimeContext dateTimeContext, WallClock clock) {
+    public static Positioned<DateTime> parseDateTime(JQLParser.DateTimeContext dateTimeContext, WallClock clock) {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
-            return new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
+            return Positioned.from(new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
         } else if (dateTimeContext.DATE_TOKEN() != null) {
-            return new DateTime(dateTimeContext.DATE_TOKEN().getText());
+            return Positioned.from(new DateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
         } else if (dateTimeContext.STRING_LITERAL() != null) {
             final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
             try {
-                return new DateTime(unquoted.replaceAll(" ", "T"));
+                return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
             } catch (IllegalArgumentException e) {
                 final JQLParser jqlParser = Queries.parserForString(unquoted);
                 final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                 if (jqlParser.getNumberOfSyntaxErrors() > 0) {
                     final DateTime dt = parseWordDate(unquoted, clock);
                     if (dt != null) {
-                        return dt;
+                        return Positioned.from(dt, dateTimeContext);
                     }
                     throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
                 }
-                return TimePeriods.timePeriodDateTime(timePeriod, clock);
+                return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock), dateTimeContext);
             }
         } else if (dateTimeContext.timePeriod() != null) {
-            return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock);
+            return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
         } else if (dateTimeContext.NAT() != null) {
-            return new DateTime(Long.parseLong(dateTimeContext.NAT().getText()));
+            return Positioned.from(new DateTime(Long.parseLong(dateTimeContext.NAT().getText())), dateTimeContext);
         } else {
             final String textValue = dateTimeContext.getText();
             final DateTime dt = parseWordDate(textValue, clock);
-            if (dt != null) return dt;
+            if (dt != null) return Positioned.from(dt, dateTimeContext);
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }

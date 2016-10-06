@@ -20,7 +20,7 @@ public class DocFilters {
         }
         DocFilter result = filters.get(0);
         for (int i = 1; i < filters.size(); i++) {
-            result = new DocFilter.And(filters.get(i), result);
+            result = new DocFilter.And(result, filters.get(i));
         }
         return result;
     }
@@ -48,7 +48,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
-                final String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
                 accept(new DocFilter.Between(field, lowerBound, upperBound));
@@ -56,7 +56,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocFieldIn(JQLParser.LegacyDocFieldInContext ctx) {
-                String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final List<JQLParser.LegacyTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
                 final ArrayList<Term> termsList = new ArrayList<>();
@@ -73,7 +73,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocSample(JQLParser.LegacyDocSampleContext ctx) {
-                final String field = parseIdentifier(ctx.field);
+                final Positioned<String> field = parseIdentifier(ctx.field);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -191,6 +191,9 @@ public class DocFilters {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc filter: [" + legacyDocFilterContext.getText() + "]");
         }
+
+        ref[0].copyPosition(legacyDocFilterContext);
+
         return ref[0];
     }
 
@@ -372,10 +375,13 @@ public class DocFilters {
         if (ref[0] == null) {
             throw new UnsupportedOperationException("Unhandled doc filter: [" + docFilterContext.getText() + "], " + docFilterContext.toStringTree(new JQLParser(null)));
         }
+
+        ref[0].copyPosition(docFilterContext);
+
         return ref[0];
     }
 
-    public static DocFilter docInHelper(Map<String, Set<String>> datasetToKeywordAnalyzerFields, String field, boolean negate, List<Term> termsList) {
+    public static DocFilter docInHelper(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, boolean negate, List<Term> termsList) {
         final boolean isStringField = anyIsString(termsList);
         final DocFilter filter;
         if (isStringField) {

@@ -4,10 +4,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -17,8 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public interface GroupBy {
-    interface Visitor<T, E extends Throwable> {
+public abstract class GroupBy extends AbstractPositional {
+    public interface Visitor<T, E extends Throwable> {
         T visit(GroupByMetric groupByMetric) throws E;
         T visit(GroupByTime groupByTime) throws E;
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
@@ -31,24 +33,24 @@ public interface GroupBy {
         T visit(GroupByPredicate groupByPredicate) throws E;
     }
 
-    <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
+    public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
     
-    GroupBy transform(
-            Function<GroupBy, GroupBy> groupBy, 
-            Function<AggregateMetric, AggregateMetric> f, 
+    public abstract GroupBy transform(
+            Function<GroupBy, GroupBy> groupBy,
+            Function<AggregateMetric, AggregateMetric> f,
             Function<DocMetric, DocMetric> g,
             Function<AggregateFilter, AggregateFilter> h,
             Function<DocFilter, DocFilter> i
     );
 
-    GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f);
+    public abstract GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    ExecutionStep executionStep(Set<String> scope);
+    public abstract ExecutionStep executionStep(Set<String> scope);
 
-    boolean isTotal();
-    GroupBy makeTotal() throws CannotMakeTotalException;
+    public abstract boolean isTotal();
+    public abstract GroupBy makeTotal() throws CannotMakeTotalException;
 
-    class GroupByMetric implements GroupBy {
+    public static class GroupByMetric extends GroupBy {
         public final DocMetric metric;
         public final long min;
         public final long max;
@@ -142,12 +144,12 @@ public interface GroupBy {
         }
     }
 
-    class GroupByTime implements GroupBy {
+    public static class GroupByTime extends GroupBy {
         public final long periodMillis;
-        public final Optional<String> field;
+        public final Optional<Positioned<String>> field;
         public final Optional<String> format;
 
-        public GroupByTime(long periodMillis, Optional<String> field, Optional<String> format) {
+        public GroupByTime(long periodMillis, Optional<Positioned<String>> field, Optional<String> format) {
             this.periodMillis = periodMillis;
             this.field = field;
             this.format = format;
@@ -170,7 +172,11 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field.transform(new Function<Positioned<String>, String>() {
+                public String apply(Positioned<String> stringPositioned) {
+                    return stringPositioned.unwrap();
+                }
+            }), format);
         }
 
         @Override
@@ -214,12 +220,12 @@ public interface GroupBy {
         }
     }
 
-    class GroupByTimeBuckets implements GroupBy {
+    public static class GroupByTimeBuckets extends GroupBy {
         public final int numBuckets;
-        public final Optional<String> field;
+        public final Optional<Positioned<String>> field;
         public final Optional<String> format;
 
-        public GroupByTimeBuckets(int numBuckets, Optional<String> field, Optional<String> format) {
+        public GroupByTimeBuckets(int numBuckets, Optional<Positioned<String>> field, Optional<String> format) {
             this.numBuckets = numBuckets;
             this.field = field;
             this.format = format;
@@ -242,7 +248,11 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field, format);
+            return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field.transform(new Function<Positioned<String>, String>() {
+                public String apply(Positioned<String> stringPositioned) {
+                    return stringPositioned.unwrap();
+                }
+            }), format);
         }
 
         @Override
@@ -286,11 +296,11 @@ public interface GroupBy {
         }
     }
 
-    class GroupByMonth implements GroupBy {
-        public final Optional<String> field;
+    public static class GroupByMonth extends GroupBy {
+        public final Optional<Positioned<String>> field;
         public final Optional<String> format;
 
-        public GroupByMonth(Optional<String> field, Optional<String> format) {
+        public GroupByMonth(Optional<Positioned<String>> field, Optional<String> format) {
             this.field = field;
             this.format = format;
         }
@@ -353,13 +363,13 @@ public interface GroupBy {
         }
     }
 
-    class GroupByFieldIn implements GroupBy {
-        public final String field;
+    public static class GroupByFieldIn extends GroupBy {
+        public final Positioned<String> field;
         public final LongList intTerms;
         public final List<String> stringTerms;
         public final boolean withDefault;
 
-        public GroupByFieldIn(String field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
+        public GroupByFieldIn(Positioned<String> field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
             this.field = field;
             this.intTerms = intTerms;
             this.stringTerms = stringTerms;
@@ -394,9 +404,9 @@ public interface GroupBy {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             if (intTerms.size() > 0) {
-                return ExecutionStep.ExplodeFieldIn.intExplode(scope, field, intTerms, withDefault);
+                return ExecutionStep.ExplodeFieldIn.intExplode(scope, field.unwrap(), intTerms, withDefault);
             } else {
-                return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field, stringTerms, withDefault);
+                return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field.unwrap(), stringTerms, withDefault);
             }
         }
 
@@ -437,15 +447,15 @@ public interface GroupBy {
         }
     }
 
-    class GroupByField implements GroupBy {
-        public final String field;
+    public static class GroupByField extends GroupBy {
+        public final Positioned<String> field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
         public final boolean forceNonStreaming;
 
-        public GroupByField(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
+        public GroupByField(Positioned<String> field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -495,7 +505,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
+            return new ExecutionStep.ExplodeAndRegroup(field.unwrap(), filter, limit, metric, withDefault, forceNonStreaming);
         }
 
         @Override
@@ -547,7 +557,7 @@ public interface GroupBy {
         }
     }
 
-    class GroupByDayOfWeek implements GroupBy {
+    public static class GroupByDayOfWeek extends GroupBy {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -594,7 +604,7 @@ public interface GroupBy {
         }
     }
 
-    class GroupBySessionName implements GroupBy {
+    public static class GroupBySessionName extends GroupBy {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -641,11 +651,11 @@ public interface GroupBy {
         }
     }
 
-    class GroupByQuantiles implements GroupBy {
-        public final String field;
+    public static class GroupByQuantiles extends GroupBy {
+        public final Positioned<String> field;
         public final int numBuckets;
 
-        public GroupByQuantiles(String field, int numBuckets) {
+        public GroupByQuantiles(Positioned<String> field, int numBuckets) {
             this.field = field;
             this.numBuckets = numBuckets;
         }
@@ -667,7 +677,7 @@ public interface GroupBy {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
+            return new ExecutionStep.ExplodePerDocPercentile(field.unwrap(), numBuckets);
         }
 
         @Override
@@ -709,7 +719,7 @@ public interface GroupBy {
         }
     }
 
-    class GroupByPredicate implements GroupBy {
+    public static class GroupByPredicate extends GroupBy {
         public final DocFilter docFilter;
 
         public GroupByPredicate(DocFilter docFilter) {

@@ -125,6 +125,8 @@ public class AggregateFilters {
             throw new UnsupportedOperationException("Unhandled aggregate filter: [" + aggregateFilterContext.getText() + "]");
         }
 
+        ref[0].copyPosition(aggregateFilterContext);
+
         return ref[0];
     }
 }

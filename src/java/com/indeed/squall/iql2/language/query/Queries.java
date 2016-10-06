@@ -15,6 +15,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -57,12 +58,16 @@ public class Queries {
         final ObjectMapper objectMapper = new ObjectMapper();
         for (final Dataset dataset : query.datasets) {
             final Map<String, String> m = new HashMap<>();
-            m.put("dataset", dataset.dataset);
-            m.put("start", dataset.startInclusive.toString());
-            m.put("end", dataset.endExclusive.toString());
-            m.put("name", dataset.alias.or(dataset.dataset));
+            m.put("dataset", dataset.dataset.unwrap());
+            m.put("start", dataset.startInclusive.unwrap().toString());
+            m.put("end", dataset.endExclusive.unwrap().toString());
+            m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
-                m.put("fieldAliases", objectMapper.writeValueAsString(dataset.fieldAliases));
+                final Map<String, String> unPositionedFieldAliases = new HashMap<>();
+                for (final Map.Entry<Positioned<String>, Positioned<String>> entry : dataset.fieldAliases.entrySet()) {
+                    unPositionedFieldAliases.put(entry.getKey().unwrap(), entry.getValue().unwrap());
+                }
+                m.put("fieldAliases", objectMapper.writeValueAsString(unPositionedFieldAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
                 throw Throwables.propagate(e);
@@ -124,9 +129,9 @@ public class Queries {
         if (queryContext.fromContents().datasetOptTime().isEmpty()) {
             final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
             dataset = datasetCtx.index.getText();
-            start = parsed.datasets.get(0).startInclusive.toString();
+            start = parsed.datasets.get(0).startInclusive.unwrap().toString();
             startRawString = removeQuotes(getText(queryInputStream, datasetCtx.start));
-            end = parsed.datasets.get(0).endExclusive.toString();
+            end = parsed.datasets.get(0).endExclusive.unwrap().toString();
             endRawString = removeQuotes(getText(queryInputStream, datasetCtx.end));
         } else {
             dataset = "";
