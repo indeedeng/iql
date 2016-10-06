@@ -16,7 +16,7 @@ public final class ScoredObject<T> {
             if(Double.isNaN(score1)) {
                 score1 = Double.NEGATIVE_INFINITY;
             }
-            double score2 = o1.getScore();
+            double score2 = o2.getScore();
             if(Double.isNaN(score2)) {
                 score2 = Double.NEGATIVE_INFINITY;
             }
@@ -31,7 +31,7 @@ public final class ScoredObject<T> {
             if(Double.isNaN(score1)) {
                 score1 = Double.POSITIVE_INFINITY;
             }
-            double score2 = o1.getScore();
+            double score2 = o2.getScore();
             if(Double.isNaN(score2)) {
                 score2 = Double.POSITIVE_INFINITY;
             }
