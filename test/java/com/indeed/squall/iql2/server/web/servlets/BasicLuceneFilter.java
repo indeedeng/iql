@@ -20,7 +20,7 @@ public class BasicLuceneFilter {
     }
 
     @Test
-    public void testBolleanLuceneFilters() throws Exception {
+    public void testBooleanLuceneFilters() throws Exception {
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "6")), "from organic yesterday today where lucene(\"TK:a OR TK:b\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "0")), "from organic yesterday today where lucene(\"TK:a AND TK:b\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "10")), "from organic yesterday today where lucene(\"TK:a OR TK:b OR TK:c\") select count()");
