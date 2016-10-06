@@ -1198,6 +1198,25 @@ public interface DocFilter {
             return filter.asZeroOneMetric(dataset);
         }
 
+        private com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {
+            if (query.getOperands() == null) {
+                com.indeed.flamdex.query.Term startTerm = query.getStartTerm();
+                com.indeed.flamdex.query.Term endTerm = query.getEndTerm();
+                if (endTerm == null) {
+                    return com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal()));
+                } else {
+                    return com.indeed.flamdex.query.Query.newRangeQuery(
+                            startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal(), endTerm.getTermStringVal(), query.isMaxInclusive());
+                }
+            } else {
+                List<com.indeed.flamdex.query.Query> upperOperands = new ArrayList<>();
+                for (com.indeed.flamdex.query.Query operand : query.getOperands()) {
+                    upperOperands.add(uppercaseTermQuery(operand));
+                }
+                return com.indeed.flamdex.query.Query.newBooleanQuery(query.getOperator(), upperOperands);
+            }
+        }
+
         private com.indeed.flamdex.query.Query getFlamdexQuery(String dataset) {
             final Analyzer analyzer;
             // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
@@ -1225,7 +1244,8 @@ public interface DocFilter {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
             // TODO: Uppercase all of the fields.
-            return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
+            com.indeed.flamdex.query.Query luceneQuery = LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
+            return uppercaseTermQuery(luceneQuery);
         }
 
         @Override
