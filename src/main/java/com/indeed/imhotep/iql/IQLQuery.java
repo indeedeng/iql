@@ -31,8 +31,8 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
@@ -57,7 +57,6 @@ import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static com.indeed.imhotep.ez.Stats.Stat;
 
@@ -189,7 +188,7 @@ public final class IQLQuery implements Closeable {
                 }
 
                 long regroupMillis = 0;
-                Map<Integer, GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
+                Int2ObjectMap<GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
                 // do Imhotep regroup on all except the last grouping
                 for (int i = 0; i < groupings.size()-1; i++) {
                     checkTimeout(timeoutTS);
@@ -284,9 +283,9 @@ public final class IQLQuery implements Closeable {
     }
 
     private void timeFilter(EZImhotepSession session) throws ImhotepOutOfMemoryException {
-        final Pair<Long, Long> shardsMinMax = getShardsMinMax(shardVersionList);
-        final long min = shardsMinMax.getFirst();
-        final long max = shardsMinMax.getSecond();
+        final LongRange shardsMinMax = getShardsMinMax(shardVersionList);
+        final long min = shardsMinMax.getMin();
+        final long max = shardsMinMax.getMax();
         if (min < start.getMillis() || max > end.getMillis()) {
             new MetricCondition(EZImhotepSession.intField(getTimeField()),
                     (int)(start.getMillis()/1000), (int)((end.getMillis()-1)/1000), false).filter(session);
@@ -303,10 +302,28 @@ public final class IQLQuery implements Closeable {
         }
     }
 
+    private static final class LongRange {
+        private final long min;
+        private final long max;
+
+        private LongRange(final long min, final long max) {
+            this.min = min;
+            this.max = max;
+        }
+
+        public long getMin() {
+            return min;
+        }
+
+        public long getMax() {
+            return max;
+        }
+    }
+
     /**
      * Returns minimum and maximum milliseconds covered by the list of shards
      */
-    private static Pair<Long, Long> getShardsMinMax(final List<ShardIdWithVersion> shardVersionList) {
+    private static LongRange getShardsMinMax(final List<ShardIdWithVersion> shardVersionList) {
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
         for (ShardIdWithVersion shard : shardVersionList) {
@@ -318,7 +335,7 @@ public final class IQLQuery implements Closeable {
                 max = interval.end.getMillis();
             }
         }
-        return Pair.of(min, max);
+        return new LongRange(min, max);
     }
 
     @Nonnull

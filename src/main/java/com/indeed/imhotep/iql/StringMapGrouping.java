@@ -17,9 +17,8 @@ import com.google.common.base.Function;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
-
-import java.util.Map;
 
 /**
  * @author jplaisance
@@ -35,7 +34,7 @@ public final class StringMapGrouping<A> extends Grouping {
         this.function = function;
     }
 
-    public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException();
     }
 }

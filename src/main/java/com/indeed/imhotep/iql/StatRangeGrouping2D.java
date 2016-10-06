@@ -17,10 +17,8 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
-import com.indeed.imhotep.ez.StatReference;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
-
-import java.util.Map;
 
 import static com.indeed.imhotep.ez.Stats.Stat;
 
@@ -62,13 +60,13 @@ public final class StatRangeGrouping2D extends Grouping {
         }
     }
 
-    public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {
             return groupKeys;
         }
         final SingleStatReference xStatRef = session.pushStat(xStat);
         final SingleStatReference yStatRef = session.pushStat(yStat);
-        final Map<Integer, GroupKey> ret = session.metricRegroup2D(xStatRef, xMin, xMax, xIntervalSize, yStatRef, yMin, yMax, yIntervalSize);
+        final Int2ObjectMap<GroupKey> ret = session.metricRegroup2D(xStatRef, xMin, xMax, xIntervalSize, yStatRef, yMin, yMax, yIntervalSize);
         session.popStat();
         session.popStat();
         return ret;

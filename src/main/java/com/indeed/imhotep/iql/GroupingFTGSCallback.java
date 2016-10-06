@@ -19,11 +19,13 @@ import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
-import gnu.trove.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author jplaisance
@@ -31,12 +33,12 @@ import java.util.*;
 public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
     private static final Logger log = Logger.getLogger(GroupingFTGSCallbackNoExplode.class);
     private final List<StatReference> statRefs;
-    private final Map<Integer, GroupKey> groupKeys;
+    private final Int2ObjectMap<GroupKey> groupKeys;
     private final List<Object> allTerms = Lists.newArrayList();
-    private final TIntObjectHashMap<Map<Object, double[]>> groupToTermsStats = new TIntObjectHashMap<Map<Object, double[]>>();
+    private final Int2ObjectMap<Map<Object, double[]>> groupToTermsStats = new Int2ObjectOpenHashMap<Map<Object, double[]>>();
     private final int termLimit;
 
-    public GroupingFTGSCallback(int numStats, List<StatReference> statRefs, Map<Integer, GroupKey> groupKeys) {
+    public GroupingFTGSCallback(int numStats, List<StatReference> statRefs, Int2ObjectMap<GroupKey> groupKeys) {
         super(numStats);
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;

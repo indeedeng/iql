@@ -15,21 +15,21 @@
 
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
-import gnu.trove.TIntIntHashMap;
-
-import java.util.Map;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 /**
  * @author vladimir
  */
 
 public class DistinctFTGSCallback extends EZImhotepSession.FTGSCallback {
-    private final TIntIntHashMap groupToCounts;
+    private final Int2IntMap groupToCounts;
 
-    public DistinctFTGSCallback(int numStats, Map<Integer, GroupKey> groupKeys) {
+    public DistinctFTGSCallback(int numStats, Int2ObjectMap<GroupKey> groupKeys) {
         super(numStats);
 
-        groupToCounts  = new TIntIntHashMap(groupKeys.size());
+        groupToCounts  = new Int2IntOpenHashMap(groupKeys.size());
     }
 
     @Override
@@ -49,7 +49,7 @@ public class DistinctFTGSCallback extends EZImhotepSession.FTGSCallback {
     /**
      * Returns map of group numbers to field term counts
      */
-    public TIntIntHashMap getResults() {
+    public Int2IntMap getResults() {
         return groupToCounts;
     }
 }

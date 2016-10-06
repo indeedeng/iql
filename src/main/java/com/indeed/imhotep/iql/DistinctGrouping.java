@@ -19,14 +19,18 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author vladimir
@@ -35,7 +39,7 @@ import java.util.Map;
 public class DistinctGrouping extends Grouping {
     // Fields to get distinct term counts for and their positions in the stats list
     private final List<Field> fields = Lists.newArrayList();
-    private final List<Integer> distinctProjectionPositions = Lists.newArrayList();
+    private final IntList distinctProjectionPositions = new IntArrayList();
 
     public void addField(Field field, int projectionPosition) {
         fields.add(field);
@@ -47,11 +51,11 @@ public class DistinctGrouping extends Grouping {
     }
 
     @Override
-    public Map<Integer, GroupKey> regroup(EZImhotepSession session, Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException("DistinctGrouping requires FTGS so always should go last in the list of groupings");
     }
 
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }
@@ -60,7 +64,7 @@ public class DistinctGrouping extends Grouping {
         final List<GroupStats> result = Lists.newArrayList();
 
         // list to set for use in lookups
-        final TIntHashSet distinctProjectionPositionsSet = new TIntHashSet(distinctProjectionPositions.size());
+        final IntSet distinctProjectionPositionsSet = new IntOpenHashSet(distinctProjectionPositions.size());
         for(int pos : distinctProjectionPositions) {
             distinctProjectionPositionsSet.add(pos);
         }
@@ -68,15 +72,15 @@ public class DistinctGrouping extends Grouping {
         // TODO: don't auto-get group stats on each FTGS iteration
 
         // map of groups -> projection positions -> values
-        TIntObjectHashMap<TIntIntHashMap> distinctData = getDistinctData(session, groupKeys);
+        Int2ObjectMap<Int2IntMap> distinctData = getDistinctData(session, groupKeys);
 
 
         // get values for the normal stats
-        final TIntObjectHashMap<double[]> statsResults = (statCount > 0) ? getGroupStatsValues(session, statRefs, groupCount) : null;
+        final Int2ObjectMap<double[]> statsResults = (statCount > 0) ? getGroupStatsValues(session, statRefs, groupCount) : null;
 
         // combine normal stats with distinct counts
         for (int groupNum = 1; groupNum <= groupCount; groupNum++) {
-            TIntIntHashMap groupDistinctData = distinctData.get(groupNum);
+            Int2IntMap groupDistinctData = distinctData.get(groupNum);
             double[] statsVals = statsResults != null ? statsResults.get(groupNum) : null;
 
             double[] values = new double[statCount + fields.size()];
@@ -97,8 +101,8 @@ public class DistinctGrouping extends Grouping {
         return result.iterator();
     }
 
-    private TIntObjectHashMap<TIntIntHashMap> getDistinctData(EZImhotepSession session, Map<Integer, GroupKey> groupKeys) {
-        TIntObjectHashMap<TIntIntHashMap> distinctData = new TIntObjectHashMap<TIntIntHashMap>();
+    private Int2ObjectMap<Int2IntMap> getDistinctData(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) {
+        Int2ObjectMap<Int2IntMap> distinctData = new Int2ObjectOpenHashMap<Int2IntMap>();
 
         // get distinct data
         for(int i = 0; i < fields.size(); i++) {
@@ -107,13 +111,13 @@ public class DistinctGrouping extends Grouping {
 
             final DistinctFTGSCallback callback = new DistinctFTGSCallback(session.getStackDepth(), groupKeys);
             session.ftgsIterate(Lists.newArrayList(field), callback);
-            final TIntIntHashMap distinctResults = callback.getResults();
+            final Int2IntMap distinctResults = callback.getResults();
             for(int groupNum : groupKeys.keySet()) {
                 final int distinctResult = distinctResults.get(groupNum);
 
-                TIntIntHashMap groupDistinctData = distinctData.get(groupNum);
+                Int2IntMap groupDistinctData = distinctData.get(groupNum);
                 if(groupDistinctData == null) {
-                    groupDistinctData = new TIntIntHashMap(distinctProjectionPositions.size());
+                    groupDistinctData = new Int2IntOpenHashMap(distinctProjectionPositions.size());
                     distinctData.put(groupNum, groupDistinctData);
                 }
                 groupDistinctData.put(projectionPosition, distinctResult);
@@ -122,13 +126,13 @@ public class DistinctGrouping extends Grouping {
         return distinctData;
     }
 
-    private TIntObjectHashMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
+    private Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = session.getGroupStats(statRefs.get(i));
         }
-        final TIntObjectHashMap<double[]> ret = new TIntObjectHashMap<double[]>(groupCount);
+        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<double[]>(groupCount);
         for (int group = 1; group <= groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {
