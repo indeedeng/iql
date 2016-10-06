@@ -47,6 +47,7 @@
         <dependency org="spring" name="spring-test" rev="${spring.version}" />
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
+        <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
         <dependency org="google" name="gag" rev="${gag.version}"/>
 
