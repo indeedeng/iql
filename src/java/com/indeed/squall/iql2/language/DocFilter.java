@@ -1245,8 +1245,7 @@ public interface DocFilter {
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
             }
-            com.indeed.flamdex.query.Query luceneQuery = LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
-            return uppercaseTermQuery(luceneQuery);
+            return uppercaseTermQuery(LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet()));
         }
 
         @Override
