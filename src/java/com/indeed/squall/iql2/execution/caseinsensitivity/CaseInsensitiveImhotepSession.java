@@ -1,9 +1,11 @@
 package com.indeed.squall.iql2.execution.caseinsensitivity;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.GroupMultiRemapRule;
@@ -17,9 +19,13 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
+import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
+import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.WrappingImhotepSession;
+import org.apache.commons.codec.binary.Base64;
 
 import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
@@ -52,7 +58,7 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     // Real logic
 
     private String rewrite(String field) {
-        if (upperCaseToActual.containsKey(field)) {
+        if (upperCaseToActual.containsKey(field.toUpperCase())) {
             return upperCaseToActual.get(field.toUpperCase());
         }
         return field;
@@ -150,6 +156,19 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
             } else {
                 throw new IllegalArgumentException("Invalid regexmatch command: [" + statName + "]");
             }
+        } else if (statName.startsWith("lucene ")) {
+            final String queryBase64 = statName.substring(7);
+            final byte[] queryBytes = Base64.decodeBase64(queryBase64.getBytes());
+            final QueryMessage queryMessage;
+            try {
+                queryMessage = QueryMessage.parseFrom(queryBytes);
+            } catch (InvalidProtocolBufferException e) {
+                throw Throwables.propagate(e);
+            }
+            final Query query = ImhotepDaemonMarshaller.marshal(queryMessage);
+            final Query rewritten = rewriteQuery(query);
+            final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(rewritten);
+            return "lucene " + Base64.encodeBase64String(luceneQueryMessage.toByteArray());
         }
         return statName;
     }
