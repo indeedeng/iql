@@ -1211,7 +1211,7 @@ public interface DocFilter {
                             startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal(), endTerm.getTermStringVal(), query.isMaxInclusive());
                 }
             } else {
-                List<com.indeed.flamdex.query.Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
+                final List<com.indeed.flamdex.query.Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
                 for (com.indeed.flamdex.query.Query operand : query.getOperands()) {
                     upperOperands.add(uppercaseTermQuery(operand));
                 }
