@@ -242,7 +242,7 @@ legacyDocMetricAtom
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
-    | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
+    | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
     | identifier # LegacyDocMetricAtomRawField
     ;
 
