@@ -1195,71 +1195,28 @@ public interface DocFilter {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            final com.indeed.flamdex.query.Query rewritten = getFlamdexQuery(dataset);
-            final DocFilter filter = FlamdexQueryTranslator.translate(rewritten, datasetToKeywordAnalyzerFields);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
+            final DocFilter filter = FlamdexQueryTranslator.translate(upperCasedQuery, datasetToKeywordAnalyzerFields);
             return filter.asZeroOneMetric(dataset);
-        }
-
-        public static com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {
-            if (query.getOperands() == null) {
-                final com.indeed.flamdex.query.Term startTerm = query.getStartTerm();
-                final com.indeed.flamdex.query.Term endTerm = query.getEndTerm();
-                if (endTerm == null) {
-                    return com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal()));
-                } else {
-                    return com.indeed.flamdex.query.Query.newRangeQuery(
-                            startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal(), endTerm.getTermStringVal(), query.isMaxInclusive());
-                }
-            } else {
-                final List<com.indeed.flamdex.query.Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
-                for (com.indeed.flamdex.query.Query operand : query.getOperands()) {
-                    upperOperands.add(uppercaseTermQuery(operand));
-                }
-                return com.indeed.flamdex.query.Query.newBooleanQuery(query.getOperator(), upperOperands);
-            }
-        }
-
-        private com.indeed.flamdex.query.Query getFlamdexQuery(String dataset) {
-            final Analyzer analyzer;
-            // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
-            if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
-                final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
-                final Set<String> whitelist = datasetToKeywordAnalyzerFields.get(dataset);
-                if (whitelist.contains("*")) {
-                    analyzer = kwAnalyzer;
-                } else {
-                    final PerFieldAnalyzerWrapper perFieldAnalyzerWrapper = new PerFieldAnalyzerWrapper(new WhitespaceAnalyzer());
-                    for (final String field : whitelist) {
-                        perFieldAnalyzerWrapper.addAnalyzer(field, kwAnalyzer);
-                    }
-                    analyzer = perFieldAnalyzerWrapper;
-                }
-            } else {
-                analyzer = new WhitespaceAnalyzer();
-            }
-            final QueryParser qp = new QueryParser("foo", analyzer);
-            qp.setDefaultOperator(QueryParser.Operator.AND);
-            final Query parsed;
-            try {
-                parsed = qp.parse(query);
-            } catch (ParseException e) {
-                throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
-            }
-            return uppercaseTermQuery(LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet()));
         }
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
             for (final String dataset : scope.keySet()) {
-                datasetToQuery.put(dataset, getFlamdexQuery(scope.get(dataset)));
+                final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
+                datasetToQuery.put(dataset, upperCasedQuery);
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
         }
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, getFlamdexQuery(dataset))), validator, this, true);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
+            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, upperCasedQuery)), validator, this, true);
         }
 
         @Override

@@ -20,12 +20,12 @@ public class AggregateMetrics {
             return parseJQLAggregateMetric(metricContext.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         }
         if (metricContext.legacyAggregateMetric() != null) {
-            return parseLegacyAggregateMetric(metricContext.legacyAggregateMetric(), datasetToKeywordAnalyzerFields);
+            return parseLegacyAggregateMetric(metricContext.legacyAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         }
         throw new UnsupportedOperationException("This should be unreachable");
     }
 
-    public static AggregateMetric parseLegacyAggregateMetric(JQLParser.LegacyAggregateMetricContext metricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static AggregateMetric parseLegacyAggregateMetric(JQLParser.LegacyAggregateMetricContext metricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
         final AggregateMetric[] ref = new AggregateMetric[1];
         metricContext.enterRule(new JQLBaseListener() {
             private void accept(AggregateMetric value) {
@@ -37,7 +37,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDivByConstant(JQLParser.LegacyAggregateDivByConstantContext ctx) {
-                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), datasetToKeywordAnalyzerFields), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
+                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
             }
 
             @Override
@@ -47,7 +47,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDiv(JQLParser.LegacyAggregateDivContext ctx) {
-                final DocMetric divisor = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
+                final DocMetric divisor = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 final AggregateMetric aggDivisor;
                 if (divisor instanceof DocMetric.Constant) {
                     final DocMetric.Constant constant = (DocMetric.Constant) divisor;
@@ -56,7 +56,7 @@ public class AggregateMetrics {
                     aggDivisor = new AggregateMetric.DocStats(divisor);
                 }
                 accept(new AggregateMetric.Divide(
-                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields)),
+                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields)),
                         aggDivisor
                 ));
             }
@@ -68,12 +68,12 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyImplicitSum(JQLParser.LegacyImplicitSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
             public void enterLegacyAggregateParens(JQLParser.LegacyAggregateParensContext ctx) {
-                accept(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), datasetToKeywordAnalyzerFields));
+                accept(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         });
 
@@ -444,7 +444,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom(JQLParser.AggregateDocMetricAtomContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom())));
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override

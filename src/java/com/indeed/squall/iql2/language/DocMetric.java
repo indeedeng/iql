@@ -1,15 +1,24 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
+import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
+import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
+import com.indeed.imhotep.protobuf.QueryMessage;
+import org.apache.commons.codec.binary.Base64;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -1089,6 +1098,58 @@ public abstract class DocMetric {
                     ", regex='" + regex + '\'' +
                     ", groupNumber=" + groupNumber +
                     '}';
+        }
+    }
+
+    public static class Lucene extends DocMetric {
+        private final String query;
+        private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+        private final Map<String, Set<String>> datasetToIntFields;
+
+
+        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+            this.query = query;
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+            this.datasetToIntFields = datasetToIntFields;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(final String dataset) {
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
+            final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
+            return Lists.newArrayList("lucene " + base64EncodedQuery);
+        }
+
+        @Override
+        public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
+            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, upperCasedQuery)), validator, this, true);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Lucene lucene = (Lucene) o;
+            return query == lucene.query;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(query);
+        }
+
+        @Override
+        public String toString() {
+            return "Lucene{" +
+                    "query='" + query + '}';
         }
     }
 }

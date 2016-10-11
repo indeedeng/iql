@@ -16,12 +16,12 @@ public class DocMetrics {
             return parseJQLDocMetric(metricContext.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         }
         if (metricContext.legacyDocMetric() != null) {
-            return parseLegacyDocMetric(metricContext.legacyDocMetric(), datasetToKeywordAnalyzerFields);
+            return parseLegacyDocMetric(metricContext.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocMetric parseLegacyDocMetric(JQLParser.LegacyDocMetricContext legacyDocMetricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static DocMetric parseLegacyDocMetric(JQLParser.LegacyDocMetricContext legacyDocMetricContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
         final DocMetric[] ref = new DocMetric[1];
 
         legacyDocMetricContext.enterRule(new JQLBaseListener() {
@@ -37,13 +37,13 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocSignum(JQLParser.LegacyDocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
+                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
             public void enterLegacyDocPlusOrMinus(JQLParser.LegacyDocPlusOrMinusContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 if (ctx.plus != null) {
                     accept(new DocMetric.Add(left, right));
                 } else if (ctx.minus != null) {
@@ -53,8 +53,8 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMultOrDivideOrModulus(JQLParser.LegacyDocMultOrDivideOrModulusContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 if (ctx.multiply != null) {
                     accept(new DocMetric.Multiply(left, right));
                 } else if (ctx.divide != null) {
@@ -65,15 +65,15 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocMetricParens(JQLParser.LegacyDocMetricParensContext ctx) {
-                accept(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields));
+                accept(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
 
             public void enterLegacyDocAbs(JQLParser.LegacyDocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
+                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             public void enterLegacyDocNegate(JQLParser.LegacyDocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields)));
+                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             public void enterLegacyDocInt(JQLParser.LegacyDocIntContext ctx) {
@@ -82,8 +82,8 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocInequality(JQLParser.LegacyDocInequalityContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetToKeywordAnalyzerFields, datasetToIntFields);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), datasetToKeywordAnalyzerFields, datasetToIntFields);
                 if (ctx.gte != null) {
                     accept(new DocMetric.MetricGte(left, right));
                 } else if (ctx.gt != null) {
@@ -102,27 +102,27 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocLog(JQLParser.LegacyDocLogContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
+                accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), scaleFactor));
             }
 
             @Override
             public void enterLegacyDocExp(JQLParser.LegacyDocExpContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields), scaleFactor));
+                accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields), scaleFactor));
             }
 
             @Override
             public void enterLegacyDocMin(JQLParser.LegacyDocMinContext ctx) {
-                accept(new DocMetric.Min(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields)));
+                accept(new DocMetric.Min(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields, datasetToIntFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             @Override
             public void enterLegacyDocMax(JQLParser.LegacyDocMaxContext ctx) {
-                accept(new DocMetric.Max(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields)));
+                accept(new DocMetric.Max(parseLegacyDocMetric(ctx.arg1, datasetToKeywordAnalyzerFields, datasetToIntFields), parseLegacyDocMetric(ctx.arg2, datasetToKeywordAnalyzerFields, datasetToIntFields)));
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
-                accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom()));
+                accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         });
 
@@ -132,7 +132,11 @@ public class DocMetrics {
         return ref[0];
     }
 
-    public static DocMetric parseLegacyDocMetricAtom(JQLParser.LegacyDocMetricAtomContext legacyDocMetricAtomContext) {
+    public static DocMetric parseLegacyDocMetricAtom(
+            JQLParser.LegacyDocMetricAtomContext legacyDocMetricAtomContext,
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
+            final Map<String, Set<String>> datasetToIntFields
+    ) {
         final DocMetric[] ref = new DocMetric[1];
 
         legacyDocMetricAtomContext.enterRule(new JQLBaseListener() {
@@ -191,6 +195,11 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomRawField(JQLParser.LegacyDocMetricAtomRawFieldContext ctx) {
                 accept(new DocMetric.Field(parseIdentifier(ctx.identifier())));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         });
 
@@ -342,8 +351,13 @@ public class DocMetrics {
                 accept(resultMetric);
             }
 
+            @Override
+            public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
+
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
-                accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom()));
+                accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         });
 
@@ -353,7 +367,11 @@ public class DocMetrics {
         return ref[0];
     }
 
-    public static DocMetric parseJQLDocMetricAtom(JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext) {
+    public static DocMetric parseJQLDocMetricAtom(
+            JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext,
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
+            final Map<String, Set<String>> datasetToIntFields)
+    {
         final DocMetric[] ref = new DocMetric[1];
 
         jqlDocMetricAtomContext.enterRule(new JQLBaseListener() {
@@ -426,6 +444,11 @@ public class DocMetrics {
             @Override
             public void enterSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
                 accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom()));
+            }
+
+            @Override
+            public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
         });
 

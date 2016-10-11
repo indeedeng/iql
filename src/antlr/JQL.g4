@@ -242,6 +242,7 @@ legacyDocMetricAtom
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
+    | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
     | identifier # LegacyDocMetricAtomRawField
     ;
 
@@ -256,6 +257,7 @@ jqlDocMetricAtom
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
+    | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # DocMetricAtomLucene
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 
