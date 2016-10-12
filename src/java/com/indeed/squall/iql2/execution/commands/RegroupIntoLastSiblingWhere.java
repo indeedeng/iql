@@ -75,7 +75,7 @@ public class RegroupIntoLastSiblingWhere implements Command {
         }
 
         session.timer.push("build rules");
-        final RegroupCondition theCondition = new RegroupCondition("foo", true, 0, null, false);
+        final RegroupCondition theCondition = new RegroupCondition("fakeField", true, 0, null, false);
         final GroupRemapRule[] rules = new GroupRemapRule[session.numGroups];
         int numRemerged = 0;
         for (int i = 1; i <= session.numGroups; i++) {

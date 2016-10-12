@@ -50,7 +50,7 @@ public class ExplodePerGroup implements Command {
 
             final List<Term> terms = termsWithExplodeOpts.terms;
             if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
-                rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fake", true, 152, null, false)});
+                rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fakeField", true, 152, null, false)});
                 continue;
             }
 
