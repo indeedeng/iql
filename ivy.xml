@@ -28,6 +28,7 @@
         <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
+        <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
 
