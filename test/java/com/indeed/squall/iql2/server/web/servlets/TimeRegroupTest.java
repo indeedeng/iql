@@ -9,7 +9,7 @@ import java.util.List;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.withoutLastColumn;
 
-public class TimeRegroupTest {
+public class TimeRegroupTest extends BasicTest {
     @Test
     public void testTimeRegroup() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

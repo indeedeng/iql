@@ -8,7 +8,7 @@ import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 
-public class PrintfTest {
+public class PrintfTest extends BasicTest {
     @Test
     public void testGetGroupStats() throws Exception {
         // More convoluted than printf(1/3, '%0.2d') to support both IQL1 and IQL2.

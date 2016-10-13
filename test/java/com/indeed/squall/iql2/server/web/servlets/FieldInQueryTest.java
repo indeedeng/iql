@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class FieldInQueryTest {
+public class FieldInQueryTest extends BasicTest {
     private static List<Shard> shardWithStringTerms(String dataset, String field, List<String> terms) {
         final MemoryFlamdex flamdex = new MemoryFlamdex();
         for (final String term : terms) {

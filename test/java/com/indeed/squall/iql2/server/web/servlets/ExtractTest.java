@@ -8,7 +8,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExtractTest {
+public class ExtractTest extends BasicTest {
     private static List<Shard> createDataset() {
         final MemoryFlamdex flamdex = new MemoryFlamdex();
 

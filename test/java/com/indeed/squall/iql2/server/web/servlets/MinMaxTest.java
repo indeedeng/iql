@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MinMaxTest {
+public class MinMaxTest extends BasicTest {
     @Test
     public void testMinMaxBasics() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
