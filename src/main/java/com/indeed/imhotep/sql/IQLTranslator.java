@@ -1208,12 +1208,13 @@ public final class IQLTranslator {
         @Override
         protected Grouping unaryExpression(Op op, Expression operand) {
             switch (op) {
-                case EXPLODE:
-                {
-                    final String fieldName = getStr(operand);
-                    final Field field = getField(fieldName, datasetMetadata);
-                    return new FieldGrouping(field, false, rowLimit);
-                }
+                // Deprecated
+//                case EXPLODE:
+//                {
+//                    final String fieldName = getStr(operand);
+//                    final Field field = getField(fieldName, datasetMetadata);
+//                    return new FieldGrouping(field, false, rowLimit);
+//                }
                 default:
                     throw new UnsupportedOperationException();
             }

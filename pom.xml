@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>iql</artifactId>
-    <version>1.0.57-SNAPSHOT</version>
+    <version>1.0.61-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>IQL Server</name>
@@ -296,12 +296,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.sf.trove4j</groupId>
-            <artifactId>trove4j</artifactId>
-            <version>${gnu-trove.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
             <version>6.2.2</version>
@@ -346,13 +340,12 @@
 
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
-        <imhotep.version>3.1.16</imhotep.version>
+        <imhotep.version>3.1.25</imhotep.version>
         <indeed-util.version>1.0.15</indeed-util.version>
         <ims.version>3.0.0</ims.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.0.2.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
-        <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
         <jackson2.version>2.5.2</jackson2.version>

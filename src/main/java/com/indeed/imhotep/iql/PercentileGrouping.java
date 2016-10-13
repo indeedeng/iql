@@ -22,13 +22,14 @@ import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import com.indeed.imhotep.ez.Stats.Stat;
-import gnu.trove.TIntObjectHashMap;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
@@ -36,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,8 +46,8 @@ public class PercentileGrouping extends Grouping {
     private final Stat countStat;
 
     private final List<Field> fields = Lists.newArrayList();
-    private final List<Double> percentiles = Lists.newArrayList();
-    private final List<Integer> fieldProjectionPositions = Lists.newArrayList();
+    private final DoubleList percentiles = new DoubleArrayList();
+    private final IntList fieldProjectionPositions = new IntArrayList();
 
     public PercentileGrouping(final Stat countStat) {
         this.countStat = countStat;
@@ -60,12 +60,12 @@ public class PercentileGrouping extends Grouping {
     }
 
     @Override
-    public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException("Percentiles must be used as the last group");
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, final long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, final long timeoutTS) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }
@@ -80,7 +80,7 @@ public class PercentileGrouping extends Grouping {
         final int groupCount = session.getNumGroups();
 
         // get values for the normal stats
-        final TIntObjectHashMap<double[]> statsResults = (statCount > 0) ? getGroupStatsValues(session, statRefs, groupCount) : null;
+        final Int2ObjectMap<double[]> statsResults = (statCount > 0) ? getGroupStatsValues(session, statRefs, groupCount) : null;
 
         // combine normal stats with distinct counts
         for (int groupNum = 1; groupNum < groupCount; groupNum++) {
@@ -105,7 +105,7 @@ public class PercentileGrouping extends Grouping {
         return result.iterator();
     }
 
-    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) {
+    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) {
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<Int2LongMap>();
@@ -114,8 +114,8 @@ public class PercentileGrouping extends Grouping {
         }
 
         for (final Field f : uniqueFields) {
-            final List<Double> fieldPercentiles = Lists.newArrayList();
-            final List<Integer> projectionPositions = Lists.newArrayList();
+            final DoubleList fieldPercentiles = new DoubleArrayList();
+            final IntList projectionPositions = new IntArrayList();
 
             for (int i = 0; i < fields.size(); ++i) {
                 if (f.equals(fields.get(i))) {
@@ -153,13 +153,13 @@ public class PercentileGrouping extends Grouping {
         return groupToPositionToStats;
     }
 
-    private static TIntObjectHashMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
+    private static Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = session.getGroupStats(statRefs.get(i));
         }
-        final TIntObjectHashMap<double[]> ret = new TIntObjectHashMap<double[]>(groupCount);
+        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<double[]>(groupCount);
         for (int group = 1; group <= groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {

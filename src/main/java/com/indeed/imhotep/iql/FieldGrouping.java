@@ -23,6 +23,7 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
@@ -97,7 +98,7 @@ public final class FieldGrouping extends Grouping {
         }
     }
 
-    public Map<Integer, GroupKey> regroup(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {
             return groupKeys;
         }
@@ -127,7 +128,7 @@ public final class FieldGrouping extends Grouping {
         }
     }
 
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Map<Integer, GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();  // so no point doing FTGS
         }

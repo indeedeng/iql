@@ -92,7 +92,7 @@ public class ImhotepMetadataCache {
         catch (Exception e) {
             log.error(e);
         }
-        if(disabledFields != null) {
+        if(!Strings.isNullOrEmpty(disabledFields)) {
             for(String field : disabledFields.split(",")) {
                 try {
                     this.disabledFields.add(Pattern.compile(field.trim()));
