@@ -22,7 +22,7 @@ public class UnconditionalAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.regroup(new QueryRemapRule(targetGroup, Query.newTermQuery(new Term("fakeField123", true, 0L, "")), newGroup, newGroup), scope);
+        session.regroup(new QueryRemapRule(targetGroup, Query.newTermQuery(new Term("fakeField", true, 0L, "")), newGroup, newGroup), scope);
     }
 
     @Override
