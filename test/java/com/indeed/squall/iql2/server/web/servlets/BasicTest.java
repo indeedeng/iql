@@ -11,11 +11,14 @@ import org.junit.BeforeClass;
  */
 
 public abstract class BasicTest {
+    private static Level level;
+
     @BeforeClass public static void disbaleVarExporterWarning() {
+        level = Logger.getLogger(VarExporter.class).getLevel();
         Logger.getLogger(VarExporter.class).setLevel(Level.OFF);
     }
 
     @AfterClass public static void enableVarExporter() {
-        Logger.getLogger(VarExporter.class).setLevel(Level.ALL);
+        Logger.getLogger(VarExporter.class).setLevel(level);
     }
 }
