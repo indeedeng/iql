@@ -137,9 +137,12 @@ public final class IQLQuery implements Closeable {
                     " documents exceeds the limit of " + df.format(docCountLimit) + ". Please reduce the time range.");
         }
         selectExecutionStats.numDocs = numDocs;
-
-        if(imhotepSession instanceof HasSessionId && selectExecutionStats != null) {
-            selectExecutionStats.sessionId = ((HasSessionId) imhotepSession).getSessionId();
+        final String imhotepSessionId;
+        if(imhotepSession instanceof HasSessionId) {
+            imhotepSessionId = ((HasSessionId) imhotepSession).getSessionId();
+            selectExecutionStats.sessionId = imhotepSessionId;
+        } else {
+            imhotepSessionId = null;
         }
 
         selectExecutionStats.setPhase("createSessionMillis", timer.pop());
@@ -153,6 +156,8 @@ public final class IQLQuery implements Closeable {
                 out.println(": Beginning IQL Query");
                 out.println("event: totalsteps");
                 out.print("data: " + steps + EVENT_SOURCE_END);
+                out.println("event: sessionid");
+                out.print("data: " + imhotepSessionId + EVENT_SOURCE_END);
                 out.print(": Starting time filter" + EVENT_SOURCE_END);
                 out.flush();
             }
