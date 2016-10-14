@@ -23,7 +23,6 @@ public class TimePeriodRegroup implements Command {
     public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         final long shardStart;
         final long shardEnd;
-        final int numBuckets;
         if (!isRelative) {
             shardStart = session.getEarliestStart();
             final long end = session.getLatestEnd();
@@ -34,15 +33,16 @@ public class TimePeriodRegroup implements Command {
             }
         } else {
             shardStart = session.getFirstStartTimeMill();
-            long longestDistance = session.getLongestDistance();
+            long longestDistance = session.getLongestSessionDistance();
             if (longestDistance % periodMillis != 0) {
                 longestDistance = longestDistance + periodMillis - longestDistance % periodMillis;
             }
             shardEnd = shardStart + longestDistance;
         }
-        numBuckets = (int)((shardEnd - shardStart)/periodMillis);
+
+        final int numBuckets = (int)((shardEnd - shardStart)/periodMillis);
         session.checkGroupLimit(numBuckets * session.numGroups);
-        session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField);
+        session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
         final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format);
         session.assumeDense(groupKeySet);

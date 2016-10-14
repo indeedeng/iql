@@ -303,7 +303,7 @@ public class Session {
                 treeTimer.pop();
             }
             sessions.put(name, new ImhotepSessionInfo(session, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
-            if (i == sessionRequest.size()-1) {
+            if (i == 0) {
                 firstStartTimeMill = startDateTime.getMillis();
             }
         }
@@ -595,7 +595,7 @@ public class Session {
         return firstStartTimeMill;
     }
 
-    public long getLongestDistance() {
+    public long getLongestSessionDistance() {
         long distance = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             distance = Math.max(distance, sessionInfo.endTime.getMillis()-sessionInfo.startTime.getMillis());
@@ -619,13 +619,12 @@ public class Session {
         }));
     }
 
-    public int performTimeRegroup(long start, long end, long unitSize, final Optional<String> fieldOverride) throws ImhotepOutOfMemoryException {
+    public int performTimeRegroup(long start, long end, long unitSize, final Optional<String> fieldOverride, boolean isRelative) throws ImhotepOutOfMemoryException {
         timer.push("performTimeRegroup");
         final int oldNumGroups = this.numGroups;
         // TODO: Parallelize
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             final ImhotepSession session = sessionInfo.session;
-            final long realStart = sessionInfo.startTime.getMillis();
             final String fieldName;
             if (fieldOverride.isPresent()) {
                 fieldName = fieldOverride.get();
@@ -638,7 +637,13 @@ public class Session {
             timer.pop();
 
             timer.push("metricRegroup");
-            session.metricRegroup(0, realStart / 1000, (realStart+end-start) / 1000, unitSize / 1000, true);
+            if (isRelative) {
+                final long realStart = sessionInfo.startTime.getMillis();
+                final long realEnd = sessionInfo.endTime.getMillis();
+                session.metricRegroup(0, realStart / 1000, realEnd / 1000, unitSize / 1000, true);
+            } else {
+                session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
+            }
             timer.pop();
 
             timer.push("popStat");
