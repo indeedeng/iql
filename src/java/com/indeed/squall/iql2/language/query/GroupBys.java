@@ -190,12 +190,7 @@ public class GroupBys {
                     timeField = Optional.absent();
                 }
 
-                final boolean isRelative;
-                if (ctx.groupByTime().isRelative != null) {
-                    isRelative = true;
-                } else {
-                    isRelative = false;
-                }
+                final boolean isRelative = ctx.groupByTime().isRelative != null;
 
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
