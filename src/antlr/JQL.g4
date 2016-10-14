@@ -74,6 +74,7 @@ MIN : 'MIN' ;
 MAX : 'MAX' ;
 PRINTF : 'PRINTF' ;
 EXTRACT : 'EXTRACT' ;
+RELATIVE: 'RELATIVE' ;
 
 Y : 'Y' ;
 
@@ -402,7 +403,7 @@ groupByMetricEnglish [boolean useLegacy]
     ;
 
 groupByTime [boolean useLegacy]
-    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? ')')?
+    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? (isRelative=RELATIVE)? ')')?
     ;
 
 groupByField [boolean useLegacy]
