@@ -21,6 +21,6 @@ public class ExplodeTimeBuckets implements Command {
         final long earliestStart = session.getEarliestStart();
         final long latestEnd = session.getLatestEnd();
         final long bucketSize = (latestEnd - earliestStart) / numBuckets;
-        new TimePeriodRegroup(bucketSize, timeField, timeFormat).execute(session, out);
+        new TimePeriodRegroup(bucketSize, timeField, timeFormat, false).execute(session, out);
     }
 }

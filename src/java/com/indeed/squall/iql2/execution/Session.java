@@ -101,6 +101,8 @@ public class Session {
     public int numGroups = 1;
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
+    private static long firstStartTimeMill;
+
     static {
         MAPPER.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
     }
@@ -232,7 +234,8 @@ public class Session {
             final String start = elem.get("start").textValue();
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
-            final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {});
+            final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
+            });
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardInfo");
@@ -300,6 +303,9 @@ public class Session {
                 treeTimer.pop();
             }
             sessions.put(name, new ImhotepSessionInfo(session, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
+            if (i == sessionRequest.size()-1) {
+                firstStartTimeMill = startDateTime.getMillis();
+            }
         }
     }
 
@@ -585,6 +591,18 @@ public class Session {
         }
     }
 
+    public long getFirstStartTimeMill() {
+        return firstStartTimeMill;
+    }
+
+    public long getLongestDistance() {
+        long distance = 0;
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            distance = Math.max(distance, sessionInfo.endTime.getMillis()-sessionInfo.startTime.getMillis());
+        }
+        return distance;
+    }
+
     public long getLatestEnd() {
         return Ordering.natural().max(Iterables.transform(sessions.values(), new Function<ImhotepSessionInfo, Long>() {
             public Long apply(ImhotepSessionInfo input) {
@@ -607,6 +625,7 @@ public class Session {
         // TODO: Parallelize
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             final ImhotepSession session = sessionInfo.session;
+            final long realStart = sessionInfo.startTime.getMillis();
             final String fieldName;
             if (fieldOverride.isPresent()) {
                 fieldName = fieldOverride.get();
@@ -619,7 +638,7 @@ public class Session {
             timer.pop();
 
             timer.push("metricRegroup");
-            session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
+            session.metricRegroup(0, realStart / 1000, (realStart+end-start) / 1000, unitSize / 1000, true);
             timer.pop();
 
             timer.push("popStat");
@@ -971,7 +990,7 @@ public class Session {
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable  Integer presenceIndex) {
+        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex) {
             final FTGSIterator it = closer.register(session.getFTGSIterator(new String[0], new String[]{field}));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];

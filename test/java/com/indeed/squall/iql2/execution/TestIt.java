@@ -35,7 +35,7 @@ public class TestIt {
             documents.add(Document.builder("organic", new DateTime(2015, 1, 1, i, 0).getMillis()).build());
         }
         final List<Command> commands = new ArrayList<>();
-        commands.add(new TimePeriodRegroup(1000 * 60 * 60 /* 1 h */, Optional.<String>absent(), Optional.<String>absent()));
+        commands.add(new TimePeriodRegroup(1000 * 60 * 60 /* 1 h */, Optional.<String>absent(), Optional.<String>absent(), false));
         TestUtil.testOne(documents, commands, new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0));
     }
 
