@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.withoutLastColumn;
 
 public class TimeRegroupTest extends BasicTest {
@@ -25,4 +26,66 @@ public class TimeRegroupTest extends BasicTest {
         // Remove DISTINCT to allow streaming, rather than regroup.
         testAll(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
     }
+
+    @Test
+    public void testTimeRelativeEqualRange() throws Exception {
+        // count flow: 10, 60, 60, 1, 1, ..., 1
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "1", "10"));
+        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "1", "60"));
+        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "1", "60"));
+        for (int i = 3; i < 12; i++) {
+            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
+        }
+
+        testIQL2(OrganicDataset.create(), expected, "from organic 12h today as o1, organic 24h 12h as o2 group by time(1h relative) select o1.count(), o2.count()");
+    }
+
+    @Test
+    public void testTimeRelativeMultipleEqualRange() throws Exception {
+        // count flow: 10, 60, 60, 1, 1, ..., 1
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "1", "1", "10"));
+        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "1", "1", "60"));
+        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "1", "1", "60"));
+        for (int i = 3; i < 8; i++) {
+            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1", "1"));
+        }
+
+        testIQL2(OrganicDataset.create(), expected, "from organic 8h today as o1, organic 16h 8h as o2, organic 24h 16h as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()");
+    }
+
+    @Test
+    public void testTimeRelativePrevRangeLarger() throws Exception {
+        // count flow: 10, 60, 60, 1, 1, ..., 1
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "1", "10"));
+        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "1", "60"));
+        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "1", "60"));
+        for (int i = 3; i < 11; i++) {
+            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
+        }
+        expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "1", "0"));
+        expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "1", "0"));
+
+        testIQL2(OrganicDataset.create(), expected, "from organic 13h today as o1, organic 24h 13h as o2 group by time(1h relative) select o1.count(), o2.count()");
+    }
+
+    @Test
+    public void testTimeRelativeAfterRangeLarger() throws Exception {
+        // count flow: 10, 60, 60, 1, 1, ..., 1
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "1", "10"));
+        expected.add(ImmutableList.of("[2015-01-01 01:00:00, 2015-01-01 02:00:00)", "1", "60"));
+        expected.add(ImmutableList.of("[2015-01-01 02:00:00, 2015-01-01 03:00:00)", "1", "60"));
+
+        for (int i = 3; i < 11; i++) {
+            expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
+        }
+        expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "0", "1"));
+        expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "0", "1"));
+
+        testIQL2(OrganicDataset.create(), expected, "from organic 11h tod as o1, organic 24h 11h as o2 group by time(1h relative) select o1.count(), o2.count()");
+    }
+
 }

@@ -10,7 +10,7 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
  * @author zheli
  */
 
-public class BasicLuceneFilterTest {
+public class BasicLuceneFilterTest extends BasicTest {
     @Test
     public void testBasicLuceneFilters() throws Exception {
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where lucene(\"TK:a\") select count()");

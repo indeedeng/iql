@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
+import com.indeed.squall.iql2.execution.metrics.aggregate.Log;
 import com.indeed.util.varexport.VarExporter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

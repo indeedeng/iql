@@ -10,7 +10,7 @@ import java.util.List;
  * @author zheli
  */
 
-public class LuceneTest {
+public class LuceneTest extends BasicTest {
 
     @Test
     public void testBasic() throws Exception {
