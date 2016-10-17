@@ -110,7 +110,7 @@ public class EventRegexServlet {
 
             final Automaton automaton = new RegExp(regexp).toAutomaton();
 
-            new TimePeriodRegroup(1000, Optional.<String>absent(), Optional.<String>absent()).execute(session, out);
+            new TimePeriodRegroup(1000, Optional.<String>absent(), Optional.<String>absent(), false).execute(session, out);
 
             final Map<String, Integer> presenceIndexes = new HashMap<>();
             final Map<Integer, Character> indexToChar = new HashMap<>();
