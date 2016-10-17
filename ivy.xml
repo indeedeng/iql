@@ -25,6 +25,7 @@
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
         <dependency org="com.indeed" name="util-io" rev="${indeed-util-io.version}"/>
+        <dependency org="com.indeed" name="util-varexport" rev="${indeed-util-varexport.version}"/>
         <dependency org="com.indeed" name="status-core" rev="${indeed-status-core.version}"/>
         <dependency org="indeed" name="common-util" rev="${common-util.version}"/>
         <dependency org="indeed" name="logging" rev="${logging.version}"/>
