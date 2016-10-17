@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PredicateRegroupTest {
+public class PredicateRegroupTest extends BasicTest {
     @Test
     public void singleDataset() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

@@ -7,7 +7,7 @@ import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 
-public class BasicFilterTest {
+public class BasicFilterTest extends BasicTest {
     @Test
     public void testBasicFilters() throws Exception {
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"a\" select count()");

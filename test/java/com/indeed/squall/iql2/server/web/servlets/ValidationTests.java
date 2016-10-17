@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class ValidationTests {
+public class ValidationTests extends BasicTest {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }

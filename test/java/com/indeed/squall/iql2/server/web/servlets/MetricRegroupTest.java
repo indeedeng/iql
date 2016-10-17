@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MetricRegroupTest {
+public class MetricRegroupTest extends BasicTest {
     @Test
     public void testMetricRegroupSingles() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

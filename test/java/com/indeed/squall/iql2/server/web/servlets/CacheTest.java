@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class CacheTest {
+public class CacheTest extends BasicTest {
     // Unique in the context of 1 day of hourly sharded data in organic yesterday (2015-01-01).
     private final ImmutableList<String> uniqueQueries = ImmutableList.of(
             "from organic yesterday today",

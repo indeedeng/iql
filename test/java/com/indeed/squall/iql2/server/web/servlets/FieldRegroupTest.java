@@ -8,7 +8,7 @@ import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.*;
 
-public class FieldRegroupTest {
+public class FieldRegroupTest extends BasicTest {
     @Test
     public void testBasicGroupBy() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

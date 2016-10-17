@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class QueryServletTestUtils {
+public class QueryServletTestUtils extends BasicTest {
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;

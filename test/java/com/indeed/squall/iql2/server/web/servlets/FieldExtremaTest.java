@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FieldExtremaTest {
+public class FieldExtremaTest extends BasicTest {
     @Test
     public void basicTest() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

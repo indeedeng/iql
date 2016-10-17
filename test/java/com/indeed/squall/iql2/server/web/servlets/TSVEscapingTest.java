@@ -12,7 +12,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TSVEscapingTest {
+public class TSVEscapingTest extends BasicTest {
     private static List<Shard> createDataset() {
         final MemoryFlamdex flamdex = new MemoryFlamdex();
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));

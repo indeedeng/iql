@@ -8,7 +8,7 @@ import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.withoutLastColumn;
 
-public class FieldInTermsTest {
+public class FieldInTermsTest extends BasicTest {
     @Test
     public void testStringFieldInTerms() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

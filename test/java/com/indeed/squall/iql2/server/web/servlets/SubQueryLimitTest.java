@@ -10,7 +10,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SubQueryLimitTest {
+public class SubQueryLimitTest extends BasicTest {
     @Test
     public void testQueryNoLimit() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
