@@ -284,7 +284,8 @@ public class Commands {
                 return new TimePeriodRegroup(
                         command.get("periodMillis").longValue(),
                         Optional.fromNullable(command.get("timeField").textValue()),
-                        Optional.fromNullable(command.get("timeFormat").textValue())
+                        Optional.fromNullable(command.get("timeFormat").textValue()),
+                        command.get("isRelative").booleanValue()
                 );
             }
             case "sampleFields": {
