@@ -190,6 +190,8 @@ public class GroupBys {
                     timeField = Optional.absent();
                 }
 
+                final boolean isRelative = ctx.groupByTime().isRelative != null;
+
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
                     final String format = ctx.groupByTime().timeFormat.getText();
@@ -230,7 +232,7 @@ public class GroupBys {
                     millisSum += coeff * unit.millis;
                 }
 
-                accept(new GroupBy.GroupByTime(millisSum, timeField, timeFormat));
+                accept(new GroupBy.GroupByTime(millisSum, timeField, timeFormat, isRelative));
             }
 
             @Override

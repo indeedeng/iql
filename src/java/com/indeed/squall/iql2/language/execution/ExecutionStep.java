@@ -303,16 +303,18 @@ public interface ExecutionStep {
         private final long periodMillis;
         private final Optional<String> timeField;
         private final Optional<String> timeFormat;
+        private final boolean isRelative;
 
-        public ExplodeTimePeriod(long periodMillis, Optional<String> timeField, Optional<String> timeFormat) {
+        public ExplodeTimePeriod(long periodMillis, Optional<String> timeField, Optional<String> timeFormat, boolean isRelative) {
             this.periodMillis = periodMillis;
             this.timeField = timeField;
             this.timeFormat = timeFormat;
+            this.isRelative = isRelative;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat));
+            return Collections.<Command>singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat, isRelative));
         }
 
         @Override
@@ -326,6 +328,7 @@ public interface ExecutionStep {
                     "periodMillis=" + periodMillis +
                     ", timeField=" + timeField +
                     ", timeFormat=" + timeFormat +
+                    ", isRelative=" + isRelative +
                     '}';
         }
     }

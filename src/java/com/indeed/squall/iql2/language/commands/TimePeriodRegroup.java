@@ -16,20 +16,25 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
     private final long periodMillis;
     private final Optional<String> timeField;
     private final Optional<String> timeFormat;
+    private final boolean isRelative;
 
-    public TimePeriodRegroup(long periodMillis, Optional<String> timeField, Optional<String> timeFormat) {
+    public TimePeriodRegroup(long periodMillis, Optional<String> timeField, Optional<String> timeFormat, boolean isRelative) {
         this.periodMillis = periodMillis;
         this.timeField = timeField;
         this.timeFormat = timeFormat;
+        this.isRelative = isRelative;
     }
+
 
     @Override
     public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeStringField("command", "timePeriodRegroup");
+        gen.writeBooleanField("isRelative", isRelative);
         gen.writeNumberField("periodMillis", periodMillis);
         gen.writeStringField("timeField", timeField.orNull());
         gen.writeStringField("timeFormat", timeFormat.orNull());
+
         gen.writeEndObject();
     }
 
@@ -56,12 +61,13 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
         TimePeriodRegroup that = (TimePeriodRegroup) o;
         return Objects.equals(periodMillis, that.periodMillis) &&
                 Objects.equals(timeField, that.timeField) &&
-                Objects.equals(timeFormat, that.timeFormat);
+                Objects.equals(timeFormat, that.timeFormat) &&
+                Objects.equals(isRelative, that.isRelative);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(periodMillis, timeField, timeFormat);
+        return Objects.hash(periodMillis, timeField, timeFormat, isRelative);
     }
 
     @Override
@@ -70,6 +76,8 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
                 "periodMillis=" + periodMillis +
                 ", timeField=" + timeField +
                 ", timeFormat=" + timeFormat +
+                ", isRelative=" + isRelative +
                 '}';
     }
+
 }

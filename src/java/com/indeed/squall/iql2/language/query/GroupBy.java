@@ -148,11 +148,13 @@ public abstract class GroupBy extends AbstractPositional {
         public final long periodMillis;
         public final Optional<Positioned<String>> field;
         public final Optional<String> format;
+        public final boolean isRelative;
 
-        public GroupByTime(long periodMillis, Optional<Positioned<String>> field, Optional<String> format) {
+        public GroupByTime(long periodMillis, Optional<Positioned<String>> field, Optional<String> format, boolean isRelative) {
             this.periodMillis = periodMillis;
             this.field = field;
             this.format = format;
+            this.isRelative = isRelative;
         }
 
         @Override
@@ -176,7 +178,7 @@ public abstract class GroupBy extends AbstractPositional {
                 public String apply(Positioned<String> stringPositioned) {
                     return stringPositioned.unwrap();
                 }
-            }), format);
+            }), format, isRelative);
         }
 
         @Override
@@ -190,15 +192,26 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
-            GroupByTime that = (GroupByTime) o;
+            final GroupByTime that = (GroupByTime) o;
 
-            if (periodMillis != that.periodMillis) return false;
-            if (field != null ? !field.equals(that.field) : that.field != null) return false;
-            return !(format != null ? !format.equals(that.format) : that.format != null);
+            if (periodMillis != that.periodMillis) {
+                return false;
+            }
+            if (isRelative != that.isRelative) {
+                return false;
+            }
+            if (field != null ? !field.equals(that.field) : that.field != null) {
+                return false;
+            }
+            return format != null ? format.equals(that.format) : that.format == null;
 
         }
 
@@ -207,6 +220,7 @@ public abstract class GroupBy extends AbstractPositional {
             int result = (int) (periodMillis ^ (periodMillis >>> 32));
             result = 31 * result + (field != null ? field.hashCode() : 0);
             result = 31 * result + (format != null ? format.hashCode() : 0);
+            result = 31 * result + (isRelative ? 1 : 0);
             return result;
         }
 
@@ -216,6 +230,7 @@ public abstract class GroupBy extends AbstractPositional {
                     "periodMillis=" + periodMillis +
                     ", field=" + field +
                     ", format=" + format +
+                    ", isRelative=" + isRelative +
                     '}';
         }
     }
