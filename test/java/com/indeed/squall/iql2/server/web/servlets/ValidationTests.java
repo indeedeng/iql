@@ -15,14 +15,12 @@ import java.util.Collections;
 import java.util.List;
 
 public class ValidationTests extends BasicTest {
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
+    private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
 
     private List<Shard> trivialOrganic() {
         final MemoryFlamdex flamdex = new MemoryFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
-        doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0).getMillis() / 1000);
+        doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, TIME_ZONE).getMillis() / 1000);
         doc.addIntTerm("clicked", 1);
         doc.addIntTerm("isOrganic", 1);
         flamdex.addDocument(doc);
@@ -34,7 +32,7 @@ public class ValidationTests extends BasicTest {
     private List<Shard> trivialSponsored() {
         final MemoryFlamdex flamdex = new MemoryFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
-        doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0).getMillis() / 1000);
+        doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, TIME_ZONE).getMillis() / 1000);
         doc.addIntTerm("clicked", 1);
         doc.addIntTerm("isOrganic", 0);
         flamdex.addDocument(doc);
