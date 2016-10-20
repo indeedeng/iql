@@ -344,7 +344,6 @@ legacyDocFilter
     | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
-    | singlyScopedField '=' singlyScopedField # LegacyFieldEqual
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' field=identifier ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
     | SAMPLE '(' field=identifier ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # LegacyDocSample
