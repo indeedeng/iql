@@ -238,7 +238,9 @@ jqlSyntacticallyAtomicDocMetricAtom
     ;
 
 legacyDocMetricAtom
-    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
+    : singlyScopedField '=' singlyScopedField # LegacyDocMetricAtomFieldEqual
+    | singlyScopedField '!=' singlyScopedField # LegacyDocMetricAtomNotFieldEqual
+    | field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
     | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
     | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
@@ -252,7 +254,9 @@ legacyDocMetricAtom
     ;
 
 jqlDocMetricAtom
-    : singlyScopedField '=' term=STRING_LITERAL # DocMetricAtomHasString
+    : singlyScopedField '=' singlyScopedField # DocMetricAtomFieldEqual
+    | singlyScopedField '!=' singlyScopedField # DocMetricAtomNotFieldEqual
+    | singlyScopedField '=' term=STRING_LITERAL # DocMetricAtomHasString
     | HASSTR '(' singlyScopedField ',' term=STRING_LITERAL ')' # DocMetricAtomHasString
     | singlyScopedField '!=' term=STRING_LITERAL # DocMetricAtomHasntString
     | singlyScopedField '=' term=integer # DocMetricAtomHasInt
@@ -333,11 +337,14 @@ docFilter [boolean useLegacy]
 legacyDocFilter
     : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
     | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
+    | singlyScopedField '=' singlyScopedField # LegacyDocFieldEqual
+    | singlyScopedField '!=' singlyScopedField # LegacyDocNotFieldEqual
     | field=identifier '=' legacyTermVal # LegacyDocFieldIs
     | (negate='-')? field=identifier ':' legacyTermVal # LegacyDocLuceneFieldIs
     | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt
     | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
+    | singlyScopedField '=' singlyScopedField # LegacyFieldEqual
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' field=identifier ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
     | SAMPLE '(' field=identifier ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # LegacyDocSample
@@ -353,6 +360,8 @@ legacyDocFilter
 jqlDocFilter
     : singlyScopedField '=~' STRING_LITERAL # DocRegex
     | singlyScopedField '!=~' STRING_LITERAL # DocNotRegex
+    | singlyScopedField '=' singlyScopedField # DocFieldEqual
+    | singlyScopedField '!=' singlyScopedField # DocNotFieldEqual
     | singlyScopedField '=' jqlTermVal # DocFieldIs
     | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
     | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn

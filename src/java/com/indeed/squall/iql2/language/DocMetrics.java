@@ -204,6 +204,16 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
+
+            @Override
+            public void enterLegacyDocMetricAtomFieldEqual(final JQLParser.LegacyDocMetricAtomFieldEqualContext ctx) {
+                accept(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomNotFieldEqual(final JQLParser.LegacyDocMetricAtomNotFieldEqualContext ctx) {
+                accept(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
+            }
         });
 
         if (ref[0] == null) {
@@ -360,11 +370,6 @@ public class DocMetrics {
                 accept(resultMetric);
             }
 
-            @Override
-            public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
-            }
-
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
                 accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
@@ -469,6 +474,16 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
+
+            @Override
+            public void enterDocMetricAtomFieldEqual(final JQLParser.DocMetricAtomFieldEqualContext ctx) {
+                accept(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)));
+            }
+
+            @Override
+            public void enterDocMetricAtomNotFieldEqual(final JQLParser.DocMetricAtomNotFieldEqualContext ctx) {
+                accept(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
             }
         });
 

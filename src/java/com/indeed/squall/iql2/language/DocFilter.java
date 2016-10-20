@@ -71,6 +71,8 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(StringFieldIn stringFieldIn) throws E;
         T visit(IntFieldIn intFieldIn) throws E;
         T visit(ExplainFieldIn explainFieldIn) throws E;
+        T visit(FieldEqual equal) throws E;
+        T visit(NotFieldEqual notFieldEqual) throws E;
     }
 
     public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
@@ -1220,6 +1222,139 @@ public abstract class DocFilter extends AbstractPositional {
                     ", regex='" + regex + '\'' +
                     '}';
         }
+    }
+
+    public static class FieldEqual extends DocFilter {
+        public final Positioned<String> field1;
+        public final Positioned<String> field2;
+
+        public FieldEqual(Positioned<String> field1, Positioned<String> field2) {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.FieldEqualMetric(field1, field2);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldEqual{" +
+                    "field1=" + field1 +
+                    ", field2=" + field2 +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final FieldEqual that = (FieldEqual) o;
+            return com.google.common.base.Objects.equal(field1, that.field1) &&
+                    com.google.common.base.Objects.equal(field2, that.field2);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field1, field2);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
+            }
+            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
+            }
+        }
+    }
+
+    public static class NotFieldEqual extends DocFilter {
+        public final Positioned<String> field1;
+        public final Positioned<String> field2;
+
+        public NotFieldEqual(Positioned<String> field1, Positioned<String> field2) {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new Not(new FieldEqual(field1, field2)).asZeroOneMetric(dataset);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new Not(new FieldEqual(field1, field2)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
+            }
+            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "NotFieldEqual{" +
+                    "field1=" + field1 +
+                    ", field2=" + field2 +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final NotFieldEqual that = (NotFieldEqual) o;
+            return com.google.common.base.Objects.equal(field1, that.field1) &&
+                    com.google.common.base.Objects.equal(field2, that.field2);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field1, field2);
+        }
+
     }
 
     public static class Qualified extends DocFilter {

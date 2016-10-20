@@ -56,6 +56,7 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(Qualified qualified) throws E;
         T visit(Extract extract) throws E;
         T visit(Lucene lucene) throws E;
+        T visit(FieldEqualMetric equalMetric) throws E;
     }
 
     public abstract DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
@@ -811,6 +812,69 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    public static class FieldEqualMetric extends DocMetric {
+        public final Positioned<String> field1;
+        public final Positioned<String> field2;
+
+        public FieldEqualMetric(Positioned<String> field1, Positioned<String> field2) {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            return Collections.singletonList("fieldequal " + field1.unwrap() + ":" + field2.unwrap());
+        }
+
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
+            }
+            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
+            }
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field1, field2);
+        }
+
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final FieldEqualMetric that = (FieldEqualMetric) o;
+            return com.google.common.base.Objects.equal(field1, that.field1) &&
+                    com.google.common.base.Objects.equal(field2, that.field2);
+        }
+
+        @Override
+        public String toString() {
+            return "FieldEqualMetric{" +
+                    "field1=" + field1 +
+                    ", field2=" + field2 +
+                    '}';
+        }
+
+    }
+
     public static class FloatScale extends DocMetric {
         public final Positioned<String> field;
         public final double mult;
@@ -924,7 +988,6 @@ public abstract class DocMetric extends AbstractPositional {
             this.field = field;
         }
 
-
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
             return g.apply(this);
@@ -972,7 +1035,6 @@ public abstract class DocMetric extends AbstractPositional {
         public HasStringField(Positioned<String> field) {
             this.field = field;
         }
-
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1304,7 +1366,6 @@ public abstract class DocMetric extends AbstractPositional {
         public final String query;
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
         public final Map<String, Set<String>> datasetToIntFields;
-
 
         public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
             this.query = query;

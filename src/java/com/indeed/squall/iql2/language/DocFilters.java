@@ -173,6 +173,21 @@ public class DocFilters {
             }
 
             @Override
+            public void enterLegacyDocFieldEqual(final JQLParser.LegacyDocFieldEqualContext ctx) {
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                accept(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field));
+            }
+
+            @Override
+            public void enterLegacyDocNotFieldEqual(final JQLParser.LegacyDocNotFieldEqualContext ctx) {
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                accept(new DocFilter.NotFieldEqual(scopedField1.field, scopedField2.field));
+
+            }
+
+            @Override
             public void enterLegacyDocNotRegex(JQLParser.LegacyDocNotRegexContext ctx) {
                 accept(new DocFilter.NotRegex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
@@ -290,6 +305,20 @@ public class DocFilters {
             public void enterDocRegex(JQLParser.DocRegexContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(scopedField.wrap(new DocFilter.Regex(scopedField.field, ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+            }
+
+            @Override
+            public void enterDocFieldEqual(final JQLParser.DocFieldEqualContext ctx) {
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                accept(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field));
+            }
+
+            @Override
+            public void enterDocNotFieldEqual(final JQLParser.DocNotFieldEqualContext ctx) {
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                accept(new DocFilter.NotFieldEqual(scopedField1.field, scopedField2.field));
             }
 
             @Override
