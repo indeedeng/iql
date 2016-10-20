@@ -6,7 +6,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Chars;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -791,6 +790,12 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(DocFilter.FieldEqual fieldEqual) {
+                sb.append(getText(fieldEqual.field1) + "=" + getText(fieldEqual.field2));
+                return null;
+            }
+
+            @Override
             public Void visit(DocFilter.Qualified qualified) {
                 throw new UnsupportedOperationException("Can't pretty-print qualified things yet: " + qualified);
             }
@@ -1087,6 +1092,12 @@ public class PrettyPrint {
                 sb.append("LUCENE(\"")
                         .append(stringEscape(lucene.query))
                         .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.FieldEqualMetric equalMetric) throws RuntimeException {
+                sb.append(getText(equalMetric.field1)).append("=").append(getText(equalMetric.field2));
                 return null;
             }
         });
