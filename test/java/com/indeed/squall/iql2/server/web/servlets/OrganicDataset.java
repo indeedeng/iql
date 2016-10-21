@@ -49,7 +49,7 @@ class OrganicDataset {
         // total oji = 10 * 60 = 600
         // total ojc = 1 * 60 = 60
         // distinct(ctk) = { "d" }, || = 1
-        // count(ctk="d") = 1
+        // count(ctk="d") = 60
         {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             for (int i = 0; i < 60; i++) {
@@ -64,7 +64,7 @@ class OrganicDataset {
         // total oji = 10 * 60 = 600
         // total ojc = 3 * 60 = 180
         // distinct(ctk) = { "d" }, || = 1
-        // count(ctk="d") = 1
+        // count(ctk="d") = 60
         {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             for (int i = 0; i < 60; i++) {

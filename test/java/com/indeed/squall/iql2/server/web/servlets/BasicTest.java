@@ -4,6 +4,7 @@ import com.indeed.squall.iql2.execution.metrics.aggregate.Log;
 import com.indeed.util.varexport.VarExporter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTimeZone;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -13,6 +14,7 @@ import org.junit.Ignore;
  */
 @Ignore
 public abstract class BasicTest {
+    public static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
     private static Level level;
 
     @BeforeClass public static void disbaleVarExporterWarning() {
