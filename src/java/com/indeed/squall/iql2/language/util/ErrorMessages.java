@@ -16,4 +16,8 @@ public class ErrorMessages {
     public static String missingDataset(String dataset) {
         return "Expected dataset \"" + dataset + "\" does not exist";
     }
+
+    public static String scopeMismatch(String scope1, String scope2) {
+        return String.format("scope mismatches between equality fields [%s != %s]", scope1, scope2);
+    }
 }

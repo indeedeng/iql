@@ -1,8 +1,11 @@
 package com.indeed.squall.iql2.language.util;
 
+
 import com.google.common.base.Throwables;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.indeed.common.util.StringUtils;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.RegExp;
@@ -98,6 +101,19 @@ public class ValidationUtil {
     public static void validateDataset(String dataset, DatasetsFields datasetsFields, Validator validator) {
         if (!datasetsFields.datasets().contains(dataset)) {
             validator.error(ErrorMessages.missingDataset(dataset));
+        }
+    }
+
+    public static void validateSameScopeThrowException(List<String>... scopes) {
+        List<String> sc = null;
+        for (List<String> scope : scopes) {
+            if (sc == null) {
+                sc = scope;
+            } else {
+                if (!Objects.equal(sc, scope)) {
+                    throw new IllegalArgumentException(ErrorMessages.scopeMismatch(StringUtils.join(sc, "."), StringUtils.join(scope, ".")));
+                }
+            }
         }
     }
 

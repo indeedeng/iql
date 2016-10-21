@@ -4,9 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.actions.IntOrAction;
@@ -22,15 +20,9 @@ import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.KeywordAnalyzer;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.search.Query;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -72,7 +64,7 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(IntFieldIn intFieldIn) throws E;
         T visit(ExplainFieldIn explainFieldIn) throws E;
         T visit(FieldEqual equal) throws E;
-        T visit(NotFieldEqual notFieldEqual) throws E;
+        T visit(FieldNotEqual fieldNotEqual) throws E;
     }
 
     public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
@@ -1249,6 +1241,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
+            }
+            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
+                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
+            }
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1279,22 +1281,13 @@ public abstract class DocFilter extends AbstractPositional {
             return com.google.common.base.Objects.hashCode(field1, field2);
         }
 
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
-                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
-            }
-            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
-                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
-            }
-        }
     }
 
-    public static class NotFieldEqual extends DocFilter {
+    public static class FieldNotEqual extends DocFilter {
         public final Positioned<String> field1;
         public final Positioned<String> field2;
 
-        public NotFieldEqual(Positioned<String> field1, Positioned<String> field2) {
+        public FieldNotEqual(Positioned<String> field1, Positioned<String> field2) {
             this.field1 = field1;
             this.field2 = field2;
         }
@@ -1331,7 +1324,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public String toString() {
-            return "NotFieldEqual{" +
+            return "FieldNotEqual{" +
                     "field1=" + field1 +
                     ", field2=" + field2 +
                     '}';
@@ -1345,7 +1338,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final NotFieldEqual that = (NotFieldEqual) o;
+            final FieldNotEqual that = (FieldNotEqual) o;
             return com.google.common.base.Objects.equal(field1, that.field1) &&
                     com.google.common.base.Objects.equal(field2, that.field2);
         }
@@ -1401,7 +1394,6 @@ public abstract class DocFilter extends AbstractPositional {
             if (scope.contains(dataset)) {
                 filter.validate(dataset, datasetsFields, validator);
             }
-            ValidationUtil.validateScope(scope, datasetsFields, validator);
         }
 
         @Override

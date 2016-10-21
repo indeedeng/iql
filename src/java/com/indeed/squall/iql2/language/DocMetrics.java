@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.language;
 
-import com.google.common.collect.Lists;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -207,12 +207,18 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomFieldEqual(final JQLParser.LegacyDocMetricAtomFieldEqualContext ctx) {
-                accept(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)));
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
             }
 
             @Override
             public void enterLegacyDocMetricAtomNotFieldEqual(final JQLParser.LegacyDocMetricAtomNotFieldEqualContext ctx) {
-                accept(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)))));
             }
         });
 
@@ -478,12 +484,18 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomFieldEqual(final JQLParser.DocMetricAtomFieldEqualContext ctx) {
-                accept(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)));
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
             }
 
             @Override
             public void enterDocMetricAtomNotFieldEqual(final JQLParser.DocMetricAtomNotFieldEqualContext ctx) {
-                accept(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
+                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
+                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)))));
             }
         });
 

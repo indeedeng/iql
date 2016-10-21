@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.*;
@@ -176,14 +177,16 @@ public class DocFilters {
             public void enterLegacyDocFieldEqual(final JQLParser.LegacyDocFieldEqualContext ctx) {
                 final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
                 final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                accept(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field)));
             }
 
             @Override
             public void enterLegacyDocNotFieldEqual(final JQLParser.LegacyDocNotFieldEqualContext ctx) {
                 final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
                 final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                accept(new DocFilter.NotFieldEqual(scopedField1.field, scopedField2.field));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocFilter.FieldNotEqual(scopedField1.field, scopedField2.field)));
 
             }
 
@@ -311,14 +314,16 @@ public class DocFilters {
             public void enterDocFieldEqual(final JQLParser.DocFieldEqualContext ctx) {
                 final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
                 final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                accept(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field)));
             }
 
             @Override
             public void enterDocNotFieldEqual(final JQLParser.DocNotFieldEqualContext ctx) {
                 final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
                 final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                accept(new DocFilter.NotFieldEqual(scopedField1.field, scopedField2.field));
+                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
+                accept(scopedField1.wrap(new DocFilter.FieldNotEqual(scopedField1.field, scopedField2.field)));
             }
 
             @Override

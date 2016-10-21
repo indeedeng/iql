@@ -3,9 +3,7 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
-import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
@@ -828,7 +826,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         protected List<String> getPushes(String dataset) {
-            return Collections.singletonList("fieldequal " + field1.unwrap() + ":" + field2.unwrap());
+            return Collections.singletonList("fieldequal " + field1.unwrap() + "=" + field2.unwrap());
         }
 
 
