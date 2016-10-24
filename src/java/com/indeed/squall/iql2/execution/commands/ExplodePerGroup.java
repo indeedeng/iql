@@ -92,7 +92,7 @@ public class ExplodePerGroup implements Command {
 
         session.regroup(rules, true);
 
-        session.numGroups = Math.max(nextGroup - 1, 1);
+        session.numGroups = nextGroup - 1;
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
         session.currentDepth += 1;
 

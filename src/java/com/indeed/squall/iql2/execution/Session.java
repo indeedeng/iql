@@ -172,6 +172,9 @@ public class Session {
                         }
                     });
                 }
+                if (session.numGroups == 0) {
+                    break;
+                }
             }
 
             long tempFileBytesWritten = 0L;
