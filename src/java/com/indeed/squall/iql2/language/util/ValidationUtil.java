@@ -104,16 +104,9 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateSameScopeThrowException(List<String>... scopes) {
-        List<String> sc = null;
-        for (List<String> scope : scopes) {
-            if (sc == null) {
-                sc = scope;
-            } else {
-                if (!Objects.equal(sc, scope)) {
-                    throw new IllegalArgumentException(ErrorMessages.scopeMismatch(StringUtils.join(sc, "."), StringUtils.join(scope, ".")));
-                }
-            }
+    public static void validateSameScopeThrowException(List<String> scope1, List<String> scope2) {
+        if (!Objects.equal(scope1, scope2)) {
+            throw new IllegalArgumentException(ErrorMessages.scopeMismatch(StringUtils.join(scope1, "."), StringUtils.join(scope2, ".")));
         }
     }
 
