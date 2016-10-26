@@ -9,7 +9,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -21,13 +20,10 @@ import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.util.time.WallClock;
-import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
-import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.execution.FieldDescriptor;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
@@ -40,13 +36,11 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
-import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.util.core.Pair;
@@ -272,54 +266,6 @@ public class SelectQueryExecution {
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
     }
 
-    private DatasetsFields getDatasetsFields(List<Dataset> relevantDatasets, Map<String, String> nameToUppercaseDataset) {
-        final Set<String> relevantUpperCaseDatasets = new HashSet<>();
-        for (final Dataset dataset : relevantDatasets) {
-            relevantUpperCaseDatasets.add(dataset.dataset.unwrap().toUpperCase());
-        }
-
-        final Map<String, String> datasetUpperCaseToActual = new HashMap<>();
-        for (final String dataset : Session.getDatasets(imhotepClient)) {
-            final String normalized = dataset.toUpperCase();
-            if (!relevantUpperCaseDatasets.contains(normalized)) {
-                continue;
-            }
-            if (datasetUpperCaseToActual.containsKey(normalized)) {
-                throw new IllegalStateException("Multiple datasets with same uppercase name!");
-            }
-            datasetUpperCaseToActual.put(normalized, dataset);
-        }
-
-        final DatasetsFields.Builder builder = DatasetsFields.builder();
-        for (final Map.Entry<String, String> entry : nameToUppercaseDataset.entrySet()) {
-            final String dataset = datasetUpperCaseToActual.get(entry.getValue());
-
-            final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
-            final DatasetDimensions dimension = dimensions.get(dataset);
-            final Set<String> intFields = datasetToIntFields.get(entry.getValue());
-
-            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
-
-            final String name = entry.getKey().toUpperCase();
-            for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {
-                switch (fieldDescriptor.getType()) {
-                    case "Integer":
-                        builder.addIntField(name, fieldDescriptor.getName().toUpperCase());
-                        break;
-                    case "String":
-                        builder.addStringField(name, fieldDescriptor.getName().toUpperCase());
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Invalid FieldDescriptor type: " + fieldDescriptor.getType());
-                }
-            }
-
-            builder.addIntField(name, "count()");
-        }
-
-        return builder.build();
-    }
-
     // TODO: These parameters are nuts
     private SelectExecutionInformation executeSelect(
             final QueryInfo queryInfo,
@@ -457,38 +403,22 @@ public class SelectQueryExecution {
             final List<Command> commands = Queries.queryCommands(query);
             timer.pop();
 
-            timer.push("validate commands");
-            final List<String> errors = new ArrayList<>();
-            final List<String> warnings = new ArrayList<>();
-
-            final Validator validator = new Validator() {
-                @Override
-                public void error(String error) {
-                    errors.add(error);
-                }
-
-                @Override
-                public void warn(String warn) {
-                    warnings.add(warn);
-                }
-            };
-
-            final DatasetsFields datasetsFields = addAliasedFields(query.datasets, getDatasetsFields(query.datasets, query.nameToIndex()));
             if (!skipValidation) {
-                for (final Command command : commands) {
-                    command.validate(datasetsFields, validator);
+                timer.push("validate commands");
+                final Set<String> errors = new HashSet<>();
+                final Set<String> warnings = new HashSet<>();
+                CommandValidator.validate(commands, imhotepClient, query, dimensions, datasetToIntFields, errors, warnings);
+
+                if (errors.size() != 0) {
+                    throw new IllegalArgumentException("Errors found when validating query: " + errors);
                 }
+                if (warnings.size() != 0) {
+                    for (String warning : warnings) {
+                        warn.accept(warning);
+                    }
+                }
+                timer.pop();
             }
-
-            for (final String warning : warnings) {
-                warn.accept(warning);
-            }
-
-            if (errors.size() > 0) {
-                throw new IllegalArgumentException("Errors found when validating query: " + errors);
-            }
-
-            timer.pop();
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
@@ -644,31 +574,6 @@ public class SelectQueryExecution {
         timer.pop();
 
         return new ComputeCacheKey(datasetToChosenShards, queryHash, cacheFileName);
-    }
-
-    private static DatasetsFields addAliasedFields(List<Dataset> datasets, DatasetsFields datasetsFields) {
-        final Map<String, Dataset> aliasToDataset = Maps.newHashMap();
-        for (final Dataset dataset : datasets) {
-            aliasToDataset.put(dataset.alias.or(dataset.dataset).unwrap(), dataset);
-        }
-
-        final DatasetsFields.Builder builder = DatasetsFields.builderFrom(datasetsFields);
-        for (final String dataset : datasetsFields.datasets()) {
-            final ImmutableSet<String> intFields = datasetsFields.getIntFields(dataset);
-            final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
-            final ImmutableMap<Positioned<String>, Positioned<String>> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
-            for (final Map.Entry<Positioned<String>, Positioned<String>> entry : aliasToActual.entrySet()) {
-                if (intFields.contains(entry.getValue().unwrap().toUpperCase())) {
-                    builder.addIntField(dataset, entry.getKey().unwrap().toUpperCase());
-                } else if (stringFields.contains(entry.getValue().unwrap().toUpperCase())) {
-                    builder.addStringField(dataset, entry.getKey().unwrap().toUpperCase());
-                } else {
-                    throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
-                }
-            }
-        }
-
-        return builder.build();
     }
 
     private static void sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit, QueryCache queryCache) throws IOException {

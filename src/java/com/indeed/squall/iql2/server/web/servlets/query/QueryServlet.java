@@ -193,7 +193,17 @@ public class QueryServlet {
             } else if (query.trim().toLowerCase().equals("show datasets")) {
                 processShowDatasets(response, contentType);
                 queryInfo.statementType = "show";
-            } else {
+            } else if (query.trim().toLowerCase().startsWith("explain ")) {
+                queryInfo.statementType = "explain";
+
+                final boolean isJSON = contentType.contains("application/json");
+                if (isJSON) {
+                    response.setHeader("Content-Type", "application/json");
+                }
+                final String selectQuery = query.trim().substring("explain ".length());
+                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), selectQuery, version, isJSON, clock);
+                explainQueryExecution.processExplain();
+            }  else {
                 final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
                 final Integer groupLimit;
                 if (request.getParameter("groupLimit") != null) {

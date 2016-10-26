@@ -165,6 +165,24 @@ public class QueryServletTestUtils extends BasicTest {
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
     }
 
+
+    static void runIQL2(List<Shard> shards, String query) throws Exception {
+        final Options options = Options.create();
+        runQuery(shards, query, LanguageVersion.IQL2, false, options);
+        runQuery(shards, query, LanguageVersion.IQL2, true, options);
+    }
+
+    static void runIQL1(List<Shard> shards, String query) throws Exception {
+        final Options options = Options.create();
+        runQuery(shards, query, LanguageVersion.IQL1, false, options);
+        runQuery(shards, query, LanguageVersion.IQL1, true, options);
+    }
+
+    static void runAll(List<Shard> shards, String query) throws Exception {
+        runIQL1(shards, query);
+        runIQL2(shards, query);
+    }
+
     static void testAll(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
         testAll(shards, expected, query, Options.create());
     }

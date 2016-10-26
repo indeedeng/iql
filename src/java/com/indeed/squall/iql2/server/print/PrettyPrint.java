@@ -825,6 +825,11 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final DocFilter.ExplainFieldIn explainFieldIn) throws RuntimeException {
+                throw new UnsupportedOperationException("Can't pretty-print ExplainFieldIn things: " + explainFieldIn);
+            }
+
+            @Override
             public Void visit(DocFilter.StringFieldIn stringFieldIn) {
                 sb.append(getText(stringFieldIn.field)).append(" IN (");
                 final List<String> sortedTerms = Lists.newArrayList(stringFieldIn.terms);
