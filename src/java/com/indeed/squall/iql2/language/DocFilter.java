@@ -69,8 +69,6 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(Never never) throws E;
         T visit(StringFieldIn stringFieldIn) throws E;
         T visit(IntFieldIn intFieldIn) throws E;
-        T visit(FieldEqual equal) throws E;
-        T visit(FieldNotEqual fieldNotEqual) throws E;
         T visit(ExplainFieldIn explainFieldIn) throws E;
     }
 
