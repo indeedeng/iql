@@ -299,7 +299,9 @@ public class Session {
             final String timeField = isRamsesIndex ? "time" : "unixtime";
             if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {
                 treeTimer.push("regroup time range");
-                session.regroup(new QueryRemapRule(1, Query.newRangeQuery(timeField, startDateTime.getMillis() / 1000, endDateTime.getMillis() / 1000, false), 0, 1));
+                session.pushStat(timeField);
+                session.metricFilter(0, (int) (startDateTime.getMillis() / 1000), (int)((endDateTime.getMillis() - 1) / 1000), false);
+                session.popStat();
                 treeTimer.pop();
             }
             sessions.put(name, new ImhotepSessionInfo(session, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
