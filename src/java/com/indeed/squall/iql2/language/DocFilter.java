@@ -37,6 +37,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
@@ -1655,9 +1656,13 @@ public abstract class DocFilter extends AbstractPositional {
 
     public static class ExplainFieldIn extends DocFilter {
         public final com.indeed.squall.iql2.language.query.Query query;
+        private final ScopedField field;
+        private final boolean isNegated;
 
-        public ExplainFieldIn(final com.indeed.squall.iql2.language.query.Query query) {
+        public ExplainFieldIn(final com.indeed.squall.iql2.language.query.Query query, ScopedField field, boolean isNegated) {
             this.query = query;
+            this.field = field;
+            this.isNegated = isNegated;
         }
 
         @Override
@@ -1672,7 +1677,14 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new ArrayList<>();
+            final HashSet<String> fakeTerms = new HashSet<>();
+            fakeTerms.add("fakeTerm");
+            if (isNegated) {
+                int tmp = positive;
+                positive = negative;
+                negative = tmp;
+            }
+            return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field.field.unwrap(), fakeTerms, target, positive, negative));
         }
 
         @Override
@@ -1688,6 +1700,7 @@ public abstract class DocFilter extends AbstractPositional {
         public String toString() {
             return "ExplainFieldIn{" +
                     "query=" + query +
+                    ", field=" + field +
                     '}';
         }
     }
