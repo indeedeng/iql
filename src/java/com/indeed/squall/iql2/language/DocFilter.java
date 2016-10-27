@@ -69,6 +69,9 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(Never never) throws E;
         T visit(StringFieldIn stringFieldIn) throws E;
         T visit(IntFieldIn intFieldIn) throws E;
+        T visit(FieldEqual equal) throws E;
+        T visit(FieldNotEqual fieldNotEqual) throws E;
+        T visit(ExplainFieldIn explainFieldIn) throws E;
     }
 
     public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
@@ -1651,4 +1654,44 @@ public abstract class DocFilter extends AbstractPositional {
                     '}';
         }
     }
+
+    public static class ExplainFieldIn extends DocFilter {
+        public final com.indeed.squall.iql2.language.query.Query query;
+
+        public ExplainFieldIn(final com.indeed.squall.iql2.language.query.Query query) {
+            this.query = query;
+        }
+
+        @Override
+        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(String dataset) {
+            return new DocMetric.Constant(1);
+        }
+
+        @Override
+        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+        }
+
+        @Override
+        public String toString() {
+            return "ExplainFieldIn{" +
+                    "query=" + query +
+                    '}';
+        }
+    }
+
 }
