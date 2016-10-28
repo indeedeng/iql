@@ -140,7 +140,7 @@ public class Session {
             final WallClock clock,
             final String username
     ) throws ImhotepOutOfMemoryException, IOException {
-        final Map<String, ImhotepSessionInfo> sessions = Maps.newHashMap();
+        final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
         final Integer groupLimit;
         if (sessionRequest.has("groupLimit")) {
