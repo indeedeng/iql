@@ -45,7 +45,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,13 +52,14 @@ import java.util.Set;
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
 
-    public static List<Map<String, String>> createDatasetMap(Query query) {
+    public static List<Map<String, String>> createDatasetMap(CharStream inputStream, Query query) {
         final List<Map<String, String>> result = new ArrayList<>();
         final ObjectMapper objectMapper = new ObjectMapper();
         for (final Dataset dataset : query.datasets) {
             final Map<String, String> m = new HashMap<>();
             m.put("dataset", dataset.dataset.unwrap());
             m.put("start", dataset.startInclusive.unwrap().toString());
+            m.put("displayName", getRawInput(inputStream, dataset.getDisplayName()));
             m.put("end", dataset.endExclusive.unwrap().toString());
             m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
@@ -77,7 +77,21 @@ public class Queries {
         return result;
     }
 
-    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
+    public static class ParseResult {
+        public final CharStream inputStream;
+        public final Query query;
+
+        public ParseResult(CharStream inputStream, Query query) {
+            this.inputStream = inputStream;
+            this.query = query;
+        }
+    }
+
+    public static <T> String getRawInput(CharStream inputStream, Positioned<T> positional) {
+        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
+    }
+
+    public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
         return parseQuery(q, useLegacy, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
             @Override
             public void accept(String s) {
@@ -86,9 +100,9 @@ public class Queries {
         }, clock);
     }
 
-    public static Query parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
+    public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context) {
@@ -100,7 +114,7 @@ public class Queries {
 
     public static SplitQuery parseSplitQuery(String q, boolean useLegacy, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), clock);
+        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents());
         final String where;

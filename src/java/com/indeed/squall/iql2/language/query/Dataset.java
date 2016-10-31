@@ -44,6 +44,10 @@ public class Dataset extends AbstractPositional {
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
+    public Positioned<String> getDisplayName() {
+        return alias.or(dataset);
+    }
+
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
         final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
