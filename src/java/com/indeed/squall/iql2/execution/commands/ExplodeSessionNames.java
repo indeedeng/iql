@@ -26,7 +26,7 @@ public class ExplodeSessionNames implements Command {
         // TODO: Add group() stat to Imhotep and regroup on (group() - 1) * N + 1
         final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            sessionNames.add(entry.getKey());
+            sessionNames.add(entry.getValue().displayName);
             final ImhotepSession s = entry.getValue().session;
 
             session.timer.push("make dumb rules");

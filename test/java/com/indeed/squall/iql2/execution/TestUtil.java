@@ -51,7 +51,7 @@ public class TestUtil {
         final Map<String, Session.ImhotepSessionInfo> sessionInfoMap = new HashMap<>();
         for (final Map.Entry<String, MemoryFlamdex> entry : datasetFlamdexes.entrySet()) {
             final ImhotepSession session = new ImhotepJavaLocalSession(entry.getValue());
-            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, dimensions, datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
+            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", dimensions, datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
         }
 
         return new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null);

@@ -24,7 +24,6 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.util.time.WallClock;
-import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
@@ -237,6 +236,7 @@ public class Session {
             final String start = elem.get("start").textValue();
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
+            final String displayName = elem.get("displayName").textValue();
             final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
             });
 
@@ -307,7 +307,7 @@ public class Session {
                 session.popStat();
                 treeTimer.pop();
             }
-            sessions.put(name, new ImhotepSessionInfo(session, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
+            sessions.put(name, new ImhotepSessionInfo(session, displayName, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
             if (i == 0) {
                 firstStartTimeMill = startDateTime.getMillis();
             }
@@ -1122,6 +1122,7 @@ public class Session {
 
     public static class ImhotepSessionInfo {
         public final ImhotepSession session;
+        public final String displayName;
         public final DatasetDimensions datasetDimensions;
         public final Collection<String> intFields;
         public final Collection<String> stringFields;
@@ -1130,8 +1131,9 @@ public class Session {
         public final String timeFieldName;
 
         @VisibleForTesting
-        ImhotepSessionInfo(ImhotepSession session, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        ImhotepSessionInfo(ImhotepSession session, String displayName, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
+            this.displayName = displayName;
             this.datasetDimensions = datasetDimensions;
             this.intFields = Collections.unmodifiableCollection(intFields);
             this.stringFields = Collections.unmodifiableCollection(stringFields);
