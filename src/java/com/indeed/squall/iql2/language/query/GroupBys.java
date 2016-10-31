@@ -272,6 +272,11 @@ public class GroupBys {
             }
 
             @Override
+            public void enterDatasetGroupBy(JQLParser.DatasetGroupByContext ctx) {
+                accept(new GroupBy.GroupBySessionName());
+            }
+
+            @Override
             public void enterPredicateGroupBy(JQLParser.PredicateGroupByContext ctx) {
                 final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock);
                 accept(new GroupBy.GroupByPredicate(filter));

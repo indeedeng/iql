@@ -75,6 +75,7 @@ MAX : 'MAX' ;
 PRINTF : 'PRINTF' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
+DATASET: 'DATASET' ;
 
 Y : 'Y' ;
 
@@ -116,6 +117,7 @@ identifier
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT
+    | RELATIVE | DATASET
     | BACKQUOTED_ID
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
@@ -378,6 +380,7 @@ groupByElement [boolean useLegacy]
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
+    | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     ;
 
