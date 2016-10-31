@@ -42,7 +42,7 @@ public class ParseServlet {
         final int version = ServletUtil.getVersion(request);
         try {
             response.setHeader("Content-Type", "application/json");
-            final Query query = Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new StoppedClock());
+            Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new StoppedClock());
             return ImmutableMap.of("parsed", true);
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();

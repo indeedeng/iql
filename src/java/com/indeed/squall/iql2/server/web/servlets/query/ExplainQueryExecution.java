@@ -86,7 +86,7 @@ public class ExplainQueryExecution {
             }
         };
 
-        final Query parsedQuery = Queries.parseQuery(query, version==1, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
+        final Query parsedQuery = Queries.parseQuery(query, version==1, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock).query;
         new ParsedQueryExplain(parsedQuery, errors, warnings).explainParsedQuery();
         if (!isJSON) {
             outputStream.println(printer.toString());

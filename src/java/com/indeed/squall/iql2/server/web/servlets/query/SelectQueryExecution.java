@@ -46,6 +46,7 @@ import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
@@ -278,7 +279,7 @@ public class SelectQueryExecution {
         timer.push(q);
 
         timer.push("parse query");
-        final Query query = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
         timer.pop();
 
         {
@@ -289,7 +290,7 @@ public class SelectQueryExecution {
                 upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
             }
 
-            final List<Dataset> allDatasets = Queries.findAllDatasets(query);
+            final List<Dataset> allDatasets = Queries.findAllDatasets(parseResult.query);
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
@@ -299,13 +300,14 @@ public class SelectQueryExecution {
             queryInfo.totalDatasetRange = datasetRangeSum;
         }
 
-        final SelectExecutionInformation result = new ParsedQueryExecution(out, warn, progressCallback, query, groupLimit).executeParsedQuery();
+        final SelectExecutionInformation result = new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
         timer.pop();
 
         return result;
     }
 
     private class ParsedQueryExecution {
+        private final CharStream inputStream;
         private final Consumer<String> externalOutput;
         private final com.indeed.squall.iql2.language.compat.Consumer warn;
 
@@ -316,7 +318,8 @@ public class SelectQueryExecution {
         private final ProgressCallback progressCallback;
         private final Map<Query, Boolean> queryCached = new HashMap<>();
 
-        private ParsedQueryExecution(Consumer<String> out, com.indeed.squall.iql2.language.compat.Consumer warn, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit) {
+        private ParsedQueryExecution(CharStream inputStream, Consumer<String> out, com.indeed.squall.iql2.language.compat.Consumer warn, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit) {
+            this.inputStream = inputStream;
             this.externalOutput = out;
             this.warn = warn;
             this.progressCallback = progressCallback;
@@ -349,7 +352,7 @@ public class SelectQueryExecution {
                                     timer.push("Execute sub-query: \"" + q + "\"");
                                     try {
                                         // TODO: This use of ProgressCallbacks looks wrong.
-                                        final SelectExecutionInformation execInfo = new ParsedQueryExecution(new Consumer<String>() {
+                                        final SelectExecutionInformation execInfo = new ParsedQueryExecution(inputStream, new Consumer<String>() {
                                             @Override
                                             public void accept(String s) {
                                                 if (subQueryTermLimit > 0 && terms.size() + stringTerms.size() >= subQueryTermLimit) {
@@ -507,7 +510,7 @@ public class SelectQueryExecution {
                 }
 
                 final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(query));
+                request.put("datasets", Queries.createDatasetMap(inputStream, query));
                 request.put("commands", commands);
 
                 request.put("groupLimit", groupLimit);
