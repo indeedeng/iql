@@ -344,7 +344,7 @@
         <indeed-util.version>1.0.15</indeed-util.version>
         <ims.version>3.0.0</ims.version>
         <google-guava.version>16.0.1</google-guava.version>
-        <spring.version>4.0.2.RELEASE</spring.version>
+        <spring.version>4.2.5.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
