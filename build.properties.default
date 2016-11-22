@@ -1,6 +1,4 @@
 thirdparty-repo-opt-in=true
-indeed.current.version=3
-indeed.next.version=4
 protobuf.version=2.5.0
 
 coverage.line.minimum_pct=10
