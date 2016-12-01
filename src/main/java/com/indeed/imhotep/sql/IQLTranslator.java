@@ -26,6 +26,7 @@ import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.imhotep.ez.DynamicMetric;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
@@ -56,7 +57,7 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.parser.ExpressionParser;
 import com.indeed.imhotep.sql.parser.PeriodParser;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
-import dk.brics.automaton.RegExp;
+import com.indeed.imhotep.automaton.RegExp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -789,6 +790,8 @@ public final class IQLTranslator {
                     try {
                         new RegExp(regexp).toAutomaton();
                     } catch (Exception e) {
+                        Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
+
                         throw new IllegalArgumentException("The provided regex filter '" + regexp + "' failed to parse. " +
                                 "\nError was: " + e.getMessage() +
                                 "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);

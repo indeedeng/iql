@@ -5,7 +5,7 @@ import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.client.ImhotepClient;
-import gnu.trove.TIntHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -41,7 +41,7 @@ public class DatasetStatsCollector {
             long lastShardNumDocs = 0;
             long firstDataTime = Long.MAX_VALUE;
             long lastDataTime = 0;
-            final TIntHashSet shardSizes = new TIntHashSet();
+            final IntOpenHashSet shardSizes = new IntOpenHashSet();
             for (ShardInfo shard : datasetInfo.getShardList()) {
                 stats.numDocs += shard.getNumDocs();
                 stats.numShards++;
