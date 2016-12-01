@@ -132,14 +132,6 @@
             <artifactId>commons-lang</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>dk.brics.automaton</groupId>
-            <artifactId>automaton</artifactId>
-            <version>${automaton.version}</version>
-        </dependency>
-
-
-
         <!-- Hadoop for caching -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -349,7 +341,6 @@
         <spring.version>4.2.5.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>
-        <automaton.version>1.11-8</automaton.version>
         <jackson2.version>2.5.2</jackson2.version>
         <lucene.version>2.4.1</lucene.version>
         <hadoop.version>2.6.0-cdh5.4.9</hadoop.version>
