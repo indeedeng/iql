@@ -335,7 +335,7 @@
         <!-- releases of our own projects to use -->
         <!-- these should only be SNAPSHOTs when no release is available -->
         <imhotep.version>[3.0.0, 4.0.0)</imhotep.version>
-        <ims.version>[3.0.0-SNAPSHOT, 4.0.0)</ims.version>
+        <ims.version>[4.0.0-SNAPSHOT, 5.0.0)</ims.version>
         <indeed-util.version>[1.0.15,)</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <spring.version>4.2.5.RELEASE</spring.version>
