@@ -1,2 +1,6 @@
 thirdparty-repo-opt-in=true
 protobuf.version=2.5.0
+
+indeed.current.version=4
+indeed.next.version=5
+spring.version=4.2.5.RELEASE
