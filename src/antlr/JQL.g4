@@ -76,6 +76,7 @@ PRINTF : 'PRINTF' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
+BOOTSTRAP: 'BOOTSTRAP' ;
 
 Y : 'Y' ;
 
@@ -116,7 +117,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT
+    | PRINTF | EXTRACT | BOOTSTRAP
     | RELATIVE | DATASET
     | BACKQUOTED_ID
     ;
@@ -180,6 +181,7 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
+    | BOOTSTRAP '(' field=scopedField ',' metric=jqlAggregateMetric ',' numBootstraps=NAT ',' seed=STRING_LITERAL (',' varargs+=(DOUBLE | STRING_LITERAL))* ')' #AggregateBootstrap
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross

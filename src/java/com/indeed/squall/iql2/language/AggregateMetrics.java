@@ -5,6 +5,7 @@ import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -414,6 +415,18 @@ public class AggregateMetrics {
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)),
                         new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())
                 )));
+            }
+
+            @Override
+            public void enterAggregateBootstrap(JQLParser.AggregateBootstrapContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
+                final AggregateMetric metric = AggregateMetrics.parseJQLAggregateMetric(ctx.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                final int numBootstraps = Integer.parseInt(ctx.numBootstraps.getText());
+                final List<String> varargs = new ArrayList<>();
+                for (final Token vararg : ctx.varargs) {
+                    varargs.add(vararg.getText());
+                }
+                accept(scopedField.wrap(new AggregateMetric.Bootstrap(scopedField.field, ParserCommon.unquote(ctx.seed.getText()), metric, numBootstraps, varargs)));
             }
 
             @Override

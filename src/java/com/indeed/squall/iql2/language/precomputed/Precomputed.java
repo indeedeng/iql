@@ -7,6 +7,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.commands.ComputeBootstrap;
 import com.indeed.squall.iql2.language.commands.ComputeFieldMax;
 import com.indeed.squall.iql2.language.commands.ComputeFieldMin;
 import com.indeed.squall.iql2.language.commands.GetGroupDistincts;
@@ -368,6 +369,63 @@ public interface Precomputed {
         public String toString() {
             return "PrecomputedFieldMax{" +
                     "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+    class PrecomputedBootstrap implements Precomputed {
+        public final String field;
+        public final String seed;
+        public final AggregateMetric metric;
+        public final int numBootstraps;
+        public final List<String> varargs;
+
+        public PrecomputedBootstrap(String field, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+            this.field = field;
+            this.seed = seed;
+            this.metric = metric;
+            this.numBootstraps = numBootstraps;
+            this.varargs = varargs;
+        }
+
+        @Override
+        public Precomputation commands(Set<String> scope) {
+            return Precomputation.noContext(new ComputeBootstrap(scope, field, seed, metric, numBootstraps, varargs));
+        }
+
+        @Override
+        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(new PrecomputedBootstrap(field, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
+        }
+
+        @Override
+        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new PrecomputedBootstrap(field, seed, f.apply(metric), numBootstraps, varargs);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrecomputedBootstrap that = (PrecomputedBootstrap) o;
+            return numBootstraps == that.numBootstraps &&
+                    com.google.common.base.Objects.equal(field, that.field) &&
+                    com.google.common.base.Objects.equal(metric, that.metric) &&
+                    com.google.common.base.Objects.equal(varargs, that.varargs);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field, metric, numBootstraps, varargs);
+        }
+
+        @Override
+        public String toString() {
+            return "PrecomputedBootstrap{" +
+                    "field='" + field + '\'' +
+                    ", metric=" + metric +
+                    ", numBootstraps=" + numBootstraps +
+                    ", varargs=" + varargs +
                     '}';
         }
     }

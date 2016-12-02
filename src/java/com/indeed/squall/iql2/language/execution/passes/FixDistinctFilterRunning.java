@@ -26,6 +26,8 @@ public class FixDistinctFilterRunning {
     public static List<ExecutionStep> apply(List<ExecutionStep> steps) {
         final List<ExecutionStep> results = new ArrayList<>();
         for (final ExecutionStep step : steps) {
+            // TODO: Does this need to apply for FIELD_MAX, FIELD_MIN, etc..?
+            // TODO: Replace this entire thing with dependency graph computations
             results.add(step.traverse1(new Function<AggregateMetric, AggregateMetric>() {
                 @Override
                 public AggregateMetric apply(AggregateMetric input) {

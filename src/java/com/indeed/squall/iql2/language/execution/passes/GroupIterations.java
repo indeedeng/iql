@@ -127,6 +127,10 @@ public class GroupIterations {
                         if (input instanceof AggregateMetric.GroupStatsLookup) {
                             final AggregateMetric.GroupStatsLookup groupStatsLookup = (AggregateMetric.GroupStatsLookup) input;
                             dependencies.add(groupStatsLookup.name);
+                        } else if (input instanceof AggregateMetric.GroupStatsMultiLookup) {
+                            for (final String name : ((AggregateMetric.GroupStatsMultiLookup) input).names) {
+                                dependencies.add(name);
+                            }
                         }
                         return input;
                     }
@@ -172,6 +176,9 @@ public class GroupIterations {
             } else if (computation instanceof Precomputed.PrecomputedFieldMin) {
                 final Precomputed.PrecomputedFieldMin precomputedFieldMin = (Precomputed.PrecomputedFieldMin) computation;
                 return new PrecomputedContext(scope, Optional.of(precomputedFieldMin.field));
+            } else if (computation instanceof Precomputed.PrecomputedBootstrap) {
+                final Precomputed.PrecomputedBootstrap bootstrap = (Precomputed.PrecomputedBootstrap) computation;
+                return new PrecomputedContext(scope, Optional.of(bootstrap.field));
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }

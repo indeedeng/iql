@@ -208,9 +208,26 @@ public class ExtractPrecomputed {
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
                 return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field.unwrap()));
-            } else if (input instanceof AggregateMetric.FieldMax){
+            } else if (input instanceof AggregateMetric.FieldMax) {
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
                 return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field.unwrap()));
+            } else if (input instanceof AggregateMetric.Bootstrap) {
+                final AggregateMetric.Bootstrap bootstrap = (AggregateMetric.Bootstrap) input;
+                final List<String> lookups = new ArrayList<>();
+                for (final String vararg : bootstrap.varargs) {
+                    if ("\"all\"".equals(vararg)) {
+                        for (int i = 0; i < bootstrap.numBootstraps; i++) {
+                            lookups.add(bootstrap.seed + "[" + bootstrap.numBootstraps + "].values[" + i + "]");
+                        }
+                    } else {
+                        lookups.add(bootstrap.seed + "[" + bootstrap.numBootstraps + "]." + vararg);
+                    }
+                }
+                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field.unwrap(), bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
+                final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputedBootstrap, depth, scope);
+                final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
+                precomputedNames.put(precomputedInfo, name);
+                return new AggregateMetric.GroupStatsMultiLookup(lookups);
             } else {
                 return input.traverse1(this);
             }

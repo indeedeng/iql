@@ -45,12 +45,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Distinct distinct) throws E;
         T visit(Named named) throws E;
         T visit(GroupStatsLookup groupStatsLookup) throws E;
+        T visit(GroupStatsMultiLookup groupStatsMultiLookup) throws E;
         T visit(SumAcross sumAcross) throws E;
         T visit(IfThenElse ifThenElse) throws E;
         T visit(FieldMin fieldMin) throws E;
         T visit(FieldMax fieldMax) throws E;
         T visit(Min min) throws E;
         T visit(Max max) throws E;
+        T visit(Bootstrap bootstrap) throws E;
     }
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
@@ -1309,6 +1311,69 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    public static class GroupStatsMultiLookup extends AggregateMetric implements JsonSerializable {
+        public final List<String> names;
+
+        public GroupStatsMultiLookup(List<String> names) {
+            this.names = names;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "groupStatsMultiLookup", "names", names));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupStatsMultiLookup that = (GroupStatsMultiLookup) o;
+            return com.google.common.base.Objects.equal(names, that.names);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(names);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupStatsMultiLookup{" +
+                    "names=" + names +
+                    '}';
+        }
+    }
+
     public static class SumAcross extends AggregateMetric implements JsonSerializable {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
@@ -1741,6 +1806,88 @@ public abstract class AggregateMetric extends AbstractPositional {
         public String toString() {
             return "Max{" +
                     "metrics=" + metrics +
+                    '}';
+        }
+    }
+
+    public static class Bootstrap extends AggregateMetric implements JsonSerializable {
+        public final Positioned<String> field;
+        public final String seed;
+        public final AggregateMetric metric;
+        public final int numBootstraps;
+        public final List<String> varargs;
+
+        public Bootstrap(Positioned<String> field, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+            this.field = field;
+            this.seed = seed;
+            this.metric = metric;
+            this.numBootstraps = numBootstraps;
+            this.varargs = varargs;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(new Bootstrap(field, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new Bootstrap(field, seed, f.apply(metric), numBootstraps, varargs);
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            metric.validate(scope, datasetsFields, validator);
+            for (final String dataset : scope) {
+                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
+                }
+            }
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot serialize Bootstrap -- should be removed by ExtractPrecomputed!");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Bootstrap bootstrap = (Bootstrap) o;
+            return numBootstraps == bootstrap.numBootstraps &&
+                    com.google.common.base.Objects.equal(field, bootstrap.field) &&
+                    com.google.common.base.Objects.equal(metric, bootstrap.metric) &&
+                    com.google.common.base.Objects.equal(varargs, bootstrap.varargs);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field, metric, numBootstraps, varargs);
+        }
+
+        @Override
+        public String toString() {
+            return "Bootstrap{" +
+                    "field=" + field +
+                    ", metric=" + metric +
+                    ", numBootstraps=" + numBootstraps +
+                    ", varargs=" + varargs +
                     '}';
         }
     }
