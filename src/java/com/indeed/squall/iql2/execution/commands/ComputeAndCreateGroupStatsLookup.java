@@ -7,6 +7,8 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -46,6 +48,10 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             for (int i = 0; i < groupStats.size(); i++) {
                 results[i] = groupStats.get(i).stats[0];
             }
+        } else if (computation instanceof ComputeBootstrap) {
+            // This already did stuff internally
+            out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList("ABSTRACT NONSENSE")));
+            return;
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }

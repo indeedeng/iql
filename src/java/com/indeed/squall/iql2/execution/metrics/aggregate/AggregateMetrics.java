@@ -35,6 +35,15 @@ public class AggregateMetrics {
             case "groupStatsLookup": {
                 return namedMetricLookup.apply(node.get("name").textValue());
             }
+            case "groupStatsMultiLookup": {
+                final JsonNode nameNode = node.get("names");
+                final List<double[]> values = new ArrayList<>();
+                for (int i = 0; i < nameNode.size(); i++) {
+                    final String name = nameNode.get(i).textValue();
+                    values.add(namedMetricLookup.apply(name).values);
+                }
+                return new MultiPerGroupConstant(values);
+            }
             case "addition":
                 return new Add(m1.get(), m2.get());
             case "subtraction":

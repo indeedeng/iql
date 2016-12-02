@@ -247,7 +247,7 @@ public class SimpleIterate implements Command {
         sb.append(term).append('\t');
         for (int i = 0; i < selectBuffer.length; i++) {
             final double stat = selectBuffer[i];
-            if (formatStrings[i] != null) {
+            if (i < formatStrings.length && formatStrings[i] != null) {
                 sb.append(String.format(formatStrings[i], stat)).append('\t');
             } else if (DoubleMath.isMathematicalInteger(stat)) {
                 sb.append((long) stat).append('\t');

@@ -478,7 +478,7 @@ public class Session {
                         final double[] stats = result.stats;
                         for (int i = 0; i < stats.length; i++) {
                             final double stat = stats[i];
-                            if (formatStrings[i] != null) {
+                            if (i < formatStrings.length && formatStrings[i] != null) {
                                 sb.append(String.format(formatStrings[i], stat)).append('\t');
                             } else if (DoubleMath.isMathematicalInteger(stat)) {
                                 sb.append(String.format("%.0f", stat)).append('\t');

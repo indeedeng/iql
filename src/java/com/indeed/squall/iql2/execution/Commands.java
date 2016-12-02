@@ -17,6 +17,7 @@ import com.indeed.squall.iql2.execution.commands.ApplyGroupFilter;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups;
+import com.indeed.squall.iql2.execution.commands.ComputeBootstrap;
 import com.indeed.squall.iql2.execution.commands.CreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
@@ -86,11 +87,7 @@ public class Commands {
                 final Iterator<String> filterNamesIterator = filters.fieldNames();
                 while (filterNamesIterator.hasNext()) {
                     final String filterName = filterNamesIterator.next();
-                    final List<String> pushes = Lists.newArrayList();
-                    final JsonNode filterList = filters.get(filterName);
-                    for (int i = 0; i < filterList.size(); i++) {
-                        pushes.add(filterList.get(i).textValue());
-                    }
+                    final List<String> pushes = readStringList(filters.get(filterName));
                     perDatasetFilterMetric.put(filterName, pushes);
                 }
                 return new FilterDocs(perDatasetFilterMetric);
@@ -120,6 +117,15 @@ public class Commands {
                 }
                 final Optional<String> name = getOptionalName(command);
                 return new CreateGroupStatsLookup(stats, name);
+            }
+            case "computeBootstrap": {
+                final Set<String> scope = parseScope(command);
+                final String field = command.get("field").textValue();
+                final String seed = command.get("seed").textValue();
+                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup, groupKeySet);
+                final int numBootstraps = command.get("numBootstraps").intValue();
+                final List<String> varargs = readStringList(command.get("varargs"));
+                return new ComputeBootstrap(scope, field, seed, metric, numBootstraps, varargs);
             }
             case "getGroupDistincts": {
                 final Set<String> scope = parseScope(command);
@@ -348,6 +354,15 @@ public class Commands {
     }
 
     @Nonnull
+    private static List<String> readStringList(JsonNode node) {
+        final List<String> pushes = Lists.newArrayList();
+        for (int i = 0; i < node.size(); i++) {
+            pushes.add(node.get(i).textValue());
+        }
+        return pushes;
+    }
+
+    @Nonnull
     private static List<Optional<String>> readFormatStrings(JsonNode command, int numMetrics) {
         final List<Optional<String>> formatStrings;
         if (command.has("formatStrings")) {
@@ -376,7 +391,7 @@ public class Commands {
     }
 
     private static void validatePrecomputedCommand(Object computation) {
-        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross || computation instanceof GetFieldMin || computation instanceof GetFieldMax) {
+        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross || computation instanceof GetFieldMin || computation instanceof GetFieldMax || computation instanceof ComputeBootstrap) {
         } else if (computation instanceof GetGroupPercentiles) {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
             if (getGroupPercentiles.percentiles.length != 1) {

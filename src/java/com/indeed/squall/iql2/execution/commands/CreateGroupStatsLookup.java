@@ -24,11 +24,11 @@ public class CreateGroupStatsLookup implements Command {
         final String lookupName;
         if (this.name.isPresent()) {
             lookupName = this.name.get();
-            if (session.savedGroupStats.containsKey(lookupName)) {
-                throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
-            }
         } else {
             lookupName = String.valueOf(session.savedGroupStats.size());
+        }
+        if (session.savedGroupStats.containsKey(lookupName)) {
+            throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
         }
         session.savedGroupStats.put(lookupName, savedStats);
         out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName)));

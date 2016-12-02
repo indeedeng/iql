@@ -5,13 +5,14 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class PerGroupConstant implements AggregateMetric {
-    final double[] values;
+public class MultiPerGroupConstant implements AggregateMetric {
+    public final List<double[]> values;
 
-    public PerGroupConstant(double[] values) {
+    public MultiPerGroupConstant(List<double[]> values) {
         this.values = values;
     }
 
@@ -26,16 +27,16 @@ public class PerGroupConstant implements AggregateMetric {
 
     @Override
     public double[] getGroupStats(long[][] stats, int numGroups) {
-        return Arrays.copyOf(values, numGroups + 1);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double apply(String term, long[] stats, int group) {
-        return values[group];
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double apply(long term, long[] stats, int group) {
-        return values[group];
+        throw new UnsupportedOperationException();
     }
 }

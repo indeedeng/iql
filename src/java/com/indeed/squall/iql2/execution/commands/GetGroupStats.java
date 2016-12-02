@@ -10,6 +10,7 @@ import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -127,12 +128,32 @@ public class GetGroupStats implements Command {
 
         session.timer.push("computing aggregated stats");
         final List<AggregateMetric> selectedMetrics = this.metrics;
-        final double[][] results = new double[numGroups][selectedMetrics.size()];
 
-        for (int i = 0; i < selectedMetrics.size(); i++) {
-            final double[] statGroups = selectedMetrics.get(i).getGroupStats(allStats, numGroups);
-            for (int j = 1; j <= numGroups; j++) {
-                results[j - 1][i] = statGroups[j];
+        int totalStats = 0;
+        for (final AggregateMetric metric : selectedMetrics) {
+            if (metric instanceof MultiPerGroupConstant) {
+                totalStats += ((MultiPerGroupConstant) metric).values.size();
+            } else {
+                totalStats += 1;
+            }
+        }
+
+        final double[][] results = new double[numGroups][totalStats];
+        int statIndex = 0;
+        for (final AggregateMetric metric : selectedMetrics) {
+            if (metric instanceof MultiPerGroupConstant) {
+                for (final double[] value : ((MultiPerGroupConstant) metric).values) {
+                    for (int j = 1; j <= numGroups; j++) {
+                        results[j - 1][statIndex] = value[j];
+                    }
+                    statIndex += 1;
+                }
+            } else {
+                final double[] statGroups = metric.getGroupStats(allStats, numGroups);
+                for (int j = 1; j <= numGroups; j++) {
+                    results[j - 1][statIndex] = statGroups[j];
+                }
+                statIndex += 1;
             }
         }
         session.timer.pop();

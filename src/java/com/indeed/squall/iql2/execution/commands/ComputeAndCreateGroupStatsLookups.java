@@ -88,6 +88,10 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                         return longToDouble(input);
                     }
                 }, getFieldMin.iterateHandler(session), name));
+            } else if (computation instanceof ComputeBootstrap) {
+                final ComputeBootstrap computeBootstrap = (ComputeBootstrap) computation;
+                fields.add(computeBootstrap.field);
+                handlerables.add(computeBootstrap.iterateHandler(session));
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }
