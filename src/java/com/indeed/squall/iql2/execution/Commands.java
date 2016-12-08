@@ -123,9 +123,15 @@ public class Commands {
                 final String field = command.get("field").textValue();
                 final String seed = command.get("seed").textValue();
                 final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup, groupKeySet);
+                final Optional<AggregateFilter> filter;
+                if (command.get("filter").isNull()) {
+                    filter = Optional.absent();
+                } else {
+                    filter = Optional.of(AggregateFilters.fromJson(command.get("filter"), namedMetricLookup, groupKeySet));
+                }
                 final int numBootstraps = command.get("numBootstraps").intValue();
                 final List<String> varargs = readStringList(command.get("varargs"));
-                return new ComputeBootstrap(scope, field, seed, metric, numBootstraps, varargs);
+                return new ComputeBootstrap(scope, field, filter, seed, metric, numBootstraps, varargs);
             }
             case "getGroupDistincts": {
                 final Set<String> scope = parseScope(command);

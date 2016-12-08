@@ -29,8 +29,11 @@
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
+        <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
+
+        <dependency org="junit" name="junit" rev="${junit.version}" conf="test->default"/>
     </dependencies>
 </ivy-module>
 
