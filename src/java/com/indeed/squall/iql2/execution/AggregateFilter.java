@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.automaton.Automaton;
+import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 
@@ -426,10 +428,10 @@ public interface AggregateFilter extends Pushable{
     }
 
     class RegexFilter implements AggregateFilter {
-        private final Pattern pattern;
+        private final Automaton automaton;
 
         public RegexFilter(String regex) {
-            this.pattern = Pattern.compile(regex);
+            this.automaton = new RegExp(regex).toAutomaton();
         }
 
         @Override
@@ -448,12 +450,12 @@ public interface AggregateFilter extends Pushable{
 
         @Override
         public boolean allow(String term, long[] stats, int group) {
-            return pattern.matcher(term).matches();
+            return automaton.run(term);
         }
 
         @Override
         public boolean allow(long term, long[] stats, int group) {
-            return pattern.matcher(String.valueOf(term)).matches();
+            return automaton.run(String.valueOf(term));
         }
     }
 
