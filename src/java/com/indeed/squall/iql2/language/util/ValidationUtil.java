@@ -1,9 +1,12 @@
 package com.indeed.squall.iql2.language.util;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.automaton.RegExp;
+import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
@@ -148,4 +151,16 @@ public class ValidationUtil {
         return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
     }
 
+    public static void compileRegex(String regex) {
+        try {
+            new RegExp(regex).toAutomaton();
+        } catch (Exception e) {
+            Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
+            throw new IllegalArgumentException(
+                    "The provided regex filter [" + regex + "] failed to parse."
+                    + "\nError was: " + e.getMessage()
+                    + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
+            );
+        }
+    }
 }

@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -723,6 +724,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         public Regex(Positioned<String> field, String regex) {
             this.field = field;
+            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 

@@ -260,6 +260,7 @@ jqlDocMetricAtom
     | singlyScopedField '!=' integer # DocMetricAtomHasntInt
     | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
+    | singlyScopedField '=~' regex=STRING_LITERAL # DocMetricAtomRegex
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
     | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # DocMetricAtomLucene

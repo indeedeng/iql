@@ -441,8 +441,16 @@ public class DocMetrics {
             }
 
             @Override
+            public void enterDocMetricAtomRegex(JQLParser.DocMetricAtomRegexContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                // TODO: How to handle regex parsing? Same as Java?
+                accept(scopedField.wrap(new DocMetric.RegexMetric(scopedField.field, ParserCommon.unquote(ctx.regex.getText()))));
+            }
+
+            @Override
             public void enterDocMetricAtomExtract(JQLParser.DocMetricAtomExtractContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                // TODO: How to handle regex parsing? Same as Java?
                 final String regex = ParserCommon.unquote(ctx.regex.getText());
                 final int groupNumber;
                 if (ctx.groupNumber != null) {

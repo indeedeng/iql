@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ public class RegexAction implements Action, JsonSerializable {
     public RegexAction(Set<String> scope, String field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
         this.scope = ImmutableSet.copyOf(scope);
         this.field = field;
+        ValidationUtil.compileRegex(regex);
         this.regex = regex;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
