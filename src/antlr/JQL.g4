@@ -181,7 +181,7 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
-    | BOOTSTRAP '(' field=scopedField ',' metric=jqlAggregateMetric ',' numBootstraps=NAT ',' seed=STRING_LITERAL (',' varargs+=(DOUBLE | STRING_LITERAL))* ')' #AggregateBootstrap
+    | BOOTSTRAP '(' field=scopedField (HAVING filter=jqlAggregateFilter)? ',' metric=jqlAggregateMetric ',' numBootstraps=NAT ',' seed=STRING_LITERAL (',' varargs+=(DOUBLE | STRING_LITERAL))* ')' #AggregateBootstrap
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross

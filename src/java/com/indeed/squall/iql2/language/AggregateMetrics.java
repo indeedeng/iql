@@ -420,13 +420,19 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateBootstrap(JQLParser.AggregateBootstrapContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
+                final Optional<AggregateFilter> filter;
+                if (ctx.filter != null) {
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                } else {
+                    filter = Optional.absent();
+                }
                 final AggregateMetric metric = AggregateMetrics.parseJQLAggregateMetric(ctx.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                 final int numBootstraps = Integer.parseInt(ctx.numBootstraps.getText());
                 final List<String> varargs = new ArrayList<>();
                 for (final Token vararg : ctx.varargs) {
                     varargs.add(vararg.getText());
                 }
-                accept(scopedField.wrap(new AggregateMetric.Bootstrap(scopedField.field, ParserCommon.unquote(ctx.seed.getText()), metric, numBootstraps, varargs)));
+                accept(scopedField.wrap(new AggregateMetric.Bootstrap(scopedField.field, filter, ParserCommon.unquote(ctx.seed.getText()), metric, numBootstraps, varargs)));
             }
 
             @Override

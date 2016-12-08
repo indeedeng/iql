@@ -1812,13 +1812,15 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Bootstrap extends AggregateMetric implements JsonSerializable {
         public final Positioned<String> field;
+        public final Optional<AggregateFilter> filter;
         public final String seed;
         public final AggregateMetric metric;
         public final int numBootstraps;
         public final List<String> varargs;
 
-        public Bootstrap(Positioned<String> field, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+        public Bootstrap(Positioned<String> field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
             this.field = field;
+            this.filter = filter;
             this.seed = seed;
             this.metric = metric;
             this.numBootstraps = numBootstraps;
@@ -1832,12 +1834,18 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new Bootstrap(field, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
+            final Optional<AggregateFilter> filter;
+            if (this.filter.isPresent()) {
+                filter = Optional.of(this.filter.get().transform(f, g, h, i, groupByFunction));
+            } else {
+                filter = Optional.absent();
+            }
+            return f.apply(new Bootstrap(field, filter, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
         }
 
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Bootstrap(field, seed, f.apply(metric), numBootstraps, varargs);
+            return new Bootstrap(field, filter, seed, f.apply(metric), numBootstraps, varargs);
         }
 
         @Override
@@ -1872,19 +1880,23 @@ public abstract class AggregateMetric extends AbstractPositional {
             Bootstrap bootstrap = (Bootstrap) o;
             return numBootstraps == bootstrap.numBootstraps &&
                     com.google.common.base.Objects.equal(field, bootstrap.field) &&
+                    com.google.common.base.Objects.equal(filter, bootstrap.filter) &&
+                    com.google.common.base.Objects.equal(seed, bootstrap.seed) &&
                     com.google.common.base.Objects.equal(metric, bootstrap.metric) &&
                     com.google.common.base.Objects.equal(varargs, bootstrap.varargs);
         }
 
         @Override
         public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field, metric, numBootstraps, varargs);
+            return com.google.common.base.Objects.hashCode(field, filter, seed, metric, numBootstraps, varargs);
         }
 
         @Override
         public String toString() {
             return "Bootstrap{" +
                     "field=" + field +
+                    ", filter=" + filter +
+                    ", seed='" + seed + '\'' +
                     ", metric=" + metric +
                     ", numBootstraps=" + numBootstraps +
                     ", varargs=" + varargs +

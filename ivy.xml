@@ -32,6 +32,8 @@
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
 
+        <dependency org="junit" name="junit" rev="${junit.version}" conf="test->default"/>
+
         <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
     </dependencies>
 </ivy-module>

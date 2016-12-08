@@ -223,7 +223,13 @@ public class ExtractPrecomputed {
                         lookups.add(bootstrap.seed + "[" + bootstrap.numBootstraps + "]." + vararg);
                     }
                 }
-                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field.unwrap(), bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
+                final Optional<AggregateFilter> filter;
+                if (bootstrap.filter.isPresent()) {
+                    filter = Optional.of(bootstrap.filter.get().traverse1(this));
+                } else {
+                    filter = Optional.absent();
+                }
+                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field.unwrap(), filter, bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
                 final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputedBootstrap, depth, scope);
                 final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
                 precomputedNames.put(precomputedInfo, name);

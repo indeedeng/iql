@@ -375,13 +375,15 @@ public interface Precomputed {
 
     class PrecomputedBootstrap implements Precomputed {
         public final String field;
+        public final Optional<AggregateFilter> filter;
         public final String seed;
         public final AggregateMetric metric;
         public final int numBootstraps;
         public final List<String> varargs;
 
-        public PrecomputedBootstrap(String field, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+        public PrecomputedBootstrap(String field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
             this.field = field;
+            this.filter = filter;
             this.seed = seed;
             this.metric = metric;
             this.numBootstraps = numBootstraps;
@@ -390,17 +392,17 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new ComputeBootstrap(scope, field, seed, metric, numBootstraps, varargs));
+            return Precomputation.noContext(new ComputeBootstrap(scope, field, filter, seed, metric, numBootstraps, varargs));
         }
 
         @Override
         public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(new PrecomputedBootstrap(field, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
+            return precomputed.apply(new PrecomputedBootstrap(field, filter, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedBootstrap(field, seed, f.apply(metric), numBootstraps, varargs);
+            return new PrecomputedBootstrap(field, filter, seed, f.apply(metric), numBootstraps, varargs);
         }
 
         @Override
@@ -410,19 +412,23 @@ public interface Precomputed {
             PrecomputedBootstrap that = (PrecomputedBootstrap) o;
             return numBootstraps == that.numBootstraps &&
                     com.google.common.base.Objects.equal(field, that.field) &&
+                    com.google.common.base.Objects.equal(filter, that.filter) &&
+                    com.google.common.base.Objects.equal(seed, that.seed) &&
                     com.google.common.base.Objects.equal(metric, that.metric) &&
                     com.google.common.base.Objects.equal(varargs, that.varargs);
         }
 
         @Override
         public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field, metric, numBootstraps, varargs);
+            return com.google.common.base.Objects.hashCode(field, filter, seed, metric, numBootstraps, varargs);
         }
 
         @Override
         public String toString() {
             return "PrecomputedBootstrap{" +
                     "field='" + field + '\'' +
+                    ", filter=" + filter +
+                    ", seed='" + seed + '\'' +
                     ", metric=" + metric +
                     ", numBootstraps=" + numBootstraps +
                     ", varargs=" + varargs +
