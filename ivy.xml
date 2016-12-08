@@ -58,6 +58,8 @@
         <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer,test->default"/>
         <dependency org="indeed" name="hadoop" rev="${hadoop.version}"/>
 
+        <dependency org="junit" name="junit" rev="${junit.version}" conf="test->default"/>
+
         <!-- Elaborations dependencies -->
         <dependency org="indeed" name="common-dbutil" rev="${common-dbutil.version}"/>
         <dependency org="mysql" name="mysql-connector-java" rev="${mysql-connector.version}"/>
