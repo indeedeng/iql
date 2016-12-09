@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.indeed</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>16</version>
+        <version>17</version>
     </parent>
 
     <artifactId>iql</artifactId>
@@ -338,7 +338,6 @@
         <ims.version>[4.0.0-SNAPSHOT, 5.0.0)</ims.version>
         <indeed-util.version>[1.0.15,)</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
-        <spring.version>4.2.5.RELEASE</spring.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>
         <jackson2.version>2.5.2</jackson2.version>
