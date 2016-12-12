@@ -492,7 +492,7 @@ public final class IQLTranslator {
                         if(!(input.get(1) instanceof NumberExpression)) {
                             throw new IllegalArgumentException("Second argument of hasint() has to be an integer. " + usageExamples);
                         }
-                        value = parseInt(input.get(1));
+                        value = parseLong(input.get(1));
                     }
 
                     if(Strings.isNullOrEmpty(field)) {
@@ -528,9 +528,9 @@ public final class IQLTranslator {
             builder.put("floatscale", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() == 3) {
-                        return floatScale(getName(input.get(0)), parseInt(input.get(1)), parseInt(input.get(2)));
+                        return floatScale(getName(input.get(0)), parseLong(input.get(1)), parseLong(input.get(2)));
                     } else if (input.size() == 2) {
-                        return floatScale(getName(input.get(0)), parseInt(input.get(1)), 0);
+                        return floatScale(getName(input.get(0)), parseLong(input.get(1)), 0);
                     } else if(input.size() == 1) {
                         return floatScale(getName(input.get(0)), 1, 0);
                     } else {
@@ -579,7 +579,7 @@ public final class IQLTranslator {
                             throw new IllegalArgumentException("Field not found: " + fieldName);
                         }
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
-                            long value = parseInt(right);
+                            long value = parseLong(right);
                             return hasInt(fieldName, value);
                         } else {
                             return hasString(fieldName, getStr(right));

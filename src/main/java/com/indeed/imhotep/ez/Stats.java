@@ -376,10 +376,10 @@ public class Stats {
 
     public static class FloatScaleStat extends Stat {
         private final String fieldName;
-        private final int mult;
-        private final int add;
+        private final long mult;
+        private final long add;
 
-        FloatScaleStat(String fieldName, int mult, int add) {
+        FloatScaleStat(String fieldName, long mult, long add) {
             this.fieldName = fieldName;
             this.mult = mult;
             this.add = add;
