@@ -5,6 +5,9 @@ Web interface for making IQL queries against an Imhotep cluster.
 ## Documentation
 See the [overview](http://indeedeng.github.io/imhotep/docs/overview/) to learn about IQL syntax. 
 
+## Continuous Build
+https://travis-ci.org/indeedeng/iql
+
 ## Discussion
 Ask and answer questions in our Q&A forum for Imhotep: [indeedeng-imhotep-users](https://groups.google.com/forum/#!forum/indeedeng-imhotep-users)
 
