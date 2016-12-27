@@ -2,6 +2,8 @@ language: java
 jdk:
     - oraclejdk7
 
+script: mvn package
+
 install:
     - IMHOTEP_JAR=`curl -s https://s3-us-west-2.amazonaws.com/imhotep-build/ | egrep -o "indeedeng[^<]*imhotep-server-[0-9\.]+-SNAPSHOT.jar"`
     - wget https://s3-us-west-2.amazonaws.com/imhotep-build/$IMHOTEP_JAR
