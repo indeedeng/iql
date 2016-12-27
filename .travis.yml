@@ -1,0 +1,13 @@
+language: java
+jdk:
+    - oraclejdk7
+
+install:
+    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/imhotep-server-1.0.10-SNAPSHOT.jar
+    - mvn install:install-file -Dfile=imhotep-server-1.0.10-SNAPSHOT.jar -DgroupId=com.indeed -DartifactId=imhotep-server -Dversion=1.0.10-SNAPSHOT -Dpackaging=jar
+
+addons:
+    artifacts:
+        s3_region: "us-west-2"
+        paths:
+        - $(git ls-files -o */target/imhotep*.* | tr "\n" ":")
