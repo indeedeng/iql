@@ -3,7 +3,8 @@ jdk:
     - oraclejdk7
 
 install:
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/imhotep-server-1.0.10-SNAPSHOT.jar
+    - IMHOTEP_JAR=`curl -s https://s3-us-west-2.amazonaws.com/imhotep-build/ | egrep -o "indeedeng[^<]*imhotep-server-[0-9\.]+-SNAPSHOT.jar"`
+    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/$IMHOTEP_JAR
     - mvn install:install-file -Dfile=imhotep-server-1.0.10-SNAPSHOT.jar -DgroupId=com.indeed -DartifactId=imhotep-server -Dversion=1.0.10-SNAPSHOT -Dpackaging=jar
 
 addons:
