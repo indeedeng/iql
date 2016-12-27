@@ -175,6 +175,18 @@
             <version>${amazon-aws-java.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>it.unimi.dsi</groupId>
+            <artifactId>fastutil</artifactId>
+            <version>${fastutil.version}</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -205,6 +217,8 @@
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
         <amazon-aws-java.version>1.7.11</amazon-aws-java.version>
+        <lucene.version>2.4.1</lucene.version>
+        <fastutil.version>6.2.2</fastutil.version>
     </properties>
 
 </project>
