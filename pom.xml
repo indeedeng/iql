@@ -163,6 +163,12 @@
             <version>${gnu-trove.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk</artifactId>
+            <version>${amazon-aws-java.version}</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -192,6 +198,7 @@
         <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
+        <amazon-aws-java.version>1.7.11</amazon-aws-java.version>
     </properties>
 
 </project>
