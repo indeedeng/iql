@@ -16,4 +16,4 @@ addons:
     artifacts:
         s3_region: "us-west-2"
         paths:
-        - $(git ls-files -o target/iql*.* | tr "\n" ":")
+        - $(git ls-files -o target/iql*.war | tr "\n" ":")
