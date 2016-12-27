@@ -12,8 +12,16 @@ install:
     - wget https://s3-us-west-2.amazonaws.com/imhotep-build/$IMHOTEP_CLIENT_JAR
     - mvn install:install-file -Dfile=imhotep-client-1.0.10-SNAPSHOT.jar -DgroupId=com.indeed -DartifactId=imhotep-client -Dversion=1.0.10-SNAPSHOT -Dpackaging=jar
 
-addons:
-    artifacts:
-        s3_region: "us-west-2"
-        paths:
-        - $(git ls-files -o target/iql*.war | tr "\n" ":")
+before_deploy:
+    - mkdir deploy
+    - cp target/iql*.war deploy/
+
+deploy:
+    provider: s3
+    access_key_id: AKIAID3AAXWWTV2KQYEA
+    secret_access_key:
+      secure: MoEPuGD+zt0fniaxoApPR1CikW7Wu0UuDuoo4JTJ+zHhCWtuXzMUbK/+E2lQXEiT4+X2lHv5+XStd5NkCNNdab0401GAviF7aNkMl5wj28KA8SotPmeIEgYOcBGDg1GZg+FU9SgOTwsCn2FnAG82LtZjC6lIthKKKQDZUUo4Cs4=
+    bucket: imhotep-build
+    local-dir: deploy
+    region: us-west-2
+    skip_cleanup: true
