@@ -15,6 +15,7 @@ install:
 before_deploy:
     - mkdir deploy
     - cp target/iql*.war deploy/
+    - cp pom.xml deploy/iql.pom
 
 deploy:
     provider: s3
