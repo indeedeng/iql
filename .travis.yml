@@ -6,7 +6,7 @@ script: mvn package
 
 install:
     - wget https://s3-us-west-2.amazonaws.com/imhotep-build/install-imhotep-maven-local.sh
-    - /bin/sh install-imhotep-maven-local.sh
+    - bash install-imhotep-maven-local.sh
 
 before_deploy:
     - mkdir deploy
