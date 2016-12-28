@@ -5,16 +5,8 @@ jdk:
 script: mvn package
 
 install:
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/imhotep.pom
-    - mvn install:install-file -Dfile=imhotep.pom -DgroupId=com.indeed -DartifactId=imhotep -Dversion=1.0.10-SNAPSHOT -Dpackaging=xml -DpomFile=imhotep.pom
-    - IMHOTEP_SERVER_JAR=`curl -s https://s3-us-west-2.amazonaws.com/imhotep-build/ | egrep -o "imhotep-server-[0-9\.]+-SNAPSHOT.jar" | head -1`
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/$IMHOTEP_SERVER_JAR
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/imhotep-server.pom
-    - mvn install:install-file -Dfile=imhotep-server-1.0.10-SNAPSHOT.jar -DgroupId=com.indeed -DartifactId=imhotep-server -Dversion=1.0.10-SNAPSHOT -Dpackaging=jar -DpomFile=imhotep-server.pom
-    - IMHOTEP_CLIENT_JAR=`curl -s https://s3-us-west-2.amazonaws.com/imhotep-build/ | egrep -o "imhotep-client-[0-9\.]+-SNAPSHOT.jar" | head -1`
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/$IMHOTEP_CLIENT_JAR
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/imhotep-client.pom
-    - mvn install:install-file -Dfile=imhotep-client-1.0.10-SNAPSHOT.jar -DgroupId=com.indeed -DartifactId=imhotep-client -Dversion=1.0.10-SNAPSHOT -Dpackaging=jar -DpomFile=imhotep-client.pom
+    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/install-imhotep-maven-local.sh
+    - /bin/sh install-imhotep-maven-local.sh
 
 before_deploy:
     - mkdir deploy
