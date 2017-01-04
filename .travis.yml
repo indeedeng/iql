@@ -5,7 +5,7 @@ jdk:
 script: mvn package
 
 install:
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/install-imhotep-maven-local.sh
+    - wget https://s3-us-west-2.amazonaws.com/indeedeng-imhotep-build/install-imhotep-maven-local.sh
     - bash install-imhotep-maven-local.sh
 
 before_deploy:
