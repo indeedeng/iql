@@ -1125,7 +1125,7 @@ public class EZImhotepSession implements Closeable {
     public static Stat abs(Stat stat) {
         return new Stats.AbsoluteValueStat(stat);
     }
-    public static Stat floatScale(String intField, int mult, int add) {
+    public static Stat floatScale(String intField, long mult, long add) {
         return new Stats.FloatScaleStat(intField, mult, add);
     }
     public static Stat multiplyShiftRight(int shift, Stat stat1, Stat stat2) {

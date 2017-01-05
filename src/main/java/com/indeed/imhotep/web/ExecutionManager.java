@@ -14,6 +14,8 @@
  package com.indeed.imhotep.web;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -111,6 +113,7 @@ public class ExecutionManager {
      * Keeps track of the query execution.
      * Must be closed when all operations relating to the query processing are complete (including HDFS cache upload).
      */
+    @JsonPropertyOrder({"startedTime", "username", "query"})
     public class QueryTracker implements Closeable {
         private final String username;  // user running the query
         private final String query; // query text
@@ -136,8 +139,18 @@ public class ExecutionManager {
             return username;
         }
 
+        @JsonIgnore
         public String getQuery() {
             return query;
+        }
+
+        @JsonProperty("query")
+        public String getQueryTruncated() {
+            String queryTruncated = QueryServlet.shortenParamsInQuery(query);
+            if (queryTruncated.length() > 500) {
+                queryTruncated = queryTruncated.substring(0, 500);
+            }
+            return queryTruncated;
         }
 
         public String getStartedTime() {

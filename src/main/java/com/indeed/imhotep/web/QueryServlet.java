@@ -760,9 +760,9 @@ public class QueryServlet {
 
     // trying to not cause the logentry to overflow from being larger than 2^16
     // this is the pre URL-encoded limit and encoding can make it about twice longer
-    private static final int QUERY_LENGTH_LIMIT = 27000;
+    private static final int LOGGED_FIELD_LENGTH_LIMIT = 8092;
 
-    private void logQuery(HttpServletRequest req,
+    private static void logQuery(HttpServletRequest req,
                           String query,
                           String userName,
                           long queryStartTimestamp,
@@ -795,13 +795,17 @@ public class QueryServlet {
             }
         }
         logEntry.setProperty("params", Joiner.on(' ').join(params));
-        final String queryToLog = query.length() > QUERY_LENGTH_LIMIT ? query.substring(0, QUERY_LENGTH_LIMIT) : query;
+        final String queryToLog = query.length() > LOGGED_FIELD_LENGTH_LIMIT ? query.substring(0, LOGGED_FIELD_LENGTH_LIMIT) : query;
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", query.length());
         logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
         if(errorOccurred != null) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
-            logEntry.setProperty("exceptionmsg", errorOccurred.getMessage());
+            String exceptionMessage = errorOccurred.getMessage();
+            if(exceptionMessage != null && exceptionMessage.length() > LOGGED_FIELD_LENGTH_LIMIT) {
+                exceptionMessage = exceptionMessage.substring(0, LOGGED_FIELD_LENGTH_LIMIT);
+            }
+            logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
         final String queryType = logStatementData(parsedQuery, selectExecutionStats, logEntry);
@@ -815,7 +819,7 @@ public class QueryServlet {
     }
 
     // Log to logrepo
-    private String logStatementData(IQLStatement parsedQuery,
+    private static String logStatementData(IQLStatement parsedQuery,
                                     SelectExecutionStats selectExecutionStats,
                                     QueryLogEntry logEntry) {
         if(parsedQuery == null) {
@@ -840,7 +844,7 @@ public class QueryServlet {
         return queryType;
     }
 
-    private void logSelectStatementData(SelectStatement selectStatement,
+    private static void logSelectStatementData(SelectStatement selectStatement,
                                         SelectExecutionStats selectExecutionStats,
                                         QueryLogEntry logEntry) {
         final FromClause from = selectStatement.from;
@@ -884,12 +888,18 @@ public class QueryServlet {
         logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
     }
 
-    private void logQueryToLog4J(String query, String identification, long timeTaken) {
-        if(query.length() > 500) {
-            query = query.replaceAll("\\(([^\\)]{0,100}+)[^\\)]+\\)", "\\($1\\.\\.\\.\\)");
-        }
+    private static void logQueryToLog4J(String query, String identification, long timeTaken) {
+        query = shortenParamsInQuery(query);
         final String timeTakenStr = timeTaken >= 0 ? String.valueOf(timeTaken) : "";
         log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
+    }
+
+    public static String shortenParamsInQuery(String query) {
+        if(query.length() > 500) {
+            return query.replaceAll("\\(([^\\)]{0,100}+)[^\\)]+\\)", "\\($1\\.\\.\\.\\)");
+        } else {
+            return query;
+        }
     }
 
     public static class IdentificationRequiredException extends RuntimeException {
