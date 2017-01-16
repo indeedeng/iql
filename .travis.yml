@@ -5,7 +5,7 @@ jdk:
 script: mvn package
 
 install:
-    - wget https://s3-us-west-2.amazonaws.com/imhotep-build/install-imhotep-maven-local.sh
+    - wget https://s3-us-west-2.amazonaws.com/indeedeng-imhotep-build/install-imhotep-maven-local.sh
     - bash install-imhotep-maven-local.sh
 
 before_deploy:
@@ -15,10 +15,10 @@ before_deploy:
 
 deploy:
     provider: s3
-    access_key_id: AKIAID3AAXWWTV2KQYEA
+    access_key_id: AKIAJVZNZT5TTB2Y4BNA
     secret_access_key:
-      secure: MoEPuGD+zt0fniaxoApPR1CikW7Wu0UuDuoo4JTJ+zHhCWtuXzMUbK/+E2lQXEiT4+X2lHv5+XStd5NkCNNdab0401GAviF7aNkMl5wj28KA8SotPmeIEgYOcBGDg1GZg+FU9SgOTwsCn2FnAG82LtZjC6lIthKKKQDZUUo4Cs4=
-    bucket: imhotep-build
+      secure: Izz+CyYh4qdv0Ppp2cCVF5X4FHH/rvQWHyanRccTPTvhQSWfYeqVpKkVP32Xtm1Y/DJBMpOZr3ZfsagW7272oNshrJqRa9OYvM0kgPekGeoKLlkUPu14prhk9X9j/Czj5VCvWQiFXG4YB1RDSnr93TPOYm+4MdjPPuukVqV6PLw=
+    bucket: indeedeng-imhotep-build
     local-dir: deploy
     region: us-west-2
     skip_cleanup: true
