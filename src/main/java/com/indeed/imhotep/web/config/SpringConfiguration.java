@@ -15,6 +15,8 @@
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.LocalImhotepDaemon;
+import com.indeed.imhotep.shortlink.ShortLinkController;
+import com.indeed.imhotep.shortlink.ShortLinkRepositoryFactory;
 import com.indeed.imhotep.web.CORSInterceptor;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -25,6 +27,7 @@ import com.indeed.imhotep.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
 import com.indeed.imhotep.web.QueryServlet;
 import com.indeed.imhotep.web.TopTermsCache;
+import com.indeed.imhotep.shortlink.ShortLinkRepository;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +55,7 @@ import javax.xml.bind.PropertyException;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
+@ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class,ShortLinkController.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 
@@ -71,6 +74,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     QueryCache queryCache() throws PropertyException {
         return QueryCacheFactory.newQueryCache(env);
     }
+
+    @Bean
+    ShortLinkRepository shortLinkRepository() throws PropertyException {
+        return ShortLinkRepositoryFactory.newShortLinkRepository(env);
+    }
+
 
     @Bean(destroyMethod = "close")
     public ImhotepClient imhotepClient() {
