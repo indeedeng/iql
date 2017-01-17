@@ -51,6 +51,11 @@ public class ShortLinkRepositoryFactory {
         public String resolveShortCode(String shortCode) throws IOException {
             return null;
         }
+
+        @Override
+        public boolean isEnabled() {
+            return false;
+        }
     }
 
 }

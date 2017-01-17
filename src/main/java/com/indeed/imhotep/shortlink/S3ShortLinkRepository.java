@@ -45,6 +45,7 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
         enabled = true;
         try {
             bucket = props.getProperty("shortlink.s3.bucket", String.class);
+            log.info("Short linking will use S3 bucket: " + bucket);
             awsKey = props.getProperty("shortlink.s3.s3key", String.class);
             awsSecret = props.getProperty("shortlink.s3.s3secret", String.class);
             if (awsKey == null || awsSecret == null) {
@@ -61,6 +62,7 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
                                               Region.US_Standard.toString());
                 client.createBucket(bucket, awsRegion);
             }
+            log.info("S3ShortLinkRepository initialized");
         } catch (Exception e) {
             log.info("Failed to initialize the S3 client. Shortlinking disabled.", e);
             enabled = false;
@@ -91,6 +93,11 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
         final String query = IOUtils.toString(contents, "UTF-8");
         contents.close();
         return query;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }
 

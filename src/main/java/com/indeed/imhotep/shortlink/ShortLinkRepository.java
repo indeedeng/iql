@@ -38,4 +38,9 @@ public interface ShortLinkRepository {
      * @return IQL query string (*not URL-encoded) or null if none found
      */
     String resolveShortCode(String shortCode) throws IOException;
+
+    /**
+     * @return true if short linking is enabled
+     */
+    boolean isEnabled();
 }

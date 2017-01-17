@@ -44,6 +44,7 @@ public class ShortLinkController {
     @Autowired
     public ShortLinkController(final ShortLinkRepository shortLinkRepository) {
         this.shortLinkRepository = shortLinkRepository;
+        log.info("Short linking enabled? " + shortLinkRepository.isEnabled());
     }
 
     @RequestMapping(value="/shortlink", method={RequestMethod.GET, RequestMethod.POST})
@@ -93,7 +94,7 @@ public class ShortLinkController {
             final String query = shortLinkRepository.resolveShortCode(shortCode);
             final URLCodec codec = new URLCodec("UTF-8");
             final String queryEncoded = codec.encode(query);
-            return new RedirectView("/iql/#" + queryEncoded);
+            return new RedirectView("/iql/#q[]=" + queryEncoded);
         } catch (Exception e) {
             log.error("Failed to handle /q/" + shortCode, e);
             return new RedirectView("/iql/");
