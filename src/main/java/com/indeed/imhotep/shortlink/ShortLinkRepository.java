@@ -21,22 +21,21 @@ import java.io.IOException;
 public interface ShortLinkRepository {
 
     /**
-     * Maps a short code to an IQL query string. The repository is write-once, so this method
+     * Maps a short code to an IQL query. The repository should be write-once, so this method
      * will modify nothing and return false if the short code is already in use.
      *
      * @param code short code to map
-     * @param query IQL query for short code
-     * @param view IQL view for short code
+     * @param paramString IQL parameters (i.e. from URL hash)
      * @throws IOException if unable to write mapping to repository
      * @return true if mapping succeeded, false if the short code is already in use.
      */
-    boolean mapShortCode(String code, String query, String view) throws IOException;
+    boolean mapShortCode(String code, String paramString) throws IOException;
 
     /**
      * Returns the IQL view and query string for a given short code
      *
      * @param shortCode short code to look up
-     * @return String in format "view|query" (IQL query string is not URL-encoded), or null if none found
+     * @return IQL param string (URL encoded), or null if none found
      */
     String resolveShortCode(String shortCode) throws IOException;
 

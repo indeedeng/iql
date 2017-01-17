@@ -53,8 +53,7 @@ public class ShortLinkController {
             final HttpServletRequest request,
             final HttpServletResponse response,
             final UriComponentsBuilder uriBuilder,
-            @RequestParam("q") final String query,
-            @RequestParam(value = "view", defaultValue = "table") final String view) {
+            @RequestParam("p") final String paramString) {
 
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST");
@@ -66,7 +65,7 @@ public class ShortLinkController {
             try {
                 final String allowed = "acdefghkmnprtwxyz2346789";
                 final String attempt = RandomStringUtils.random(6, allowed).toUpperCase();
-                if (shortLinkRepository.mapShortCode(attempt, query, view)) {
+                if (shortLinkRepository.mapShortCode(attempt, paramString)) {
                     shortCode = attempt;
                     break;
                 }
@@ -78,28 +77,23 @@ public class ShortLinkController {
         }
 
         if (shortCode == null) {
-            log.error("Failed to map a short code for " + query);
-            throw new RuntimeException("Failed to create shortcode for query");
+            log.error("Failed to map a short code for " + paramString);
+            throw new RuntimeException("Failed to create shortcode for hash");
         }
 
 
         return ImmutableMap.of(
                 "status", "ok",
-                "url", uriBuilder.path("/q/"+shortCode).build());
+                "url", uriBuilder.path("/q/"+shortCode).build().toUriString());
 
     }
 
     @RequestMapping(value="/q/{shortcode}", method=RequestMethod.GET)
     public View redirect(@PathVariable("shortcode") final String shortCode) {
         try {
-            final String resolved = shortLinkRepository.resolveShortCode(shortCode);
-            log.info(shortCode + " resolved to " + resolved);
-            final String[] viewAndQuery = resolved.split("\\|", 2);
-            final String view = viewAndQuery[0];
-            final String query = viewAndQuery[1];
-            final URLCodec codec = new URLCodec("UTF-8");
-            final String queryEncoded = codec.encode(query);
-            return new RedirectView("/iql/#q[]=" + queryEncoded + "&view=" + view);
+            final String paramString = shortLinkRepository.resolveShortCode(shortCode);
+            log.info(shortCode + " resolved to " + paramString);
+            return new RedirectView("/iql/#" + paramString);
         } catch (Exception e) {
             log.error("Failed to handle /q/" + shortCode, e);
             return new RedirectView("/iql/");

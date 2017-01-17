@@ -70,7 +70,7 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
     }
 
     @Override
-    public boolean mapShortCode(String code, String query, String view) throws IOException {
+    public boolean mapShortCode(String code, String paramString) throws IOException {
         if(!enabled) {
             throw new IllegalStateException("Shortlink feature disabled");
         }
@@ -79,7 +79,7 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
             return false;
         }
 
-        client.putObject(bucket, OBJECT_PREFIX + code, view + "|" + query);
+        client.putObject(bucket, OBJECT_PREFIX + code, paramString);
         return true;
     }
 
