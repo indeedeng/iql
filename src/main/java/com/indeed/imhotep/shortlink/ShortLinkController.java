@@ -40,11 +40,13 @@ public class ShortLinkController {
     private static final Logger log = Logger.getLogger(ShortLinkController.class);
 
     private final ShortLinkRepository shortLinkRepository;
+    private final boolean enabled;
 
     @Autowired
     public ShortLinkController(final ShortLinkRepository shortLinkRepository) {
         this.shortLinkRepository = shortLinkRepository;
-        log.info("Short linking enabled? " + shortLinkRepository.isEnabled());
+        this.enabled = shortLinkRepository.isEnabled();
+        log.info("Short linking enabled? " + enabled);
     }
 
     @RequestMapping(value="/shortlink", method={RequestMethod.GET, RequestMethod.POST})
@@ -54,6 +56,10 @@ public class ShortLinkController {
             final HttpServletResponse response,
             final UriComponentsBuilder uriBuilder,
             @RequestParam("p") final String paramString) {
+
+        if (!enabled) {
+            return ImmutableMap.of("status", "disabled");
+        }
 
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST");
@@ -90,6 +96,9 @@ public class ShortLinkController {
 
     @RequestMapping(value="/q/{shortcode}", method=RequestMethod.GET)
     public View redirect(@PathVariable("shortcode") final String shortCode) {
+        if (!enabled) {
+            return new RedirectView("/iql/");
+        }
         try {
             final String paramString = shortLinkRepository.resolveShortCode(shortCode);
             log.info(shortCode + " resolved to " + paramString);
@@ -98,5 +107,11 @@ public class ShortLinkController {
             log.error("Failed to handle /q/" + shortCode, e);
             return new RedirectView("/iql/");
         }
+    }
+
+    @RequestMapping(value="/shortlink-enabled", method=RequestMethod.GET)
+    @ResponseBody
+    public Object checkEnabled() {
+        return ImmutableMap.of("enabled", enabled);
     }
 }
