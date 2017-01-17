@@ -46,7 +46,7 @@ public class ShortLinkController {
         this.shortLinkRepository = shortLinkRepository;
     }
 
-    @RequestMapping(value="/shortlink/create", method={RequestMethod.GET, RequestMethod.POST})
+    @RequestMapping(value="/shortlink", method={RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public Object create(
             final HttpServletRequest request,

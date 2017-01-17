@@ -15,6 +15,7 @@
 
 import com.google.common.base.Strings;
 import com.indeed.imhotep.LocalImhotepDaemon;
+import com.indeed.imhotep.shortlink.ShortLinkController;
 import com.indeed.imhotep.shortlink.ShortLinkRepositoryFactory;
 import com.indeed.imhotep.web.CORSInterceptor;
 import com.indeed.imhotep.web.ImhotepClientPinger;
@@ -54,7 +55,7 @@ import javax.xml.bind.PropertyException;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
+@ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class,ShortLinkController.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 
