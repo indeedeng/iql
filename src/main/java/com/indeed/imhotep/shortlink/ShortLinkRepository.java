@@ -26,16 +26,17 @@ public interface ShortLinkRepository {
      *
      * @param code short code to map
      * @param query IQL query for short code
+     * @param view IQL view for short code
      * @throws IOException if unable to write mapping to repository
      * @return true if mapping succeeded, false if the short code is already in use.
      */
-    boolean mapShortCode(String code, String query) throws IOException;
+    boolean mapShortCode(String code, String query, String view) throws IOException;
 
     /**
-     * Returns the IQL query string for a given short code
+     * Returns the IQL view and query string for a given short code
      *
      * @param shortCode short code to look up
-     * @return IQL query string (*not URL-encoded) or null if none found
+     * @return String in format "view|query" (IQL query string is not URL-encoded), or null if none found
      */
     String resolveShortCode(String shortCode) throws IOException;
 

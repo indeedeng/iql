@@ -43,7 +43,7 @@ public class ShortLinkRepositoryFactory {
     static class NoOpRepository implements ShortLinkRepository {
 
         @Override
-        public boolean mapShortCode(String code, String query) throws IOException {
+        public boolean mapShortCode(String code, String query, String view) throws IOException {
             return false;
         }
 
