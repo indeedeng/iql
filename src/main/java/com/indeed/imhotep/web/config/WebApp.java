@@ -14,6 +14,10 @@
  package com.indeed.imhotep.web.config;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.indeed.util.varexport.Export;
+import com.indeed.util.varexport.VarExporter;
+import com.indeed.util.varexport.servlet.ViewExportedVariablesServlet;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.web.NoCacheFilter;
 import org.apache.log4j.Logger;
@@ -29,6 +33,8 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
 import java.io.File;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -111,6 +117,14 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         servletContext.getServletRegistration("jsp").addMapping("*.jsp");
     }
 
+    protected void initVarExport(ServletContext servletContext) {
+        SystemExports.register(true);
+
+        final ServletRegistration.Dynamic statusServlet = servletContext.addServlet("ViewExportedVariablesServlet", ViewExportedVariablesServlet.class);
+        statusServlet.setLoadOnStartup(1);
+        statusServlet.addMapping("/v");
+    }
+
     protected String getDefaultLog4jConfigLocation() {
         return "classpath:config/log4j.xml";
     }
@@ -147,6 +161,39 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         utf8.setForceEncoding(true);
         servletContext.addFilter("SetCharacterEncodingFilter", utf8)
                 .addMappingForUrlPatterns(null, false, "/*");
+    }
+
+    public static class SystemExports {
+	private static AtomicBoolean registered = new AtomicBoolean(false);
+
+        private final Map<String, String> systemProperties = Maps.newHashMap();
+
+	public static final void register(final boolean includeInGlobal) {
+	    if (registered.compareAndSet(false, true)) {
+                new SystemExports(includeInGlobal);
+            }
+        }
+
+        SystemExports(final boolean includeInGlobal) {
+            for (final Map.Entry<Object, Object> prop : System.getProperties().entrySet()) {
+                systemProperties.put((String) prop.getKey(), (String) prop.getValue());
+            }
+            final VarExporter e = VarExporter.forNamespace("system");
+            if (includeInGlobal) {
+                e.includeInGlobal();
+            }
+            e.export(this, "");
+        }
+
+        @Export(name="env", expand=true)
+        public Map<String, String> getEnv() {
+            return System.getenv();
+        }
+
+        @Export(name="properties", expand=true)
+        public Map<String, String> getProperties() {
+            return systemProperties;
+        }
     }
 }
 
