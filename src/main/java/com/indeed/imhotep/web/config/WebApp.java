@@ -99,6 +99,8 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         initLog4j(servletContext);
 
         initJSPMapping(servletContext);
+
+        initVarExport(servletContext);
     }
 
     protected void initLog4j(ServletContext servletContext) {
