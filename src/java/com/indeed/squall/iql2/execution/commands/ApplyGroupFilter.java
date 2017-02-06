@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.commons.collections.MapUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class ApplyGroupFilter implements Command {
     private static final Logger log = Logger.getLogger(ApplyGroupFilter.class);
@@ -44,12 +46,13 @@ public class ApplyGroupFilter implements Command {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
                 int index = -1;
-                for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
+                final TreeMap<Integer, QualifiedPush> metricsTreeMap = new TreeMap<>(MapUtils.invertMap(metricIndexes));
+                for (final Map.Entry<Integer, QualifiedPush> entry : metricsTreeMap.entrySet()) {
                     index += 1;
-                    if (!entry.getKey().sessionName.equals(name)) {
+                    if (!entry.getValue().sessionName.equals(name)) {
                         continue;
                     }
-                    final List<String> pushes = entry.getKey().pushes;
+                    final List<String> pushes = entry.getValue().pushes;
                     session.pushStats(pushes);
                     final long[] groupStats = session.getGroupStats(0);
                     session.popStat();
