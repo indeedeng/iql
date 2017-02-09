@@ -5,7 +5,6 @@ import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -92,9 +91,7 @@ public class ExplodePerGroup implements Command {
 
         session.regroup(rules, true);
 
-        session.numGroups = nextGroup - 1;
-        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
-        session.currentDepth += 1;
+        session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
 
         out.accept("success");
     }

@@ -49,7 +49,6 @@ public class IntRegroupFieldIn implements Command {
         session.regroup(remapRules, true);
 
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms, withDefault));
-        session.currentDepth += 1;
     }
 
     public static class IntFieldInGroupKeySet implements GroupKeySet {

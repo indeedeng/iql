@@ -98,8 +98,6 @@ public class MetricRegroup implements Command {
 
         session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket));
 
-        session.currentDepth += 1;
-
         out.accept("success");
     }
 }
