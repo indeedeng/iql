@@ -238,9 +238,7 @@ jqlSyntacticallyAtomicDocMetricAtom
     ;
 
 legacyDocMetricAtom
-    : singlyScopedField '=' singlyScopedField # LegacyDocMetricAtomFieldEqual
-    | singlyScopedField '!=' singlyScopedField # LegacyDocMetricAtomNotFieldEqual
-    | field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
+    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
     | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
     | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
@@ -337,8 +335,6 @@ docFilter [boolean useLegacy]
 legacyDocFilter
     : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
     | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
-    | singlyScopedField '=' singlyScopedField # LegacyDocFieldEqual
-    | singlyScopedField '!=' singlyScopedField # LegacyDocNotFieldEqual
     | field=identifier '=' legacyTermVal # LegacyDocFieldIs
     | (negate='-')? field=identifier ':' legacyTermVal # LegacyDocLuceneFieldIs
     | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt

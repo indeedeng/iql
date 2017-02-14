@@ -204,22 +204,6 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
-
-            @Override
-            public void enterLegacyDocMetricAtomFieldEqual(final JQLParser.LegacyDocMetricAtomFieldEqualContext ctx) {
-                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
-                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
-                accept(scopedField1.wrap(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field))));
-            }
-
-            @Override
-            public void enterLegacyDocMetricAtomNotFieldEqual(final JQLParser.LegacyDocMetricAtomNotFieldEqualContext ctx) {
-                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
-                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
-                accept(scopedField1.wrap(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)))));
-            }
         });
 
         if (ref[0] == null) {
@@ -393,8 +377,7 @@ public class DocMetrics {
     public static DocMetric parseJQLDocMetricAtom(
             JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext,
             final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
-            final Map<String, Set<String>> datasetToIntFields)
-    {
+            final Map<String, Set<String>> datasetToIntFields) {
         final DocMetric[] ref = new DocMetric[1];
 
         jqlDocMetricAtomContext.enterRule(new JQLBaseListener() {

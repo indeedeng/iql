@@ -174,23 +174,6 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocFieldEqual(final JQLParser.LegacyDocFieldEqualContext ctx) {
-                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
-                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
-                accept(scopedField1.wrap(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field)));
-            }
-
-            @Override
-            public void enterLegacyDocNotFieldEqual(final JQLParser.LegacyDocNotFieldEqualContext ctx) {
-                final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
-                final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
-                ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
-                accept(scopedField1.wrap(new DocFilter.FieldNotEqual(scopedField1.field, scopedField2.field)));
-
-            }
-
-            @Override
             public void enterLegacyDocNotRegex(JQLParser.LegacyDocNotRegexContext ctx) {
                 accept(new DocFilter.NotRegex(parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
