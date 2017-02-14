@@ -21,7 +21,7 @@ public class GroupByHavingTest extends BasicTest {
             final FlamdexDocument doc = new FlamdexDocument();
             doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, 0, timeZone).getMillis() / 1000);
             doc.addIntTerm("label", 1);
-            doc.addIntTerm("val", 0);
+            doc.addIntTerm("val", 2);
             flamdex.addDocument(doc);
         }
         {
@@ -35,17 +35,23 @@ public class GroupByHavingTest extends BasicTest {
             final FlamdexDocument doc = new FlamdexDocument();
             doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 13, 0, 0, timeZone).getMillis() / 1000);
             doc.addIntTerm("label", 0);
+            doc.addIntTerm("val", 1);
+            flamdex.addDocument(doc);
+        }
+        {
+            final FlamdexDocument doc = new FlamdexDocument();
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 18, 0, 0, timeZone).getMillis() / 1000);
+            doc.addIntTerm("label", 0);
             doc.addIntTerm("val", 0);
             flamdex.addDocument(doc);
         }
-
         result.add(new Shard("test", "index20150101.02", flamdex));
         return result;
     }
 
     @Test
-    public void testHavingMax() throws Exception {
-        testIQL2(prepareData(), ImmutableList.<List<String>>of(ImmutableList.of("0", "2")), "FROM test yesterday today GROUP BY label HAVING max(val) > 0");
+    public void testHaving() throws Exception {
+        testIQL2(prepareData(), ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2");
     }
 
     @Test
