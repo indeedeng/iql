@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
+import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
@@ -20,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class ValidationUtil {
     public static DatasetsFields findFieldsUsed(Map<String, Query> perDatasetQuery) {
@@ -101,26 +103,32 @@ public class ValidationUtil {
         }
     }
 
-    public static com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {
-        if (query.getOperands() == null) {
-            final com.indeed.flamdex.query.Term startTerm = query.getStartTerm();
-            final com.indeed.flamdex.query.Term endTerm = query.getEndTerm();
-            if (endTerm == null) {
-                return com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal()));
-            } else {
-                return com.indeed.flamdex.query.Query.newRangeQuery(
-                        startTerm.getFieldName().toUpperCase(), startTerm.getTermStringVal(), endTerm.getTermStringVal(), query.isMaxInclusive());
-            }
+    private static Term uppercaseTerm(Term term) {
+        if (term.isIntField()) {
+            return Term.intTerm(term.getFieldName().toUpperCase(), term.getTermIntVal());
         } else {
-            List<Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
-            for (com.indeed.flamdex.query.Query operand : query.getOperands()) {
-                upperOperands.add(uppercaseTermQuery(operand));
-            }
-            return com.indeed.flamdex.query.Query.newBooleanQuery(query.getOperator(), upperOperands);
+            return Term.stringTerm(term.getFieldName().toUpperCase(), term.getTermStringVal());
         }
     }
 
-
+    public static Query uppercaseTermQuery(Query query) {
+        if (query.getOperands() == null) {
+            final Term startTerm = query.getStartTerm();
+            final Term endTerm = query.getEndTerm();
+            if (endTerm == null) {
+                return Query.newTermQuery(uppercaseTerm(startTerm));
+            } else {
+                return Query.newRangeQuery(
+                        uppercaseTerm(startTerm), uppercaseTerm(endTerm), query.isMaxInclusive());
+            }
+        } else {
+            List<Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
+            for (Query operand : query.getOperands()) {
+                upperOperands.add(uppercaseTermQuery(operand));
+            }
+            return Query.newBooleanQuery(query.getOperator(), upperOperands);
+        }
+    }
 
     public static Query getFlamdexQuery(final String query, final String dataset, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
         final Analyzer analyzer;
@@ -148,7 +156,13 @@ public class ValidationUtil {
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
         }
-        return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.containsKey(dataset) ? datasetToIntFields.get(dataset) : Collections.<String>emptySet());
+        if (!datasetToIntFields.containsKey(dataset)) {
+            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+        } else {
+            final Set<String> caseInsensitiveIntFields = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            caseInsensitiveIntFields.addAll(datasetToIntFields.get(dataset));
+            return LuceneQueryTranslator.rewrite(parsed, caseInsensitiveIntFields);
+        }
     }
 
     public static void compileRegex(String regex) {
