@@ -78,6 +78,13 @@ public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImho
             } else {
                 throw new IllegalArgumentException("Invalid regexmatch command: [" + statName + "]");
             }
+        } else if (statName.startsWith("fieldequal ")) {
+            final String query = statName.substring("fieldequal ".length());
+            final String[] fields = query.split("=");
+            if (fields.length != 2) {
+                throw new IllegalArgumentException("Invalid fieldequal command: [" + statName + "]");
+            }
+            return "fieldequal " + rewrite(fields[0]) + "="+ rewrite(fields[1]);
         }
         return statName;
     }
