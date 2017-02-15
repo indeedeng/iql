@@ -41,12 +41,15 @@ public class QueryServletTestUtils extends BasicTest {
             throw Throwables.propagate(e);
         }
 
+        final KeywordAnalyzerWhitelistLoader analyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("", null, imhotepClient);
+        analyzerWhitelistLoader.load();
+
         return new QueryServlet(
                 imhotepClient,
                 options.queryCache,
                 executionManager,
                 new DimensionsLoader("", null),
-                new KeywordAnalyzerWhitelistLoader("", null, imhotepClient),
+                analyzerWhitelistLoader,
                 new AccessControl(Collections.<String>emptySet()),
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,
