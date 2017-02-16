@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.language.util;
 
 
-import com.google.common.base.Throwables;
 import com.google.common.base.Objects;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.StringUtils;
@@ -108,6 +108,30 @@ public class ValidationUtil {
         if (!Objects.equal(scope1, scope2)) {
             throw new IllegalArgumentException(ErrorMessages.scopeMismatch(StringUtils.join(scope1, "."), StringUtils.join(scope2, ".")));
         }
+    }
+
+    public static void validateExistenceAndSameFieldType(String dataset, String field1, String field2, DatasetsFields datasetsFields, Validator validator) {
+        final FieldType type1 = getFieldType(datasetsFields, dataset, field1);
+        final FieldType type2 = getFieldType(datasetsFields, dataset, field2);
+        if (type1 == FieldType.NULL || type2 == FieldType.NULL || type1 != type2 ) {
+            validator.error(String.format("incompatible fields found in fieldequal: [%s -> %s], [%s -> %s]", field1, type1, field2, type2));
+        }
+    }
+
+
+    private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {
+        final boolean isIntField = datasetsFields.getIntFields(dataset).contains(field);
+        final boolean isStrField = datasetsFields.getStringFields(dataset).contains(field);
+        if (isIntField) {
+            return FieldType.INT;
+        } else if (isStrField) {
+            return FieldType.STR;
+        } else {
+            return FieldType.NULL;
+        }
+    }
+    private enum FieldType {
+        INT, STR, NULL
     }
 
     public static com.indeed.flamdex.query.Query uppercaseTermQuery(com.indeed.flamdex.query.Query query) {

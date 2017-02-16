@@ -7,7 +7,12 @@ import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
@@ -306,7 +311,7 @@ public class DocFilters {
                 final ScopedField scopedField1 = ScopedField.parseFrom(ctx.singlyScopedField(0));
                 final ScopedField scopedField2 = ScopedField.parseFrom(ctx.singlyScopedField(1));
                 ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
-                accept(scopedField1.wrap(new DocFilter.FieldNotEqual(scopedField1.field, scopedField2.field)));
+                accept(scopedField1.wrap(new DocFilter.Not(new DocFilter.FieldEqual(scopedField1.field, scopedField2.field))));
             }
 
             @Override

@@ -829,15 +829,9 @@ public abstract class DocMetric extends AbstractPositional {
             return Collections.singletonList("fieldequal " + field1.unwrap() + "=" + field2.unwrap());
         }
 
-
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field1.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field1.unwrap())) {
-                validator.error(ErrorMessages.missingField(dataset, field1.unwrap(), this));
-            }
-            if (!datasetsFields.getStringFields(dataset).contains(field2.unwrap()) && !datasetsFields.getIntFields(dataset).contains(field2.unwrap())) {
-                validator.error(ErrorMessages.missingField(dataset, field2.unwrap(), this));
-            }
+            ValidationUtil.validateExistenceAndSameFieldType(dataset, field1.unwrap(), field2.unwrap(), datasetsFields, validator);
         }
 
         @Override
