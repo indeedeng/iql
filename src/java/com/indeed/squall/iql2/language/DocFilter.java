@@ -1320,6 +1320,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (scope.contains(dataset)) {
                 filter.validate(dataset, datasetsFields, validator);
             }
+            ValidationUtil.validateScope(scope, datasetsFields, validator);
         }
 
         @Override
