@@ -887,8 +887,10 @@ public class Session {
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionIntIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex) {
-            final FTGSIterator it = closer.register(session.getFTGSIterator(new String[]{field}, new String[0]));
+        static Optional<SessionIntIterationState> construct(
+                Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
+                Optional<TopKParams> topKParams, Optional<Integer> limit) {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, limit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -908,6 +910,12 @@ public class Session {
     }
 
     public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback) throws IOException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<TopKParams>absent(), Optional.<Integer>absent(), callback);
+    }
+
+    public static void iterateMultiInt(
+            Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
+            Optional<TopKParams> topKParams, Optional<Integer> limit, IntIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -926,7 +934,8 @@ public class Session {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
-                final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex);
+                final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
+                        closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, limit);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
@@ -1000,8 +1009,10 @@ public class Session {
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex) {
-            final FTGSIterator it = closer.register(session.getFTGSIterator(new String[0], new String[]{field}));
+        static Optional<SessionStringIterationState> construct(
+                Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
+                Optional<TopKParams> topKParams, Optional<Integer> limit) {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, limit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -1021,6 +1032,12 @@ public class Session {
     }
 
     public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback) throws IOException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<TopKParams>absent(), Optional.<Integer>absent(), callback);
+    }
+
+    public static void iterateMultiString(
+            Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
+            Optional<TopKParams> topKParams, Optional<Integer> limit, StringIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1038,7 +1055,8 @@ public class Session {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
-                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(
+                        closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, limit);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
@@ -1064,6 +1082,28 @@ public class Session {
                 }
             }
         }
+    }
+
+    private static FTGSIterator getFTGSIterator(
+            final ImhotepSession session, final String field, final boolean isIntField,
+            final Optional<TopKParams> topKParams, final Optional<Integer> limit) {
+        final String[] intFields, strFields;
+        if (isIntField) {
+            intFields = new String[]{field};
+            strFields = new String[0];
+        } else {
+            strFields = new String[]{field};
+            intFields = new String[0];
+        }
+        final FTGSIterator it;
+        if (topKParams.isPresent()) {
+            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex);
+        } else if (limit.isPresent()) {
+            it = session.getFTGSIterator(intFields, strFields, limit.get());
+        } else {
+            it = session.getFTGSIterator(intFields, strFields);
+        }
+        return it;
     }
 
     private static void advanceAndEnqueue(SessionStringIterationState state, PriorityQueue<SessionStringIterationState> pq) {
@@ -1117,6 +1157,16 @@ public class Session {
         public SavedGroupStats(int depth, double[] stats) {
             this.depth = depth;
             this.stats = stats;
+        }
+    }
+
+    public static class TopKParams {
+        public final int limit;
+        public final int sortStatIndex;
+
+        public TopKParams(final int limit, final int sortStatIndex) {
+            this.limit = limit;
+            this.sortStatIndex = sortStatIndex;
         }
     }
 

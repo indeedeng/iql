@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nonnull;
@@ -146,6 +147,7 @@ public class SimpleIterate implements Command {
             topKMetricOrNull = null;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
+        final Optional<Session.TopKParams> topKParams = getTopKParamsOptional(metricIndexes);
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
@@ -167,7 +169,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, opts.limit, callback);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -177,7 +179,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, opts.limit, callback);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
@@ -208,6 +210,22 @@ public class SimpleIterate implements Command {
             session.timer.pop();
             return allTermSelects;
         }
+    }
+
+    private Optional<Session.TopKParams> getTopKParamsOptional() {
+        Optional<Session.TopKParams> topKParams = Optional.absent();
+        if (opts.topK.isPresent()) {
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                if (topK.limit.isPresent()) {
+                    final AggregateMetric topKMetric = opts.topK.get().metric.get();
+                    if (topKMetric instanceof DocumentLevelMetric) {
+                        topKParams = Optional.of(new Session.TopKParams(topK.limit.get(), ((DocumentLevelMetric) topKMetric).getIndex()));
+                    }
+                }
+            }
+        }
+        return topKParams;
     }
 
     // TODO: Move this
