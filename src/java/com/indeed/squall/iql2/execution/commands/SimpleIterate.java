@@ -147,7 +147,7 @@ public class SimpleIterate implements Command {
             topKMetricOrNull = null;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.TopKParams> topKParams = getTopKParamsOptional(metricIndexes);
+        final Optional<Session.TopKParams> topKParams = getTopKParamsOptional();
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();

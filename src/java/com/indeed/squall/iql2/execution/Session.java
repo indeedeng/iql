@@ -1097,7 +1097,13 @@ public class Session {
         }
         final FTGSIterator it;
         if (topKParams.isPresent()) {
-            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex);
+            final int limitNum;
+            if (limit.isPresent()) {
+                limitNum = Math.min(limit.get(), topKParams.get().limit);
+            } else {
+                limitNum = topKParams.get().limit;
+            }
+            it = session.getFTGSIterator(intFields, strFields, limitNum, topKParams.get().sortStatIndex);
         } else if (limit.isPresent()) {
             it = session.getFTGSIterator(intFields, strFields, limit.get());
         } else {
