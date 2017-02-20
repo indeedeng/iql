@@ -147,7 +147,7 @@ public class SimpleIterate implements Command {
             topKMetricOrNull = null;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.TopKParams> topKParams = getTopKParamsOptional();
+        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional();
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
@@ -212,15 +212,15 @@ public class SimpleIterate implements Command {
         }
     }
 
-    private Optional<Session.TopKParams> getTopKParamsOptional() {
-        Optional<Session.TopKParams> topKParams = Optional.absent();
+    private Optional<Session.RemoteTopKParams> getTopKParamsOptional() {
+        Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
                 if (topK.limit.isPresent()) {
                     final AggregateMetric topKMetric = opts.topK.get().metric.get();
                     if (topKMetric instanceof DocumentLevelMetric) {
-                        topKParams = Optional.of(new Session.TopKParams(topK.limit.get(), ((DocumentLevelMetric) topKMetric).getIndex()));
+                        topKParams = Optional.of(new Session.RemoteTopKParams(topK.limit.get(), ((DocumentLevelMetric) topKMetric).getIndex()));
                     }
                 }
             }

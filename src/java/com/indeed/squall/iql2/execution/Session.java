@@ -889,7 +889,7 @@ public class Session {
 
         static Optional<SessionIntIterationState> construct(
                 Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
-                Optional<TopKParams> topKParams, Optional<Integer> limit) {
+                Optional<RemoteTopKParams> topKParams, Optional<Integer> limit) {
             final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, limit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
@@ -910,12 +910,12 @@ public class Session {
     }
 
     public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<TopKParams>absent(), Optional.<Integer>absent(), callback);
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), callback);
     }
 
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<TopKParams> topKParams, Optional<Integer> limit, IntIterateCallback callback) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, IntIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1011,7 +1011,7 @@ public class Session {
 
         static Optional<SessionStringIterationState> construct(
                 Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
-                Optional<TopKParams> topKParams, Optional<Integer> limit) {
+                Optional<RemoteTopKParams> topKParams, Optional<Integer> limit) {
             final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, limit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
@@ -1032,12 +1032,12 @@ public class Session {
     }
 
     public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<TopKParams>absent(), Optional.<Integer>absent(), callback);
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), callback);
     }
 
     public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<TopKParams> topKParams, Optional<Integer> limit, StringIterateCallback callback) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, StringIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1086,7 +1086,7 @@ public class Session {
 
     private static FTGSIterator getFTGSIterator(
             final ImhotepSession session, final String field, final boolean isIntField,
-            final Optional<TopKParams> topKParams, final Optional<Integer> limit) {
+            final Optional<RemoteTopKParams> topKParams, final Optional<Integer> limit) {
         final String[] intFields, strFields;
         if (isIntField) {
             intFields = new String[]{field};
@@ -1166,11 +1166,11 @@ public class Session {
         }
     }
 
-    public static class TopKParams {
+    public static class RemoteTopKParams {
         public final int limit;
         public final int sortStatIndex;
 
-        public TopKParams(final int limit, final int sortStatIndex) {
+        public RemoteTopKParams(final int limit, final int sortStatIndex) {
             this.limit = limit;
             this.sortStatIndex = sortStatIndex;
         }
