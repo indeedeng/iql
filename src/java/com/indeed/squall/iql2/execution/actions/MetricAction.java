@@ -31,7 +31,7 @@ public class MetricAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        if (targetGroup == 1 && positiveGroup == 1 && negativeGroup == 0 && session.numGroups == 1) {
+        if (targetGroup == 1 && session.numGroups == 1 && ((positiveGroup == 1 && negativeGroup == 0) || (positiveGroup == 0 && negativeGroup == 1))) {
             // TODO: Parallelize
             session.process(new SessionCallback() {
                 @Override
@@ -44,7 +44,7 @@ public class MetricAction implements Action {
                         timer.pop();
 
                         timer.push("metricFilter");
-                        session.metricFilter(0, 1, 1, false);
+                        session.metricFilter(0, 1, 1, positiveGroup == 0);
                         timer.pop();
 
                         timer.push("popStat");
@@ -54,7 +54,7 @@ public class MetricAction implements Action {
                 }
             });
         } else {
-            throw new UnsupportedOperationException("Can only do MetricAction filters when targetGroup=positiveGroup=1 and negativeGroup=0 and numGroups=1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
+            throw new UnsupportedOperationException("Can only do MetricAction filters when negativeGroup or positive group > 1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
         }
     }
 
