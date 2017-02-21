@@ -43,9 +43,7 @@ public class ApplyGroupFilter implements Command {
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
-                int index = -1;
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
-                    index += 1;
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;
                     }
@@ -54,7 +52,7 @@ public class ApplyGroupFilter implements Command {
                     final long[] groupStats = session.getGroupStats(0);
                     session.popStat();
                     synchronized (stats) {
-                        stats[index] = groupStats;
+                        stats[entry.getValue()] = groupStats;
                     }
                 }
             }
