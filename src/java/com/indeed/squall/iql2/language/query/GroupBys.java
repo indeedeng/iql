@@ -250,7 +250,12 @@ public class GroupBys {
                 if (ctx2.metric != null) {
                     AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
                     if (reverseOrder) {
-                        theMetric = new AggregateMetric.Negate(theMetric);
+                        if (theMetric instanceof AggregateMetric.ImplicitDocStats) {
+                            theMetric = new AggregateMetric.ImplicitDocStats(
+                                    new DocMetric.Negate(((AggregateMetric.ImplicitDocStats) theMetric).docMetric));
+                        } else {
+                            theMetric = new AggregateMetric.Negate(theMetric);
+                        }
                     }
                     metric = Optional.of(theMetric);
                 } else {
