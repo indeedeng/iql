@@ -79,9 +79,8 @@ public class ApplyGroupFilter implements Command {
                 session.regroup(rulesArray);
             }
         });
-        session.numGroups = newGroupParents.size() - 1;
-        log.debug("numGroups = " + session.numGroups);
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
+        session.numGroups = session.groupKeySet.numGroups();
         out.accept("done");
     }
 }

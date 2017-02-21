@@ -170,9 +170,7 @@ public class ExplodeByAggregatePercentile implements Command {
 
         session.popStats();
 
-        session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys);
-        session.currentDepth += 1;
+        session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
 
         out.accept("ExplodedByAggregatePercentile");
     }

@@ -51,7 +51,6 @@ public class ExplodeDayOfWeek implements Command {
         session.regroup(rulesArray);
         session.timer.pop();
         session.assumeDense(new DayOfWeekGroupKeySet(session.groupKeySet));
-        session.currentDepth += 1;
 
         out.accept("success");
     }

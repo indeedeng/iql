@@ -72,6 +72,5 @@ public class ExplodeMonthOfYear implements Command {
         session.regroup(rulesArray);
 
         session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, formatter));
-        session.currentDepth += 1;
     }
 }

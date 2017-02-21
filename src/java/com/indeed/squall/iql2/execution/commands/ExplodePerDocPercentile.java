@@ -119,9 +119,7 @@ public class ExplodePerDocPercentile implements Command {
             }
         });
 
-        session.numGroups = nextGroupKeys.size() - 1;
-        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys);
-        session.currentDepth += 1;
+        session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
 
         out.accept("ExplodedPerDocPercentile");
     }

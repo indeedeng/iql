@@ -686,7 +686,7 @@ public class Session {
         numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
         this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
-
+        this.currentDepth += 1;
         timer.pop();
     }
 
@@ -695,6 +695,7 @@ public class Session {
         this.numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
         this.groupKeySet = groupKeySet;
+        this.currentDepth += 1;
         timer.pop();
     }
 

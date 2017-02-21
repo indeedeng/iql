@@ -46,7 +46,6 @@ public class TimePeriodRegroup implements Command {
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
         final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format);
         session.assumeDense(groupKeySet);
-        session.currentDepth += 1;
         out.accept("TimePeriodRegrouped");
     }
 
