@@ -481,6 +481,15 @@ public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingIm
     }
 
     @Override
+    public void groupQueryUpdateDynamicMetric(final String name, final int[] groups, final Query[] conditions, final int[] deltas) throws ImhotepOutOfMemoryException {
+        final Query[] rewrittenConditions = new Query[conditions.length];
+        for (int i = 0; i < conditions.length; i++) {
+            rewrittenConditions[i] = rewriteQuery(conditions[i]);
+        }
+        wrapped.groupQueryUpdateDynamicMetric(name, groups, rewrittenConditions, deltas);
+    }
+
+    @Override
     public void close() {
         wrapped.close();
     }

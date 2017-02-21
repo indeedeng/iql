@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution;
 
+import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.Instrumentation;
@@ -286,6 +287,12 @@ public class LoggingImhotepSession implements ImhotepSession {
     public void groupConditionalUpdateDynamicMetric(String name, int[] groups, RegroupCondition[] conditions, int[] deltas) {
         log.info("LoggingImhotepSession.groupConditionalUpdateDynamicMetric: " + "name = [" + name + "], groups = [" + Arrays.toString(groups) + "], conditions = [" + Arrays.toString(conditions) + "], deltas = [" + Arrays.toString(deltas) + "]");
         wrapped.groupConditionalUpdateDynamicMetric(name, groups, conditions, deltas);
+    }
+
+    @Override
+    public void groupQueryUpdateDynamicMetric(final String name, final int[] groups, final Query[] conditions, final int[] deltas) throws ImhotepOutOfMemoryException {
+        log.info("LoggingImhotepSession.groupQueryUpdateDynamicMetric: " + "name = [" + name + "], groups = [" + Arrays.toString(groups) + "], conditions = [" + Arrays.toString(conditions) + "], deltas = [" + Arrays.toString(deltas) + "]");
+        wrapped.groupQueryUpdateDynamicMetric(name, groups, conditions, deltas);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.execution.workarounds;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.Instrumentation;
@@ -336,6 +337,11 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     @Override
     public void groupConditionalUpdateDynamicMetric(String s, int[] ints, RegroupCondition[] regroupConditions, int[] ints1) {
         wrapped.groupConditionalUpdateDynamicMetric(s, ints, regroupConditions, ints1);
+    }
+
+    @Override
+    public void groupQueryUpdateDynamicMetric(final String name, final int[] groups, final Query[] conditions, final int[] deltas) throws ImhotepOutOfMemoryException {
+        wrapped.groupQueryUpdateDynamicMetric(name, groups, conditions, deltas);
     }
 
     @Override
