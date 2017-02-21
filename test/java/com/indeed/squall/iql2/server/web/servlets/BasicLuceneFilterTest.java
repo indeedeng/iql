@@ -1,9 +1,10 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
-import java.util.List;
 import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
+
+import java.util.List;
+
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 
 /**
@@ -13,6 +14,9 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
 public class BasicLuceneFilterTest extends BasicTest {
     @Test
     public void testBasicLuceneFilters() throws Exception {
+        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from organic yesterday today where lucene(\"oji:3\") select count()");
+        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from organic yesterday today where lucene(\"OJI:3\") select count()");
+
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where lucene(\"TK:a\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where lucene(\"tk:b\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where lucene(\"TK:c\") select count()");
@@ -21,6 +25,8 @@ public class BasicLuceneFilterTest extends BasicTest {
 
     @Test
     public void testBooleanLuceneFilters() throws Exception {
+        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where lucene(\"oji:3 OR OJI:4\") select count()");
+
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "6")), "from organic yesterday today where lucene(\"TK:a OR TK:b\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "0")), "from organic yesterday today where lucene(\"TK:a AND TK:b\") select count()");
         testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "10")), "from organic yesterday today where lucene(\"TK:a OR TK:b OR TK:c\") select count()");
