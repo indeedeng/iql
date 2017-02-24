@@ -47,10 +47,6 @@ public class DocumentLevelMetric implements AggregateMetric {
         return stats[index];
     }
 
-    public int getIndex() {
-        return index;
-    }
-
     @Override
     public String toString() {
         return "DocumentLevelMetric{" +
