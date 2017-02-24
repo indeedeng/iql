@@ -2,7 +2,7 @@ language: java
 jdk:
     - oraclejdk7
 
-script: mvn package
+script: mvn -Dverbose package dependency:tree
 
 install:
     - wget https://s3-us-west-2.amazonaws.com/indeedeng-imhotep-build/install-imhotep-maven-local.sh
