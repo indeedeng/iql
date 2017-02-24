@@ -15,12 +15,17 @@ package com.indeed.imhotep.shortlink;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.util.StringUtils;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -75,11 +80,23 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
             throw new IllegalStateException("Shortlink feature disabled");
         }
 
-        if (client.doesObjectExist(bucket, OBJECT_PREFIX + code)) {
-            return false;
+        try {
+            // does object exist?
+            client.getObjectMetadata(bucket, OBJECT_PREFIX + code);
+        } catch (AmazonS3Exception e) {
+            if (e.getStatusCode() == 404) {
+                return false;
+            }
+            throw e;
         }
 
-        client.putObject(bucket, OBJECT_PREFIX + code, paramString);
+        byte[] paramStringBytes = paramString.getBytes(StringUtils.UTF8);
+        InputStream is = new ByteArrayInputStream(paramStringBytes);
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType("text/plain");
+        metadata.setContentLength(paramStringBytes.length);
+
+        client.putObject(new PutObjectRequest(bucket, OBJECT_PREFIX + code, is, metadata));
         return true;
     }
 
