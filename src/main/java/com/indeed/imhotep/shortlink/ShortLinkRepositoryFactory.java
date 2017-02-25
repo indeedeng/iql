@@ -31,12 +31,15 @@ public class ShortLinkRepositoryFactory {
             log.info("Shortlinking disabled in config");
             return new NoOpRepository();
         }
-        repoType = props.getProperty("shortlink.backend", String.class, "S3");
+        repoType = props.getProperty("shortlink.backend", String.class, "HDFS");
+        if ("HDFS".equals(repoType)) {
+            return new HDFSShortLinkRepository(props);
+        }
         if ("S3".equals(repoType)) {
             return new S3ShortLinkRepository(props);
         }
-        
-        throw new PropertyException("Unknown cache type (property: query.cache.backend): "
+
+        throw new PropertyException("Unknown cache type (property: shortlink.backend): "
                 + repoType);
     }
     
