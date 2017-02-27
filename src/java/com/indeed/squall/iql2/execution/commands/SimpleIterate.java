@@ -150,7 +150,7 @@ public class SimpleIterate implements Command {
             ftgsRowLimit = opts.limit;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional();
+        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts.limit);
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
@@ -215,7 +215,7 @@ public class SimpleIterate implements Command {
         }
     }
 
-    private Optional<Session.RemoteTopKParams> getTopKParamsOptional() {
+    private Optional<Session.RemoteTopKParams> getTopKParamsOptional(Optional<Integer> queryRowLimit) {
         Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
@@ -223,7 +223,13 @@ public class SimpleIterate implements Command {
                 if (topK.limit.isPresent()) {
                     final AggregateMetric topKMetric = opts.topK.get().metric.get();
                     if (topKMetric instanceof DocumentLevelMetric) {
-                        topKParams = Optional.of(new Session.RemoteTopKParams(topK.limit.get(), ((DocumentLevelMetric) topKMetric).getIndex()));
+                        final int limitNum;
+                        if (queryRowLimit.isPresent()) {
+                            limitNum = Math.min(queryRowLimit.get(), topKParams.get().limit);
+                        } else {
+                            limitNum = topKParams.get().limit;
+                        }
+                        topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
                     }
                 }
             }

@@ -890,8 +890,8 @@ public class Session {
 
         static Optional<SessionIntIterationState> construct(
                 Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
-                Optional<RemoteTopKParams> topKParams, Optional<Integer> limit) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, limit));
+                Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit) {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -916,7 +916,7 @@ public class Session {
 
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, IntIterateCallback callback) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, IntIterateCallback callback) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -936,7 +936,7 @@ public class Session {
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
                 final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
-                        closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, limit);
+                        closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, ftgsRowLimit);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
@@ -1098,13 +1098,7 @@ public class Session {
         }
         final FTGSIterator it;
         if (topKParams.isPresent()) {
-            final int limitNum;
-            if (limit.isPresent()) {
-                limitNum = Math.min(limit.get(), topKParams.get().limit);
-            } else {
-                limitNum = topKParams.get().limit;
-            }
-            it = session.getFTGSIterator(intFields, strFields, limitNum, topKParams.get().sortStatIndex);
+            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex);
         } else if (limit.isPresent()) {
             it = session.getFTGSIterator(intFields, strFields, limit.get());
         } else {
