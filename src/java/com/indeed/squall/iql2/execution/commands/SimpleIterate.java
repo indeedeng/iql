@@ -225,9 +225,9 @@ public class SimpleIterate implements Command {
                     if (topKMetric instanceof DocumentLevelMetric) {
                         final int limitNum;
                         if (queryRowLimit.isPresent()) {
-                            limitNum = Math.min(queryRowLimit.get(), topKParams.get().limit);
+                            limitNum = Math.min(queryRowLimit.get(), topK.limit.get());
                         } else {
-                            limitNum = topKParams.get().limit;
+                            limitNum = topK.limit.get();
                         }
                         topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
                     }
