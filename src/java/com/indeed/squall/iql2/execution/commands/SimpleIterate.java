@@ -134,7 +134,7 @@ public class SimpleIterate implements Command {
                 pqs.put(i, new ArrayDeque<TermSelects>());
             }
         }
-        final Optional<Integer> rowLimit;
+        final Optional<Integer> ftgsRowLimit;
         final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
@@ -144,10 +144,10 @@ public class SimpleIterate implements Command {
             } else {
                 topKMetricOrNull = null;
             }
-            rowLimit = Optional.absent();
+            ftgsRowLimit = Optional.absent();
         } else {
             topKMetricOrNull = null;
-            rowLimit = opts.limit;
+            ftgsRowLimit = opts.limit;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
         final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional();
@@ -172,7 +172,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, rowLimit, callback);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -182,7 +182,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, rowLimit, callback);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
