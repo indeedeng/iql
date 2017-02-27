@@ -93,4 +93,23 @@ public class FieldRegroupTest extends BasicTest {
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc");
         testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BY ojc/count()], allbit select count(), ojc");
     }
+
+    @Test
+    public void testImplicitOrderingLimit() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("1", "84", "84"));
+        expected.add(ImmutableList.of("3", "60", "180"));
+        // TODO: Introduce fully deterministic ordering for ties and increase to top 3?
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[5] select count(), ojc limit 2");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[5], allbit select count(), ojc limit 2");
+    }
+
+    @Test
+    public void testTopKOrderingLimit() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("15", "1", "15"));
+        expected.add(ImmutableList.of("10", "2", "20"));
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc limit 2");
+        testIQL2(OrganicDataset.create(), addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], allbit select count(), ojc limit 2");
+    }
 }
