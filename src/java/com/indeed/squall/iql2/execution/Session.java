@@ -917,6 +917,13 @@ public class Session {
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, IntIterateCallback callback) throws IOException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, callback, Optional.<TreeTimer>absent());
+    }
+
+    public static void iterateMultiInt(
+            Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
+            String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, IntIterateCallback callback, Optional<TreeTimer> timer) throws IOException
+    {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -931,6 +938,9 @@ public class Session {
                 }
             };
             final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
+            if (timer.isPresent()) {
+                timer.get().push("call imhotep iterator");
+            }
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
@@ -940,6 +950,9 @@ public class Session {
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
+            }
+            if (timer.isPresent()) {
+                timer.get().pop();
             }
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
@@ -1039,6 +1052,12 @@ public class Session {
     public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, StringIterateCallback callback) throws IOException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, callback, Optional.<TreeTimer>absent());
+    }
+
+    public static void iterateMultiString(
+            Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, StringIterateCallback callback, Optional<TreeTimer> timer) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1051,6 +1070,9 @@ public class Session {
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };
+            if (timer.isPresent()) {
+                timer.get().push("call imhotep iterator");
+            }
             final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
@@ -1061,6 +1083,9 @@ public class Session {
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
+            }
+            if (timer.isPresent()) {
+                timer.get().pop();
             }
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();

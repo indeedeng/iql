@@ -172,7 +172,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback, Optional.of(session.timer));
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -182,7 +182,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback, Optional.of(session.timer));
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
