@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nonnull;
@@ -133,6 +134,7 @@ public class SimpleIterate implements Command {
                 pqs.put(i, new ArrayDeque<TermSelects>());
             }
         }
+        final Optional<Integer> ftgsRowLimit;
         final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
@@ -142,10 +144,13 @@ public class SimpleIterate implements Command {
             } else {
                 topKMetricOrNull = null;
             }
+            ftgsRowLimit = Optional.absent();
         } else {
             topKMetricOrNull = null;
+            ftgsRowLimit = opts.limit;
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
+        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts.limit);
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
@@ -167,7 +172,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback, Optional.of(session.timer));
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -177,7 +182,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, callback, Optional.of(session.timer));
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
@@ -208,6 +213,28 @@ public class SimpleIterate implements Command {
             session.timer.pop();
             return allTermSelects;
         }
+    }
+
+    private Optional<Session.RemoteTopKParams> getTopKParamsOptional(Optional<Integer> queryRowLimit) {
+        Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
+        if (opts.topK.isPresent()) {
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent()) {
+                if (topK.limit.isPresent()) {
+                    final AggregateMetric topKMetric = opts.topK.get().metric.get();
+                    if (topKMetric instanceof DocumentLevelMetric) {
+                        final int limitNum;
+                        if (queryRowLimit.isPresent()) {
+                            limitNum = Math.min(queryRowLimit.get(), topK.limit.get());
+                        } else {
+                            limitNum = topK.limit.get();
+                        }
+                        topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
+                    }
+                }
+            }
+        }
+        return topKParams;
     }
 
     // TODO: Move this
