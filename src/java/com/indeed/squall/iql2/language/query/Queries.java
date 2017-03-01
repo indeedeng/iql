@@ -227,7 +227,7 @@ public class Queries {
                 log.trace("executionStep = " + executionStep);
             }
         }
-        final List<ExecutionStep> executionSteps2 = OptimizeLast.optimize(executionSteps);
+        final List<ExecutionStep> executionSteps2 = OptimizeLast.optimize(executionSteps, query.rowLimit);
         if (log.isTraceEnabled()) {
             log.trace("executionSteps2 = " + executionSteps2);
             for (final ExecutionStep executionStep : executionSteps2) {

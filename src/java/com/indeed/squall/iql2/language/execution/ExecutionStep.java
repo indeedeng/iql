@@ -450,16 +450,20 @@ public interface ExecutionStep {
     class IterateStats implements ExecutionStep {
         private final String field;
         private final Optional<AggregateFilter> filter;
+        private final Optional<Integer> queryLimit;
         private final Optional<Long> limit;
         private final Optional<AggregateMetric> metric;
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
         private final boolean forceNonStreaming;
 
-        public IterateStats(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
+        public IterateStats(
+                String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
+                Optional<AggregateMetric> metric, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
+            this.queryLimit = queryLimit;
             this.metric = metric;
             this.stats = stats;
             this.formatStrings = formatStrings;
@@ -472,6 +476,7 @@ public interface ExecutionStep {
             if (limit.isPresent() || metric.isPresent()) {
                 opts.topK = Optional.of(new TopK(limit, metric));
             }
+            opts.limit = queryLimit;
             opts.filter = filter;
             final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
             return Collections.<Command>singletonList(simpleIterate);
@@ -495,7 +500,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, metric, stats, formatStrings, forceNonStreaming);
+            return new IterateStats(field, filter, limit, queryLimit, metric, stats, formatStrings, forceNonStreaming);
         }
 
         @Override

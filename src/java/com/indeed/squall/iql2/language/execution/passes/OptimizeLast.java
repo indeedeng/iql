@@ -6,7 +6,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.indeed.squall.iql2.language.AggregateFilter;
-import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -19,7 +18,7 @@ import java.util.List;
 
 
 public class OptimizeLast {
-    public static List<ExecutionStep> optimize(List<ExecutionStep> steps) {
+    public static List<ExecutionStep> optimize(List<ExecutionStep> steps, Optional<Integer> queryLimit) {
         steps = Collections.unmodifiableList(steps);
         if (steps.size() > 1) {
             final ExecutionStep last = steps.get(steps.size() - 1);
@@ -47,11 +46,12 @@ public class OptimizeLast {
                             explodeAndRegroup.field,
                             explodeAndRegroup.filter,
                             explodeAndRegroup.limit,
+                            queryLimit,
                             explodeAndRegroup.metric,
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings,
                             explodeAndRegroup.forceNonStreaming || isReordered
-                    ));
+                            ));
                     return newSteps;
                 }
             } else if (last instanceof ExecutionStep.GetGroupStats && penultimate instanceof ExecutionStep.ExplodeFieldIn) {
@@ -64,6 +64,7 @@ public class OptimizeLast {
                             explodeFieldIn.field,
                             Optional.of(explodeFieldIn.termsAsFilter()),
                             Optional.<Long>absent(),
+                            queryLimit,
                             Optional.<AggregateMetric>absent(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings,
