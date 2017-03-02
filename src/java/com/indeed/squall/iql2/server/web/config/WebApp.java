@@ -62,7 +62,11 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         }
         int deletedCount = 0;
         for(final File tempFile : files) {
-            if(tempFile.isFile() && tempFile.getName().startsWith("iql_tmp")) {
+            final String fileName = tempFile.getName();
+            if(tempFile.isFile() && (
+                    fileName.startsWith("iql_tmp") || // IQL temp file
+                    fileName.startsWith("ftgs") && fileName.endsWith(".tmp") // Imhotep FTGS temp file
+            )) {
                 if(!tempFile.delete()) {
                     log.warn("Failed to delete temp file: " + tempFile);
                 }
