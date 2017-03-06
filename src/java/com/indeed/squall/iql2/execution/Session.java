@@ -977,6 +977,8 @@ public class Session {
                 timer.pop();
             }
             timer.pop();
+
+            timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
             while (!pq.isEmpty()) {
@@ -997,6 +999,7 @@ public class Session {
                     advanceAndEnqueue(state, pq);
                 }
             }
+            timer.pop();
         }
     }
 
@@ -1101,6 +1104,8 @@ public class Session {
                 timer.pop();
             }
             timer.pop();
+
+            timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();
             while (!pq.isEmpty()) {
@@ -1121,6 +1126,7 @@ public class Session {
                     advanceAndEnqueue(state, pq);
                 }
             }
+            timer.pop();
         }
     }
 
