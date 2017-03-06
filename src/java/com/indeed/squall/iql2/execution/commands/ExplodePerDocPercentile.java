@@ -67,7 +67,7 @@ public class ExplodePerDocPercentile implements Command {
                     soFar[group] = i;
                 }
             }
-        });
+        }, session.timer);
         session.timer.pop();
 
         for (int group = 1; group <= session.numGroups; group++) {

@@ -56,19 +56,17 @@ public class ExplodeByAggregatePercentile implements Command {
 
         if (session.isIntField(field)) {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
-            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field,
-                    new Session.IntIterateCallback() {
-                        @Override
-                        public void term(long term, long[] stats, int group) {
-                            Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
-                            if (termToValue == null) {
-                                termToValue = new Long2DoubleOpenHashMap();
-                                perGroupTermToValue.put(group, termToValue);
-                            }
-                            termToValue.put(term, metric.apply(term, stats, group));
-                        }
+            Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
+                @Override
+                public void term(long term, long[] stats, int group) {
+                    Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
+                    if (termToValue == null) {
+                        termToValue = new Long2DoubleOpenHashMap();
+                        perGroupTermToValue.put(group, termToValue);
                     }
-            );
+                    termToValue.put(term, metric.apply(term, stats, group));
+                }
+            }, session.timer);
             final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
@@ -122,7 +120,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     }
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
-            });
+            }, session.timer);
             final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
