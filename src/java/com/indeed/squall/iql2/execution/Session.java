@@ -937,12 +937,16 @@ public class Session {
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };
+            // TODO: Parallelize
             final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             if (timer.isPresent()) {
-                timer.get().push("call imhotep iterator");
+                timer.get().push("request remote FTGS iterator");
             }
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
+                if (timer.isPresent() && sessions.size() > 1) {
+                    timer.get().push(String.format("session: %s request remote FTGS iterator", sessionName));
+                }
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
                 final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
@@ -950,8 +954,11 @@ public class Session {
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
+                if (timer.isPresent()) {
+                    timer.get().pop();
+                }
             }
-            if (timer.isPresent()) {
+            if (timer.isPresent() && sessions.size() > 1) {
                 timer.get().pop();
             }
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
@@ -1023,8 +1030,9 @@ public class Session {
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex) {
-            final FTGSIterator it = closer.register(session.getFTGSIterator(new String[0], new String[]{field}));
+        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSession session, String field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
+                                                               Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit) {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -1069,16 +1077,23 @@ public class Session {
                 }
             };
             if (timer.isPresent()) {
-                timer.get().push("call imhotep iterator");
+                timer.get().push("request remote FTGS iterator");
             }
+            // TODO: Parallelize
             final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             for (final String sessionName : sessions.keySet()) {
+                if (timer.isPresent() && sessions.size() > 1) {
+                    timer.get().push(String.format("session: %s request remote FTGS iterator", sessionName));
+                }
                 final ImhotepSession session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
-                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, limit);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
+                }
+                if (timer.isPresent() && sessions.size() > 1) {
+                    timer.get().pop();
                 }
             }
             if (timer.isPresent()) {
