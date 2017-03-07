@@ -147,7 +147,11 @@ public class SimpleIterate implements Command {
             ftgsRowLimit = Optional.absent();
         } else {
             topKMetricOrNull = null;
-            ftgsRowLimit = opts.limit;
+            if (!opts.filter.isPresent()) {
+                ftgsRowLimit = opts.limit;
+            } else {
+                ftgsRowLimit = Optional.absent();
+            }
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
         final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts.limit);
