@@ -175,9 +175,9 @@ public abstract class DocFilter extends AbstractPositional {
             final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
             try {
                 final TokenStream tokenStream = whitespaceAnalyzer.tokenStream(null, new StringReader(term.stringTerm));
-                final Token token = new Token();
+                Token token = new Token();
                 try {
-                    while (tokenStream.next(token) != null) {
+                    while ((token = tokenStream.next(token)) != null) {
                         tokens.add(token.term());
                     }
                 } catch (IOException e) {
