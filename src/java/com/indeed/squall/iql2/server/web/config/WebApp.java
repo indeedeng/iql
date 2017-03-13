@@ -65,6 +65,7 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
             final String fileName = tempFile.getName();
             if(tempFile.isFile() && (
                     fileName.startsWith("iql_tmp") || // IQL temp file
+                    fileName.startsWith("query") && fileName.endsWith(".cache.tmp") || // IQL2 temp file
                     fileName.startsWith("ftgs") && fileName.endsWith(".tmp") // Imhotep FTGS temp file
             )) {
                 if(!tempFile.delete()) {
