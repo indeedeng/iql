@@ -132,7 +132,7 @@ public class Queries {
         final String groupBy = getText(queryInputStream, queryContext.groupByContents());
 
         final List<String> selects = extractSelects(queryContext, queryInputStream);
-        final String select = Joiner.on(' ').join(Lists.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
+        final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
             public String apply(@Nullable JQLParser.SelectContentsContext input) {
                 return getText(queryInputStream, input);
             }
