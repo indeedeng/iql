@@ -127,8 +127,12 @@ public class Queries {
         } else {
             where = "";
         }
+
+        final List<String> groupBys = extractGroupBys(queryContext, queryInputStream);
         final String groupBy = getText(queryInputStream, queryContext.groupByContents());
-        final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
+
+        final List<String> selects = extractSelects(queryContext, queryInputStream);
+        final String select = Joiner.on(' ').join(Lists.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
             public String apply(@Nullable JQLParser.SelectContentsContext input) {
                 return getText(queryInputStream, input);
             }
@@ -155,7 +159,29 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", dataset, start, startRawString, end, endRawString);
+        return new SplitQuery(from, where, groupBy, select, "", groupBys, selects, dataset, start, startRawString, end, endRawString);
+    }
+
+    private static List<String> extractSelects(JQLParser.QueryContext queryContext, CharStream input) {
+        final List<String> result = new ArrayList<>();
+        for (final JQLParser.SelectContentsContext selectContent : queryContext.selectContents()) {
+            for (final JQLParser.FormattedAggregateMetricContext select : selectContent.formattedAggregateMetric()) {
+                result.add(getText(input, select));
+            }
+        }
+        return result;
+    }
+
+    private static List<String> extractGroupBys(JQLParser.QueryContext queryContext, CharStream input) {
+        final JQLParser.GroupByContentsContext groupByContents = queryContext.groupByContents();
+        if (groupByContents == null) {
+            return Collections.emptyList();
+        }
+        final List<String> result = new ArrayList<>();
+        for (final JQLParser.GroupByElementWithHavingContext elem : groupByContents.groupByElementWithHaving()) {
+            result.add(getText(input, elem));
+        }
+        return result;
     }
 
     private static String removeQuotes(String text) {
