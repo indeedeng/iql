@@ -296,8 +296,16 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Divide extends Binop {
+        // IQL-247: AVG is probably dividing by too wide
+        private String multiDatasetsWarning;
+
         public Divide(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2, "division");
+        }
+
+        public Divide(AggregateMetric m1, AggregateMetric m2, String multiDatasetsWarning) {
+            super(m1, m2, "division");
+            this.multiDatasetsWarning = multiDatasetsWarning;
         }
 
         @Override
@@ -307,12 +315,19 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new Divide(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction)));
+            return f.apply(new Divide(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction), multiDatasetsWarning));
         }
 
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Divide(f.apply(m1), f.apply(m2));
+            return new Divide(f.apply(m1), f.apply(m2), multiDatasetsWarning);
+        }
+
+        @Override
+        public void validate(final Set<String> scope, final DatasetsFields datasetsFields, final Validator validator) {
+            if (multiDatasetsWarning != null && datasetsFields.datasets().size() > 1) {
+                validator.warn(multiDatasetsWarning);
+            }
         }
     }
 
@@ -1521,7 +1536,7 @@ public abstract class AggregateMetric extends AbstractPositional {
                     '}';
         }
     }
-    
+
     public static class FieldMin extends AggregateMetric implements JsonSerializable {
         public final Positioned<String> field;
 
@@ -1588,7 +1603,7 @@ public abstract class AggregateMetric extends AbstractPositional {
                     '}';
         }
     }
-    
+
     public static class FieldMax extends AggregateMetric implements JsonSerializable {
         public final Positioned<String> field;
 

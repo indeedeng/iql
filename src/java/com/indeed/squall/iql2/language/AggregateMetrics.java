@@ -208,7 +208,9 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock), new AggregateMetric.DocStats(new DocMetric.Count())));
+                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock),
+                        new AggregateMetric.DocStats(new DocMetric.Count()),
+                        "AVG in multidaset is probably dividing too wide, it will divide the result by count() of all datasets"));
             }
 
             @Override
