@@ -281,7 +281,7 @@ public class SelectQueryExecution implements Closeable {
             final ProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn
     ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
-        timer.push(Joiner.on(" ").join(q.split("\\s+")));
+        timer.push(q.replaceAll("\\s+", " "));
 
         timer.push("parse query");
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warn, clock);
