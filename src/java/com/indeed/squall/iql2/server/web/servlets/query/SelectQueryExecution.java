@@ -213,7 +213,7 @@ public class SelectQueryExecution {
                     warnings.add(s);
                 }
             });
-            extractCompletedQueryInfoData(execInfo, countingOut);
+            extractCompletedQueryInfoData(execInfo, warnings, countingOut);
             if (isStream) {
                 outputStream.println();
                 outputStream.println("event: header");
@@ -245,7 +245,7 @@ public class SelectQueryExecution {
         }
     }
 
-    private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, CountingConsumer<String> countingOut) {
+    private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
         int shardCount = 0;
         Duration totalShardPeriod = Duration.ZERO;
         for (final List<String> shardList : execInfo.perDatasetShardIds().values()) {
@@ -447,7 +447,8 @@ public class SelectQueryExecution {
                         progressCallback.startCommand(null, null, true);
                         sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
-                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys, Collections.<String>emptyList(), 0, 0, 0);
+                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys, Collections.<String>emptyList(), 0, 0, 0,
+                                originalQuery.rowLimit.isPresent() ? originalQuery.rowLimit.get() : -1);
                     } else {
                         final Consumer<String> oldOut = out;
                         final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -521,7 +522,7 @@ public class SelectQueryExecution {
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
-                    return new SelectExecutionInformation(
+                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
@@ -529,8 +530,10 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getSessionIds(),
                             infoCollectingProgressCallback.getTotalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
-                            infoCollectingProgressCallback.getMaxConcurrentSessions()
+                            infoCollectingProgressCallback.getMaxConcurrentSessions(),
+                            originalQuery.rowLimit.isPresent() ? originalQuery.rowLimit.get() : -1
                     );
+                    return selectExecutionInformation;
                 } catch (Exception e) {
                     errorOccurred.set(true);
                     throw Throwables.propagate(e);
@@ -659,8 +662,10 @@ public class SelectQueryExecution {
         public final long totalNumDocs;
         public final int maxNumGroups;
         public final int maxConcurrentSessions;
+        public final int rowLimit;
 
-        private SelectExecutionInformation(Multimap<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions) {
+        private SelectExecutionInformation(Multimap<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds,
+                                           long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, int rowLimit) {
             this.shards = shards;
             this.queryCached = queryCached;
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
@@ -669,6 +674,7 @@ public class SelectQueryExecution {
             this.totalNumDocs = totalNumDocs;
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;
+            this.rowLimit = rowLimit;
         }
 
         public boolean allCached() {
