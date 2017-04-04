@@ -265,6 +265,10 @@ public class SelectQueryExecution {
         queryInfo.cacheHashes = ImmutableSet.copyOf(execInfo.cacheKeys);
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
+
+        if (execInfo.rowLimit == queryInfo.rows) {
+            warnings.add(String.format("Row limit warning - Only first %d rows returned on the last group by column", execInfo.rowLimit));
+        }
     }
 
     // TODO: These parameters are nuts
