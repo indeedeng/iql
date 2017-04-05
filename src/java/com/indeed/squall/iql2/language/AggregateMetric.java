@@ -53,6 +53,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Min min) throws E;
         T visit(Max max) throws E;
         T visit(Bootstrap bootstrap) throws E;
+        T visit(DivideByCount divideByCount) throws E;
     }
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
@@ -499,6 +500,73 @@ public abstract class AggregateMetric extends AbstractPositional {
             return "Lag{" +
                     "lag=" + lag +
                     ", metric=" + metric +
+                    '}';
+        }
+    }
+
+    public static class DivideByCount extends AggregateMetric implements JsonSerializable {
+        public final AggregateMetric metric;
+
+        public DivideByCount(AggregateMetric metric) {
+            this.metric = metric;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(new DivideByCount(metric.transform(f, g, h, i, groupByFunction)));
+        }
+
+        @Override
+        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new DivideByCount(f.apply(metric));
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            throw new UnsupportedOperationException("Cannot / should not validate DivideByCount -- ExtractPrecomputed should transfer it to Divide!");
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return metric.isOrdered();
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot / should not serialize DivideByCount -- ExtractPrecomputed should transfer it to Divide!");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final DivideByCount that = (DivideByCount) o;
+            return com.google.common.base.Objects.equal(metric, that.metric);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(metric);
+        }
+
+        @Override
+        public String toString() {
+            return "DivideByCount{" +
+                    "metric=" + metric +
                     '}';
         }
     }

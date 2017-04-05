@@ -208,9 +208,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock),
-                        new AggregateMetric.DocStats(new DocMetric.Count()),
-                        "AVG in multi datasets is probably dividing too wide, it will divide the result by count() of all datasets"));
+                accept(new AggregateMetric.DivideByCount(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }
 
             @Override
@@ -220,10 +218,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateStandardDeviation(JQLParser.AggregateStandardDeviationContext ctx) {
-                accept(new AggregateMetric.Power(
-                        variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock), "STDEV"),
-                        new AggregateMetric.Constant(0.5)
-                ));
+                accept(new AggregateMetric.Power(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)), new AggregateMetric.Constant(0.5)));
             }
 
             @Override
@@ -346,7 +341,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateVariance(JQLParser.AggregateVarianceContext ctx) {
-                accept(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock), "VARIANCE"));
+                accept(variance(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }
 
             @Override
@@ -490,15 +485,11 @@ public class AggregateMetrics {
         return ref[0];
     }
 
-    public static AggregateMetric variance(DocMetric docMetric, String funcName) {
+    public static AggregateMetric variance(DocMetric docMetric) {
         // [m * m] / count()
-        final AggregateMetric firstHalf = new AggregateMetric.Divide(
-                new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)),
-                new AggregateMetric.DocStats(new DocMetric.Count()),
-                funcName + " in multi datasets is probably dividing too wide, it will divide the result by count() of all datasets in calculating E(m^2), E(m)"
-        );
+        final AggregateMetric firstHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)));
         // [m] / count()
-        final AggregateMetric halfOfSecondHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(docMetric), new AggregateMetric.DocStats(new DocMetric.Count()));
+        final AggregateMetric halfOfSecondHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(docMetric));
         // ([m] / count()) ^ 2
         final AggregateMetric secondHalf = new AggregateMetric.Multiply(halfOfSecondHalf, halfOfSecondHalf);
         // E(m^2) - E(m)^2

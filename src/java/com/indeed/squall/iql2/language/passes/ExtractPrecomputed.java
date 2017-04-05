@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language.passes;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -18,8 +19,10 @@ import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -234,6 +237,30 @@ public class ExtractPrecomputed {
                 final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
                 precomputedNames.put(precomputedInfo, name);
                 return new AggregateMetric.GroupStatsMultiLookup(lookups);
+            } else if (input instanceof AggregateMetric.DivideByCount) {
+                Set<String> datasets = new HashSet<>();
+                final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
+                docMetric.transform(new Function<AggregateMetric, AggregateMetric>() {
+                    @Nullable
+                    @Override
+                    public AggregateMetric apply(@Nullable final AggregateMetric metric) {
+                        if (metric instanceof AggregateMetric.DocStatsPushes) {
+                            datasets.add(((AggregateMetric.DocStatsPushes) metric).dataset);
+                        }
+                        return metric;
+                    }
+                }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+                AggregateMetric countMetric = null;
+                for (String dataset : datasets) {
+                    final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
+                            dataset, new DocMetric.PushableDocMetric(new DocMetric.Qualified(dataset, new DocMetric.Count())));
+                    if (countMetric == null) {
+                        countMetric = metric;
+                    } else {
+                        countMetric = new AggregateMetric.Add(countMetric, metric);
+                    }
+                }
+                return new AggregateMetric.Divide(docMetric, countMetric);
             } else {
                 return input.traverse1(this);
             }
