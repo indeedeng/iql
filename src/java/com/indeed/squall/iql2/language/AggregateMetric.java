@@ -1691,6 +1691,10 @@ public abstract class AggregateMetric extends AbstractPositional {
             for (final AggregateMetric metric : metrics) {
                 metric.validate(scope, datasetsFields, validator);
             }
+
+            if (metrics.size() < 2) {
+                validator.error("MIN requires at least 2 arguments");
+            }
         }
 
         @Override
@@ -1767,6 +1771,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
             for (final AggregateMetric metric : metrics) {
                 metric.validate(scope, datasetsFields, validator);
+            }
+
+            if (metrics.size() < 2) {
+                validator.error("MAX requires at least 2 arguments");
             }
         }
 
