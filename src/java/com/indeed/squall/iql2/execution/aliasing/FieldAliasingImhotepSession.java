@@ -32,11 +32,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class FieldAliasingImhotepSession implements ImhotepSession, WrappingImhotepSession {
+public class FieldAliasingImhotepSession extends WrappingImhotepSession implements ImhotepSession {
     private final ImhotepSession wrapped;
     private final Map<String, String> aliasToReal;
 
     public FieldAliasingImhotepSession(ImhotepSession wrapped, Map<String, String> aliasToReal) {
+        super(wrapped);
         this.wrapped = wrapped;
         this.aliasToReal = ImmutableMap.copyOf(aliasToReal);
     }

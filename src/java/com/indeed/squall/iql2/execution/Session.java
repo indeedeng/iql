@@ -155,7 +155,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -193,7 +193,7 @@ public class Session {
             return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
@@ -221,7 +221,8 @@ public class Session {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final WallClock clock,
-            final String username
+            final String username,
+            final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, String> upperCaseToActualDataset = new HashMap<>();
         for (final String dataset : Session.getDatasets(client)) {
@@ -283,6 +284,7 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session builder");
             final ImhotepSession build = sessionBuilder.build();
+            progressCallback.sessionOpened(build);
             treeTimer.pop();
             final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, datasetDimensions, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();

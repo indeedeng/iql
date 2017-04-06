@@ -7,29 +7,31 @@ import com.indeed.squall.iql2.execution.commands.Command;
 
 import java.util.Map;
 
-public class NoOpProgressCallback implements ProgressCallback {
+public class SessionOpenedOnlyProgressCallback implements ProgressCallback {
+    private final ProgressCallback wrapped;
+
+    public SessionOpenedOnlyProgressCallback(ProgressCallback wrapped) {
+        this.wrapped = wrapped;
+    }
+
     @Override
     public void startSession(Optional<Integer> numCommands) {
-
     }
 
     @Override
     public void sessionOpened(ImhotepSession session) {
-
+        wrapped.sessionOpened(session);
     }
 
     @Override
     public void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions) {
-
     }
 
     @Override
     public void startCommand(Session session, Command command, boolean streamingToTSV) {
-
     }
 
     @Override
     public void endCommand(Session session, Command command) {
-
     }
 }

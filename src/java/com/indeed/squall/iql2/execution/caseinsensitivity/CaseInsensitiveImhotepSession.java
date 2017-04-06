@@ -39,11 +39,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CaseInsensitiveImhotepSession implements ImhotepSession, WrappingImhotepSession {
+public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implements ImhotepSession {
     private final ImhotepSession wrapped;
     private final Map<String, String> upperCaseToActual;
 
     public CaseInsensitiveImhotepSession(ImhotepSession wrapped, Set<String> fieldNames) {
+        super(wrapped);
         this.wrapped = wrapped;
 
         final Map<String, String> upperCaseToActual = new HashMap<>();

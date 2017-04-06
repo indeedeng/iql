@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImhotepSession {
+public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implements ImhotepSession {
     private static RegroupCondition THE_CONDITION = new RegroupCondition("fakeField", true, 0, null, false);
     private static RegroupCondition[] THE_CONDITIONS = new RegroupCondition[]{THE_CONDITION};
     private static RegroupConditionMessage THE_CONDITION_PROTO = RegroupConditionMessage.newBuilder().setField("fakeField").setIntType(true).setIntTerm(0).setInequality(false).build();
@@ -32,6 +32,7 @@ public class GroupMultiRemapRuleRewriter implements ImhotepSession, WrappingImho
     private final ImhotepSession wrapped;
 
     public GroupMultiRemapRuleRewriter(ImhotepSession wrapped) {
+        super(wrapped);
         this.wrapped = wrapped;
     }
 
