@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
@@ -16,6 +17,10 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
 
     @Override
     public void startSession(Optional<Integer> numCommands) {
+    }
+
+    @Override
+    public void sessionOpened(ImhotepSession session) {
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.api.HasSessionId;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 
@@ -17,13 +19,37 @@ public class EventStreamProgressCallback implements ProgressCallback {
         this.outputStream = outputStream;
     }
 
+    private void doFlush() {
+        final boolean error = outputStream.checkError();
+        if (error) {
+            throw new RuntimeException("Error encountered writing to text/event-stream output");
+        }
+    }
+
     @Override
     public void startSession(Optional<Integer> numCommands) {
         if (isStream) {
             outputStream.println("event: totalsteps");
             outputStream.println("data: " + numCommands.get());
             outputStream.println();
-            outputStream.flush();
+            doFlush();
+        }
+    }
+
+    @Override
+    public void sessionOpened(ImhotepSession session) {
+        if (!isStream) {
+            return;
+        }
+        if (!(session instanceof HasSessionId)) {
+            return;
+        }
+        final String sessionId = ((HasSessionId) session).getSessionId();
+        if (sessionId != null) {
+            outputStream.println("event: sessionid");
+            outputStream.println("data: " + sessionId);
+            outputStream.println();
+            doFlush();
         }
     }
 
@@ -38,7 +64,7 @@ public class EventStreamProgressCallback implements ProgressCallback {
             outputStream.println("event: chunkcomplete");
             outputStream.println("data: " + completedChunks);
             outputStream.println();
-            outputStream.flush();
+            doFlush();
         }
     }
 
@@ -63,7 +89,7 @@ public class EventStreamProgressCallback implements ProgressCallback {
         if (isStream) {
             outputStream.println(": Completed " + command.getClass().getSimpleName());
             outputStream.println();
-            outputStream.flush();
+            doFlush();
         }
         incrementChunksCompleted();
     }

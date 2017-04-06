@@ -27,11 +27,11 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     public void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions) {
         for (final Session.ImhotepSessionInfo sessionInfo : sessions.values()) {
             ImhotepSession session = sessionInfo.session;
-            while (session instanceof WrappingImhotepSession) {
-                session = ((WrappingImhotepSession) session).wrapped();
-            }
             if (session instanceof HasSessionId) {
-                sessionIds.add(((HasSessionId) session).getSessionId());
+                final String sessionId = ((HasSessionId) session).getSessionId();
+                if (sessionId != null) {
+                    sessionIds.add(sessionId);
+                }
             }
             totalNumDocs += session.getNumDocs();
         }
@@ -40,6 +40,10 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
 
     @Override
     public void startSession(Optional<Integer> numCommands) {
+    }
+
+    @Override
+    public void sessionOpened(ImhotepSession session) {
     }
 
     @Override
