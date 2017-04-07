@@ -1693,7 +1693,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             }
 
             if (metrics.size() < 2) {
-                validator.error("MIN requires at least 2 arguments");
+                validator.error("MIN requires at least 2 arguments. Did you mean FIELD_MIN()?");
             }
         }
 
@@ -1774,7 +1774,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             }
 
             if (metrics.size() < 2) {
-                validator.error("MAX requires at least 2 arguments");
+                validator.error("MAX requires at least 2 arguments. Did you mean FIELD_MAX()?");
             }
         }
 
