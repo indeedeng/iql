@@ -238,18 +238,27 @@ public class ExtractPrecomputed {
                 precomputedNames.put(precomputedInfo, name);
                 return new AggregateMetric.GroupStatsMultiLookup(lookups);
             } else if (input instanceof AggregateMetric.DivideByCount) {
-                Set<String> datasets = new HashSet<>();
                 final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
+                Set<String> datasets = new HashSet<>();
                 docMetric.transform(new Function<AggregateMetric, AggregateMetric>() {
                     @Nullable
                     @Override
                     public AggregateMetric apply(@Nullable final AggregateMetric metric) {
                         if (metric instanceof AggregateMetric.DocStatsPushes) {
                             datasets.add(((AggregateMetric.DocStatsPushes) metric).dataset);
+                        } else if (metric instanceof AggregateMetric.GroupStatsLookup) {
+                            for (Map.Entry<PrecomputedInfo, String> precomputedEntry : precomputedNames.entrySet()) {
+                                if (precomputedEntry.getValue().equals(((AggregateMetric.GroupStatsLookup)metric).name)) {
+                                    datasets.addAll(precomputedEntry.getKey().scope);
+                                }
+                            }
                         }
                         return metric;
                     }
                 }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+                if (datasets.isEmpty()) {
+                    datasets.addAll(scope);
+                }
                 AggregateMetric countMetric = null;
                 for (String dataset : datasets) {
                     final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
