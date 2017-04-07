@@ -267,7 +267,7 @@ public class SelectQueryExecution {
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
         if (execInfo.rowLimit == queryInfo.rows) {
-            warnings.add(String.format("Row limit warning - Only first %d rows returned on the last group by column", execInfo.rowLimit));
+            warnings.add(String.format("Only first %d rows returned sorted on the last group by column", execInfo.rowLimit));
         }
     }
 
