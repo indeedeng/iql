@@ -239,7 +239,7 @@ public class ExtractPrecomputed {
                 return new AggregateMetric.GroupStatsMultiLookup(lookups);
             } else if (input instanceof AggregateMetric.DivideByCount) {
                 final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
-                Set<String> datasets = new HashSet<>();
+                final Set<String> datasets = new HashSet<>();
                 docMetric.transform(new Function<AggregateMetric, AggregateMetric>() {
                     @Nullable
                     @Override
