@@ -900,7 +900,7 @@ public class PrettyPrint {
 
             @Override
             public Void visit(DocMetric.Count count) {
-                sb.append("COUNT()");
+                sb.append("count()");
                 return null;
             }
 
