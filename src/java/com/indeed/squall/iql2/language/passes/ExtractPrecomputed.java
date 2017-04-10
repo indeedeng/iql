@@ -257,7 +257,7 @@ public class ExtractPrecomputed {
                     }
                 }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
                 if (datasets.isEmpty()) {
-                    datasets.addAll(scope);
+                    throw new IllegalArgumentException("no dataset is provided to AVG");
                 }
                 AggregateMetric countMetric = null;
                 for (String dataset : datasets) {
