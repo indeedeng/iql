@@ -87,7 +87,7 @@ public class Query extends AbstractPositional {
         final List<AggregateMetric> selectedMetrics;
         final List<Optional<String>> formatStrings;
         if (selects.isEmpty()) {
-            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()));
             formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
