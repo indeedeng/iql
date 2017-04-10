@@ -257,7 +257,7 @@ public class ExtractPrecomputed {
                     }
                 }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
                 if (datasets.isEmpty()) {
-                    throw new IllegalArgumentException("no dataset is provided to AVG");
+                    throw new IllegalArgumentException("Averaging over no documents is undefined");
                 }
                 AggregateMetric countMetric = null;
                 for (String dataset : datasets) {
