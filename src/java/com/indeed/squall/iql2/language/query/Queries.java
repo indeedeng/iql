@@ -13,8 +13,10 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.Positional;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -88,7 +90,7 @@ public class Queries {
     }
 
     public static <T> String getRawInput(CharStream inputStream, Positioned<T> positional) {
-        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
+        return getText(inputStream, positional);
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
@@ -159,7 +161,28 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", groupBys, selects, dataset, start, startRawString, end, endRawString);
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString);
+    }
+
+    private static List<String> extractHeaders(Query parsed, CharStream input) {
+        final List<String> result = new ArrayList<>();
+        for (GroupByMaybeHaving groupBy : parsed.groupBys) {
+            result.add(getText(input, groupBy.groupBy));
+        }
+        for (AggregateMetric metric : parsed.selects) {
+            final Positional pos;
+            if (metric instanceof AggregateMetric.Named) {
+                pos = ((AggregateMetric.Named) metric).name;
+            } else {
+                pos = metric;
+            }
+            result.add(getText(input, pos));
+        }
+        return result;
+    }
+
+    private static String getText(final CharStream input, final Positional pos) {
+        return input.getText(new Interval(pos.getStart().startIndex, pos.getEnd().stopIndex));
     }
 
     private static List<String> extractSelects(JQLParser.QueryContext queryContext, CharStream input) {
