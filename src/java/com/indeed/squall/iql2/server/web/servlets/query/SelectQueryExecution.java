@@ -452,7 +452,7 @@ public class SelectQueryExecution {
                         sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
                         return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys, Collections.<String>emptyList(), 0, 0, 0,
-                                originalQuery.rowLimit.isPresent() ? originalQuery.rowLimit.get() : -1);
+                                originalQuery.rowLimit.or(-1));
                     } else {
                         final Consumer<String> oldOut = out;
                         final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -535,7 +535,7 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getTotalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
-                            originalQuery.rowLimit.isPresent() ? originalQuery.rowLimit.get() : -1
+                            originalQuery.rowLimit.or(-1)
                     );
                     return selectExecutionInformation;
                 } catch (Exception e) {
