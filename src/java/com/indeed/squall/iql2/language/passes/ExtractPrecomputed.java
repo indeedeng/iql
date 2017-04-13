@@ -9,7 +9,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
@@ -74,7 +73,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit), processor.computedNames);
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit, query.useLegacy), processor.computedNames);
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {
@@ -106,10 +105,6 @@ public class ExtractPrecomputed {
             }
         }
         final List<ExecutionStep> resultSteps = new ArrayList<>();
-        if (query.filter.isPresent()) {
-            final DocFilter filter = query.filter.get();
-            resultSteps.add(new ExecutionStep.FilterDocs(filter, scope));
-        }
         if (!groupBySteps.isEmpty() || !depthToPreComputation.isEmpty() || !depthToPostComputation.isEmpty()) {
             final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(),
                     depthToPreComputation.keySet(), depthToPostComputation.keySet()));
@@ -389,9 +384,9 @@ public class ExtractPrecomputed {
 
     public static class Extracted {
         public final Query query;
-        private final Map<ComputationType, Map<ComputationInfo, String>> computedNames;
+        public final Map<ComputationType, Map<ComputationInfo, String>> computedNames;
 
-        public Extracted(final Query query, final Map<ComputationType, Map<ComputationInfo, String>> computedNames) {
+        public Extracted(Query query, Map<ComputationType, Map<ComputationInfo, String>> computedNames) {
             this.query = query;
             this.computedNames = computedNames;
         }

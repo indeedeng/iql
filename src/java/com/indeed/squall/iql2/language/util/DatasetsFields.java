@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class DatasetsFields {
-    private final ImmutableMap<String, ImmutableSet<String>> datasetToIntFields;
-    private final ImmutableMap<String, ImmutableSet<String>> datasetToStringFields;
+    private final Map<String, ImmutableSet<String>> datasetToIntFields;
+    private final Map<String, ImmutableSet<String>> datasetToStringFields;
 
     public DatasetsFields(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields) {
         this.datasetToIntFields = copy(datasetToIntFields);

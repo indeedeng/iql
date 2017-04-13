@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -75,16 +76,25 @@ public abstract class DocFilter extends AbstractPositional {
 
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
-    public static class FieldIs extends DocFilter {
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+    public abstract static class FieldTermEqual extends DocFilter {
         public final Positioned<String> field;
         public final Term term;
+        public boolean equal;
 
-        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
-            // TODO: Immutable clone
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+        public FieldTermEqual(Positioned<String> field, Term term, boolean equal) {
             this.field = field;
             this.term = term;
+            this.equal = equal;
+        }
+    }
+
+    public static class FieldIs extends FieldTermEqual {
+        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+
+        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
+            super(field, term, true);
+            // TODO: Immutable clone
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
         }
 
         @Override
@@ -215,15 +225,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class FieldIsnt extends DocFilter {
-        public final Positioned<String> field;
-        public final Term term;
+    public static class FieldIsnt extends FieldTermEqual {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
 
         public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
+            super(field, term, false);
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.field = field;
-            this.term = term;
         }
 
         @Override

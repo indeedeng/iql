@@ -3,12 +3,12 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
+import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
-import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
-import com.indeed.imhotep.protobuf.QueryMessage;
 import org.apache.commons.codec.binary.Base64;
 
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ public abstract class DocMetric extends AbstractPositional {
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
     public static class PushableDocMetric extends DocMetric {
-        private final DocMetric metric;
+        public final DocMetric metric;
 
         public PushableDocMetric(DocMetric metric) {
             this.metric = metric;
@@ -755,6 +755,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+
     public static class RegexMetric extends DocMetric {
         public final Positioned<String> field;
         public final String regex;
@@ -1070,7 +1071,7 @@ public abstract class DocMetric extends AbstractPositional {
     }
 
     public static class HasInt extends DocMetric {
-        public final Positioned<String> field;
+        public Positioned<String> field;
         public final long term;
 
         public HasInt(Positioned<String> field, long term) {
