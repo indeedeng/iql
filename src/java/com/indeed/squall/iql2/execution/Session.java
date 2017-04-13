@@ -12,7 +12,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -41,9 +40,6 @@ import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
-import com.indeed.squall.iql2.execution.dimensions.DimensionsTranslator;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.squall.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -131,7 +127,7 @@ public class Session {
             final JsonNode sessionRequest,
             final Closer closer,
             final Consumer<String> out,
-            final Map<String, DatasetDimensions> dimensions,
+            final Map<String, Set<String>> dimensions,
             final TreeTimer treeTimer,
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
@@ -216,7 +212,7 @@ public class Session {
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final Closer closer,
             final Map<String, ImhotepSessionInfo> sessions,
-            final Map<String, DatasetDimensions> dimensions,
+            final Map<String, Set<String>> dimensions,
             final TreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
@@ -250,9 +246,9 @@ public class Session {
             final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
             // Don't uppercase for usage in the dimension translator.
-            final DatasetDimensions datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
+            final Set<String> datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : Collections.emptySet();
 
-            sessionIntFields.addAll(datasetDimensions.fields());
+            sessionIntFields.addAll(datasetDimensions);
 
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
@@ -286,7 +282,7 @@ public class Session {
             final ImhotepSession build = sessionBuilder.build();
             progressCallback.sessionOpened(build);
             treeTimer.pop();
-            final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, datasetDimensions, Sets.union(sessionIntFields, sessionStringFields)));
+            final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
@@ -310,7 +306,7 @@ public class Session {
                 session.popStat();
                 treeTimer.pop();
             }
-            sessions.put(name, new ImhotepSessionInfo(session, displayName, DatasetDimensions.toUpperCase(datasetDimensions), upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
+            sessions.put(name, new ImhotepSessionInfo(session, displayName, upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
             if (i == 0) {
                 firstStartTimeMill = startDateTime.getMillis();
             }
@@ -327,9 +323,8 @@ public class Session {
         return result;
     }
 
-    private static ImhotepSession wrapSession(Map<String, String> fieldAliases, ImhotepSession build, DatasetDimensions datasetDimensions, Set<String> fieldNames) {
-        final DimensionsTranslator translated = new DimensionsTranslator(build, datasetDimensions);
-        final CaseInsensitiveImhotepSession caseInsensitive = new CaseInsensitiveImhotepSession(translated, fieldNames);
+    private static ImhotepSession wrapSession(Map<String, String> fieldAliases, ImhotepSession build, Set<String> fieldNames) {
+        final CaseInsensitiveImhotepSession caseInsensitive = new CaseInsensitiveImhotepSession(build, fieldNames);
         final FieldAliasingImhotepSession aliased = new FieldAliasingImhotepSession(caseInsensitive, fieldAliases);
         final GroupMultiRemapRuleRewriter groupMultiRemapRuleRewriter = new GroupMultiRemapRuleRewriter(aliased);
         return groupMultiRemapRuleRewriter;
@@ -1221,7 +1216,6 @@ public class Session {
     public static class ImhotepSessionInfo {
         public final ImhotepSession session;
         public final String displayName;
-        public final DatasetDimensions datasetDimensions;
         public final Collection<String> intFields;
         public final Collection<String> stringFields;
         public final DateTime startTime;
@@ -1229,10 +1223,9 @@ public class Session {
         public final String timeFieldName;
 
         @VisibleForTesting
-        ImhotepSessionInfo(ImhotepSession session, String displayName, DatasetDimensions datasetDimensions, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        ImhotepSessionInfo(ImhotepSession session, String displayName, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
             this.displayName = displayName;
-            this.datasetDimensions = datasetDimensions;
             this.intFields = Collections.unmodifiableCollection(intFields);
             this.stringFields = Collections.unmodifiableCollection(stringFields);
             this.startTime = startTime;
