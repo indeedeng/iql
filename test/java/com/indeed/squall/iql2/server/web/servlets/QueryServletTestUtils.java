@@ -9,11 +9,11 @@ import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
-import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.ims.client.TestImsClient;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import junit.framework.Assert;
@@ -34,6 +34,7 @@ public class QueryServletTestUtils extends BasicTest {
         final Long imhotepLocalTempFileSizeLimit = -1L;
         final Long imhotepDaemonTempFileSizeLimit = -1L;
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
+        final TestImsClient imsClient = new TestImsClient();
         final ExecutionManager executionManager = new ExecutionManager();
 
         try {
@@ -44,15 +45,14 @@ public class QueryServletTestUtils extends BasicTest {
             throw Throwables.propagate(e);
         }
 
-        final KeywordAnalyzerWhitelistLoader analyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("", null, imhotepClient);
-        analyzerWhitelistLoader.load();
+        final MetadataCache metadataCache = new MetadataCache(imsClient, imhotepClient);
+        metadataCache.updateMetadata();
 
         return new QueryServlet(
                 imhotepClient,
                 options.queryCache,
                 executionManager,
-                new DimensionsLoader("", null),
-                analyzerWhitelistLoader,
+                metadataCache,
                 new AccessControl(Collections.<String>emptySet()),
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,

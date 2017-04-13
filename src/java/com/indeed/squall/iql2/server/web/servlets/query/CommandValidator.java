@@ -8,16 +8,15 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.squall.iql2.execution.DatasetDescriptor;
 import com.indeed.squall.iql2.execution.FieldDescriptor;
 import com.indeed.squall.iql2.execution.Session;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
-import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -95,10 +94,11 @@ public class CommandValidator {
             final String dataset = datasetUpperCaseToActual.get(entry.getValue());
 
             final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
-            final DatasetDimensions dimension = dimensions.get(dataset);
+            final DatasetDimensions dimension = dimensions.get(entry.getValue());
             final Set<String> intFields = datasetToIntFields.get(entry.getValue());
 
-            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo, dimension, intFields);
+            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(datasetInfo,
+                    (dimension != null) ? dimension.fields(): Collections.emptySet(), intFields);
 
             final String name = entry.getKey().toUpperCase();
             for (final FieldDescriptor fieldDescriptor : datasetDescriptor.getFields()) {

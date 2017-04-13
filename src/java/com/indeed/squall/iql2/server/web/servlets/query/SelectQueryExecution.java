@@ -9,6 +9,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -26,7 +27,6 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
@@ -38,6 +38,7 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
@@ -101,6 +102,7 @@ public class SelectQueryExecution {
     private final Map<String, Set<String>> keywordAnalyzerWhitelist;
     private final Map<String, Set<String>> datasetToIntFields;
     private final Map<String, DatasetDimensions> dimensions;
+    private final Map<String, Set<String>> dimensionsExpressions;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -154,6 +156,7 @@ public class SelectQueryExecution {
         this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
         this.dimensions = dimensions;
+        this.dimensionsExpressions = convertDimensionsExpressions(dimensions);
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
@@ -406,7 +409,7 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query));
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), dimensions);
             timer.pop();
 
             if (!skipValidation) {
@@ -526,8 +529,8 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
-                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensionsExpressions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+                    return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
@@ -537,7 +540,6 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
                             hasMoreRows.get());
-                    return selectExecutionInformation;
                 } catch (Exception e) {
                     errorOccurred.set(true);
                     throw Throwables.propagate(e);
@@ -649,6 +651,14 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static Map<String, Set<String>> convertDimensionsExpressions(final Map<String, DatasetDimensions> dimensions){
+        final ImmutableMap.Builder<String, Set<String>> builder = new ImmutableMap.Builder<>();
+        for (Map.Entry<String, DatasetDimensions> dimension : dimensions.entrySet()) {
+            builder.put(dimension.getKey(), dimension.getValue().fields());
+        }
+        return builder.build();
     }
 
     static class QueryInfo {

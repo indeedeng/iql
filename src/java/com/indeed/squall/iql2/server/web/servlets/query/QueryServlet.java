@@ -14,15 +14,14 @@ import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.TreeTimer;
@@ -77,8 +76,7 @@ public class QueryServlet {
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
-    private final DimensionsLoader dimensionsLoader;
-    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
     private final Long imhotepLocalTempFileSizeLimit;
@@ -94,8 +92,7 @@ public class QueryServlet {
             final ImhotepClient imhotepClient,
             final QueryCache queryCache,
             final ExecutionManager executionManager,
-            final DimensionsLoader dimensionsLoader,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
+            final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final Long imhotepLocalTempFileSizeLimit,
@@ -106,8 +103,7 @@ public class QueryServlet {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
-        this.dimensionsLoader = dimensionsLoader;
-        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
@@ -130,17 +126,17 @@ public class QueryServlet {
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
         // TODO: Don't make a copy per use
-        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist());
+        return upperCaseMapToSet(metadataCache.getKeywordAnalyzerWhitelist());
     }
 
     private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
         // TODO: Don't make a copy per use
-        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getDatasetToIntFields());
+        return upperCaseMapToSet(metadataCache.getDatasetToIntFields());
     }
 
     private Map<String, DatasetDimensions> getDimensions() {
         // TODO: Uppercase it?
-        return dimensionsLoader.getDimensions();
+        return metadataCache.getDimensions();
     }
 
     @RequestMapping("query")
@@ -339,7 +335,7 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(imhotepClient.getDatasetShardInfo(dataset), getDimensions().get(dataset), getDatasetToIntFields().get(dataset));
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(imhotepClient.getDatasetShardInfo(dataset), getDimensions().get(dataset).fields(), getDatasetToIntFields().get(dataset));
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
         } else {

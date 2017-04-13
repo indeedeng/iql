@@ -7,13 +7,13 @@ import com.google.common.base.Joiner;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
@@ -141,7 +141,7 @@ public class ExplainQueryExecution {
                     }
             );
 
-            final List<Command> commands = Queries.queryCommands(query);
+            final List<Command> commands = Queries.queryCommands(query, dimensions);
             CommandValidator.validate(commands, imhotepClient, query, dimensions, datasetToIntFields, errors, warnings);
 
             for (final Command command : commands) {

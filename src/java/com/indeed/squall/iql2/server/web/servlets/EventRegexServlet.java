@@ -15,7 +15,6 @@ import com.indeed.squall.iql2.execution.actions.Actions;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
@@ -23,7 +22,7 @@ import com.indeed.squall.iql2.language.GroupSuppliers;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.query.Queries;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
@@ -56,15 +55,15 @@ public class EventRegexServlet {
     public static final String JOIN_FIELD = "THEONETRUEJOINFIELD";
 
     private final ImhotepClient imhotepClient;
-    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final MetadataCache metadataCache;
 
     @Autowired
     public EventRegexServlet(
             final ImhotepClient imhotepClient,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader
+            final MetadataCache metadataCache
     ) {
         this.imhotepClient = imhotepClient;
-        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.metadataCache = metadataCache;
     }
 
     @RequestMapping(value="regex", method = {RequestMethod.GET, RequestMethod.POST})
@@ -301,7 +300,7 @@ public class EventRegexServlet {
                 OBJECT_MAPPER.readTree(json),
                 closer,
                 out,
-                Collections.<String, DatasetDimensions>emptyMap(),
+                Collections.emptyMap(),
                 timer,
                 new NoOpProgressCallback(),
                 -1L,
@@ -378,12 +377,12 @@ public class EventRegexServlet {
 
     private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
         // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist());
+        return QueryServlet.upperCaseMapToSet(metadataCache.getKeywordAnalyzerWhitelist());
     }
 
     private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
         // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getDatasetToIntFields());
+        return QueryServlet.upperCaseMapToSet(metadataCache.getDatasetToIntFields());
     }
 
     private DocFilter parseDocFilter(String filterString) throws IOException {

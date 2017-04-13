@@ -5,16 +5,18 @@ import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.squall.iql2.server.LocalImhotepDaemon;
-import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
 import com.indeed.squall.iql2.server.web.WebPackageMarker;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.cache.QueryCacheFactory;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
+import com.indeed.squall.iql2.server.web.healthcheck.ImhotepMetadataServiceClientPinger;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
@@ -32,11 +34,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import javax.xml.bind.PropertyException;
 import java.io.File;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableWebMvc
@@ -67,6 +69,15 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 env.getProperty("imhotep.daemons.zookeeper.path"),
                 env.getProperty("imhotep.daemons.host"),
                 false);
+    }
+
+    @Bean(destroyMethod = "close")
+    public ImsClientInterface imsClient() {
+        try {
+            return ImsClient.build(env.getProperty("ims.url"));
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid ImhotepMetaDataService url: "+env.getProperty("ims.url"));
+        }
     }
 
 //    @Bean(destroyMethod = "close")
@@ -144,17 +155,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    public DimensionsLoader dimensionsLoader(ScheduledThreadPoolExecutor executor) {
-        final DimensionsLoader dimensionsLoader = new DimensionsLoader("dataset-dimensions", new File(env.getProperty("ramses.metadata.dir")));
-        executor.scheduleAtFixedRate(dimensionsLoader, 0, 5, TimeUnit.MINUTES);
-        return dimensionsLoader;
-    }
-
-    @Bean
-    public KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader(ScheduledThreadPoolExecutor executor, ImhotepClient imhotepClient) {
-        final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader = new KeywordAnalyzerWhitelistLoader("keyword-analyzer-whitelist", new File(env.getProperty("ramses.metadata.dir")), imhotepClient);
-        executor.scheduleAtFixedRate(keywordAnalyzerWhitelistLoader, 0, 5, TimeUnit.MINUTES);
-        return keywordAnalyzerWhitelistLoader;
+    public MetadataCache metadataCache(ImsClientInterface imsClient, ImhotepClient imhotepClient) {
+        return new MetadataCache(imsClient, imhotepClient);
     }
 
     @Bean
@@ -176,6 +178,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Bean
     public ImhotepClientPinger imhotepClientPinger() {
         return new ImhotepClientPinger(imhotepClient());
+    }
+
+    @Bean
+    public ImhotepMetadataServiceClientPinger imhotepClientPinger(ImsClientInterface imsClient) {
+        return new ImhotepMetadataServiceClientPinger(imsClient);
     }
 
     @Bean
