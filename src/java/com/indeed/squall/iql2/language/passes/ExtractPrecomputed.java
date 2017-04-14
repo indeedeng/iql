@@ -48,7 +48,7 @@ public class ExtractPrecomputed {
                 processor.setComputationType(ComputationType.PreComputation);
                 groupBys.add(groupBy.traverse1(processor));
             } else {
-                boolean existed = hasPrecomputed(filter);
+                boolean existed = hasPostcomputed(filter);
                 if (!existed) {
                     processor.setComputationType(ComputationType.PreComputation);
                     groupBys.add(groupBy.traverse1(processor));
@@ -140,7 +140,7 @@ public class ExtractPrecomputed {
         return resultSteps;
     }
 
-    private static boolean hasPrecomputed(final Optional<AggregateFilter> filter) {
+    private static boolean hasPostcomputed(final Optional<AggregateFilter> filter) {
         AtomicBoolean existed = new AtomicBoolean(false);
         filter.get().traverse1(new Function<AggregateMetric, AggregateMetric>() {
             @Nullable
