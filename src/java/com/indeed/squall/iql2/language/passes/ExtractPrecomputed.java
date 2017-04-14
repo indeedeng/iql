@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ExtractPrecomputed {
     public static Extracted extractPrecomputed(Query query) {
@@ -37,8 +38,36 @@ public class ExtractPrecomputed {
             processor.setDepth(i + 1);
             processor.setStartDepth(i + 1);
             processor.setMaxDepth(i + 1);
-            groupBys.add(groupBy.traverse1(processor));
+            final Optional<AggregateFilter> filter;
+            if (groupBy.groupBy instanceof GroupBy.GroupByField) {
+                filter = ((GroupBy.GroupByField) groupBy.groupBy).filter;
+            } else {
+                filter = groupBy.filter;
+            }
+            if (!filter.isPresent()) {
+                processor.setComputationType(ComputationType.PreComputation);
+                groupBys.add(groupBy.traverse1(processor));
+            } else {
+                boolean existed = hasPrecomputed(filter);
+                if (!existed) {
+                    processor.setComputationType(ComputationType.PreComputation);
+                    groupBys.add(groupBy.traverse1(processor));
+                } else {
+                    processor.setComputationType(ComputationType.PostComputation);
+                    final Optional<AggregateFilter> newFilter = Optional.of(filter.get().traverse1(processor));
+                    if (!(groupBy.groupBy instanceof GroupBy.GroupByField)) {
+                        groupBys.add(new GroupByMaybeHaving(groupBy.groupBy.traverse1(processor), newFilter));
+                    } else {
+                        final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
+                        final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
+                                groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
+                                groupByField.withDefault, groupByField.forceNonStreaming);
+                        groupBys.add(new GroupByMaybeHaving(newGroupByField.traverse1(processor), newFilter));
+                    }
+                }
+            }
         }
+        processor.setComputationType(ComputationType.PreComputation);
         final List<AggregateMetric> selects = new ArrayList<>();
         processor.setDepth(groupBys.size());
         processor.setStartDepth(groupBys.size());
@@ -47,7 +76,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit), processor.precomputedNames);
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit), processor.computedNames);
     }
 
     public static Map<Integer, List<PrecomputedInfo>> computationStages(Map<PrecomputedInfo, String> extracted) {
@@ -63,8 +92,9 @@ public class ExtractPrecomputed {
 
     public static List<ExecutionStep> querySteps(Extracted extracted) {
         final Query query = extracted.query;
-        final Map<PrecomputedInfo, String> precomputedNames = extracted.precomputedNames;
-        final Map<Integer, List<PrecomputedInfo>> depthToPrecomputations = computationStages(precomputedNames);
+        final Map<ComputationType, Map<PrecomputedInfo, String>> computedNames = extracted.computedNames;
+        final Map<Integer, List<PrecomputedInfo>> depthToPreAggregatePrecomputations = computationStages(computedNames.get(ComputationType.PreComputation));
+        final Map<Integer, List<PrecomputedInfo>> depthToPostAggregatePrecomputations = computationStages(computedNames.get(ComputationType.PostComputation));
         final Map<Integer, ExecutionStep> groupBySteps = new HashMap<>();
         final Map<Integer, ExecutionStep.FilterGroups> postGroupByFilter = new HashMap<>();
         final List<GroupByMaybeHaving> groupBys = query.groupBys;
@@ -82,16 +112,22 @@ public class ExtractPrecomputed {
             final DocFilter filter = query.filter.get();
             resultSteps.add(new ExecutionStep.FilterDocs(filter, scope));
         }
-        if (!groupBySteps.isEmpty() || !depthToPrecomputations.isEmpty()) {
-            final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(), depthToPrecomputations.keySet()));
+        if (!groupBySteps.isEmpty() || !depthToPreAggregatePrecomputations.isEmpty() || !depthToPostAggregatePrecomputations.isEmpty()) {
+            final int max = Ordering.natural().max(Iterables.concat(groupBySteps.keySet(),
+                    depthToPreAggregatePrecomputations.keySet(), depthToPostAggregatePrecomputations.keySet()));
             for (int i = 0; i <= max; i++) {
-                if (depthToPrecomputations.containsKey(i)) {
-                    for (final PrecomputedInfo precomputedInfo : depthToPrecomputations.get(i)) {
-                        resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, precomputedNames.get(precomputedInfo)));
+                if (depthToPreAggregatePrecomputations.containsKey(i)) {
+                    for (final PrecomputedInfo precomputedInfo : depthToPreAggregatePrecomputations.get(i)) {
+                        resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, computedNames.get(ComputationType.PreComputation).get(precomputedInfo)));
                     }
                 }
                 if (groupBySteps.containsKey(i)) {
                     resultSteps.add(groupBySteps.get(i));
+                }
+                if (depthToPostAggregatePrecomputations.containsKey(i)) {
+                    for (final PrecomputedInfo precomputedInfo : depthToPostAggregatePrecomputations.get(i)) {
+                        resultSteps.add(new ExecutionStep.ComputePrecomputed(precomputedInfo.scope, precomputedInfo.precomputed, computedNames.get(ComputationType.PostComputation).get(precomputedInfo)));
+                    }
                 }
                 if (postGroupByFilter.containsKey(i)) {
                     resultSteps.add(postGroupByFilter.get(i));
@@ -104,19 +140,47 @@ public class ExtractPrecomputed {
         return resultSteps;
     }
 
+    private static boolean hasPrecomputed(final Optional<AggregateFilter> filter) {
+        AtomicBoolean existed = new AtomicBoolean(false);
+        filter.get().traverse1(new Function<AggregateMetric, AggregateMetric>() {
+            @Nullable
+            @Override
+            public AggregateMetric apply(@Nullable final AggregateMetric input) {
+                if (input instanceof AggregateMetric.Distinct
+                        || input instanceof AggregateMetric.Percentile
+                        || input instanceof AggregateMetric.SumAcross
+                        || input instanceof AggregateMetric.FieldMin
+                        || input instanceof AggregateMetric.FieldMax
+                        || input instanceof AggregateMetric.Bootstrap) {
+                    existed.set(true);
+                    return null;
+                } else if (input instanceof AggregateMetric.DocStats || input instanceof AggregateMetric.ImplicitDocStats) {
+                    return input;
+                } else {
+                    return input.traverse1(this);
+                }
+            }
+        });
+        return existed.get();
+    }
+
     private static class Processor implements Function<AggregateMetric, AggregateMetric> {
         private int depth;
         private int startDepth;
         private int maxDepth;
         private Set<String> scope;
         private int nextName = 0;
+        private ComputationType computationType;
 
-        private final Map<PrecomputedInfo, String> precomputedNames = new HashMap<>();
+        private final Map<ComputationType, Map<PrecomputedInfo, String>> computedNames = new HashMap<>();
 
         public Processor(int depth, int startDepth, Set<String> scope) {
             this.depth = depth;
             this.startDepth = startDepth;
             this.scope = scope;
+            for (ComputationType computationType : ComputationType.values()) {
+                computedNames.put(computationType, new HashMap<>());
+            }
         }
 
         public AggregateMetric apply(AggregateMetric input) {
@@ -235,7 +299,7 @@ public class ExtractPrecomputed {
                 final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field.unwrap(), filter, bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
                 final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputedBootstrap, depth, scope);
                 final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
-                precomputedNames.put(precomputedInfo, name);
+                computedNames.get(computationType).put(precomputedInfo, name);
                 return new AggregateMetric.GroupStatsMultiLookup(lookups);
             } else if (input instanceof AggregateMetric.DivideByCount) {
                 final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
@@ -275,16 +339,13 @@ public class ExtractPrecomputed {
             }
         }
 
-        public void setDepth(int depth) {
-            this.depth = depth;
-        }
-
-        public void setStartDepth(int startDepth) {
-            this.startDepth = startDepth;
-        }
-
         private AggregateMetric handlePrecomputed(Precomputed precomputed) {
-            final int depth = this.depth;
+            final int depth;
+            if (computationType == ComputationType.PreComputation) {
+                depth = this.depth;
+            } else {
+                depth = this.depth-1;
+            }
             final Set<String> scope = this.scope;
 
             if (depth < 0) {
@@ -296,11 +357,11 @@ public class ExtractPrecomputed {
 
             final PrecomputedInfo precomputedInfo = new PrecomputedInfo(precomputed, depth, scope);
             final String name;
-            if (!precomputedNames.containsKey(precomputedInfo)) {
+            if (!computedNames.get(computationType).containsKey(precomputedInfo)) {
                 name = generateName();
-                precomputedNames.put(precomputedInfo, name);
+                computedNames.get(computationType).put(precomputedInfo, name);
             } else {
-                name = precomputedNames.get(precomputedInfo);
+                name = computedNames.get(computationType).get(precomputedInfo);
             }
             return new AggregateMetric.GroupStatsLookup(name);
         }
@@ -311,6 +372,14 @@ public class ExtractPrecomputed {
             return name;
         }
 
+        public void setDepth(int depth) {
+            this.depth = depth;
+        }
+
+        public void setStartDepth(int startDepth) {
+            this.startDepth = startDepth;
+        }
+
         public void setScope(Set<String> scope) {
             this.scope = scope;
         }
@@ -318,22 +387,26 @@ public class ExtractPrecomputed {
         public void setMaxDepth(int maxDepth) {
             this.maxDepth = maxDepth;
         }
+
+        public void setComputationType(ComputationType computationType) {
+            this.computationType = computationType;
+        }
     }
 
     public static class Extracted {
         public final Query query;
-        private final Map<PrecomputedInfo, String> precomputedNames;
+        private final Map<ComputationType, Map<PrecomputedInfo, String>> computedNames;
 
-        private Extracted(Query query, Map<PrecomputedInfo, String> precomputedNames) {
+        public Extracted(final Query query, final Map<ComputationType, Map<PrecomputedInfo, String>> computedNames) {
             this.query = query;
-            this.precomputedNames = precomputedNames;
+            this.computedNames = computedNames;
         }
 
         @Override
         public String toString() {
             return "Extracted{" +
                     "query=" + query +
-                    ", precomputedNames=" + precomputedNames +
+                    ", computedNames=" + computedNames +
                     '}';
         }
     }
@@ -372,5 +445,10 @@ public class ExtractPrecomputed {
                     ", scope=" + scope +
                     '}';
         }
+    }
+
+    private enum ComputationType {
+        PreComputation,
+        PostComputation;
     }
 }
