@@ -202,7 +202,6 @@ public class SelectQueryExecution {
 
             final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
             final Set<String> warnings = new HashSet<>();
-
             final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(50000000000L);
             final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
             final ProgressCallback progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
@@ -232,7 +231,6 @@ public class SelectQueryExecution {
                 }
                 outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
                 outputStream.println();
-
 
                 outputStream.println("event: complete");
                 outputStream.println("data: :)");
@@ -266,8 +264,8 @@ public class SelectQueryExecution {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
-        if (execInfo.rowLimit == queryInfo.rows) {
-            warnings.add(String.format("Only first %d rows returned sorted on the last group by column", execInfo.rowLimit));
+        if (execInfo.hasMoreRows) {
+            warnings.add(String.format("Only first %d rows returned sorted on the last group by column", queryInfo.rows));
         }
     }
 
@@ -407,7 +405,7 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(query);
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query));
             timer.pop();
 
             if (!skipValidation) {
@@ -449,10 +447,10 @@ public class SelectQueryExecution {
                         timer.push("read cache");
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
+                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
-                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys, Collections.<String>emptyList(), 0, 0, 0,
-                                originalQuery.rowLimit.or(-1));
+                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys,
+                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
                     } else {
                         final Consumer<String> oldOut = out;
                         final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
@@ -485,7 +483,7 @@ public class SelectQueryExecution {
                         };
                     }
                 }
-
+                AtomicBoolean hasMoreRows = new AtomicBoolean(false);
                 if (query.rowLimit.isPresent()) {
                     final int rowLimit = query.rowLimit.get();
                     final Consumer<String> oldOut = out;
@@ -497,6 +495,8 @@ public class SelectQueryExecution {
                             if (rowsWritten < rowLimit) {
                                 oldOut.accept(s);
                                 rowsWritten += 1;
+                            } else if (rowsWritten == rowLimit) {
+                                hasMoreRows.set(true);
                             }
                         }
                     };
@@ -535,8 +535,7 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getTotalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
-                            originalQuery.rowLimit.or(-1)
-                    );
+                            hasMoreRows.get());
                     return selectExecutionInformation;
                 } catch (Exception e) {
                     errorOccurred.set(true);
@@ -544,6 +543,18 @@ public class SelectQueryExecution {
                 }
             }
         }
+    }
+
+    // increment query limit so that we know that whether it filters the response data size
+    private Query incrementQueryLimit(final Query query) {
+        final Optional<Integer> newRowLimit = query.rowLimit.transform(new Function<Integer, Integer>() {
+            @Nullable
+            @Override
+            public Integer apply(@Nullable final Integer integer) {
+                return (integer == null) ? integer : integer + 1;
+            }
+        });
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit);
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
@@ -586,19 +597,22 @@ public class SelectQueryExecution {
         return new ComputeCacheKey(datasetToChosenShards, queryHash, cacheFileName);
     }
 
-    private static void sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit, QueryCache queryCache) throws IOException {
+    private static boolean sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit, QueryCache queryCache) throws IOException {
         final int limit = rowLimit.or(Integer.MAX_VALUE);
         int rowsWritten = 0;
+        boolean hasMoreRows = false;
         try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
             String line;
             while ((line = stream.readLine()) != null) {
                 out.accept(line);
                 rowsWritten += 1;
                 if (rowsWritten >= limit) {
+                    hasMoreRows = (stream.readLine() == null);
                     break;
                 }
             }
         }
+        return hasMoreRows;
     }
 
     private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
@@ -666,10 +680,10 @@ public class SelectQueryExecution {
         public final long totalNumDocs;
         public final int maxNumGroups;
         public final int maxConcurrentSessions;
-        public final int rowLimit;
+        public final boolean hasMoreRows;
 
         private SelectExecutionInformation(Multimap<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds,
-                                           long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, int rowLimit) {
+                                           long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, final boolean hasMoreRows) {
             this.shards = shards;
             this.queryCached = queryCached;
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
@@ -678,7 +692,7 @@ public class SelectQueryExecution {
             this.totalNumDocs = totalNumDocs;
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;
-            this.rowLimit = rowLimit;
+            this.hasMoreRows = hasMoreRows;
         }
 
         public boolean allCached() {

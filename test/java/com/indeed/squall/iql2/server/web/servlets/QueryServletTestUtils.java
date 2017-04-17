@@ -4,6 +4,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
@@ -64,6 +66,14 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
+        return run(shards, query, version, stream, options).data;
+    }
+
+    static JsonObject getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
+        return run(shards, query, version, true, options).header;
+    }
+
+    static QueryReuslt run(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
         final QueryServlet queryServlet = create(shards, options);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
@@ -79,18 +89,23 @@ public class QueryServletTestUtils extends BasicTest {
         }
         final MockHttpServletResponse response = new MockHttpServletResponse();
         queryServlet.query(request, response, query);
-
+        final JsonParser jsonParser = new JsonParser();
         final List<List<String>> output = new ArrayList<>();
+        JsonObject header = null;
         if (stream) {
             boolean readingData = false;
             boolean readingError = false;
+            boolean readingHeader = false;
             final List<String> errorLines = new ArrayList<>();
             for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
                 if (line.startsWith("event: resultstream")) {
                     readingData = true;
                 } else if (line.startsWith("event: servererror")) {
                     readingError = true;
-                } else if (line.startsWith("event: ")) {
+                } else if (line.startsWith("event: header")) {
+                    readingHeader = true;
+                    readingData = false;
+                }  else if (line.startsWith("event: ")) {
                     readingData = false;
                     if (readingError) {
                         throw new IllegalArgumentException("Error encountered when running query: " + Joiner.on('\n').join(errorLines));
@@ -99,6 +114,9 @@ public class QueryServletTestUtils extends BasicTest {
                     output.add(Lists.newArrayList(Splitter.on('\t').split(line.substring("data: ".length()))));
                 } else if (readingError && line.startsWith("data: ")) {
                     errorLines.add(line.substring("data: ".length()));
+                } else if (readingHeader && line.startsWith("data: ")) {
+                    header = jsonParser.parse(line.substring("data: ".length())).getAsJsonObject();
+                    readingHeader = false;
                 }
             }
 
@@ -116,7 +134,7 @@ public class QueryServletTestUtils extends BasicTest {
                 throw new IllegalArgumentException("Error encountered when running query: " + response.getContentAsString());
             }
         }
-        return output;
+        return new QueryReuslt(header, output);
     }
 
     static class Options {
@@ -218,5 +236,15 @@ public class QueryServletTestUtils extends BasicTest {
             output.add(newLine);
         }
         return output;
+    }
+
+    private static class QueryReuslt {
+        public JsonObject header;
+        public List<List<String>> data;
+
+        public QueryReuslt(final JsonObject header, final List<List<String>> data) {
+            this.header = header;
+            this.data = data;
+        }
     }
 }
