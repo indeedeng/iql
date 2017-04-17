@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -89,8 +90,8 @@ public class Queries {
         }
     }
 
-    public static <T> String getRawInput(CharStream inputStream, Positioned<T> positional) {
-        return getText(inputStream, positional);
+    public static String getRawInput(CharStream inputStream, Positional positional) {
+        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
@@ -164,25 +165,26 @@ public class Queries {
         return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString);
     }
 
-    private static List<String> extractHeaders(Query parsed, CharStream input) {
+    @VisibleForTesting
+    static List<String> extractHeaders(Query parsed, CharStream input) {
         final List<String> result = new ArrayList<>();
         for (GroupByMaybeHaving groupBy : parsed.groupBys) {
-            result.add(getText(input, groupBy.groupBy));
+            result.add(getRawInput(input, groupBy.groupBy));
         }
         for (AggregateMetric metric : parsed.selects) {
             final Positional pos;
             if (metric instanceof AggregateMetric.Named) {
                 pos = ((AggregateMetric.Named) metric).name;
             } else {
+                if (metric.getStart() == null) {
+                    result.add("count()");
+                    continue;
+                }
                 pos = metric;
             }
-            result.add(getText(input, pos));
+            result.add(getRawInput(input, pos));
         }
         return result;
-    }
-
-    private static String getText(final CharStream input, final Positional pos) {
-        return input.getText(new Interval(pos.getStart().startIndex, pos.getEnd().stopIndex));
     }
 
     private static List<String> extractSelects(JQLParser.QueryContext queryContext, CharStream input) {
