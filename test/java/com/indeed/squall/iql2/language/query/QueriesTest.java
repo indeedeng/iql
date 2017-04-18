@@ -16,7 +16,7 @@ public class QueriesTest {
     @Test
     public void extractHeaders() throws Exception {
         final boolean useLegacy = false;
-        Assert.assertEquals(ImmutableList.of("count()"),
+        Assert.assertEquals(ImmutableList.of("", "count()"),
                 extractHeadersHelper("FROM jobsearch 1d 0d", useLegacy));
         Assert.assertEquals(ImmutableList.of("oji", "count()"),
                 extractHeadersHelper("FROM jobsearch 1d 0d GROUP BY oji", useLegacy));

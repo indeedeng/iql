@@ -171,6 +171,9 @@ public class Queries {
         for (GroupByMaybeHaving groupBy : parsed.groupBys) {
             result.add(getRawInput(input, groupBy.groupBy));
         }
+        if (result.isEmpty()) {
+            result.add("");
+        }
         for (AggregateMetric metric : parsed.selects) {
             final Positional pos;
             if (metric instanceof AggregateMetric.Named) {
