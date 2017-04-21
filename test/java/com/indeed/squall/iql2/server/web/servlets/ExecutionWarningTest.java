@@ -39,6 +39,6 @@ public class ExecutionWarningTest extends BasicTest {
         if (header.get("IQL-Warning") == null) {
             return Collections.emptyList();
         }
-        return Arrays.asList(header.get("IQL-Warning").asText().split("\n"));
+        return Arrays.asList(header.get("IQL-Warning").textValue().split("\n"));
     }
 }
