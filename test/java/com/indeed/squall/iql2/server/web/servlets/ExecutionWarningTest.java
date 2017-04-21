@@ -1,7 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import com.google.gson.JsonObject;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,11 +34,11 @@ public class ExecutionWarningTest extends BasicTest {
     }
 
     private List<String> testLimitHelper(final String query) throws Exception {
-        final JsonObject header = QueryServletTestUtils.getQueryHeader(OrganicDataset.create(), query,
+        final JsonNode header = QueryServletTestUtils.getQueryHeader(OrganicDataset.create(), query,
                 QueryServletTestUtils.LanguageVersion.IQL1, QueryServletTestUtils.Options.create());
         if (header.get("IQL-Warning") == null) {
             return Collections.emptyList();
         }
-        return Arrays.asList(header.get("IQL-Warning").getAsString().split("\n"));
+        return Arrays.asList(header.get("IQL-Warning").asText().split("\n"));
     }
 }

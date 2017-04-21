@@ -1,11 +1,11 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class QueryServletTestUtils extends BasicTest {
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
@@ -69,7 +70,7 @@ public class QueryServletTestUtils extends BasicTest {
         return run(shards, query, version, stream, options).data;
     }
 
-    static JsonObject getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
+    static JsonNode getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
         return run(shards, query, version, true, options).header;
     }
 
@@ -89,9 +90,8 @@ public class QueryServletTestUtils extends BasicTest {
         }
         final MockHttpServletResponse response = new MockHttpServletResponse();
         queryServlet.query(request, response, query);
-        final JsonParser jsonParser = new JsonParser();
         final List<List<String>> output = new ArrayList<>();
-        JsonObject header = null;
+        JsonNode header = null;
         if (stream) {
             boolean readingData = false;
             boolean readingError = false;
@@ -115,7 +115,7 @@ public class QueryServletTestUtils extends BasicTest {
                 } else if (readingError && line.startsWith("data: ")) {
                     errorLines.add(line.substring("data: ".length()));
                 } else if (readingHeader && line.startsWith("data: ")) {
-                    header = jsonParser.parse(line.substring("data: ".length())).getAsJsonObject();
+                    header = OBJECT_MAPPER.readTree(line.substring("data: ".length()));
                     readingHeader = false;
                 }
             }
@@ -239,10 +239,10 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     private static class QueryReuslt {
-        public JsonObject header;
+        public JsonNode header;
         public List<List<String>> data;
 
-        public QueryReuslt(final JsonObject header, final List<List<String>> data) {
+        public QueryReuslt(final JsonNode header, final List<List<String>> data) {
             this.header = header;
             this.data = data;
         }
