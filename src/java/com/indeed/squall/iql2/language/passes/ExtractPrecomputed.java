@@ -142,25 +142,16 @@ public class ExtractPrecomputed {
 
     private static boolean hasPostcomputed(final Optional<AggregateFilter> filter) {
         AtomicBoolean existed = new AtomicBoolean(false);
-        filter.get().traverse1(new Function<AggregateMetric, AggregateMetric>() {
+        filter.get().transform(new Function<AggregateMetric, AggregateMetric>() {
             @Nullable
             @Override
             public AggregateMetric apply(@Nullable final AggregateMetric input) {
-                if (input instanceof AggregateMetric.Distinct
-                        || input instanceof AggregateMetric.Percentile
-                        || input instanceof AggregateMetric.SumAcross
-                        || input instanceof AggregateMetric.FieldMin
-                        || input instanceof AggregateMetric.FieldMax
-                        || input instanceof AggregateMetric.Bootstrap) {
+                if (input.getClass().isAnnotationPresent(AggregateMetric.RequirePostComputation.class)) {
                     existed.set(true);
-                    return null;
-                } else if (input instanceof AggregateMetric.DocStats || input instanceof AggregateMetric.ImplicitDocStats) {
-                    return input;
-                } else {
-                    return input.traverse1(this);
                 }
+                return input;
             }
-        });
+        }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
         return existed.get();
     }
 
