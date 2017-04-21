@@ -45,12 +45,10 @@ public class ExtractPrecomputed {
                 filter = groupBy.filter;
             }
             if (!filter.isPresent()) {
-                processor.setComputationType(ComputationType.PreComputation);
                 groupBys.add(groupBy.traverse1(processor));
             } else {
                 boolean existed = hasPostcomputed(filter);
                 if (!existed) {
-                    processor.setComputationType(ComputationType.PreComputation);
                     groupBys.add(groupBy.traverse1(processor));
                 } else {
                     processor.setComputationType(ComputationType.PostComputation);
@@ -64,10 +62,10 @@ public class ExtractPrecomputed {
                                 groupByField.withDefault, groupByField.forceNonStreaming);
                         groupBys.add(new GroupByMaybeHaving(newGroupByField.traverse1(processor), newFilter));
                     }
+                    processor.setComputationType(ComputationType.PreComputation);
                 }
             }
         }
-        processor.setComputationType(ComputationType.PreComputation);
         final List<AggregateMetric> selects = new ArrayList<>();
         processor.setDepth(groupBys.size());
         processor.setStartDepth(groupBys.size());
