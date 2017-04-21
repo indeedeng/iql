@@ -483,7 +483,7 @@ public class SelectQueryExecution {
                         };
                     }
                 }
-                AtomicBoolean hasMoreRows = new AtomicBoolean(false);
+                final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
                 if (query.rowLimit.isPresent()) {
                     final int rowLimit = query.rowLimit.get();
                     final Consumer<String> oldOut = out;
