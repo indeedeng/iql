@@ -8,10 +8,26 @@ import java.util.List;
 
 public class GroupByPostAggregateTest extends BasicTest {
     @Test
-    public void groupByHavingDistinct() throws Exception {
+    public void groupByFieldHavingDistinct() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("b", "2"));
+        expected.add(ImmutableList.of("c", "4"));
+        expected.add(ImmutableList.of("d", "141"));
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk HAVING DISTINCT(oji) > 1");
+    }
+
+    @Test
+    public void groupByFieldHavingMultipleConditions() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("d", "141"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk HAVING DISTINCT(oji) > 2");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk HAVING DISTINCT(oji) > 1 AND COUNT() > 100");
+    }
+
+    @Test
+    public void groupByTimeHavingDistinct() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 01:00:00)", "10"));
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) HAVING DISTINCT(oji) > 1");
     }
 
     @Test
@@ -23,7 +39,7 @@ public class GroupByPostAggregateTest extends BasicTest {
     }
 
     @Test
-    public void groupByMultiple() throws Exception {
+    public void groupByMultipleField() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("c", "10", "3"));
         expected.add(ImmutableList.of("c", "1000", "1"));
