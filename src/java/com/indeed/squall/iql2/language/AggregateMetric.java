@@ -62,6 +62,7 @@ public abstract class AggregateMetric extends AbstractPositional {
     public abstract AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
     public abstract void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
     public abstract boolean isOrdered();
+    public boolean requiresFTGS() { return false; }
 
     public abstract static class Unop extends AggregateMetric implements JsonSerializable {
         public final AggregateMetric m1;
@@ -1036,6 +1037,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public boolean requiresFTGS() {
+            return true;
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1171,6 +1177,11 @@ public abstract class AggregateMetric extends AbstractPositional {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
+        }
+
+        @Override
+        public boolean requiresFTGS() {
+            return false;
         }
 
         @Override
@@ -1452,6 +1463,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public boolean requiresFTGS() {
+            return false;
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1603,6 +1619,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public boolean requiresFTGS() {
+            return false;
+        }
+
+        @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
             return f.apply(this);
         }
@@ -1662,6 +1683,11 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         public FieldMax(Positioned<String> field) {
             this.field = field;
+        }
+
+        @Override
+        public boolean requiresFTGS() {
+            return false;
         }
 
         @Override
@@ -1901,6 +1927,11 @@ public abstract class AggregateMetric extends AbstractPositional {
             this.metric = metric;
             this.numBootstraps = numBootstraps;
             this.varargs = varargs;
+        }
+
+        @Override
+        public boolean requiresFTGS() {
+            return false;
         }
 
         @Override
