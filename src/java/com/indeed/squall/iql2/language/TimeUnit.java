@@ -7,23 +7,23 @@ import org.joda.time.DateTime;
  */
 public enum TimeUnit {
 
-    SECOND(1000L, "yyyy-MM-dd HH:mm:ss", 's'),
-    MINUTE(1000L * 60, "yyyy-MM-dd HH:mm", 'm'),
-    HOUR(1000L * 60 * 60, "yyyy-MM-dd HH", 'h'),
-    DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd", 'd'),
-    WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd", 'w'),
-    MONTH(TimeUnit.DAY.millis, "MMMM yyyy", 'M'),
-    YEAR(0L, "yyyy", 'y'),
-    BUCKETS(0L, null, 'b');
+    SECOND(1000L, "yyyy-MM-dd HH:mm:ss", "second"),
+    MINUTE(1000L * 60, "yyyy-MM-dd HH:mm", "minute"),
+    HOUR(1000L * 60 * 60, "yyyy-MM-dd HH", "hour"),
+    DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd", "day"),
+    WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd", "week"),
+    MONTH(TimeUnit.DAY.millis, "MMMM yyyy", "month"),
+    YEAR(0L, "yyyy", "year"),
+    BUCKETS(0L, null, "b");
 
     public final long millis;
     public final String formatString;
-    public final char character;
+    public final String identifier;
 
-    TimeUnit(long millis, String formatString, char character) {
+    TimeUnit(long millis, String formatString, String identifier) {
         this.millis = millis;
         this.formatString = formatString;
-        this.character = character;
+        this.identifier = identifier;
     }
 
     public static TimeUnit fromChar(char c) {
