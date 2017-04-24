@@ -3,11 +3,9 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.indeed.common.datastruct.Iterables2;
 import com.indeed.common.util.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.actions.Action;
@@ -76,7 +74,7 @@ public class Commands {
                 }
                 final String field = command.get("field").textValue();
                 final FieldIterateOpts opts = new FieldIterateOpts();
-                opts.parseFrom(command.get("opts"), namedMetricLookup, groupKeySet);
+                opts.parseFrom(command.get("opts"), namedMetricLookup, groupKeySet, true);
                 final boolean streamResult = command.get("streamResult").booleanValue();
                 final List<Optional<String>> formatStrings = readFormatStrings(command, selecting.size());
                 return new SimpleIterate(field, opts, selecting, formatStrings, streamResult, null);
@@ -433,7 +431,7 @@ public class Commands {
                     break;
                 }
                 case "defaultedFieldOpts": {
-                    defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup, groupKeySet);
+                    defaultOpts.parseFrom(globalOpt.get("opts"), namedMetricLookup, groupKeySet, false);
                     break;
                 }
             }
