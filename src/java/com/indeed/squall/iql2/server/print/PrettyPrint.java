@@ -16,6 +16,7 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.Positional;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Term;
+import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
@@ -214,17 +215,15 @@ public class PrettyPrint {
 
             @Override
             public Void visit(GroupBy.GroupByTime groupByTime) {
-                sb.append("TIME(");
-                // TODO: this needs serious improvement
-                sb.append(groupByTime.periodMillis / 1000).append('s');
-                timeFieldAndFormat(groupByTime.field, groupByTime.format);
+                sb.append("time(");
+                covertTimeMillisToDateString(groupByTime.periodMillis);
                 sb.append(')');
                 return null;
             }
 
             @Override
             public Void visit(GroupBy.GroupByTimeBuckets groupByTimeBuckets) {
-                sb.append("TIME(");
+                sb.append("time(");
                 sb.append(groupByTimeBuckets.numBuckets).append('b');
                 timeFieldAndFormat(groupByTimeBuckets.field, groupByTimeBuckets.format);
                 sb.append(')');
@@ -233,7 +232,7 @@ public class PrettyPrint {
 
             @Override
             public Void visit(GroupBy.GroupByMonth groupByMonth) {
-                sb.append("TIME(1M");
+                sb.append("time(1month");
                 timeFieldAndFormat(groupByMonth.field, groupByMonth.format);
                 sb.append(')');
                 return null;
@@ -302,6 +301,16 @@ public class PrettyPrint {
                 return null;
             }
         });
+    }
+
+    private void covertTimeMillisToDateString(long periodMillis) {
+        final TimeUnit[] timeUnits = new TimeUnit[]{TimeUnit.WEEK, TimeUnit.DAY, TimeUnit.HOUR, TimeUnit.MINUTE, TimeUnit.SECOND};
+        for (TimeUnit timeUnit : timeUnits) {
+            if (periodMillis >= timeUnit.millis) {
+                sb.append(String.format("%d%s",periodMillis/timeUnit.millis, timeUnit.identifier));
+                periodMillis %= timeUnit.millis;
+            }
+        }
     }
 
     private void pp(AggregateFilter aggregateFilter) {
