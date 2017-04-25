@@ -1181,7 +1181,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public boolean requiresFTGS() {
-            return false;
+            return true;
         }
 
         @Override
@@ -1464,7 +1464,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public boolean requiresFTGS() {
-            return false;
+            return true;
         }
 
         @Override
@@ -1620,7 +1620,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public boolean requiresFTGS() {
-            return false;
+            return true;
         }
 
         @Override
@@ -1687,7 +1687,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public boolean requiresFTGS() {
-            return false;
+            return true;
         }
 
         @Override
@@ -1931,7 +1931,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public boolean requiresFTGS() {
-            return false;
+            return true;
         }
 
         @Override
