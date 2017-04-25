@@ -170,6 +170,7 @@ public class ExtractPrecomputed {
             for (ComputationType computationType : ComputationType.values()) {
                 computedNames.put(computationType, new HashMap<>());
             }
+            computationType = ComputationType.PreComputation;
         }
 
         public AggregateMetric apply(AggregateMetric input) {
