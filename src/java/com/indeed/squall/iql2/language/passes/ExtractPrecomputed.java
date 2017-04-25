@@ -301,9 +301,11 @@ public class ExtractPrecomputed {
                         if (metric instanceof AggregateMetric.DocStatsPushes) {
                             datasets.add(((AggregateMetric.DocStatsPushes) metric).dataset);
                         } else if (metric instanceof AggregateMetric.GroupStatsLookup) {
-                            for (Map.Entry<PrecomputedInfo, String> precomputedEntry : precomputedNames.entrySet()) {
-                                if (precomputedEntry.getValue().equals(((AggregateMetric.GroupStatsLookup)metric).name)) {
-                                    datasets.addAll(precomputedEntry.getKey().scope);
+                            for (Map.Entry<ComputationType, Map<ComputationInfo, String>> computations : computedNames.entrySet()) {
+                                for (Map.Entry<ComputationInfo, String> computationEntry : computations.getValue().entrySet()) {
+                                    if (computationEntry.getValue().equals(((AggregateMetric.GroupStatsLookup)metric).name)) {
+                                        datasets.addAll(computationEntry.getKey().scope);
+                                    }
                                 }
                             }
                         }
