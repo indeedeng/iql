@@ -30,6 +30,7 @@ import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
+import com.indeed.squall.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -365,7 +366,7 @@ public class SelectQueryExecution {
                                                     stringTerms.add(term);
                                                 }
                                             }
-                                        }, warn, new NoOpProgressCallback(), q, groupLimit).executeParsedQuery();
+                                        }, warn, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit).executeParsedQuery();
                                         totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                         cacheKeys.addAll(execInfo.cacheKeys);
                                         allShardsUsed.putAll(execInfo.shards);
