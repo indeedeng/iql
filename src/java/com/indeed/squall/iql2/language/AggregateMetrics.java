@@ -208,7 +208,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.Divide(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock), new AggregateMetric.DocStats(new DocMetric.Count())));
+                accept(new AggregateMetric.DivideByCount(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock)));
             }
 
             @Override
@@ -487,9 +487,9 @@ public class AggregateMetrics {
 
     public static AggregateMetric variance(DocMetric docMetric) {
         // [m * m] / count()
-        final AggregateMetric firstHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)), new AggregateMetric.DocStats(new DocMetric.Count()));
+        final AggregateMetric firstHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)));
         // [m] / count()
-        final AggregateMetric halfOfSecondHalf = new AggregateMetric.Divide(new AggregateMetric.DocStats(docMetric), new AggregateMetric.DocStats(new DocMetric.Count()));
+        final AggregateMetric halfOfSecondHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(docMetric));
         // ([m] / count()) ^ 2
         final AggregateMetric secondHalf = new AggregateMetric.Multiply(halfOfSecondHalf, halfOfSecondHalf);
         // E(m^2) - E(m)^2
