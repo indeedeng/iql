@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -13,8 +14,10 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.Positional;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -87,7 +90,7 @@ public class Queries {
         }
     }
 
-    public static <T> String getRawInput(CharStream inputStream, Positioned<T> positional) {
+    public static String getRawInput(CharStream inputStream, Positional positional) {
         return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
     }
 
@@ -159,7 +162,32 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", groupBys, selects, dataset, start, startRawString, end, endRawString);
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString);
+    }
+
+    @VisibleForTesting
+    static List<String> extractHeaders(Query parsed, CharStream input) {
+        final List<String> result = new ArrayList<>();
+        for (GroupByMaybeHaving groupBy : parsed.groupBys) {
+            result.add(getRawInput(input, groupBy.groupBy));
+        }
+        if (result.isEmpty()) {
+            result.add("");
+        }
+        for (AggregateMetric metric : parsed.selects) {
+            final Positional pos;
+            if (metric instanceof AggregateMetric.Named) {
+                pos = ((AggregateMetric.Named) metric).name;
+            } else {
+                if (metric.getStart() == null) {
+                    result.add("count()");
+                    continue;
+                }
+                pos = metric;
+            }
+            result.add(getRawInput(input, pos));
+        }
+        return result;
     }
 
     private static List<String> extractSelects(JQLParser.QueryContext queryContext, CharStream input) {
