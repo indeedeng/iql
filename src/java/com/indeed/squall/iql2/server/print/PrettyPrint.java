@@ -307,7 +307,11 @@ public class PrettyPrint {
         final TimeUnit[] timeUnits = new TimeUnit[]{TimeUnit.WEEK, TimeUnit.DAY, TimeUnit.HOUR, TimeUnit.MINUTE, TimeUnit.SECOND};
         for (TimeUnit timeUnit : timeUnits) {
             if (periodMillis >= timeUnit.millis) {
-                sb.append(String.format("%d%s",periodMillis/timeUnit.millis, timeUnit.identifier));
+                final long val = periodMillis / timeUnit.millis;
+                sb.append(String.format("%d%s", val, timeUnit.identifier));
+                if (val > 1) {
+                    sb.append("s");
+                }
                 periodMillis %= timeUnit.millis;
             }
         }
