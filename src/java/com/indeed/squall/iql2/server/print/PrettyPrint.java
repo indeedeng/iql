@@ -502,6 +502,11 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(AggregateMetric.DivideByCount divideByCount) {
+                throw new UnsupportedOperationException("Shouldn't be rendering this.");
+            }
+
+            @Override
             public Void visit(AggregateMetric.IterateLag iterateLag) {
                 return visit(new AggregateMetric.Lag(iterateLag.lag, iterateLag.metric));
             }
