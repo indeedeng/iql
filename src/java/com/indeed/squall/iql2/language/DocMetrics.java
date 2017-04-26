@@ -480,6 +480,12 @@ public class DocMetrics {
                 ValidationUtil.validateSameScopeThrowException(scopedField1.scope, scopedField2.scope);
                 accept(scopedField1.wrap(negateMetric(new DocMetric.FieldEqualMetric(parseIdentifier(ctx.singlyScopedField(0).field), parseIdentifier(ctx.singlyScopedField(1).field)))));
             }
+
+            @Override
+            public void enterDocMetricAtomLen(final JQLParser.DocMetricAtomLenContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.HasStringField(scopedField.field)));
+            }
         });
 
         if (ref[0] == null) {

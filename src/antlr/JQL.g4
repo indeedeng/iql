@@ -67,6 +67,7 @@ FIELD_MAX : 'FIELD_MAX';
 ALIASING : 'ALIASING';
 HASSTRFIELD : 'HASSTRFIELD' ;
 HASINTFIELD : 'HASINTFIELD' ;
+LEN : 'LEN' ;
 SAME : 'SAME' ;
 EXP : 'EXP' ;
 WINDOW_SUM : 'WINDOW_SUM' ;
@@ -119,7 +120,7 @@ identifier
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | BOOTSTRAP
     | RELATIVE | DATASET
-    | BACKQUOTED_ID
+    | BACKQUOTED_ID | LEN
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -267,6 +268,7 @@ jqlDocMetricAtom
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
     | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # DocMetricAtomLucene
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
+    | LEN '(' singlyScopedField ')' # DocMetricAtomLen
     ;
 
 docMetric [boolean useLegacy]

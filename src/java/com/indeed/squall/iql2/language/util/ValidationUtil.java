@@ -120,7 +120,6 @@ public class ValidationUtil {
         }
     }
 
-
     private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {
         final boolean isIntField = datasetsFields.getIntFields(dataset).contains(field);
         final boolean isStrField = datasetsFields.getStringFields(dataset).contains(field);
