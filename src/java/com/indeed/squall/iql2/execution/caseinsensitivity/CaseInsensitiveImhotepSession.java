@@ -16,6 +16,7 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.DocIterator;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
@@ -146,6 +147,8 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
             return handlePrefix(statName, "inttermcount ");
         } else if (statName.startsWith("strtermcount ")) {
             return handlePrefix(statName, "strtermcount ");
+        } else if (statName.startsWith("len ")) {
+            return handlePrefix(statName, "len ");
         } else if (statName.startsWith("floatscale ")) {
             final int multIndex = statName.indexOf('*');
             return "floatscale " + rewrite(statName.substring("floatscale ".length(), multIndex)) + statName.substring(multIndex);
@@ -546,5 +549,10 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     @Override
     public ImhotepSession wrapped() {
         return wrapped;
+    }
+
+    @Override
+    public GroupStatsIterator getGroupStatsIterator(final int i) {
+        return wrapped.getGroupStatsIterator(i);
     }
 }

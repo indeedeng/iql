@@ -9,6 +9,7 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.DocIterator;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
@@ -329,5 +330,11 @@ public class LoggingImhotepSession implements ImhotepSession {
     public void removeObserver(Instrumentation.Observer observer) {
         log.info("LoggingImhotepSession.removeObserver: " + "observer = [" + observer + "]");
         wrapped.removeObserver(observer);
+    }
+
+    @Override
+    public GroupStatsIterator getGroupStatsIterator(final int stat) {
+        log.info("LoggingImhotepSession.getGroupStatsIterator: " + "stat = [" + stat + "]");
+        return wrapped.getGroupStatsIterator(stat);
     }
 }
