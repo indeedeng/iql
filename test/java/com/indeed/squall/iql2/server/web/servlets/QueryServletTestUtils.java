@@ -16,9 +16,9 @@ import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
-import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.junit.Assert;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -208,11 +208,14 @@ public class QueryServletTestUtils extends BasicTest {
         testAll(shards, expected, query, Options.create());
     }
 
+    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options, LanguageVersion lang) throws  Exception {
+        Assert.assertEquals(expected, runQuery(shards, query, lang, false, options));
+        Assert.assertEquals(expected, runQuery(shards, query, lang, true, options));
+    }
+
     static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
+        testAll(shards, expected, query, options, LanguageVersion.IQL1);
+        testAll(shards, expected, query, options, LanguageVersion.IQL2);
     }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {

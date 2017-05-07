@@ -1133,6 +1133,12 @@ public class PrettyPrint {
                 sb.append(getText(equalMetric.field1)).append("=").append(getText(equalMetric.field2));
                 return null;
             }
+
+            @Override
+            public Void visit(DocMetric.StringLen stringLen) {
+                sb.append("len(").append(getText(stringLen.field)).append(")");
+                return null;
+            }
         });
     }
 
