@@ -484,7 +484,7 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomLen(final JQLParser.DocMetricAtomLenContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                accept(scopedField.wrap(new DocMetric.HasStringField(scopedField.field)));
+                accept(scopedField.wrap(new DocMetric.StringLen(scopedField.field)));
             }
         });
 
