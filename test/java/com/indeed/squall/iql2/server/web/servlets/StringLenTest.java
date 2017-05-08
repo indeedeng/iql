@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion;
 import com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.Options;
 import org.junit.Test;
 
@@ -12,8 +11,8 @@ import java.util.List;
 
 public class StringLenTest extends BasicTest {
 
-    private void doTest(String query, List<List<String>> expected) throws Exception {
-        QueryServletTestUtils.testAll(MultiValuedDataset.create(), expected, query, Options.create(), LanguageVersion.IQL2);
+    private static void doTest(String query, List<List<String>> expected) throws Exception {
+        QueryServletTestUtils.testIQL2(MultiValuedDataset.create(), expected, query, Options.create());
     }
 
     @Test

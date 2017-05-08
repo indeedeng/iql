@@ -208,14 +208,9 @@ public class QueryServletTestUtils extends BasicTest {
         testAll(shards, expected, query, Options.create());
     }
 
-    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options, LanguageVersion lang) throws  Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, lang, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, lang, true, options));
-    }
-
     static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        testAll(shards, expected, query, options, LanguageVersion.IQL1);
-        testAll(shards, expected, query, options, LanguageVersion.IQL2);
+        testIQL1(shards, expected, query, options);
+        testIQL2(shards, expected, query, options);
     }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
