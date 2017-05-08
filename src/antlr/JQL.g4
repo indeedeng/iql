@@ -67,6 +67,8 @@ FIELD_MAX : 'FIELD_MAX';
 ALIASING : 'ALIASING';
 HASSTRFIELD : 'HASSTRFIELD' ;
 HASINTFIELD : 'HASINTFIELD' ;
+INTTERMCOUNT : 'INTTERMCOUNT' ;
+STRTERMCOUNT : 'STRTERMCOUNT' ;
 SAME : 'SAME' ;
 EXP : 'EXP' ;
 WINDOW_SUM : 'WINDOW_SUM' ;
@@ -116,7 +118,7 @@ identifier
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
-    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | SAME | EXP | WINDOW_SUM | MIN | MAX
+    | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | BOOTSTRAP
     | RELATIVE | DATASET
     | BACKQUOTED_ID
@@ -262,6 +264,8 @@ jqlDocMetricAtom
     | singlyScopedField '!=' integer # DocMetricAtomHasntInt
     | HASINTFIELD '(' singlyScopedField ')' # DocMetricAtomHasIntField
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
+    | INTTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomIntTermCount
+    | STRTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomStrTermCount
     | singlyScopedField '=~' regex=STRING_LITERAL # DocMetricAtomRegex
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
