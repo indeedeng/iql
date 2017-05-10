@@ -1081,6 +1081,18 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(DocMetric.IntTermCount intTermCount) {
+                sb.append("inttermcount(").append(getText(intTermCount.field)).append(")");
+                return null;
+            }
+
+            @Override
+            public Void visit(DocMetric.StrTermCount strTermCount) {
+                sb.append("strtermcount(").append(getText(strTermCount.field)).append(")");
+                return null;
+            }
+
+            @Override
             public Void visit(DocMetric.HasInt hasInt) {
                 sb.append(getText(hasInt.field)).append('=').append(hasInt.term);
                 return null;
