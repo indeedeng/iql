@@ -917,6 +917,11 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(DocMetric.PerDatasetDocMetric perDatasetDocMetric) {
+                throw new UnsupportedOperationException("Can't pretty print PerDatasetDocMetric: " + perDatasetDocMetric);
+            }
+
+            @Override
             public Void visit(DocMetric.Count count) {
                 sb.append("count()");
                 return null;

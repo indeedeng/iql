@@ -9,7 +9,7 @@ import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
-import com.indeed.ims.client.TestImsClient;
+import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
@@ -34,7 +34,6 @@ public class QueryServletTestUtils extends BasicTest {
         final Long imhotepLocalTempFileSizeLimit = -1L;
         final Long imhotepDaemonTempFileSizeLimit = -1L;
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
-        final TestImsClient imsClient = new TestImsClient();
         final ExecutionManager executionManager = new ExecutionManager();
 
         try {
@@ -45,7 +44,7 @@ public class QueryServletTestUtils extends BasicTest {
             throw Throwables.propagate(e);
         }
 
-        final MetadataCache metadataCache = new MetadataCache(imsClient, imhotepClient);
+        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient);
         metadataCache.updateMetadata();
 
         return new QueryServlet(
@@ -69,6 +68,7 @@ public class QueryServletTestUtils extends BasicTest {
     static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
         return run(shards, query, version, stream, options).data;
     }
+
 
     static JsonNode getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
         return run(shards, query, version, true, options).header;
@@ -105,7 +105,7 @@ public class QueryServletTestUtils extends BasicTest {
                 } else if (line.startsWith("event: header")) {
                     readingHeader = true;
                     readingData = false;
-                }  else if (line.startsWith("event: ")) {
+                } else if (line.startsWith("event: ")) {
                     readingData = false;
                     if (readingError) {
                         throw new IllegalArgumentException("Error encountered when running query: " + Joiner.on('\n').join(errorLines));
@@ -140,12 +140,21 @@ public class QueryServletTestUtils extends BasicTest {
     static class Options {
         public Long subQueryTermLimit = -1L;
         public QueryCache queryCache = new NoOpQueryCache();
+        public ImsClientInterface imsClient;
 
         Options() {
         }
 
+        Options(ImsClientInterface imsClient) {
+            this.imsClient = imsClient;
+        }
+
         public static Options create() {
             return new Options();
+        }
+
+        public static Options create(ImsClientInterface imsClient) {
+            return new Options(imsClient);
         }
 
         public Long getSubQueryTermLimit() {
@@ -171,21 +180,29 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL1(shards, expected, query, Options.create());
     }
 
-    private static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
+        testIQL1(shards, expected, query, Options.create(imsClient));
+    }
+
+    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
-
     }
+
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
         testIQL2(shards, expected, query, Options.create());
+    }
+
+
+    static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
+        testIQL2(shards, expected, query, Options.create(imsClient));
     }
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
     }
-
 
     static void runIQL2(List<Shard> shards, String query) throws Exception {
         final Options options = Options.create();
@@ -208,11 +225,16 @@ public class QueryServletTestUtils extends BasicTest {
         testAll(shards, expected, query, Options.create());
     }
 
+    static void testAll(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
+        testAll(shards, expected, query, Options.create(imsClient));
+    }
+
     static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
+
     }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {

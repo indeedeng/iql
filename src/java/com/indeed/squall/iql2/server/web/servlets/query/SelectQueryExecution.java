@@ -28,7 +28,6 @@ import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
-import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.squall.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
 import com.indeed.squall.iql2.language.AggregateFilter;
@@ -557,7 +556,7 @@ public class SelectQueryExecution {
                 return (integer == null) ? integer : integer + 1;
             }
         });
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit, query.useLegacy);
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {

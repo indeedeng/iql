@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -13,8 +14,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
-import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
+import com.indeed.squall.iql2.language.DatasetDescriptor;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
@@ -124,21 +124,6 @@ public class QueryServlet {
         return upperCased;
     }
 
-    private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        // TODO: Don't make a copy per use
-        return upperCaseMapToSet(metadataCache.getKeywordAnalyzerWhitelist());
-    }
-
-    private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        // TODO: Don't make a copy per use
-        return upperCaseMapToSet(metadataCache.getDatasetToIntFields());
-    }
-
-    private Map<String, DatasetDimensions> getDimensions() {
-        // TODO: Uppercase it?
-        return metadataCache.getDimensions();
-    }
-
     @RequestMapping("query")
     public void query(
             final HttpServletRequest request,
@@ -197,7 +182,9 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "application/json");
                 }
                 final String selectQuery = query.trim().substring("explain ".length());
-                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), selectQuery, version, isJSON, clock);
+                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient,
+                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDimensions(),
+                        response.getWriter(), selectQuery, version, isJSON, clock);
                 explainQueryExecution.processExplain();
             }  else {
                 final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
@@ -214,7 +201,10 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
 
-                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
+                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                        queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient,
+                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), metadataCache.getUppercasedDimensions(),
+                        response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect();
                 queryStartTimestamp = selectQueryExecution.getQueryStartTimestamp();
             }
@@ -335,7 +325,10 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(imhotepClient.getDatasetShardInfo(dataset), getDimensions().get(dataset).fields(), getDatasetToIntFields().get(dataset));
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(
+                imhotepClient.getDatasetShardInfo(dataset),
+                Optional.fromNullable(metadataCache.getUppercasedDimensions().get(dataset)),
+                metadataCache.getUppercasedDatasetToIntFields().get(dataset));
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
         } else {

@@ -23,7 +23,6 @@ import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
-import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import dk.brics.automaton.Automaton;
@@ -46,7 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Controller
 public class EventRegexServlet {
@@ -374,17 +372,6 @@ public class EventRegexServlet {
         }
     }
 
-
-    private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(metadataCache.getKeywordAnalyzerWhitelist());
-    }
-
-    private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(metadataCache.getDatasetToIntFields());
-    }
-
     private DocFilter parseDocFilter(String filterString) throws IOException {
         JQLParser.JqlDocFilterContext docFilterContext = Queries.runParser(filterString, new Function<JQLParser, JQLParser.JqlDocFilterContext>() {
             public JQLParser.JqlDocFilterContext apply(JQLParser input) {
@@ -396,7 +383,7 @@ public class EventRegexServlet {
             public void accept(String s) {
             }
         };
-        return DocFilters.parseJQLDocFilter(docFilterContext, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), null, noOpWarn, new DefaultWallClock());
+        return DocFilters.parseJQLDocFilter(docFilterContext, metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), null, noOpWarn, new DefaultWallClock());
     }
 
     public static class EventDescription {
