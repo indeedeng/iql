@@ -435,6 +435,18 @@ public class DocMetrics {
             }
 
             @Override
+            public void enterDocMetricAtomIntTermCount(JQLParser.DocMetricAtomIntTermCountContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.IntTermCount(scopedField.field)));
+            }
+
+            @Override
+            public void enterDocMetricAtomStrTermCount(JQLParser.DocMetricAtomStrTermCountContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.StrTermCount(scopedField.field)));
+            }
+
+            @Override
             public void enterDocMetricAtomRegex(JQLParser.DocMetricAtomRegexContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 // TODO: How to handle regex parsing? Same as Java?

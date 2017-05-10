@@ -3,12 +3,12 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
+import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
-import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
-import com.indeed.imhotep.protobuf.QueryMessage;
 import org.apache.commons.codec.binary.Base64;
 
 import java.util.ArrayList;
@@ -48,6 +48,8 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(Constant constant) throws E;
         T visit(HasIntField hasIntField) throws E;
         T visit(HasStringField hasStringField) throws E;
+        T visit(IntTermCount intTermCount) throws E;
+        T visit(StrTermCount stringTermCount) throws E;
         T visit(HasInt hasInt) throws E;
         T visit(HasString hasString) throws E;
         T visit(IfThenElse ifThenElse) throws E;
@@ -1409,4 +1411,114 @@ public abstract class DocMetric extends AbstractPositional {
                     "query='" + query + '}';
         }
     }
+
+    public static class IntTermCount extends DocMetric {
+        public final Positioned<String> field;
+
+        public IntTermCount(final Positioned<String> field) {
+            this.field = field;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(final String dataset) {
+            return Collections.singletonList("inttermcount " + field.unwrap());
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
+            if(!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            IntTermCount that = (IntTermCount) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "IntTermCount{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+    public static class StrTermCount extends DocMetric {
+        public final Positioned<String> field;
+
+        public StrTermCount(final Positioned<String> field) {
+            this.field = field;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(final String dataset) {
+            return Collections.singletonList("strtermcount " + field.unwrap());
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
+            if(!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            StrTermCount that = (StrTermCount) o;
+            return Objects.equals(field, that.field);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field);
+        }
+
+        @Override
+        public String toString() {
+            return "StrTermCount{" +
+                    "field='" + field + '\'' +
+                    '}';
+        }
+    }
+
+
 }
