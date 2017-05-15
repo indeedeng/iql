@@ -360,8 +360,15 @@ public class DocMetrics {
                 accept(resultMetric);
             }
 
+            @Override
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
                 accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetToKeywordAnalyzerFields, datasetToIntFields));
+            }
+
+            @Override
+            public void enterDocMetricFilter(JQLParser.DocMetricFilterContext ctx) {
+                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock);
+                accept(new DocMetric.IfThenElse(filter, new DocMetric.Constant(1), new DocMetric.Constant(0)));
             }
         });
 
