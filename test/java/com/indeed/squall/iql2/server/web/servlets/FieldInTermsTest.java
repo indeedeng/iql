@@ -51,4 +51,12 @@ public class FieldInTermsTest extends BasicTest {
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)");
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()");
     }
+
+    @Test
+    public void testStreamingSubset() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("a", "4"));
+        expected.add(ImmutableList.of("b", "2"));
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
+    }
 }
