@@ -82,6 +82,7 @@ public class PrettyPrint {
 
     private String getText(Positional positional) {
         final StringBuilder sb = new StringBuilder();
+        appendCommentBeforeText(positional, sb);
         sb.append(inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex)));
         appendCommentAfterText(positional, sb);
         return sb.toString();
