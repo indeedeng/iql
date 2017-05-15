@@ -52,6 +52,7 @@ public class GroupBys {
             final Map<String, Set<String>> datasetToIntFields,
             final Consumer<String> warn, WallClock clock
     ) {
+        // TODO: Add Positional copy
         final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
         if (ctx.filter != null) {
             return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));

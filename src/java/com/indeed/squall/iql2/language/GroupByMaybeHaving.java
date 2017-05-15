@@ -6,6 +6,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 
 import java.util.Objects;
 
+// TODO: Make Positional
 public class GroupByMaybeHaving {
     public final GroupBy groupBy;
     public final Optional<AggregateFilter> filter;
