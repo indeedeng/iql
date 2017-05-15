@@ -399,6 +399,9 @@ public abstract class GroupBy extends AbstractPositional {
             if (intTerms.size() > 0 && stringTerms.size() > 0) {
                 throw new IllegalArgumentException("Cannot have both int terms and string terms.");
             }
+            if (intTerms.size() == 0 && stringTerms.size() == 0) {
+                throw new IllegalArgumentException("Cannot have empty field in Set");
+            }
         }
 
         @Override

@@ -5,16 +5,20 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.query.GroupBy;
+import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 
 public class OptimizeLast {
@@ -48,6 +52,8 @@ public class OptimizeLast {
                             explodeAndRegroup.limit,
                             queryLimit,
                             explodeAndRegroup.metric,
+                            Optional.<Set<String>>absent(),
+                            Optional.<Set<Long>>absent(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings,
                             explodeAndRegroup.forceNonStreaming || isReordered
@@ -58,14 +64,30 @@ public class OptimizeLast {
                 final ExecutionStep.ExplodeFieldIn explodeFieldIn = (ExecutionStep.ExplodeFieldIn) penultimate;
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
                 if (!explodeFieldIn.withDefault) {
+                    final Optional<Set<Long>> intTermSubset;
+                    if (!explodeFieldIn.intTerms.isEmpty()) {
+                        intTermSubset = Optional.<Set<Long>>of(new LongAVLTreeSet(explodeFieldIn.intTerms));
+                    } else {
+                        intTermSubset = Optional.absent();
+                    }
+
+                    final Optional<Set<String>> stringTermSubset;
+                    if (!explodeFieldIn.stringTerms.isEmpty()) {
+                        stringTermSubset = Optional.<Set<String>>of(Sets.newTreeSet(explodeFieldIn.stringTerms));
+                    } else {
+                        stringTermSubset = Optional.absent();
+                    }
+
                     final List<ExecutionStep> newSteps = new ArrayList<>();
                     newSteps.addAll(steps.subList(0, steps.size() - 2));
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
-                            Optional.of(explodeFieldIn.termsAsFilter()),
+                            Optional.<AggregateFilter>absent(),
                             Optional.<Long>absent(),
                             queryLimit,
                             Optional.<AggregateMetric>absent(),
+                            stringTermSubset,
+                            intTermSubset,
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings,
                             false
