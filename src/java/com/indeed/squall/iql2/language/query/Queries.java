@@ -108,10 +108,6 @@ public class Queries {
         return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
     }
 
-    public static String getText(ParserRuleContext context) {
-        return getText(context.start.getInputStream(), context);
-    }
-
     private static String getText(CharStream inputStream, ParserRuleContext context) {
         if (context == null) {
             return "";
