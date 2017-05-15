@@ -53,6 +53,7 @@ public abstract class AbstractPositional implements Positional {
     public void copyPosition(ParserRuleContext parserRuleContext) {
         this.setPosition(Position.from(parserRuleContext.start), Position.from(parserRuleContext.stop));
 
+        // Find the closest ancestor that has a sibling to the right
         if (parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while (cur.getParent() != null && cur.getParent().getChildCount() != 0 && cur.getParent().children.indexOf(cur) == cur.getParent().getChildCount() - 1) {
@@ -77,6 +78,7 @@ public abstract class AbstractPositional implements Positional {
             }
         }
 
+        // Find the closest ancestor that has a sibling to the left
         if (parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while (cur.getParent() != null && cur.getParent().getChildCount() != 0 && cur.getParent().children.indexOf(cur) == 0) {
