@@ -63,8 +63,7 @@ public abstract class AbstractPositional implements Positional {
                 final int thisStop = parserRuleContext.stop.getStopIndex();
                 final int nextStart;
                 if (nextChild instanceof ParserRuleContext) {
-                    final ParserRuleContext nextChild1 = (ParserRuleContext) nextChild;
-                    nextStart = nextChild1.start.getStartIndex();
+                    nextStart = ((ParserRuleContext) nextChild).start.getStartIndex();
                 } else if (nextChild instanceof TerminalNode) {
                     nextStart = ((TerminalNode) nextChild).getSymbol().getStartIndex();
                 } else {
@@ -88,10 +87,9 @@ public abstract class AbstractPositional implements Positional {
                 final int thisStart = parserRuleContext.start.getStartIndex();
                 final int prevStop;
                 if (prevChild instanceof ParserRuleContext) {
-                    final ParserRuleContext prevChild1 = (ParserRuleContext) prevChild;
-                    prevStop = prevChild1.stop.getStopIndex();
-                } else if (prevChild instanceof TerminalNodeImpl) {
-                    prevStop = ((TerminalNodeImpl) prevChild).getSymbol().getStopIndex();
+                    prevStop = ((ParserRuleContext) prevChild).stop.getStopIndex();
+                } else if (prevChild instanceof TerminalNode) {
+                    prevStop = ((TerminalNode) prevChild).getSymbol().getStopIndex();
                 } else {
                     prevStop = -1;
                 }
