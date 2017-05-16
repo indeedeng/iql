@@ -74,6 +74,11 @@ public class Queries {
                 for (final Map.Entry<Positioned<String>, Positioned<String>> entry : dataset.fieldAliases.entrySet()) {
                     unPositionedFieldAliases.put(entry.getKey().unwrap(), entry.getValue().unwrap());
                 }
+                if (dataset.getDimensionAlias().isPresent()) {
+                    for (Map.Entry<String, String> entry : dataset.getDimensionAlias().get().entrySet()) {
+                        unPositionedFieldAliases.put(entry.getKey(), entry.getValue());
+                    }
+                }
                 m.put("fieldAliases", objectMapper.writeValueAsString(unPositionedFieldAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...

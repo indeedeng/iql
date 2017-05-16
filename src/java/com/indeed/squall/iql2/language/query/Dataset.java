@@ -35,6 +35,7 @@ public class Dataset extends AbstractPositional {
     public final Positioned<DateTime> endExclusive;
     public final Optional<Positioned<String>> alias;
     public final ImmutableMap<Positioned<String>, Positioned<String>> fieldAliases;
+    private Optional<Map<String, String>> dimensionAlias;
 
     public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive, Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
         this.dataset = dataset;
@@ -42,6 +43,7 @@ public class Dataset extends AbstractPositional {
         this.endExclusive = endExclusive;
         this.alias = alias;
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
+        dimensionAlias = Optional.absent();
     }
 
     public Positioned<String> getDisplayName() {
@@ -189,6 +191,15 @@ public class Dataset extends AbstractPositional {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
         }
         return null;
+    }
+
+
+    public void setDimensionAlias(Map<String, String> dimensionAlias) {
+        this.dimensionAlias = Optional.of(dimensionAlias);
+    }
+
+    public Optional<Map<String, String>> getDimensionAlias() {
+        return dimensionAlias;
     }
 
     @Override
