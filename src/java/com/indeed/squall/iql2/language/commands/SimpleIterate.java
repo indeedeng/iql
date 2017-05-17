@@ -1,14 +1,12 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,15 +15,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class SimpleIterate implements Command, JsonSerializable {
-    public final String field;
+public class SimpleIterate extends RequiresFTGSCommand {
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     private final List<Optional<String>> formatStrings;
     public final boolean streamResult;
 
     public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult) {
-        this.field = field;
+        super(field);
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
@@ -58,12 +55,7 @@ public class SimpleIterate implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : datasetsFields.datasets()) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
-        }
-
+        super.validate(datasetsFields, validator);
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {

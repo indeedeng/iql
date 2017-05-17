@@ -11,7 +11,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -357,6 +356,28 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Power(f.apply(m1), f.apply(m2));
+        }
+    }
+
+    public abstract static class RequiresFTGSMetric extends AggregateMetric implements JsonSerializable {
+        @Override
+        public boolean requiresFTGS() {
+            return true;
+        }
+
+        @Override
+        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+            throw new UnsupportedOperationException("Cannot serialize RequiresFTGSMetric -- it should be removed by ExtractPrecomputed!");
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            throw new UnsupportedOperationException("Cannot serialize RequiresFTGSMetric -- should be removed by ExtractPrecomputed!");
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
         }
     }
 
@@ -1027,18 +1048,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Percentile extends AggregateMetric implements JsonSerializable {
+    public static class Percentile extends RequiresFTGSMetric {
         public final Positioned<String> field;
         public final double percentile;
 
         public Percentile(Positioned<String> field, double percentile) {
             this.field = field;
             this.percentile = percentile;
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1057,27 +1073,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            for (final String dataset : scope) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw Percentile metrics -- ExtractPrecomputed should remove them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1168,7 +1165,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Distinct extends AggregateMetric implements JsonSerializable {
+    public static class Distinct extends RequiresFTGSMetric {
         public final Positioned<String> field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
@@ -1177,11 +1174,6 @@ public abstract class AggregateMetric extends AbstractPositional {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1208,32 +1200,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
-                }
-            }
-
-            if (filter.isPresent()) {
-                filter.get().validate(scope, datasetsFields, validator);
-            }
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
         }
 
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw Distinct metrics -- ExtractPrecomputed should remove them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
 
         @Override
         public boolean equals(Object o) {
@@ -1453,18 +1423,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class SumAcross extends AggregateMetric implements JsonSerializable {
+    public static class SumAcross extends RequiresFTGSMetric {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
 
         public SumAcross(GroupBy groupBy, AggregateMetric metric) {
             this.groupBy = groupBy;
             this.metric = metric;
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1483,24 +1448,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            // TODO: Validate groupBy somehow?
-            metric.validate(scope, datasetsFields, validator);
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize SumAcross -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1606,7 +1555,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class FieldMin extends AggregateMetric implements JsonSerializable {
+    public static class FieldMin extends RequiresFTGSMetric {
         public final Positioned<String> field;
 
         public FieldMin(Positioned<String> field) {
@@ -1616,11 +1565,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1634,27 +1578,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize FieldMin -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1678,16 +1603,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class FieldMax extends AggregateMetric implements JsonSerializable {
+    public static class FieldMax extends RequiresFTGSMetric {
         public final Positioned<String> field;
 
         public FieldMax(Positioned<String> field) {
             this.field = field;
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1706,27 +1626,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize FieldMax -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1912,7 +1813,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Bootstrap extends AggregateMetric implements JsonSerializable {
+    public static class Bootstrap extends RequiresFTGSMetric {
         public final Positioned<String> field;
         public final Optional<AggregateFilter> filter;
         public final String seed;
@@ -1927,11 +1828,6 @@ public abstract class AggregateMetric extends AbstractPositional {
             this.metric = metric;
             this.numBootstraps = numBootstraps;
             this.varargs = varargs;
-        }
-
-        @Override
-        public boolean requiresFTGS() {
-            return true;
         }
 
         @Override
@@ -1956,28 +1852,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            metric.validate(scope, datasetsFields, validator);
-            for (final String dataset : scope) {
-                if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
-        @Override
         public boolean isOrdered() {
             return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize Bootstrap -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override

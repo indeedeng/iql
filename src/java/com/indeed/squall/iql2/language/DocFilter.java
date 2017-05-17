@@ -14,7 +14,6 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
-import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -86,6 +85,19 @@ public abstract class DocFilter extends AbstractPositional {
             this.term = term;
             this.equal = equal;
         }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (term.isIntTerm) {
+                if (!datasetsFields.getIntAndAliasFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
+                }
+            } else {
+                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
+                }
+            }
+        }
     }
 
     public static class FieldIs extends FieldTermEqual {
@@ -153,19 +165,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
         }
 
         private List<String> tokenize(String dataset) {
@@ -251,19 +250,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
         }
 
         @Override
@@ -395,7 +381,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.getIntAndAliasFields(dataset).contains(field.unwrap())) {
                 validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
             }
         }

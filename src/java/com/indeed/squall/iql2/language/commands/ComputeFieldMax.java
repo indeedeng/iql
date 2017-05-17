@@ -1,34 +1,17 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
-public class ComputeFieldMax implements Command, JsonSerializable {
-    private final Set<String> scope;
-    private final String field;
-
+public class ComputeFieldMax extends RequiresFTGSCommand {
     public ComputeFieldMax(Set<String> scope, String field) {
-        this.scope = scope;
-        this.field = field;
-    }
-
-    @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : scope) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
-        }
+        super(scope, field);
     }
 
     @Override

@@ -80,8 +80,8 @@ public class ValidationUtil {
                 }
             }
 
-            final ImmutableSet<String> expectedIntFields = subset.getIntFields(dataset);
-            final ImmutableSet<String> actualIntFields = superset.getIntFields(dataset);
+            final ImmutableSet<String> expectedIntFields = subset.getIntAndAliasFields(dataset);
+            final ImmutableSet<String> actualIntFields = superset.getIntAndAliasFields(dataset);
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
                     if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {

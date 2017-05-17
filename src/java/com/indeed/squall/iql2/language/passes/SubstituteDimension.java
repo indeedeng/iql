@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -13,20 +14,21 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SubstituteDimension {
     public static Query substitute(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
         final Map<String, String> datasetAliasToOrigin = query.nameToIndex();
         addDimensionAliasToDatasets(query, dimensionsMetrics);
+        final Set<String> datasets = query.datasets.stream().map(d -> d.dataset.unwrap()).collect(Collectors.toSet());
         return query.transform(
                 Functions.identity(),
                 substituteDimensionAggregateMetric(dimensionsMetrics, datasetAliasToOrigin),
-                substituteDocMetric(field -> getAndValidateDatasetDimension(query.datasets, dimensionsMetrics, field)),
+                substituteDocMetric(field -> validateDimensionForDatasetsAndGetMetric(datasets, dimensionsMetrics, field)),
                 Functions.identity(),
-                substituteDocFilter(field -> getAndValidateDatasetDimension(query.datasets, dimensionsMetrics, field)));
+                substituteDocFilter(field -> validateDimensionForDatasetsAndGetMetric(datasets, dimensionsMetrics, field)));
     }
 
     private static void addDimensionAliasToDatasets(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
@@ -38,7 +40,8 @@ public class SubstituteDimension {
         }
     }
 
-    private static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(final Map<String, DatasetDimensions> dimensionsMetrics, final Map<String, String> datasetAliasToOrigin) {
+    private static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(
+            final Map<String, DatasetDimensions> dimensionsMetrics, final Map<String, String> datasetAliasToOrigin) {
         return new Function<AggregateMetric, AggregateMetric>() {
             @Override
             public AggregateMetric apply(final AggregateMetric input) {
@@ -54,15 +57,21 @@ public class SubstituteDimension {
                                 return applyDatasetToExpandedMetric(metricDimension.get().metric, pushStats.dataset);
                             }
                         } else if (docMetric instanceof DocMetric.HasInt) {
-                            final Optional<Dimension> metricDimension = dimensionMetrics.getNonAliasDimension(((DocMetric.HasInt) docMetric).field.unwrap());
-                            if (metricDimension.isPresent()) {
+                            final Optional<Dimension> dimension = dimensionMetrics.getNonAliasDimension(((DocMetric.HasInt) docMetric).field.unwrap());
+                            if (dimension.isPresent()) {
+                                final DocMetric dimensionMetric = getDocMetricOrThrow(dimension.get());
                                 return new AggregateMetric.DocStatsPushes(
                                         pushStats.dataset,
-                                        new DocMetric.PushableDocMetric(substituteHasInt(((DocMetric.HasInt) docMetric), metricDimension.get())));
+                                        new DocMetric.PushableDocMetric(
+                                                new DocMetric.MetricEqual(dimensionMetric, new DocMetric.Constant(((DocMetric.HasInt) docMetric).term))));
                             }
                         } else {
+                            final Function<String, Optional<DocMetric>> getMetricDimensionFunc =
+                                    field -> validateDimensionForDatasetsAndGetMetric(ImmutableSet.of(dataset), dimensionsMetrics, field);
                             return new AggregateMetric.DocStatsPushes(pushStats.dataset,
-                                    new DocMetric.PushableDocMetric(docMetric.transform(substituteDocMetric(dimensionMetrics::getNonAliasDimension), substituteDocFilter(dimensionMetrics::getNonAliasDimension))));
+                                    new DocMetric.PushableDocMetric(docMetric.transform(
+                                            substituteDocMetric(getMetricDimensionFunc),
+                                            substituteDocFilter(getMetricDimensionFunc))));
                         }
                     }
                 }
@@ -71,7 +80,7 @@ public class SubstituteDimension {
         };
     }
 
-    private static Function<DocFilter, DocFilter> substituteDocFilter(final Function<String, Optional<Dimension>> getMetricDimensionFunc) {
+    private static Function<DocFilter, DocFilter> substituteDocFilter(final Function<String, Optional<DocMetric>> getMetricDimensionFunc) {
         return new Function<DocFilter, DocFilter>() {
             @Nullable
             @Override
@@ -79,15 +88,23 @@ public class SubstituteDimension {
                 if (input instanceof DocFilter.FieldTermEqual) {
                     final DocFilter.FieldTermEqual fieldTermEqual = (DocFilter.FieldTermEqual) input;
                     if (fieldTermEqual.term.isIntTerm) {
-                        final Optional<Dimension> metricDimension = getMetricDimensionFunc.apply(fieldTermEqual.field.unwrap());
+                        final Optional<DocMetric> metricDimension = getMetricDimensionFunc.apply(fieldTermEqual.field.unwrap());
                         if (metricDimension.isPresent()) {
-                            final DocMetric dimensionDocMetric = getNonAliasDimensionImplicitDocMetricOrThrow(metricDimension.get());
+                            final DocMetric dimensionMetric = metricDimension.get();
                             if (fieldTermEqual.equal) {
-                                return new DocFilter.MetricEqual(dimensionDocMetric, new DocMetric.Constant(fieldTermEqual.term.intTerm));
+                                return new DocFilter.MetricEqual(dimensionMetric, new DocMetric.Constant(fieldTermEqual.term.intTerm));
                             } else {
-                                return new DocFilter.MetricNotEqual(dimensionDocMetric, new DocMetric.Constant(fieldTermEqual.term.intTerm));
+                                return new DocFilter.MetricNotEqual(dimensionMetric, new DocMetric.Constant(fieldTermEqual.term.intTerm));
                             }
                         }
+                    }
+                } else if (input instanceof DocFilter.Between) {
+                    final DocFilter.Between between = (DocFilter.Between) input;
+                    final Optional<DocMetric> dimensionMetric = getMetricDimensionFunc.apply(between.field.unwrap());
+                    if (dimensionMetric.isPresent()) {
+                        return new DocFilter.And(
+                                new DocFilter.MetricGte(dimensionMetric.get(), new DocMetric.Constant(between.lowerBound)),
+                                new DocFilter.MetricLt(dimensionMetric.get(), new DocMetric.Constant(between.upperBound)));
                     }
                 }
                 return input;
@@ -95,47 +112,23 @@ public class SubstituteDimension {
         };
     }
 
-    private static Function<DocMetric, DocMetric> substituteDocMetric(final Function<String, Optional<Dimension>> getMetricDimensionFunc) {
+    private static Function<DocMetric, DocMetric> substituteDocMetric(final Function<String, Optional<DocMetric>> getMetricDimensionFunc) {
         return new Function<DocMetric, DocMetric>() {
             @Nullable
             @Override
             public DocMetric apply(@Nullable final DocMetric input) {
                 if (input instanceof DocMetric.Field) {
-                    final Optional<Dimension> metricDimension = getMetricDimensionFunc.apply(((DocMetric.Field) input).field);
-                    if (metricDimension.isPresent()) {
-                        return getNonAliasDimensionImplicitDocMetricOrThrow(metricDimension.get());
+                    final Optional<DocMetric> dimensionMetric = getMetricDimensionFunc.apply(((DocMetric.Field) input).field);
+                    if (dimensionMetric.isPresent()) {
+                        return dimensionMetric.get();
                     }
                 } else if (input instanceof DocMetric.HasInt) {
-                    final Optional<Dimension> metricDimension = getMetricDimensionFunc.apply(((DocMetric.HasInt) input).field.unwrap());
-                    if (metricDimension.isPresent()) {
-                        return substituteHasInt((DocMetric.HasInt) input, metricDimension.get());
-                    }
+                    final Optional<DocMetric> dimensionMetric = getMetricDimensionFunc.apply(((DocMetric.HasInt) input).field.unwrap());
+                    return new DocMetric.MetricEqual(dimensionMetric.get(), new DocMetric.Constant(((DocMetric.HasInt) input).term));
                 }
                 return input;
             }
         };
-    }
-
-    private static DocMetric substituteHasInt(final DocMetric.HasInt docMetric, final Dimension dimension) {
-        if (!(dimension.metric instanceof AggregateMetric.ImplicitDocStats)) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot use aggregate dimensions in per-document context, dimension %s: %s",
-                            dimension.name, dimension.expression));
-        } else {
-            return new DocMetric.MetricEqual(
-                    ((AggregateMetric.ImplicitDocStats) dimension.metric).docMetric,
-                    new DocMetric.Constant(docMetric.term));
-        }
-    }
-
-    private static DocMetric getNonAliasDimensionImplicitDocMetricOrThrow(final Dimension dimension) {
-        if (!(dimension.metric instanceof AggregateMetric.ImplicitDocStats)) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot use aggregate dimensions in per-document context, dimension %s: %s",
-                            dimension.name, dimension.expression));
-        } else {
-            return ((AggregateMetric.ImplicitDocStats) dimension.metric).docMetric;
-        }
     }
 
     private static AggregateMetric applyDatasetToExpandedMetric(final AggregateMetric expandedMetric, final String dataset) {
@@ -159,44 +152,64 @@ public class SubstituteDimension {
         }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
     }
 
-    // this is to ensure that the dimension should either be existed in all datasets or none
-    private static Optional<Dimension> getAndValidateDatasetDimension(
-            final List<Dataset> datasetInfos, final Map<String, DatasetDimensions> dimensionsMetrics, final String field) {
-        final List<String> datasets = datasetInfos.stream().map(d -> d.dataset.unwrap()).collect(Collectors.toList());
-        Optional<Dimension> result = null;
-        for (final Dataset datasetInfo : datasetInfos) {
-            final String dataset = datasetInfo.dataset.unwrap();
+    // the returned dimension should be:
+    // 1. the dimension should either be existed in all datasets or none
+    // 2. the metric of dimension should be DocMetric
+    private static Optional<DocMetric> validateDimensionForDatasetsAndGetMetric(
+            final Set<String> datasets, final Map<String, DatasetDimensions> dimensionsMetrics, final String field) {
+        Optional<Dimension> dimensionOptional = null;
+        for (final String dataset : datasets) {
             final DatasetDimensions datasetDimensions = dimensionsMetrics.get(dataset);
             if (datasetDimensions == null) {
-                if (result == null) {
-                    result = Optional.absent();
-                } else if (result.equals(Optional.absent())) {
+                if (dimensionOptional == null) {
+                    dimensionOptional = Optional.absent();
+                } else if (!dimensionOptional.equals(Optional.absent())) {
                     throw new IllegalArgumentException(
-                            String.format("metric %s not found in all datasets: %s", field, Joiner.on(",").join(datasets)));
+                            String.format("metric %s not found in dataset: %s", field, dataset));
                 }
             } else {
                 final Optional<Dimension> dimension = datasetDimensions.getNonAliasDimension(field);
                 if (!dimension.isPresent()) {
-                    if (result == null) {
-                        result = Optional.absent();
-                    } else if (!result.equals(Optional.absent())) {
+                    if (dimensionOptional == null) {
+                        dimensionOptional = Optional.absent();
+                    } else if (!dimensionOptional.equals(Optional.absent())) {
                         throw new IllegalArgumentException(
                                 String.format("metric %s not found in dataset: %s", field, dataset));
                     }
                 } else {
-                    if (result == null) {
-                        result = dimension;
-                    } else if (result.equals(Optional.absent())) {
+                    if (dimensionOptional == null) {
+                        dimensionOptional = dimension;
+                    } else if (dimensionOptional.equals(Optional.absent())) {
                         throw new IllegalArgumentException(
                                 String.format("metric %s not found in all datasets: %s", field, Joiner.on(",").join(datasets)));
-                    } else if (!result.equals(dimension)) {
+                    } else if (!dimensionOptional.equals(dimension)) {
                         throw new IllegalArgumentException(
                                 String.format("definition of metric %s is not the same in all datasets: %s != %s",
-                                        field, result.get().expression, dimension.get().expression));
+                                        field, dimensionOptional.get().expression, dimension.get().expression));
                     }
                 }
             }
         }
-        return result;
+
+        if (dimensionOptional.isPresent()) {
+            if (!(dimensionOptional.get().metric instanceof AggregateMetric.ImplicitDocStats)) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot use aggregate dimensions in per-document context, dimension %s: %s",
+                                dimensionOptional.get().name, dimensionOptional.get().expression));
+            }
+            return Optional.of(((AggregateMetric.ImplicitDocStats) dimensionOptional.get().metric).docMetric);
+        } else {
+            return Optional.absent();
+        }
+    }
+
+    private static DocMetric getDocMetricOrThrow(final Dimension dimension) {
+        if (!(dimension.metric instanceof AggregateMetric.ImplicitDocStats)) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot use compound dimensions in per-document context, dimension %s: %s",
+                            dimension.name, dimension.expression));
+        } else {
+            return ((AggregateMetric.ImplicitDocStats) dimension.metric).docMetric;
+        }
     }
 }
