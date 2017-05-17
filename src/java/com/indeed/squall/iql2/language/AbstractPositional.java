@@ -4,7 +4,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
 public abstract class AbstractPositional implements Positional {
     // TODO: Change this to be an Interval.
@@ -53,7 +52,7 @@ public abstract class AbstractPositional implements Positional {
     public void copyPosition(ParserRuleContext parserRuleContext) {
         this.setPosition(Position.from(parserRuleContext.start), Position.from(parserRuleContext.stop));
 
-        // Find the closest ancestor that has a sibling to the right
+        // Find the closest node to the right. May not share a direct parent.
         if (parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while (cur.getParent() != null && cur.getParent().getChildCount() != 0 && cur.getParent().children.indexOf(cur) == cur.getParent().getChildCount() - 1) {
@@ -78,7 +77,7 @@ public abstract class AbstractPositional implements Positional {
             }
         }
 
-        // Find the closest ancestor that has a sibling to the left
+        // Find the closest node to the left. May not share a direct parent.
         if (parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while (cur.getParent() != null && cur.getParent().getChildCount() != 0 && cur.getParent().children.indexOf(cur) == 0) {
