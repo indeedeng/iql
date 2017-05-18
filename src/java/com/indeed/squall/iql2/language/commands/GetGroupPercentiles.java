@@ -1,19 +1,26 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.indeed.squall.iql2.language.Validator;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 
-public class GetGroupPercentiles extends RequiresFTGSCommand {
+public class GetGroupPercentiles implements Command, JsonSerializable {
+    public final Set<String> scope;
+    public final String field;
     public final double[] percentiles;
 
     public GetGroupPercentiles(Set<String> scope, String field, double[] percentiles) {
-        super(scope, field);
+        this.scope = scope;
+        this.field = field;
         this.percentiles = percentiles;
     }
 
@@ -30,6 +37,11 @@ public class GetGroupPercentiles extends RequiresFTGSCommand {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
     }
 
     @Override

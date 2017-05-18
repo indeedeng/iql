@@ -386,7 +386,7 @@ public class ExtractPrecomputed {
         public final Query query;
         public final Map<ComputationType, Map<ComputationInfo, String>> computedNames;
 
-        public Extracted(Query query, Map<ComputationType, Map<ComputationInfo, String>> computedNames) {
+        public Extracted(final Query query, final Map<ComputationType, Map<ComputationInfo, String>> computedNames) {
             this.query = query;
             this.computedNames = computedNames;
         }

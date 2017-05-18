@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Objects;
@@ -9,12 +10,15 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class ComputeBootstrap extends RequiresFTGSCommand {
+public class ComputeBootstrap implements Command, JsonSerializable {
+    public final Set<String> scope;
+    public final String field;
     private final Optional<AggregateFilter> filter;
     private final String seed;
     private final AggregateMetric metric;
@@ -22,7 +26,8 @@ public class ComputeBootstrap extends RequiresFTGSCommand {
     private final List<String> varargs;
 
     public ComputeBootstrap(Set<String> scope, String field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
-        super(scope, field);
+        this.scope = scope;
+        this.field = field;
         this.filter = filter;
         this.seed = seed;
         this.metric = metric;
@@ -32,7 +37,7 @@ public class ComputeBootstrap extends RequiresFTGSCommand {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        super.validate(datasetsFields, validator);
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
         metric.validate(scope, datasetsFields, validator);
         if (filter.isPresent()) {
             filter.get().validate(scope, datasetsFields, validator);

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -23,12 +23,8 @@ public class ComputeFieldMin implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : scope) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
-        }
+    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.indeed.squall.iql2.language.util;
 
-
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
@@ -25,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 public class ValidationUtil {
     public static DatasetsFields findFieldsUsed(Map<String, Query> perDatasetQuery) {
@@ -76,7 +76,7 @@ public class ValidationUtil {
             final ImmutableSet<String> actualStringFields = superset.getStringFields(dataset);
             for (final String field : expectedStringFields) {
                 if (!actualStringFields.contains(field)) {
-                    validator.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in ["  + source + "]");
+                    validator.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
                 }
             }
 
@@ -85,7 +85,7 @@ public class ValidationUtil {
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
                     if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {
-                        validator.error("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in ["  + source + "]");
+                        validator.error("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in [" + source + "]");
                     }
                 }
             }
@@ -115,11 +115,40 @@ public class ValidationUtil {
     public static void validateExistenceAndSameFieldType(String dataset, String field1, String field2, DatasetsFields datasetsFields, Validator validator) {
         final FieldType type1 = getFieldType(datasetsFields, dataset, field1);
         final FieldType type2 = getFieldType(datasetsFields, dataset, field2);
-        if (type1 == FieldType.NULL || type2 == FieldType.NULL || type1 != type2 ) {
+        if (type1 == FieldType.NULL || type2 == FieldType.NULL || type1 != type2) {
             validator.error(String.format("incompatible fields found in fieldequal: [%s -> %s], [%s -> %s]", field1, type1, field2, type2));
         }
     }
 
+    public static void validateIntField(
+            final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
+        validateField(scope, field, datasetsFields, validator, datasetsFields::getIntAndAliasFields, context);
+    }
+
+    public static void validateStringField(
+            final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
+        validateField(scope, field, datasetsFields, validator, datasetsFields::getStringFields, context);
+    }
+
+
+    public static void validateField(
+            final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
+        validateField(scope, field, datasetsFields, validator, dataset -> datasetsFields.getAllFields(dataset, DatasetsFields.MetricFieldsType.ALIAS), context);
+    }
+
+    private static void validateField(
+            final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator,
+            final Function<String, Set<String>> getFieldsFunc, final Object context) {
+        for (final String dataset : scope) {
+            if (datasetsFields.getMetricFields(dataset, DatasetsFields.MetricFieldsType.NON_ALIAS).contains(field)) {
+                validator.error(ErrorMessages.nonAliasMetricInFTGSCommand(field, datasetsFields.getMetricExpression(dataset, field).get(), context));
+                return;
+            }
+            if (!getFieldsFunc.apply(dataset).contains(field)) {
+                validator.error(ErrorMessages.missingField(dataset, field,context));
+            }
+        }
+    }
 
     private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {
         final boolean isIntField = datasetsFields.getIntFields(dataset).contains(field);
@@ -132,6 +161,7 @@ public class ValidationUtil {
             return FieldType.NULL;
         }
     }
+
     private enum FieldType {
         INT, STR, NULL
     }
@@ -205,8 +235,8 @@ public class ValidationUtil {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
             throw new IllegalArgumentException(
                     "The provided regex filter [" + regex + "] failed to parse."
-                    + "\nError was: " + e.getMessage()
-                    + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
+                            + "\nError was: " + e.getMessage()
+                            + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
             );
         }
     }

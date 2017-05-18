@@ -31,7 +31,7 @@ public class DatasetsFields {
             return datasetToStringFields.get(dataset);
         }
     }
-    
+
     public ImmutableSet<String> getIntFields(String dataset) {
         if (!datasetToIntFields.containsKey(dataset)) {
             return ImmutableSet.of();

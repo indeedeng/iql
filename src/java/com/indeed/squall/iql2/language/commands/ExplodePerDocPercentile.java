@@ -1,17 +1,22 @@
 package com.indeed.squall.iql2.language.commands;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.indeed.squall.iql2.language.Validator;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.Objects;
 
-public class ExplodePerDocPercentile extends RequiresFTGSCommand {
+public class ExplodePerDocPercentile implements Command, JsonSerializable {
+    public final String field;
     public final int numBuckets;
 
     public ExplodePerDocPercentile(String field, int numBuckets) {
-        super(field);
+        this.field = field;
         this.numBuckets = numBuckets;
     }
 
@@ -27,6 +32,11 @@ public class ExplodePerDocPercentile extends RequiresFTGSCommand {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
+        ValidationUtil.validateField(datasetsFields.datasets(), field, datasetsFields, validator, this);
     }
 
     @Override
