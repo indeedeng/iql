@@ -125,7 +125,7 @@ identifier
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | M
     ;
-timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
+timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | M | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
 timePeriodTerminal : timePeriod EOF ;
 
