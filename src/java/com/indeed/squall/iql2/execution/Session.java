@@ -127,7 +127,7 @@ public class Session {
             final JsonNode sessionRequest,
             final Closer closer,
             final Consumer<String> out,
-            final Map<String, Set<String>> dimensions,
+            final Map<String, Set<String>> datasetToAliasFields,
             final TreeTimer treeTimer,
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
@@ -151,7 +151,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
+            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, datasetToAliasFields, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -189,7 +189,7 @@ public class Session {
             return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
+            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, datasetToAliasFields, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
@@ -212,7 +212,7 @@ public class Session {
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final Closer closer,
             final Map<String, ImhotepSessionInfo> sessions,
-            final Map<String, Set<String>> dimensions,
+            final Map<String, Set<String>> datasetToAliasFields,
             final TreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
@@ -245,10 +245,8 @@ public class Session {
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
             final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
-            // Don't uppercase for usage in the dimension translator.
-            final Set<String> datasetDimensions = dimensions.containsKey(actualDataset) ? dimensions.get(actualDataset) : Collections.emptySet();
-
-            sessionIntFields.addAll(datasetDimensions);
+            final Set<String> aliasFields = datasetToAliasFields.containsKey(actualDataset) ? datasetToAliasFields.get(actualDataset) : Collections.emptySet();
+            sessionIntFields.addAll(aliasFields);
 
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
