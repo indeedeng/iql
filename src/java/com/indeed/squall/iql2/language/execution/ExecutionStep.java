@@ -453,18 +453,25 @@ public interface ExecutionStep {
         private final Optional<Integer> queryLimit;
         private final Optional<Long> limit;
         private final Optional<AggregateMetric> metric;
+
+        private final Optional<Set<String>> stringTermSubset;
+        private final Optional<Set<Long>> intTermSubset;
+
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
+
         private final boolean forceNonStreaming;
 
         public IterateStats(
                 String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
-                Optional<AggregateMetric> metric, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
+                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.queryLimit = queryLimit;
             this.metric = metric;
+            this.stringTermSubset = stringTermSubset;
+            this.intTermSubset = intTermSubset;
             this.stats = stats;
             this.formatStrings = formatStrings;
             this.forceNonStreaming = forceNonStreaming;
@@ -478,6 +485,8 @@ public interface ExecutionStep {
             }
             opts.limit = queryLimit;
             opts.filter = filter;
+            opts.intTermSubset = intTermSubset;
+            opts.stringTermSubset = stringTermSubset;
             final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
             return Collections.<Command>singletonList(simpleIterate);
         }
@@ -500,7 +509,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, queryLimit, metric, stats, formatStrings, forceNonStreaming);
+            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings, forceNonStreaming);
         }
 
         @Override
@@ -508,8 +517,11 @@ public interface ExecutionStep {
             return "IterateStats{" +
                     "field='" + field + '\'' +
                     ", filter=" + filter +
+                    ", queryLimit=" + queryLimit +
                     ", limit=" + limit +
                     ", metric=" + metric +
+                    ", stringTermSubset=" + stringTermSubset +
+                    ", intTermSubset=" + intTermSubset +
                     ", stats=" + stats +
                     ", formatStrings=" + formatStrings +
                     ", forceNonStreaming=" + forceNonStreaming +

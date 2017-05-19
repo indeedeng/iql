@@ -12,11 +12,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class FieldIterateOpts implements JsonSerializable {
     public Optional<Integer> limit = Optional.absent();
     public Optional<TopK> topK = Optional.absent();
     public Optional<AggregateFilter> filter = Optional.absent();
+    public Optional<Set<Long>> intTermSubset = Optional.absent();
+    public Optional<Set<String>> stringTermSubset = Optional.absent();
 
     public FieldIterateOpts copy() {
         final FieldIterateOpts result = new FieldIterateOpts();
@@ -47,6 +50,12 @@ public class FieldIterateOpts implements JsonSerializable {
             }
             gen.writeObject(topKMap);
         }
+        if (intTermSubset.isPresent()) {
+            gen.writeObject(ImmutableMap.of("type", "intTermSubset", "terms", intTermSubset.get()));
+        }
+        if (stringTermSubset.isPresent()) {
+            gen.writeObject(ImmutableMap.of("type", "stringTermSubset", "terms", stringTermSubset.get()));
+        }
         gen.writeEndArray();
     }
 
@@ -62,12 +71,14 @@ public class FieldIterateOpts implements JsonSerializable {
         FieldIterateOpts that = (FieldIterateOpts) o;
         return Objects.equals(limit, that.limit) &&
                 Objects.equals(topK, that.topK) &&
-                Objects.equals(filter, that.filter);
+                Objects.equals(filter, that.filter) &&
+                Objects.equals(intTermSubset, that.intTermSubset) &&
+                Objects.equals(stringTermSubset, that.stringTermSubset);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(limit, topK, filter);
+        return Objects.hash(limit, topK, filter, intTermSubset, stringTermSubset);
     }
 
     @Override
@@ -76,6 +87,8 @@ public class FieldIterateOpts implements JsonSerializable {
                 "limit=" + limit +
                 ", topK=" + topK +
                 ", filter=" + filter +
+                ", intTermSubset=" + intTermSubset +
+                ", stringTermSubset=" + stringTermSubset +
                 '}';
     }
 }
