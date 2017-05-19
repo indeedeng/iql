@@ -1162,7 +1162,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntAndAliasFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
                 validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
             }
         }

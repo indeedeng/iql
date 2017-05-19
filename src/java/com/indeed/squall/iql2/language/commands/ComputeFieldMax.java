@@ -14,10 +14,10 @@ import java.util.Objects;
 import java.util.Set;
 
 public class ComputeFieldMax implements Command, JsonSerializable {
-    public final Set<String> scope;
-    public final String field;
+    private final Set<String> scope;
+    private final String field;
 
-    public ComputeFieldMax(final Set<String> scope, final String field) {
+    public ComputeFieldMax(Set<String> scope, String field) {
         this.scope = scope;
         this.field = field;
     }

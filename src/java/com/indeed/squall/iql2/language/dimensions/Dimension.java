@@ -1,9 +1,11 @@
 package com.indeed.squall.iql2.language.dimensions;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.Strings;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
 
+@JsonIgnoreProperties({"metric"})
 public class Dimension {
     public final String name;
     public final String expression;

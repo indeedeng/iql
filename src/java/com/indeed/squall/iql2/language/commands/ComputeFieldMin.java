@@ -23,11 +23,6 @@ public class ComputeFieldMin implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
-        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
-    }
-
-    @Override
     public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeObject(ImmutableMap.of("command", "computeFieldMin", "scope", scope, "field", field));
     }
@@ -35,6 +30,11 @@ public class ComputeFieldMin implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
         this.serialize(gen, serializers);
+    }
+
+    @Override
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
     }
 
     @Override

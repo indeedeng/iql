@@ -13,10 +13,6 @@ public class ErrorMessages {
         return "Dataset \"" + dataset + "\" does not contain expected field \"" + field + "\" in [" + context + "]";
     }
 
-    public static String nonAliasMetricInFTGSCommand(String field, String expression, Object context) {
-        return String.format("For functions that requires FTGS, non alias metric [%s: %s] is not allowed, [ %s ]", field, expression, context);
-    }
-
     public static String missingDataset(String dataset) {
         return "Expected dataset \"" + dataset + "\" does not exist";
     }

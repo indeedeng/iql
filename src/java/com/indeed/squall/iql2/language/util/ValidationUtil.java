@@ -80,8 +80,8 @@ public class ValidationUtil {
                 }
             }
 
-            final ImmutableSet<String> expectedIntFields = subset.getIntAndAliasFields(dataset);
-            final ImmutableSet<String> actualIntFields = superset.getIntAndAliasFields(dataset);
+            final ImmutableSet<String> expectedIntFields = subset.getIntFields(dataset);
+            final ImmutableSet<String> actualIntFields = superset.getIntFields(dataset);
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
                     if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {
@@ -122,32 +122,26 @@ public class ValidationUtil {
 
     public static void validateIntField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, validator, datasetsFields::getIntAndAliasFields, context);
+        validateField(scope, field, datasetsFields::getIntFields, validator, context);
     }
 
     public static void validateStringField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, validator, datasetsFields::getStringFields, context);
+        validateField(scope, field, datasetsFields::getStringFields, validator, context);
     }
-
 
     public static void validateField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, validator, dataset -> datasetsFields.getAllFields(dataset, DatasetsFields.MetricFieldsType.ALIAS), context);
+        validateField(scope, field, datasetsFields::getAllFields, validator, context);
     }
 
-    private static void validateField(
-            final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator,
-            final Function<String, Set<String>> getFieldsFunc, final Object context) {
-        for (final String dataset : scope) {
-            if (datasetsFields.getMetricFields(dataset, DatasetsFields.MetricFieldsType.NON_ALIAS).contains(field)) {
-                validator.error(ErrorMessages.nonAliasMetricInFTGSCommand(field, datasetsFields.getMetricExpression(dataset, field).get(), context));
-                return;
-            }
+    private static void validateField(final Set<String> scope, final String field,
+                                      final Function<String, Set<String>> getFieldsFunc, final Validator validator, final Object context) {
+        scope.forEach(dataset -> {
             if (!getFieldsFunc.apply(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field,context));
+                validator.error(ErrorMessages.missingIntField(dataset, field, context));
             }
-        }
+        });
     }
 
     private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {

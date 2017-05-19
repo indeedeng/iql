@@ -73,7 +73,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit, query.useLegacy), processor.computedNames);
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.rowLimit), processor.computedNames);
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {

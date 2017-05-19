@@ -27,6 +27,6 @@ public class FixTopKHaving {
                 newGroupBys.add(groupBy);
             }
         }
-        return new Query(query.datasets, query.filter, newGroupBys, query.selects, query.formatStrings, query.rowLimit, query.useLegacy);
+        return new Query(query.datasets, query.filter, newGroupBys, query.selects, query.formatStrings, query.rowLimit);
     }
 }

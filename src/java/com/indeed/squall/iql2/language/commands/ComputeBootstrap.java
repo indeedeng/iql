@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Set;
 
 public class ComputeBootstrap implements Command, JsonSerializable {
-    public final Set<String> scope;
-    public final String field;
+    private final Set<String> scope;
+    private final String field;
     private final Optional<AggregateFilter> filter;
     private final String seed;
     private final AggregateMetric metric;
@@ -33,15 +33,6 @@ public class ComputeBootstrap implements Command, JsonSerializable {
         this.metric = metric;
         this.numBootstraps = numBootstraps;
         this.varargs = varargs;
-    }
-
-    @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
-        metric.validate(scope, datasetsFields, validator);
-        if (filter.isPresent()) {
-            filter.get().validate(scope, datasetsFields, validator);
-        }
     }
 
     @Override
@@ -61,6 +52,15 @@ public class ComputeBootstrap implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
         this.serialize(jsonGenerator, serializerProvider);
+    }
+
+    @Override
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
+        metric.validate(scope, datasetsFields, validator);
+        if (filter.isPresent()) {
+            filter.get().validate(scope, datasetsFields, validator);
+        }
     }
 
     @Override

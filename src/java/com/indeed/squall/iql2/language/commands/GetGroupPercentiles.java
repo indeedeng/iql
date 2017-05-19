@@ -40,7 +40,7 @@ public class GetGroupPercentiles implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
         ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
     }
 

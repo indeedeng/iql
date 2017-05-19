@@ -89,13 +89,9 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             if (term.isIntTerm) {
-                if (!datasetsFields.getIntAndAliasFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
+                ValidationUtil.validateIntField(datasetsFields.datasets(), field.unwrap(), datasetsFields, validator, this);
             } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
+                ValidationUtil.validateStringField(datasetsFields.datasets(), field.unwrap(), datasetsFields, validator, this);
             }
         }
     }
@@ -381,9 +377,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntAndAliasFields(dataset).contains(field.unwrap())) {
-                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-            }
+            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.unwrap(), datasetsFields, validator, this);
         }
 
         @Override
