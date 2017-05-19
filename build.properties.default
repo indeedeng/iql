@@ -4,3 +4,8 @@ protobuf.version=2.5.0
 indeed.current.version=4
 indeed.next.version=5
 spring.version=4.2.5.RELEASE
+
+coverage.line.minimum_pct=25
+coverage.method.minimum_pct=25
+coverage.block.minimum_pct=25
+coverage.class.minimum_pct=25
