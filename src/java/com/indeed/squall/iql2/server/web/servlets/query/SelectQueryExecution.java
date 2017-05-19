@@ -9,7 +9,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -80,6 +79,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -101,7 +101,7 @@ public class SelectQueryExecution {
     private final Map<String, Set<String>> keywordAnalyzerWhitelist;
     private final Map<String, Set<String>> datasetToIntFields;
     private final Map<String, DatasetDimensions> dimensions;
-    private final Map<String, Set<String>> dimensionsExpressions;
+    private final Map<String, Set<String>> datasetToAliasFields;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -155,10 +155,11 @@ public class SelectQueryExecution {
         this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
         this.dimensions = dimensions;
-        this.dimensionsExpressions = convertDimensionsExpressions(dimensions);
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
+        this.datasetToAliasFields =  dimensions.entrySet().stream().collect(
+                Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasFields()));
     }
 
     public long getQueryStartTimestamp() {
@@ -528,7 +529,7 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensionsExpressions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, datasetToAliasFields, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
@@ -556,7 +557,7 @@ public class SelectQueryExecution {
                 return (integer == null) ? integer : integer + 1;
             }
         });
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit, query.useLegacy);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit);
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
@@ -650,14 +651,6 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
-    }
-
-    private static Map<String, Set<String>> convertDimensionsExpressions(final Map<String, DatasetDimensions> dimensions){
-        final ImmutableMap.Builder<String, Set<String>> builder = new ImmutableMap.Builder<>();
-        for (Map.Entry<String, DatasetDimensions> dimension : dimensions.entrySet()) {
-            builder.put(dimension.getKey(), dimension.getValue().fields());
-        }
-        return builder.build();
     }
 
     static class QueryInfo {

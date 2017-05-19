@@ -13,7 +13,6 @@ import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.language.dimensions.Dimension;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
@@ -115,10 +114,8 @@ public class CommandValidator {
                 }
             }
 
-            for (final Dimension dimension : datasetDescriptor.getDimensions()) {
-                builder.addMetricField(name, dimension);
-            }
-
+            datasetDescriptor.getDimensions().stream().filter(dimension -> dimension.isAlias)
+                    .forEach(dimension -> builder.addIntField(name, dimension.name.toUpperCase()));
             builder.addIntField(name, "count()");
         }
 

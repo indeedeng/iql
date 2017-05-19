@@ -1,9 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.ims.client.ImsClientInterface;
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,7 +87,6 @@ public class DimensionTest {
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today as d1, dimension2 as d2 WHERE calc = 0", imsClient);
         assertFailQuery("from dimension yesterday today, dimension2 WHERE plus = 0");
     }
-
 
     private void assertFailQuery(final String query) throws Exception {
         try {
