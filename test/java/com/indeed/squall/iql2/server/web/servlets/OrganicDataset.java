@@ -13,7 +13,7 @@ class OrganicDataset {
     // count = 151
     // oji = 2653
     // ojc = 306
-    // distinct(ctk) = { "a", "b", "c", "d" }, || = 4
+    // distinct(tk) = { "a", "b", "c", "d" }, || = 4
     public static List<Shard> create() {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
 
@@ -24,10 +24,10 @@ class OrganicDataset {
         // total count = 10
         // total oji = 1180
         // total ojc = 45
-        // distinct(ctk) = { "a", "b", "c" }, || = 3
-        // count(ctk="a") = 4
-        // count(ctk="b") = 2
-        // count(ctk="c") = 4
+        // distinct(tk) = { "a", "b", "c" }, || = 3
+        // count(tk="a") = 4
+        // count(tk="b") = 2
+        // count(tk="c") = 4
         {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, timeZone), 10, 0, "a"));
@@ -48,8 +48,8 @@ class OrganicDataset {
         // total count = 60
         // total oji = 10 * 60 = 600
         // total ojc = 1 * 60 = 60
-        // distinct(ctk) = { "d" }, || = 1
-        // count(ctk="d") = 60
+        // distinct(tk) = { "d" }, || = 1
+        // count(tk="d") = 60
         {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             for (int i = 0; i < 60; i++) {
@@ -63,8 +63,8 @@ class OrganicDataset {
         // total count = 60
         // total oji = 10 * 60 = 600
         // total ojc = 3 * 60 = 180
-        // distinct(ctk) = { "d" }, || = 1
-        // count(ctk="d") = 60
+        // distinct(tk) = { "d" }, || = 1
+        // count(tk="d") = 60
         {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             for (int i = 0; i < 60; i++) {
@@ -76,12 +76,12 @@ class OrganicDataset {
         // 1 document per hour from 2015-01-01 03:00:00 to 2015-01-02 00:00:00
         // oji = the hour
         // ojc = 1
-        // count(ctk="d") = 1
+        // count(tk="d") = 1
         // total count = 21
         // total oji = sum [3 .. 23] = 273
         // total ojc = 21
-        // distinct(ctk) = { "d" }, || = 1
-        // total count(ctk="d") = 21
+        // distinct(tk) = { "d" }, || = 1
+        // total count(tk="d") = 21
         for (int h = 3; h < 24; h++) {
             final MemoryFlamdex flamdex = new MemoryFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, h, 0, 0, timeZone), h, 1, "d"));
