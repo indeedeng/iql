@@ -80,6 +80,7 @@ EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
+M: 'M' ;
 
 Y : 'Y' ;
 
@@ -122,7 +123,7 @@ identifier
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | BOOTSTRAP
     | RELATIVE | DATASET
-    | BACKQUOTED_ID | LEN
+    | BACKQUOTED_ID | LEN | M
     ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -189,6 +190,7 @@ jqlAggregateMetric
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
     | AVG_OVER '(' field=scopedField ((havingBrackets='[' HAVING jqlAggregateFilter ']')|(HAVING jqlAggregateFilter))? ',' jqlAggregateMetric ')' # AggregateAverageAcross
+    | M '(' jqlAggregateFilter ')' # AggregateMetricFilter
     | jqlDocMetricAtom # AggregateDocMetricAtom
     | '-' jqlAggregateMetric # AggregateNegate
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
@@ -305,6 +307,7 @@ jqlDocMetric
     | EXP '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocExp
     | MIN '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMin
     | MAX '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMax
+    | M '(' jqlDocFilter ')' # DocMetricFilter
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
     | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus

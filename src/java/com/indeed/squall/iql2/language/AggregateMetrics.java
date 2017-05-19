@@ -471,6 +471,12 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateMetricFilter(JQLParser.AggregateMetricFilterContext ctx) {
+                final AggregateFilter filter = AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                accept(new AggregateMetric.IfThenElse(filter, new AggregateMetric.Constant(1), new AggregateMetric.Constant(0)));
+            }
+
+            @Override
             public void enterSyntacticallyAtomicAggregateMetric(JQLParser.SyntacticallyAtomicAggregateMetricContext ctx) {
                 accept(parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields));
             }
