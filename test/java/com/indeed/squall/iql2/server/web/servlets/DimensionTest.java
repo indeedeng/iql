@@ -77,6 +77,7 @@ public class DimensionTest extends BasicTest {
         testAll(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today WHERE plus=5 SELECT counts", imsClient);
         testAll(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "3")), "from dimension yesterday today WHERE plus!=5 SELECT counts", imsClient);
         testAll(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today WHERE BETWEEN(plus, 0, 5) SELECT counts", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE i1=plus SELECT counts", imsClient);
         assertFailQuery("from dimension yesterday today WHERE i1divi2=1");
     }
 

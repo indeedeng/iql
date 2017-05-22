@@ -79,7 +79,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -101,7 +100,6 @@ public class SelectQueryExecution {
     private final Map<String, Set<String>> keywordAnalyzerWhitelist;
     private final Map<String, Set<String>> datasetToIntFields;
     private final Map<String, DatasetDimensions> dimensions;
-    private final Map<String, Set<String>> datasetToAliasFields;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -158,8 +156,6 @@ public class SelectQueryExecution {
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
-        this.datasetToAliasFields =  dimensions.entrySet().stream().collect(
-                Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasFields()));
     }
 
     public long getQueryStartTimestamp() {
@@ -429,7 +425,9 @@ public class SelectQueryExecution {
                 timer.pop();
             }
 
-            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
+            final Query aliasedQuery = addDimensionAliasToDatasets(query, dimensions);
+
+            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, aliasedQuery, commands, imhotepClient);
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
 
@@ -445,13 +443,13 @@ public class SelectQueryExecution {
                     final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
                     timer.pop();
 
-                    queryCached.put(query, isCached);
+                    queryCached.put(aliasedQuery, isCached);
 
                     if (isCached) {
                         timer.push("read cache");
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
+                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, aliasedQuery.rowLimit, queryCache);
                         timer.pop();
                         return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys,
                                 Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
@@ -488,8 +486,8 @@ public class SelectQueryExecution {
                     }
                 }
                 final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
-                if (query.rowLimit.isPresent()) {
-                    final int rowLimit = query.rowLimit.get();
+                if (aliasedQuery.rowLimit.isPresent()) {
+                    final int rowLimit = aliasedQuery.rowLimit.get();
                     final Consumer<String> oldOut = out;
                     out = new Consumer<String>() {
                         int rowsWritten = 0;
@@ -519,7 +517,7 @@ public class SelectQueryExecution {
                 }
 
                 final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(inputStream, query));
+                request.put("datasets", Queries.createDatasetMap(inputStream, aliasedQuery));
                 request.put("commands", commands);
 
                 request.put("groupLimit", groupLimit);
@@ -529,7 +527,7 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, datasetToAliasFields, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
@@ -618,6 +616,19 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
+    private static Query addDimensionAliasToDatasets(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
+        final List<Dataset> aliasDatasets = Lists.newArrayList();
+        for (Dataset dataset : query.datasets) {
+            if (dimensionsMetrics.containsKey(dataset.dataset.unwrap())) {
+                final DatasetDimensions datasetDimensions = dimensionsMetrics.get(dataset.dataset.unwrap());
+                aliasDatasets.add(dataset.setDimensionAliases(datasetDimensions.getUppercaseAliasDimensions()));
+            } else {
+                aliasDatasets.add(dataset);
+            }
+        }
+        return new Query(aliasDatasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.rowLimit);
+    }
+
     private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
         final MessageDigest sha1;
         try {
@@ -660,17 +671,26 @@ public class SelectQueryExecution {
         Set<String> datasets;
         public @Nullable
         Duration totalDatasetRange; // SUM(dataset (End - Start))
-        public @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
-        public @Nullable Long ftgsMB;
+        public @Nullable
+        Duration totalShardPeriod; // SUM(shard (end-start))
+        public @Nullable
+        Long ftgsMB;
         public @Nullable
         Collection<String> sessionIDs;
-        public @Nullable Integer numShards;
-        public @Nullable Long numDocs;
-        public @Nullable Boolean cached;
-        public @Nullable Integer rows;
-        public @Nullable Set<String> cacheHashes;
-        public @Nullable Integer maxGroups;
-        public @Nullable Integer maxConcurrentSessions;
+        public @Nullable
+        Integer numShards;
+        public @Nullable
+        Long numDocs;
+        public @Nullable
+        Boolean cached;
+        public @Nullable
+        Integer rows;
+        public @Nullable
+        Set<String> cacheHashes;
+        public @Nullable
+        Integer maxGroups;
+        public @Nullable
+        Integer maxConcurrentSessions;
     }
 
     private static class SelectExecutionInformation {
@@ -744,8 +764,12 @@ public class SelectQueryExecution {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             DatasetWithTimeRangeAndAliases that = (DatasetWithTimeRangeAndAliases) o;
             return start == that.start &&
                     end == that.end &&
@@ -792,8 +816,12 @@ public class SelectQueryExecution {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             FieldAlias that = (FieldAlias) o;
             return Objects.equals(originalName, that.originalName) &&
                     Objects.equals(newName, that.newName);

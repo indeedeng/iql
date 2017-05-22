@@ -298,7 +298,6 @@ public class EventRegexServlet {
                 OBJECT_MAPPER.readTree(json),
                 closer,
                 out,
-                Collections.emptyMap(),
                 timer,
                 new NoOpProgressCallback(),
                 -1L,

@@ -76,7 +76,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         try {
             return ImsClient.build(env.getProperty("ims.url"));
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid ImhotepMetaDataService url: "+env.getProperty("ims.url"));
+            throw new IllegalArgumentException("get ImhotepMetaDataService "+env.getProperty("ims.url") + " error: "+ e.getMessage());
         }
     }
 
