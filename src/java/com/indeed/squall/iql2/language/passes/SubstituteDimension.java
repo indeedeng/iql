@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.language.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -36,6 +37,8 @@ public class SubstituteDimension {
         return new Function<AggregateMetric, AggregateMetric>() {
             @Override
             public AggregateMetric apply(final AggregateMetric input) {
+                Preconditions.checkArgument(!(input instanceof AggregateMetric.ImplicitDocStats), "ImplicitDocStats should be handled by ExtractPrecomputed already");
+                Preconditions.checkArgument(!(input instanceof AggregateMetric.DocStats), "DocStats should be handled by ExtractPrecomputed already");
                 if (input instanceof AggregateMetric.DocStatsPushes) {
                     final AggregateMetric.DocStatsPushes pushStats = (AggregateMetric.DocStatsPushes) input;
                     final String dataset = datasetAliasToOrigin.get(pushStats.dataset);
@@ -98,13 +101,13 @@ public class SubstituteDimension {
                                 new DocFilter.MetricLt(dimensionMetric.get(), new DocMetric.Constant(between.upperBound)));
                     }
                 } else if (input instanceof DocFilter.FieldEqual) {
-                    final DocFilter.FieldEqual fieldEqualFIlter = ((DocFilter.FieldEqual) input);
-                    final Optional<DocMetric> dimensionMetric1 = getMetricDimensionFunc.apply(fieldEqualFIlter.field1.unwrap());
-                    final Optional<DocMetric> dimensionMetric2 = getMetricDimensionFunc.apply(fieldEqualFIlter.field2.unwrap());
+                    final DocFilter.FieldEqual fieldEqualFilter = ((DocFilter.FieldEqual) input);
+                    final Optional<DocMetric> dimensionMetric1 = getMetricDimensionFunc.apply(fieldEqualFilter.field1.unwrap());
+                    final Optional<DocMetric> dimensionMetric2 = getMetricDimensionFunc.apply(fieldEqualFilter.field2.unwrap());
                     if (dimensionMetric1.isPresent() || dimensionMetric2.isPresent()) {
                         return new DocFilter.MetricEqual(
-                                dimensionMetric1.or(new DocMetric.Field(fieldEqualFIlter.field1)),
-                                dimensionMetric2.or(new DocMetric.Field(fieldEqualFIlter.field2)));
+                                dimensionMetric1.or(new DocMetric.Field(fieldEqualFilter.field1)),
+                                dimensionMetric2.or(new DocMetric.Field(fieldEqualFilter.field2)));
                     }
                 }
                 return input;
