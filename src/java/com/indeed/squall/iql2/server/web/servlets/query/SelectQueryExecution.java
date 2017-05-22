@@ -665,31 +665,18 @@ public class SelectQueryExecution {
     }
 
     static class QueryInfo {
-        public @Nullable
         String statementType;
-        public @Nullable
         Set<String> datasets;
-        public @Nullable
         Duration totalDatasetRange; // SUM(dataset (End - Start))
-        public @Nullable
         Duration totalShardPeriod; // SUM(shard (end-start))
-        public @Nullable
         Long ftgsMB;
-        public @Nullable
         Collection<String> sessionIDs;
-        public @Nullable
         Integer numShards;
-        public @Nullable
         Long numDocs;
-        public @Nullable
         Boolean cached;
-        public @Nullable
         Integer rows;
-        public @Nullable
         Set<String> cacheHashes;
-        public @Nullable
         Integer maxGroups;
-        public @Nullable
         Integer maxConcurrentSessions;
     }
 
@@ -819,7 +806,7 @@ public class SelectQueryExecution {
             if (this == o) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if ((o == null) || (getClass() != o.getClass())) {
                 return false;
             }
             FieldAlias that = (FieldAlias) o;

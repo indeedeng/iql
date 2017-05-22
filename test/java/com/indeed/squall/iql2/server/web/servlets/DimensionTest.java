@@ -37,6 +37,7 @@ public class DimensionTest extends BasicTest {
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT [i1*plus]", imsClient);
         testIQL1(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT i1*plus", imsClient);
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "200")), "from dimension yesterday today SELECT i1*plus", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "4")), "from dimension yesterday today SELECT plus!=i1", imsClient);
     }
 
     @Test
