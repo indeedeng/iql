@@ -665,19 +665,19 @@ public class SelectQueryExecution {
     }
 
     static class QueryInfo {
-        String statementType;
-        Set<String> datasets;
-        Duration totalDatasetRange; // SUM(dataset (End - Start))
-        Duration totalShardPeriod; // SUM(shard (end-start))
-        Long ftgsMB;
-        Collection<String> sessionIDs;
-        Integer numShards;
-        Long numDocs;
-        Boolean cached;
-        Integer rows;
-        Set<String> cacheHashes;
-        Integer maxGroups;
-        Integer maxConcurrentSessions;
+        @Nullable String statementType;
+        @Nullable Set<String> datasets;
+        @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
+        @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
+        @Nullable Long ftgsMB;
+        @Nullable Collection<String> sessionIDs;
+        @Nullable Integer numShards;
+        @Nullable Long numDocs;
+        @Nullable Boolean cached;
+        @Nullable Integer rows;
+        @Nullable Set<String> cacheHashes;
+        @Nullable Integer maxGroups;
+        @Nullable Integer maxConcurrentSessions;
     }
 
     private static class SelectExecutionInformation {
