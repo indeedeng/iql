@@ -11,11 +11,13 @@ import java.util.Set;
 public class DatasetsFields {
     private final Map<String, ImmutableSet<String>> datasetToIntFields;
     private final Map<String, ImmutableSet<String>> datasetToStringFields;
+    private final Map<String, ImmutableSet<String>> datasetToNonAliasMetricFields;
 
     public DatasetsFields(
-            Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields) {
+            Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Map<String, Set<String>> datasetToNonAliasMetricFields) {
         this.datasetToIntFields = copy(datasetToIntFields);
         this.datasetToStringFields = copy(datasetToStringFields);
+        this.datasetToNonAliasMetricFields = copy(datasetToNonAliasMetricFields);
     }
 
     public ImmutableSet<String> getStringFields(String dataset) {
@@ -31,6 +33,14 @@ public class DatasetsFields {
             return ImmutableSet.of();
         } else {
             return datasetToIntFields.get(dataset);
+        }
+    }
+
+    public ImmutableSet<String> getMetricFields(String dataset) {
+        if (!datasetToNonAliasMetricFields.containsKey(dataset)) {
+            return ImmutableSet.of();
+        } else {
+            return datasetToNonAliasMetricFields.get(dataset);
         }
     }
 
@@ -54,6 +64,11 @@ public class DatasetsFields {
                 builder.addStringField(entry.getKey(), field);
             }
         }
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToNonAliasMetricFields.entrySet()) {
+            for (final String field : entry.getValue()) {
+                builder.addNonAliasMetricField(entry.getKey(), field);
+            }
+        }
         return builder;
     }
 
@@ -64,6 +79,7 @@ public class DatasetsFields {
     public static class Builder {
         private final Map<String, Set<String>> datasetToIntFields = Maps.newHashMap();
         private final Map<String, Set<String>> datasetToStringFields = Maps.newHashMap();
+        private final Map<String, Set<String>> datasetToNonAliasMetricFields = Maps.newHashMap();
 
         public void addIntField(String dataset, String field) {
             ensurePresent(dataset);
@@ -75,6 +91,11 @@ public class DatasetsFields {
             datasetToStringFields.get(dataset).add(field);
         }
 
+        public void addNonAliasMetricField(String dataset, String field) {
+            ensurePresent(dataset);
+            datasetToNonAliasMetricFields.get(dataset).add(field);
+        }
+
         private void ensurePresent(String dataset) {
             if (!datasetToIntFields.containsKey(dataset)) {
                 datasetToIntFields.put(dataset, Sets.<String>newHashSet());
@@ -83,10 +104,14 @@ public class DatasetsFields {
             if (!datasetToStringFields.containsKey(dataset)) {
                 datasetToStringFields.put(dataset, Sets.<String>newHashSet());
             }
+
+            if (!datasetToNonAliasMetricFields.containsKey(dataset)) {
+                datasetToNonAliasMetricFields.put(dataset, Sets.newHashSet());
+            }
         }
 
         public DatasetsFields build() {
-            return new DatasetsFields(datasetToIntFields, datasetToStringFields);
+            return new DatasetsFields(datasetToIntFields, datasetToStringFields, datasetToNonAliasMetricFields);
         }
     }
 

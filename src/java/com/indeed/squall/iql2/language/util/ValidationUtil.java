@@ -122,22 +122,26 @@ public class ValidationUtil {
 
     public static void validateIntField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields::getIntFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::getIntFields, validator, context);
     }
 
     public static void validateStringField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields::getStringFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::getStringFields, validator, context);
     }
 
     public static void validateField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields::getAllFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::getAllFields, validator, context);
     }
 
-    private static void validateField(final Set<String> scope, final String field,
+    private static void validateField(final Set<String> scope, final String field, final DatasetsFields datasetsFields,
                                       final Function<String, Set<String>> getFieldsFunc, final Validator validator, final Object context) {
         scope.forEach(dataset -> {
+            if (datasetsFields.getMetricFields(dataset).contains(field)) {
+                validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
+                return;
+            }
             if (!getFieldsFunc.apply(dataset).contains(field)) {
                 validator.error(ErrorMessages.missingIntField(dataset, field, context));
             }

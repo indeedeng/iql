@@ -185,7 +185,7 @@ public class SubstituteDimension {
     private static DocMetric getDocMetricOrThrow(final Dimension dimension) {
         if (!(dimension.metric instanceof AggregateMetric.ImplicitDocStats)) {
             throw new IllegalArgumentException(
-                    String.format("Cannot use compound dimensions in per-document context, dimension %s: %s",
+                    String.format("Cannot use compound metrics in per-document context, metric [ %s: %s ]",
                             dimension.name, dimension.expression));
         } else {
             return ((AggregateMetric.ImplicitDocStats) dimension.metric).docMetric;
