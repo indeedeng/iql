@@ -124,11 +124,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            final Map<String, DocMetric> transformedMetrics = Maps.newHashMap();
-            for (Map.Entry<String, DocMetric> docMetricEntry : datasetToMetric.entrySet()) {
-                transformedMetrics.put(docMetricEntry.getKey(), docMetricEntry.getValue().transform(g, i));
-            }
-            return g.apply(new PerDatasetDocMetric(transformedMetrics));
+            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))));
         }
 
         @Override

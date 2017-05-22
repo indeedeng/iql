@@ -1,14 +1,15 @@
 package com.indeed.squall.iql2.language.query;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.common.util.time.WallClock;
+import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
-import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -35,19 +36,26 @@ public class Dataset extends AbstractPositional {
     public final Positioned<DateTime> endExclusive;
     public final Optional<Positioned<String>> alias;
     public final ImmutableMap<Positioned<String>, Positioned<String>> fieldAliases;
-    private Optional<Map<String, String>> dimensionAlias;
 
-    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive, Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
+    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive,
+                   Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
         this.dataset = dataset;
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
         this.alias = alias;
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
-        dimensionAlias = Optional.absent();
     }
 
     public Positioned<String> getDisplayName() {
         return alias.or(dataset);
+    }
+
+    public Dataset setDimensionAliases(Map<String, String> dimensionAliases) {
+        final ImmutableMap.Builder<Positioned<String>, Positioned<String>> newFieldAliasesBuilder = new ImmutableMap.Builder<>();
+        newFieldAliasesBuilder.putAll(fieldAliases);
+        dimensionAliases.entrySet().forEach(
+                e -> newFieldAliasesBuilder.put(Positioned.unpositioned(e.getKey()), Positioned.unpositioned(e.getValue())));
+        return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliasesBuilder.build());
     }
 
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
@@ -177,7 +185,9 @@ public class Dataset extends AbstractPositional {
         } else {
             final String textValue = dateTimeContext.getText();
             final DateTime dt = parseWordDate(textValue, clock);
-            if (dt != null) return Positioned.from(dt, dateTimeContext);
+            if (dt != null) {
+                return Positioned.from(dt, dateTimeContext);
+            }
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }
@@ -193,40 +203,25 @@ public class Dataset extends AbstractPositional {
         return null;
     }
 
-
-    public void setDimensionAlias(Map<String, String> dimensionAlias) {
-        this.dimensionAlias = Optional.of(dimensionAlias);
-    }
-
-    public Optional<Map<String, String>> getDimensionAlias() {
-        return dimensionAlias;
-    }
-
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Dataset dataset1 = (Dataset) o;
-
-        if (dataset != null ? !dataset.equals(dataset1.dataset) : dataset1.dataset != null) return false;
-        if (startInclusive != null ? !startInclusive.equals(dataset1.startInclusive) : dataset1.startInclusive != null)
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
-        if (endExclusive != null ? !endExclusive.equals(dataset1.endExclusive) : dataset1.endExclusive != null)
-            return false;
-        if (alias != null ? !alias.equals(dataset1.alias) : dataset1.alias != null) return false;
-        return !(fieldAliases != null ? !fieldAliases.equals(dataset1.fieldAliases) : dataset1.fieldAliases != null);
-
+        }
+        final Dataset dataset1 = (Dataset) o;
+        return Objects.equal(dataset, dataset1.dataset) &&
+                Objects.equal(startInclusive, dataset1.startInclusive) &&
+                Objects.equal(endExclusive, dataset1.endExclusive) &&
+                Objects.equal(alias, dataset1.alias) &&
+                Objects.equal(fieldAliases, dataset1.fieldAliases);
     }
 
     @Override
     public int hashCode() {
-        int result = dataset != null ? dataset.hashCode() : 0;
-        result = 31 * result + (startInclusive != null ? startInclusive.hashCode() : 0);
-        result = 31 * result + (endExclusive != null ? endExclusive.hashCode() : 0);
-        result = 31 * result + (alias != null ? alias.hashCode() : 0);
-        result = 31 * result + (fieldAliases != null ? fieldAliases.hashCode() : 0);
-        return result;
+        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, fieldAliases);
     }
 
     @Override

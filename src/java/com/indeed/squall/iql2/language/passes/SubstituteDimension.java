@@ -11,7 +11,6 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
-import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 
 import javax.annotation.Nullable;
@@ -21,25 +20,15 @@ import java.util.stream.Collectors;
 
 public class SubstituteDimension {
     public static Query substitute(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
-        final Map<String, String> datasetAliasToOrigin = query.nameToIndex();
-        addDimensionAliasToDatasets(query, dimensionsMetrics);
+        final Map<String, String> datasetAliasToOriginal = query.nameToIndex();
         final Set<String> datasets = query.datasets.stream().map(d -> d.getDisplayName().unwrap()).collect(Collectors.toSet());
-        final Function<String, Optional<DocMetric>> getSubstitutedDimensionMetricFunc = field -> getSubstitutedDimensionDocMetric(datasets, dimensionsMetrics, datasetAliasToOrigin, field);
+        final Function<String, Optional<DocMetric>> getSubstitutedDimensionMetricFunc = field -> getSubstitutedDimensionDocMetric(datasets, dimensionsMetrics, datasetAliasToOriginal, field);
         return query.transform(
                 Functions.identity(),
-                substituteDimensionAggregateMetric(dimensionsMetrics, datasetAliasToOrigin),
+                substituteDimensionAggregateMetric(dimensionsMetrics, datasetAliasToOriginal),
                 substituteDocMetric(getSubstitutedDimensionMetricFunc),
                 Functions.identity(),
                 substituteDocFilter(getSubstitutedDimensionMetricFunc));
-    }
-
-    private static void addDimensionAliasToDatasets(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
-        for (Dataset dataset : query.datasets) {
-            if (dimensionsMetrics.containsKey(dataset.dataset.unwrap())) {
-                final DatasetDimensions datasetDimensions = dimensionsMetrics.get(dataset.dataset.unwrap());
-                dataset.setDimensionAlias(datasetDimensions.getUppercaseAliasDimensions());
-            }
-        }
     }
 
     private static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(
@@ -108,6 +97,15 @@ public class SubstituteDimension {
                                 new DocFilter.MetricGte(dimensionMetric.get(), new DocMetric.Constant(between.lowerBound)),
                                 new DocFilter.MetricLt(dimensionMetric.get(), new DocMetric.Constant(between.upperBound)));
                     }
+                } else if (input instanceof DocFilter.FieldEqual) {
+                    final DocFilter.FieldEqual fieldEqualFIlter = ((DocFilter.FieldEqual) input);
+                    final Optional<DocMetric> dimensionMetric1 = getMetricDimensionFunc.apply(fieldEqualFIlter.field1.unwrap());
+                    final Optional<DocMetric> dimensionMetric2 = getMetricDimensionFunc.apply(fieldEqualFIlter.field2.unwrap());
+                    if (dimensionMetric1.isPresent() || dimensionMetric2.isPresent()) {
+                        return new DocFilter.MetricEqual(
+                                dimensionMetric1.or(new DocMetric.Field(fieldEqualFIlter.field1)),
+                                dimensionMetric2.or(new DocMetric.Field(fieldEqualFIlter.field2)));
+                    }
                 }
                 return input;
             }
@@ -127,6 +125,15 @@ public class SubstituteDimension {
                 } else if (input instanceof DocMetric.HasInt) {
                     final Optional<DocMetric> dimensionMetric = getMetricDimensionFunc.apply(((DocMetric.HasInt) input).field.unwrap());
                     return new DocMetric.MetricEqual(dimensionMetric.get(), new DocMetric.Constant(((DocMetric.HasInt) input).term));
+                } else if (input instanceof DocMetric.FieldEqualMetric) {
+                    DocMetric.FieldEqualMetric fieldEqualMetric = ((DocMetric.FieldEqualMetric) input);
+                    final Optional<DocMetric> dimensionMetric1 = getMetricDimensionFunc.apply(fieldEqualMetric.field1.unwrap());
+                    final Optional<DocMetric> dimensionMetric2 = getMetricDimensionFunc.apply(fieldEqualMetric.field2.unwrap());
+                    if (dimensionMetric1.isPresent() || dimensionMetric2.isPresent()) {
+                        return new DocMetric.MetricEqual(
+                                dimensionMetric1.or(new DocMetric.Field(fieldEqualMetric.field1)),
+                                dimensionMetric2.or(new DocMetric.Field(fieldEqualMetric.field2)));
+                    }
                 }
                 return input;
             }

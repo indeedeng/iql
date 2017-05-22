@@ -74,11 +74,6 @@ public class Queries {
                 for (final Map.Entry<Positioned<String>, Positioned<String>> entry : dataset.fieldAliases.entrySet()) {
                     unPositionedFieldAliases.put(entry.getKey().unwrap(), entry.getValue().unwrap());
                 }
-                if (dataset.getDimensionAlias().isPresent()) {
-                    for (Map.Entry<String, String> entry : dataset.getDimensionAlias().get().entrySet()) {
-                        unPositionedFieldAliases.put(entry.getKey(), entry.getValue());
-                    }
-                }
                 m.put("fieldAliases", objectMapper.writeValueAsString(unPositionedFieldAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
@@ -264,12 +259,8 @@ public class Queries {
 
     public static AggregateMetric parseAggregateMetricFromString(
             final String expression, final boolean useLegacy,
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, Consumer<String> warn) {
-        final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(expression, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
-            public JQLParser.AggregateMetricContext apply(@Nullable final JQLParser parser) {
-                return parser.aggregateMetric(useLegacy);
-            }
-        });
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn) {
+        final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(expression, parser -> parser.aggregateMetric(useLegacy));
         return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, new DefaultWallClock());
     }
 

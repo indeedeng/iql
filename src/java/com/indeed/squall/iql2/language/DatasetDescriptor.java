@@ -58,9 +58,10 @@ public class DatasetDescriptor {
         }
         final ImmutableList<Dimension> dimensions;
         if (datasetDimensions.isPresent()) {
-            ImmutableList.Builder<Dimension> builder = new ImmutableList.Builder();
-            for (String field : datasetDimensions.get().fields()) {
-                builder.add(datasetDimensions.get().getDimension(field).get());
+            final ImmutableList.Builder<Dimension> builder = new ImmutableList.Builder();
+            final DatasetDimensions dimension = datasetDimensions.get();
+            for (String field : dimension.fields()) {
+                builder.add(dimension.getDimension(field).get());
             }
             dimensions = builder.build();
         } else {

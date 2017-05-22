@@ -367,12 +367,12 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            throw new UnsupportedOperationException("Cannot serialize " + getClass().getSimpleName() + " -- it should be removed by ExtractPrecomputed!");
+            throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- it should be removed by ExtractPrecomputed!");
         }
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot serialize " + getClass().getSimpleName() + " -- should be removed by ExtractPrecomputed!");
+            throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- should be removed by ExtractPrecomputed!");
         }
 
         @Override
