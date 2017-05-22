@@ -20,11 +20,11 @@ public class MetadataCacheTest {
                 "recursive", "alias+same"
         );
         Assert.assertEquals("plain", MetadataCache.expandMetricExpression("plain", metricsExpressions));
-        Assert.assertEquals("c1+c2*c3", MetadataCache.expandMetricExpression("complex", metricsExpressions));
-        Assert.assertEquals("avg(c1+c2*c3)", MetadataCache.expandMetricExpression("avg(complex)", metricsExpressions));
+        Assert.assertEquals("(c1+c2*c3)", MetadataCache.expandMetricExpression("complex", metricsExpressions));
+        Assert.assertEquals("avg((c1+c2*c3))", MetadataCache.expandMetricExpression("avg(complex)", metricsExpressions));
         Assert.assertEquals("(a1+same)", MetadataCache.expandMetricExpression("(a1+same)", metricsExpressions));
-        Assert.assertEquals("a2+c1+c2*c3", MetadataCache.expandMetricExpression("a2+alias", metricsExpressions));
-        Assert.assertEquals("(c1+c2*c3*10)/c1+c2*c3+same", MetadataCache.expandMetricExpression("(complex*10)/recursive", metricsExpressions));
+        Assert.assertEquals("a2+((c1+c2*c3))", MetadataCache.expandMetricExpression("a2+alias", metricsExpressions));
+        Assert.assertEquals("((c1+c2*c3)*10)/(((c1+c2*c3))+same)", MetadataCache.expandMetricExpression("(complex*10)/recursive", metricsExpressions));
     }
 
     @Test

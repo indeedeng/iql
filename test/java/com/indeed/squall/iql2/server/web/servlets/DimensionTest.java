@@ -34,6 +34,9 @@ public class DimensionTest extends BasicTest {
                 imsClient);
         assertFailQuery("from dimension yesterday today SELECT i1divi2=1");
         assertFailQuery("from dimension yesterday today SELECT distinct(i1divi2)");
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT [i1*plus]", imsClient);
+        testIQL1(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT i1*plus", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "200")), "from dimension yesterday today SELECT i1*plus", imsClient);
     }
 
     @Test
