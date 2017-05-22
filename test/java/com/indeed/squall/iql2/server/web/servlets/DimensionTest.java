@@ -32,12 +32,14 @@ public class DimensionTest extends BasicTest {
                 "from dimension yesterday today SELECT " +
                         "empty, same, calc, combined, aliasi1, aliasCombined, i1divi2, i1+aliasi1, floatf1, aliasi1=0,  plus!=5, distinct(aliasi1)",
                 imsClient);
-        assertFailQuery("from dimension yesterday today SELECT i1divi2=1");
-        assertFailQuery("from dimension yesterday today SELECT distinct(i1divi2)");
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT [i1*plus]", imsClient);
         testIQL1(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT i1*plus", imsClient);
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "200")), "from dimension yesterday today SELECT i1*plus", imsClient);
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "4")), "from dimension yesterday today SELECT plus!=i1", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today SELECT LUCENE('i1:0')", imsClient);
+        assertFailQuery("from dimension yesterday today SELECT i1divi2=1");
+        assertFailQuery("from dimension yesterday today SELECT distinct(i1divi2)");
+        assertFailQuery("from dimension yesterday today SELECT LUCENE('aliasi1:0')");
     }
 
     @Test
