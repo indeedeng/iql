@@ -31,6 +31,11 @@ public class DimensionUtils {
         private DatasetYaml createDimension2() {
             List<MetricsYaml> metrics = new ArrayList<>();
 
+            final MetricsYaml countsMetric = new MetricsYaml();
+            countsMetric.setName("counts");
+            countsMetric.setExpr("count()");
+            metrics.add(countsMetric);
+
             final MetricsYaml aliasi2 = new MetricsYaml();
             aliasi2.setName("i2");
             aliasi2.setExpr("i1");

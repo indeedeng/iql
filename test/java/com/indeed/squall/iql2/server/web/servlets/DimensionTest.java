@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
@@ -17,7 +16,7 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
 /**
  *
  */
-public class DimensionTest {
+public class DimensionTest extends BasicTest {
     private ImsClientInterface imsClient;
 
     @Before
@@ -47,17 +46,13 @@ public class DimensionTest {
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "10", "4", "14", "204")),
                 "from dimension yesterday today as d1, dimension2 as d2 SELECT d1.i2, d2.i2, i2, calc",
                 imsClient);
-        assertFailQuery("from dimension yesterday today, dimension2 SELECT plus");
+        assertIQL2FailQuery("from dimension yesterday today, dimension2 SELECT plus");
     }
 
     @Test
     public void testAggregateDimension() throws Exception {
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "11", "100")), "from dimension yesterday today SELECT i1+i1divi2, aliasi1*10", imsClient);
-        try {
-            testIQL1(DimensionUtils.createDataset(), Collections.emptyList(), "from dimension yesterday today SELECT i1+i1divi2", imsClient);
-            Assert.fail("Result of AggregateMetric Dimension like / can't be used as input for further calculations");
-        } catch (IllegalArgumentException ex) {
-        }
+        assertIQL1FailQuery("from dimension yesterday today SELECT i1+i1divi2");
     }
 
     @Test
@@ -67,8 +62,11 @@ public class DimensionTest {
         expected.add(ImmutableList.of("3", "2", "1"));
         expected.add(ImmutableList.of("3", "5", "1"));
         testIQL2(DimensionUtils.createDataset(), expected, "from dimension yesterday today GROUP BY i1[HAVING plus > 3], i2 HAVING counts > 0 SELECT counts", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("1", "1")), "from dimension yesterday today GROUP BY i2 HAVING i1divi2 > 1", imsClient);
+        testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING counts > 1", imsClient);
         assertFailQuery("from dimension yesterday today GROUP BY calc");
         assertFailQuery("from dimension yesterday today GROUP BY i1divi2 in (1, 2)");
+        assertIQL2FailQuery("from dimension yesterday today GROUP BY i1divi2 > 1");
 
     }
 
@@ -86,14 +84,27 @@ public class DimensionTest {
     public void testFilterMultiple() throws Exception {
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today as d1, dimension2 as d2 WHERE i2 = 4 AND i1 = 4", imsClient);
         testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today as d1, dimension2 as d2 WHERE calc = 0", imsClient);
-        assertFailQuery("from dimension yesterday today, dimension2 WHERE plus = 0");
+        assertIQL2FailQuery("from dimension yesterday today, dimension2 WHERE plus = 0");
+    }
+
+    private void assertIQL1FailQuery(final String query) throws Exception {
+        try {
+            testIQL1(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of()), query, imsClient);
+            Assert.fail(query + " is expected to fail");
+        } catch (IllegalArgumentException ex) {}
+
+    }
+
+    private void assertIQL2FailQuery(final String query) throws Exception {
+        try {
+            testIQL2(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of()), query, imsClient);
+            Assert.fail(query + " is expected to fail");
+        } catch (IllegalArgumentException ex) {}
+
     }
 
     private void assertFailQuery(final String query) throws Exception {
-        try {
-            testAll(DimensionUtils.createDataset(), ImmutableList.of(ImmutableList.of()), query, imsClient);
-            Assert.fail(query + " is expected to fail");
-        } catch (IllegalArgumentException ex) {
-        }
+        assertIQL1FailQuery(query);
+        assertIQL2FailQuery(query);
     }
 }
