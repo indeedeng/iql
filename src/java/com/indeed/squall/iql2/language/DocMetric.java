@@ -116,10 +116,10 @@ public abstract class DocMetric extends AbstractPositional {
     }
 
     public static class PerDatasetDocMetric extends DocMetric {
-        public final Map<String, DocMetric> datasetToMetric;
+        public final ImmutableMap<String, DocMetric> datasetToMetric;
 
         public PerDatasetDocMetric(final Map<String, DocMetric> datasetToMetric) {
-            this.datasetToMetric = datasetToMetric;
+            this.datasetToMetric = ImmutableMap.copyOf(datasetToMetric);
         }
 
         @Override
