@@ -1,9 +1,7 @@
 package com.indeed.squall.iql2.language.dimensions;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.google.common.base.Strings;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.DocMetric;
 
 @JsonIgnoreProperties({"metric"})
 public class Dimension {
@@ -18,11 +16,6 @@ public class Dimension {
         this.expression = expression;
         this.description = description;
         this.metric = metric;
-        if (!Strings.isNullOrEmpty(expression) && ((metric instanceof AggregateMetric.ImplicitDocStats)
-                && (((AggregateMetric.ImplicitDocStats) metric).docMetric instanceof DocMetric.Field))) {
-            isAlias = true;
-        } else {
-            isAlias = false;
-        }
+        this.isAlias = DatasetDimensions.getAlias(metric).isPresent();
     }
 }
