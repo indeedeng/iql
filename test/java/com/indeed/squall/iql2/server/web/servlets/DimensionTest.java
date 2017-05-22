@@ -67,6 +67,7 @@ public class DimensionTest {
         expected.add(ImmutableList.of("3", "2", "1"));
         expected.add(ImmutableList.of("3", "5", "1"));
         testIQL2(DimensionUtils.createDataset(), expected, "from dimension yesterday today GROUP BY i1[HAVING plus > 3], i2 HAVING counts > 0 SELECT counts", imsClient);
+        assertFailQuery("from dimension yesterday today GROUP BY calc");
         assertFailQuery("from dimension yesterday today GROUP BY i1divi2 in (1, 2)");
 
     }
