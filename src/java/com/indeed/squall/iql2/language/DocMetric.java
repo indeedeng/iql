@@ -1133,7 +1133,7 @@ public abstract class DocMetric extends AbstractPositional {
     }
 
     public static class HasInt extends DocMetric {
-        public Positioned<String> field;
+        public final Positioned<String> field;
         public final long term;
 
         public HasInt(Positioned<String> field, long term) {
