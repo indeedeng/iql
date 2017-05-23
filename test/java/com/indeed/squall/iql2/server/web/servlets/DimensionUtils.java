@@ -7,6 +7,7 @@ import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,11 +32,6 @@ public class DimensionUtils {
         private DatasetYaml createDimension2() {
             List<MetricsYaml> metrics = new ArrayList<>();
 
-            final MetricsYaml countsMetric = new MetricsYaml();
-            countsMetric.setName("counts");
-            countsMetric.setExpr("count()");
-            metrics.add(countsMetric);
-
             final MetricsYaml aliasi2 = new MetricsYaml();
             aliasi2.setName("i2");
             aliasi2.setExpr("i1");
@@ -48,6 +44,7 @@ public class DimensionUtils {
 
             DatasetYaml dataset = new DatasetYaml();
             dataset.setName("dimension2");
+            dataset.setType("Imhotep");
             dataset.setDescription("dimension2 dataset");
             dataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
             return dataset;
@@ -55,11 +52,6 @@ public class DimensionUtils {
 
         private DatasetYaml createDimension() {
             List<MetricsYaml> metrics = new ArrayList<>();
-
-            final MetricsYaml countsMetric = new MetricsYaml();
-            countsMetric.setName("counts");
-            countsMetric.setExpr("count()");
-            metrics.add(countsMetric);
 
             final MetricsYaml emptyMetric = new MetricsYaml();
             emptyMetric.setName("empty");
@@ -103,6 +95,7 @@ public class DimensionUtils {
 
             DatasetYaml dimensionDataset = new DatasetYaml();
             dimensionDataset.setName("dimension");
+            dimensionDataset.setType("Imhotep");
             dimensionDataset.setDescription("dimension dataset");
             dimensionDataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
             return dimensionDataset;
@@ -133,29 +126,31 @@ public class DimensionUtils {
         }
     }
 
+
     public static Dataset createDataset() {
+        final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
 
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 12), 0, 0, "", "0.1"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 13), 0, 2, "", "0.2"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, 0, 15), 3, 2, "a", "0.3"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 0, 30), 3, 5, "b", "0.4"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 4, 0, 30), 4, 1, "b", "1.0"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 12, timeZone), 0, 0, "", "0.1"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 13, timeZone), 0, 2, "", "0.2"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, 0, 15, timeZone), 3, 2, "a", "0.3"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 0, 30, timeZone), 3, 5, "b", "0.4"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 4, 0, 30, timeZone), 4, 1, "b", "1.0"));
             shards.add(new Dataset.DatasetShard("dimension", "index20150101.00", flamdex));
         }
 
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 2, 2, 0, 30), 4, 6, "b", "0.1"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 2, 2, 0, 30, timeZone), 4, 6, "b", "0.1"));
             shards.add(new Dataset.DatasetShard("dimension", "index20150102.00", flamdex));
         }
 
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 2, 0, 30), 0, 0, "a", "0.1"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 2, 0, 30), 4, -1, "b", "0.1"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 2, 0, 30, timeZone), 0, 0, "a", "0.1"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 2, 0, 30, timeZone), 4, -1, "b", "0.1"));
             shards.add(new Dataset.DatasetShard("dimension2", "index20150101.00", flamdex));
         }
 

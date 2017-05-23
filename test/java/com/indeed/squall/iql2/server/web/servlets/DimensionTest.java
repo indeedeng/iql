@@ -22,6 +22,14 @@ public class DimensionTest extends BasicTest {
     private final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create().setSkipTestDimension(true).setImsClient(imsClient);
 
     @Test
+    public void testGlobalDimension() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "25300", "20", "5"));
+        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek, counts", options);
+    }
+
+
+    @Test
     public void testSelect() throws Exception {
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "0", "5", "200", "10", "1", "20", "70", "2", "3", "3")),
                 "from dimension yesterday today SELECT " +
