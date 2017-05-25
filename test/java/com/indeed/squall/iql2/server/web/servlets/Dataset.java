@@ -23,7 +23,7 @@ public class Dataset {
     public final List<DatasetShard> shards;
     private final ImsClientInterface aliasImsClient;
 
-    private static final String ALIAS_PREFIX = "_ALIAS_";
+    private static final String DIMENSION_PREFIX = "_DIMENSION_";
 
     protected Dataset(List<DatasetShard> shards) {
         this.shards = shards;
@@ -91,7 +91,7 @@ public class Dataset {
                 if (intFieldEntry.getKey().equals("unixtime")) {
                     aliasDoc.addIntTerms(intFieldEntry.getKey(), intFieldEntry.getValue());
                 } else {
-                    aliasDoc.addIntTerms(ALIAS_PREFIX + intFieldEntry.getKey(), intFieldEntry.getValue());
+                    aliasDoc.addIntTerms(DIMENSION_PREFIX + intFieldEntry.getKey(), intFieldEntry.getValue());
                 }
             }
 
@@ -119,7 +119,7 @@ public class Dataset {
                 for (String intField : flamdex.getIntFields()) {
                     final MetricsYaml metric = new MetricsYaml();
                     metric.setName(intField);
-                    metric.setExpr(ALIAS_PREFIX+intField+"+0");
+                    metric.setExpr(DIMENSION_PREFIX +intField+"+0");
                     metrics.add(metric);
                 }
                 dataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
