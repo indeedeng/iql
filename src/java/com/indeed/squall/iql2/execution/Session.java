@@ -247,7 +247,7 @@ public class Session {
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
             for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
-                if (upperCasedIntFields.contains(entry.getValue())) {
+                if (upperCasedIntFields.contains(entry.getValue()) || fieldAliases.containsKey(entry.getValue())) {
                     sessionIntFields.add(entry.getKey());
                     upperCasedIntFields.add(entry.getKey().toUpperCase());
                 } else if (upperCasedStringFields.contains(entry.getValue())) {

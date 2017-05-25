@@ -43,10 +43,21 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private String rewrite(String field) {
-        if (aliasToReal.containsKey(field)) {
-            return aliasToReal.get(field);
+        int depth = 0;
+        String rewriteField = field;
+        while (aliasToReal.containsKey(rewriteField)) {
+            final String newRewriteField = aliasToReal.get(rewriteField);
+            if (newRewriteField.equals(rewriteField)) {
+                return newRewriteField;
+            }
+            rewriteField = newRewriteField;
+            depth++;
+            if (depth > 10) {
+                throw new IllegalArgumentException(
+                        String.format("alias field %s has cirtculate reference: %s -> %s", field, field, rewriteField));
+            }
         }
-        return field;
+        return rewriteField;
     }
 
     private static final Pattern REGEXMATCH_COMMAND = Pattern.compile("regexmatch\\s+(\\w+)\\s+([0-9]+)\\s(.+)");
