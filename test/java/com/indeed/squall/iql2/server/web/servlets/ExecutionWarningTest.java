@@ -34,7 +34,7 @@ public class ExecutionWarningTest extends BasicTest {
     }
 
     private List<String> testLimitHelper(final String query) throws Exception {
-        final JsonNode header = QueryServletTestUtils.getQueryHeader(OrganicDataset.create(), query,
+        final JsonNode header = QueryServletTestUtils.getQueryHeader(OrganicDataset.create().getShards(), query,
                 QueryServletTestUtils.LanguageVersion.IQL1, QueryServletTestUtils.Options.create());
         if (header.get("IQL-Warning") == null) {
             return Collections.emptyList();

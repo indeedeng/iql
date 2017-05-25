@@ -169,7 +169,7 @@ public class AggregateMetricsTest extends BasicTest {
     public void testPercentile1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "1", "1", "1"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select percentile(allbit, 0.00001), percentile(allbit, 50), percentile(allbit, 100)");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select percentile(allbit, 0.00001), percentile(allbit, 50), percentile(allbit, 100)", false);
     }
 
     @Test
@@ -183,16 +183,14 @@ public class AggregateMetricsTest extends BasicTest {
     public void testAVG() throws  Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "118", "0.3"));
-        final List<Shard> shards = OrganicDataset.create();
-        QueryServletTestUtils.testIQL2(shards, expected, "from organic 2015-01-01 00:00 2015-01-01 01:00 SELECT AVG(oji), AVG(DISTINCT(tk))");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 2015-01-01 00:00 2015-01-01 01:00 SELECT AVG(oji), AVG(DISTINCT(tk))");
     }
 
     @Test
     public void testMultiAVG() throws  Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "118", "10", "0.3", "25.43", "25.43"));
-        final List<Shard> shards = OrganicDataset.create();
-        QueryServletTestUtils.testIQL2(shards, expected,
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
                 "from organic 2015-01-01 00:00 2015-01-01 01:00 as o1, organic 2015-01-01 01:00 2015-01-01 02:00 as o2 " +
                         "SELECT AVG(o1.oji), AVG(o2.oji), AVG(DISTINCT(o1.tk)), PRINTF('%.2f', AVG(oji)), PRINTF('%.2f', AVG(o1.oji+o2.oji))");
     }

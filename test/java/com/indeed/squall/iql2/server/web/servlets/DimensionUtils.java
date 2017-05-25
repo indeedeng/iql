@@ -43,7 +43,7 @@ public class DimensionUtils {
 
             final MetricsYaml aliasCalc = new MetricsYaml();
             aliasCalc.setName("calc");
-            aliasCalc.setExpr("i1");
+            aliasCalc.setExpr("(i1+i2)*10");
             metrics.add(aliasCalc);
 
             DatasetYaml dataset = new DatasetYaml();
@@ -89,6 +89,11 @@ public class DimensionUtils {
             aliasI1.setName("aliasi1");
             aliasI1.setExpr("i1");
             metrics.add(aliasI1);
+
+            final MetricsYaml aliasI2 = new MetricsYaml();
+            aliasI2.setName("aliasi2");
+            aliasI2.setExpr("i2");
+            metrics.add(aliasI2);
 
             final MetricsYaml aliesCombined = new MetricsYaml();
             aliesCombined.setName("aliasCombined");

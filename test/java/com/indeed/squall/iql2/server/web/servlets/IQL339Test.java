@@ -11,9 +11,10 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
 public class IQL339Test extends BasicTest {
     @Test
     public void testBasicFilters() throws Exception {
-        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji");
-        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji");
-        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji, oji");
-        testIQL2(OrganicDataset.create(), ImmutableList.<List<String>>of(), "from organic(oji=-1) yesterday today group by oji, oji, oji");
+        final Dataset dataset = OrganicDataset.create();
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji", false);
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji", false);
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji, oji", false);
+        testIQL2(dataset, ImmutableList.<List<String>>of(), "from organic(oji=-1) yesterday today group by oji, oji, oji", false);
     }
 }

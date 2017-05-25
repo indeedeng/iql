@@ -176,6 +176,18 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
+    static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
+        testIQL1(dataset, expected, query, true);
+    }
+
+    static void testIQL1(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
+        testIQL1(dataset.getShards(), expected, query, Options.create());
+        if (testDimension) {
+            testIQL1(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+        }
+    }
+
+
     static void testIQL1(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
         testIQL1(shards, expected, query, Options.create());
     }
@@ -194,6 +206,16 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL2(shards, expected, query, Options.create());
     }
 
+    static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
+        testIQL2(dataset, expected, query, true);
+    }
+
+    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
+        testIQL2(dataset.getShards(), expected, query, Options.create());
+        if (testDimension) {
+            testIQL2(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+        }
+    }
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
         testIQL2(shards, expected, query, Options.create(imsClient));
@@ -205,15 +227,32 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void runIQL2(List<Shard> shards, String query) throws Exception {
-        final Options options = Options.create();
+        runIQL2(shards, query, Options.create());
+    }
+
+    static void runIQL2(List<Shard> shards, String query, Options options) throws Exception {
         runQuery(shards, query, LanguageVersion.IQL2, false, options);
         runQuery(shards, query, LanguageVersion.IQL2, true, options);
     }
 
+    static void runIQL2(Dataset dataset, String query) throws Exception {
+        runIQL2(dataset.getShards(), query);
+        runIQL2(dataset.getDimensionFields(), query, Options.create(dataset.getAliasImsClient()));
+    }
+
     static void runIQL1(List<Shard> shards, String query) throws Exception {
-        final Options options = Options.create();
+        runIQL1(shards, query, Options.create());
+    }
+
+
+    static void runIQL1(List<Shard> shards, String query, Options options) throws Exception {
         runQuery(shards, query, LanguageVersion.IQL1, false, options);
         runQuery(shards, query, LanguageVersion.IQL1, true, options);
+    }
+
+    static void runIQL1(Dataset dataset, String query) throws Exception {
+        runIQL1(dataset.getShards(), query);
+        runIQL1(dataset.getDimensionFields(), query, Options.create(dataset.getAliasImsClient()));
     }
 
     static void runAll(List<Shard> shards, String query) throws Exception {
@@ -221,8 +260,24 @@ public class QueryServletTestUtils extends BasicTest {
         runIQL2(shards, query);
     }
 
+    static void runAll(Dataset dataset, String query) throws Exception {
+        runIQL1(dataset, query);
+        runIQL2(dataset, query);
+    }
+
     static void testAll(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
         testAll(shards, expected, query, Options.create());
+    }
+
+    static void testAll(Dataset dataset, List<List<String>> expected, String query) throws Exception {
+        testAll(dataset, expected, query, true);
+    }
+
+    static void testAll(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
+        testAll(dataset.getShards(), expected, query, Options.create());
+        if (testDimension) {
+            testAll(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+        }
     }
 
     static void testAll(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {

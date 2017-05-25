@@ -11,7 +11,8 @@ public class EmptyRemapRuleTest extends BasicTest {
     public void basicTest() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("DEFAULT", "151"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by oji[having count() > 200] with default");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+                "from organic yesterday today group by oji[having count() > 200] with default", false);
     }
 
 }

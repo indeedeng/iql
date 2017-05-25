@@ -58,12 +58,15 @@ public class CommandValidator {
         for (final String dataset : datasetsFields.datasets()) {
             final ImmutableSet<String> intFields = datasetsFields.getIntFields(dataset);
             final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
+            final ImmutableSet<String> metricFields = datasetsFields.getMetricFields(dataset);
             final ImmutableMap<Positioned<String>, Positioned<String>> aliasToActual = aliasToDataset.get(dataset).fieldAliases;
             for (final Map.Entry<Positioned<String>, Positioned<String>> entry : aliasToActual.entrySet()) {
-                if (intFields.contains(entry.getValue().unwrap().toUpperCase())) {
-                    builder.addIntField(dataset, entry.getKey().unwrap().toUpperCase());
-                } else if (stringFields.contains(entry.getValue().unwrap().toUpperCase())) {
-                    builder.addStringField(dataset, entry.getKey().unwrap().toUpperCase());
+                final String aliasField = entry.getKey().unwrap().toUpperCase();
+                final String actualField = entry.getValue().unwrap().toUpperCase();
+                if (intFields.contains(actualField.toUpperCase()) || metricFields.contains(actualField)) {
+                    builder.addIntField(dataset, aliasField);
+                } else if (stringFields.contains(actualField.toUpperCase())) {
+                    builder.addStringField(dataset, aliasField);
                 } else {
                     throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
                 }

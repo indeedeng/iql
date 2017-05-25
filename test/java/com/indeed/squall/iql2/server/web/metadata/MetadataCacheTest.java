@@ -1,6 +1,5 @@
 package com.indeed.squall.iql2.server.web.metadata;
 
-import com.google.common.collect.ImmutableMap;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -13,18 +12,24 @@ import java.util.Map;
 public class MetadataCacheTest {
     @Test
     public void testExpandMetricExpression() {
-        final Map<String, String> metricsExpressions = ImmutableMap.of(
-                "same", "same",
-                "complex", "c1+c2*c3",
-                "alias", "complex",
-                "recursive", "alias+same"
-        );
+        final Map<String, String> metricsExpressions = new HashMap<>();
+        metricsExpressions.put("same", "same");
+        metricsExpressions.put("complex", "c1+c2*c3");
+        metricsExpressions.put("alias", "complex");
+        metricsExpressions.put("recursive", "alias+same");
+        metricsExpressions.put("a-2", "a2");
+        metricsExpressions.put("test-dash", "a1+`a-2`");
+        metricsExpressions.put("test_under", "a+b");
+
         Assert.assertEquals("plain", MetadataCache.expandMetricExpression("plain", metricsExpressions));
         Assert.assertEquals("(c1+c2*c3)", MetadataCache.expandMetricExpression("complex", metricsExpressions));
         Assert.assertEquals("avg((c1+c2*c3))", MetadataCache.expandMetricExpression("avg(complex)", metricsExpressions));
         Assert.assertEquals("(a1+same)", MetadataCache.expandMetricExpression("(a1+same)", metricsExpressions));
         Assert.assertEquals("a2+((c1+c2*c3))", MetadataCache.expandMetricExpression("a2+alias", metricsExpressions));
         Assert.assertEquals("((c1+c2*c3)*10)/(((c1+c2*c3))+same)", MetadataCache.expandMetricExpression("(complex*10)/recursive", metricsExpressions));
+        Assert.assertEquals("`a-1`", MetadataCache.expandMetricExpression("`a-1`", metricsExpressions));
+        Assert.assertEquals("(a1+(a2))+a3", MetadataCache.expandMetricExpression("`test-dash`+a3", metricsExpressions));
+        Assert.assertEquals("(a+b)", MetadataCache.expandMetricExpression("test_under", metricsExpressions));
     }
 
     @Test
@@ -50,7 +55,7 @@ public class MetadataCacheTest {
         metricsExpressions.put(calcMetric.getName(), calcMetric.getExpr());
         Assert.assertEquals(
                 new AggregateMetric.ImplicitDocStats(
-                        new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")),new DocMetric.Constant(10))),
+                        new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10))),
                 metadataCache.parseMetric(calcMetric, metricsExpressions));
 
         final MetricsYaml combinedMetric = new MetricsYaml();
@@ -64,7 +69,6 @@ public class MetadataCacheTest {
                                 new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10)))),
                 metadataCache.parseMetric(combinedMetric, metricsExpressions));
 
-
         final MetricsYaml aggregateMetric1 = new MetricsYaml();
         aggregateMetric1.setName("agg1");
         aggregateMetric1.setExpr("oji/ojc");
@@ -75,7 +79,6 @@ public class MetadataCacheTest {
                         new AggregateMetric.DocStats(new DocMetric.Field("OJC"))),
                 metadataCache.parseMetric(aggregateMetric1, metricsExpressions));
 
-
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
         aggregateMetric2.setName("agg2");
         aggregateMetric2.setExpr("(score-100)/4");
@@ -85,7 +88,6 @@ public class MetadataCacheTest {
                         new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
                         new AggregateMetric.Constant(4)),
                 metadataCache.parseMetric(aggregateMetric2, metricsExpressions));
-
 
         final MetricsYaml requireFTGSMetric = new MetricsYaml();
         requireFTGSMetric.setName("ftgsFunc");
