@@ -27,8 +27,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +47,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
 
     private String rewrite(String field) {
         String rewriteField = field;
-        final Set<String> seenField = new HashSet<>();
+        final Set<String> seenField = new LinkedHashSet<>();
         seenField.add(field);
         while (aliasToReal.containsKey(rewriteField)) {
             final String newRewriteField = aliasToReal.get(rewriteField);
