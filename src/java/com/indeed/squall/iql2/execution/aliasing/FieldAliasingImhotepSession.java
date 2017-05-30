@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.execution.aliasing;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -26,9 +27,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,19 +46,22 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private String rewrite(String field) {
-        int depth = 0;
         String rewriteField = field;
+        final Set<String> seenField = new HashSet<>();
+        seenField.add(field);
         while (aliasToReal.containsKey(rewriteField)) {
             final String newRewriteField = aliasToReal.get(rewriteField);
+            // for the dimension: same -> same
             if (newRewriteField.equals(rewriteField)) {
                 return newRewriteField;
             }
-            rewriteField = newRewriteField;
-            depth++;
-            if (depth > 10) {
+            if (seenField.contains(newRewriteField)) {
                 throw new IllegalArgumentException(
-                        String.format("alias field %s has cirtculate reference: %s -> %s", field, field, rewriteField));
+                        String.format("alias field %s has circular reference: %s -> %s", field, field,
+                                Joiner.on(" -> ").join(seenField.toArray()), newRewriteField));
             }
+            seenField.add(newRewriteField);
+            rewriteField = newRewriteField;
         }
         return rewriteField;
     }
