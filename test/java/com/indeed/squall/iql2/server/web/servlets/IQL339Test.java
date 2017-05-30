@@ -14,9 +14,9 @@ public class IQL339Test extends BasicTest {
     @Test
     public void testBasicFilters() throws Exception {
         final Dataset dataset = OrganicDataset.create();
-        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji");
-        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji");
-        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji, oji");
-        testIQL2(dataset, ImmutableList.<List<String>>of(), "from organic(oji=-1) yesterday today group by oji, oji, oji");
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji", true);
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji", true);
+        testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji, oji", true);
+        testIQL2(dataset, ImmutableList.<List<String>>of(), "from organic(oji=-1) yesterday today group by oji, oji, oji", true);
     }
 }

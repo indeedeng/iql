@@ -26,6 +26,6 @@ public class PrintfTest extends BasicTest {
     public void testWithGroupBy() throws Exception {
         // More convoluted than printf(1/3, '%0.2d') to support both IQL1 and IQL2.
         // In IQL1, 1/3 == count() / 3
-        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "0.33")), "from organic yesterday today select printf('%.2f', count()/(3*count()))", true);
+        testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "0.33")), "from organic yesterday today select printf('%.2f', count()/(3*count()))");
     }
 }

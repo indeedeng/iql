@@ -53,7 +53,7 @@ public class GroupByHavingTest extends BasicTest {
 
     @Test
     public void testHaving() throws Exception {
-        testIQL2(GroupByHavingDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2");
+        testIQL2(GroupByHavingDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2", true);
     }
 
     @Test

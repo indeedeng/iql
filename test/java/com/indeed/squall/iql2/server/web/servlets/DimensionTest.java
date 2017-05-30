@@ -19,7 +19,7 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
 public class DimensionTest extends BasicTest {
     private ImsClientInterface imsClient = new DimensionUtils.ImsClient();
     private final Dataset dataset = DimensionUtils.createDataset();
-    private final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create().setImsClient(imsClient);
+    private final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create().setSkipTestDimension(true).setImsClient(imsClient);
 
     @Test
     public void testSelect() throws Exception {

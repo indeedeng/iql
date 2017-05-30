@@ -74,8 +74,8 @@ public class TimeRegroupTest extends BasicTest {
 
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "0", "1"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()", true);
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -103,7 +103,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -119,7 +119,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 6, 7), "1", "0"));
 
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -133,7 +133,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()");
     }
 
     @Test
@@ -149,7 +149,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "0", "1"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "0", "1"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -166,7 +166,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "1", "0"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "1", "0"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -175,7 +175,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("January 2015", "10", "10"));
         expected.add(ImmutableList.of("February 2015", "100", "200"));
         expected.add(ImmutableList.of("March 2015", "1", "3"));
-        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by time(1M) select count(), month", true);
+        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by time(1M) select count(), month");
     }
 
     @Test
@@ -190,7 +190,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("3", "January 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
-        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month");
+        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
     }
 
     private static Dataset multiMonthDataset() {
@@ -248,7 +248,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("Friday", "8", "37"));
         expected.add(ImmutableList.of("Saturday", "0", "0"));
         expected.add(ImmutableList.of("Sunday", "16", "169"));
-        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-15 group by dayofweek select count(), day", true);
+        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-15 group by dayofweek select count(), day");
     }
 
     @Test
@@ -268,7 +268,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Friday", "5", "10"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
-        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day", true);
+        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
     }
 
     private static Dataset dayOfWeekDataset() {

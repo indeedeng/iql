@@ -142,7 +142,7 @@ public class QueryServletTestUtils extends BasicTest {
         public Long subQueryTermLimit = -1L;
         public QueryCache queryCache = new NoOpQueryCache();
         public ImsClientInterface imsClient;
-        public boolean alsoTestDimension = false;
+        public boolean skipTestDimension = false;
 
         Options() {
         }
@@ -151,9 +151,9 @@ public class QueryServletTestUtils extends BasicTest {
             return new Options();
         }
 
-        public static Options create(boolean alsoTestDimension) {
+        public static Options create(boolean skipTestDimension) {
             final Options options = create();
-            options.alsoTestDimension = alsoTestDimension;
+            options.skipTestDimension = skipTestDimension;
             return options;
         }
 
@@ -162,8 +162,9 @@ public class QueryServletTestUtils extends BasicTest {
             return this;
         }
 
-        public void setAlsoTestDimension(boolean alsoTestDimension) {
-            this.alsoTestDimension = alsoTestDimension;
+        public Options setSkipTestDimension(boolean skipTestDimension) {
+            this.skipTestDimension = skipTestDimension;
+            return this;
         }
 
         public Long getSubQueryTermLimit() {
@@ -196,7 +197,7 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL1(dataset.getShards(), expected, query, options);
-        if (options.alsoTestDimension) {
+        if (!options.skipTestDimension) {
             testIQL1(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -210,13 +211,13 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL2(dataset, expected, query, false);
     }
 
-    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean alsoTestDimension) throws Exception {
-        testIQL2(dataset, expected, query, Options.create(alsoTestDimension));
+    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testIQL2(dataset, expected, query, Options.create(skipTestDimension));
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL2(dataset.getShards(), expected, query, options);
-        if (options.alsoTestDimension) {
+        if (!options.skipTestDimension) {
             testIQL2(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -259,13 +260,13 @@ public class QueryServletTestUtils extends BasicTest {
         testAll(dataset, expected, query, false);
     }
 
-    static void testAll(Dataset dataset, List<List<String>> expected, String query, boolean alsoTestDimension) throws Exception {
-        testAll(dataset, expected, query, Options.create(alsoTestDimension));
+    static void testAll(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testAll(dataset, expected, query, Options.create(skipTestDimension));
     }
 
     static void testAll(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testAll(dataset.getShards(), expected, query, options);
-        if (options.alsoTestDimension) {
+        if (!options.skipTestDimension) {
             testAll(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }

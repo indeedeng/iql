@@ -68,7 +68,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("abc", "400"));
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02, dataset 2015-01-02 2015-01-03 as ds2, dataset 2015-01-03 2015-01-04 as ds3, dataset 2015-01-04 2015-01-05 as abc " +
-                        "group by DATASET() select COUNT()", true
+                        "group by DATASET() select COUNT()"
         );
     }
 
@@ -98,8 +98,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d3", "70000", "63000"));
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-08 as d1, dataset 2015-01-08 2015-01-15 as d2, dataset 2015-01-15 2015-01-22 as d3 " +
-                "group by time(1d relative), DATASET() select COUNT(), if (lag(1,count()) > 0) then count() - lag(1, count()) else 0",
-                true
+                "group by time(1d relative), DATASET() select COUNT(), if (lag(1,count()) > 0) then count() - lag(1, count()) else 0"
         );
     }
 
@@ -111,7 +110,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by DATASET() " +
-                        "select PARENT(COUNT()) / COUNT()", true
+                        "select PARENT(COUNT()) / COUNT()"
         );
     }
 
@@ -125,7 +124,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by label, DATASET() " +
-                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()"
+                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
 
@@ -139,7 +138,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by DATASET(), label " +
-                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()"
+                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
 
@@ -151,7 +150,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 " +
-                        "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))", false
+                        "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))", true
         );
     }
 }

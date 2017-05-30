@@ -35,6 +35,6 @@ public class ExtractTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("5", "5", "3", "2", "10"));
         expected.add(ImmutableList.of("7", "7", "2", "5", "0"));
-        QueryServletTestUtils.testIQL2(ExtractDataset.create(), expected, "from extract yesterday today group by field2 select extract(field2, \"(\\\\d+)\"), extract(field1, \"a (\\\\d) (\\\\d)\"), extract(field1, \"a (\\\\d) (\\\\d)\", 2), extract(field3, \"(\\\\d+)\")");
+        QueryServletTestUtils.testIQL2(ExtractDataset.create(), expected, "from extract yesterday today group by field2 select extract(field2, \"(\\\\d+)\"), extract(field1, \"a (\\\\d) (\\\\d)\"), extract(field1, \"a (\\\\d) (\\\\d)\", 2), extract(field3, \"(\\\\d+)\")", true);
     }
 }
