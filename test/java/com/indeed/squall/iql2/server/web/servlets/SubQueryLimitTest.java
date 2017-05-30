@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubQueryLimitTest extends BasicTest {
-    final Dataset dataset = SubQueryDataset.create();
+    final Dataset dataset = createDataset();
+
     @Test
     public void testQueryNoLimit() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
@@ -44,18 +45,16 @@ public class SubQueryLimitTest extends BasicTest {
         }
     }
 
-    private static class SubQueryDataset {
-        public static Dataset create() {
-            final List<Dataset.DatasetShard> shards = Lists.newArrayList();
-            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            for (int i = 0; i < 105; i++) {
-                final FlamdexDocument doc = new FlamdexDocument();
-                doc.addIntTerm("f", i);
-                flamdex.addDocument(doc);
-            }
-
-            shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
-            return new Dataset(shards);
+    public static Dataset createDataset() {
+        final List<Dataset.DatasetShard> shards = Lists.newArrayList();
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
+        for (int i = 0; i < 105; i++) {
+            final FlamdexDocument doc = new FlamdexDocument();
+            doc.addIntTerm("f", i);
+            flamdex.addDocument(doc);
         }
+
+        shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
+        return new Dataset(shards);
     }
 }

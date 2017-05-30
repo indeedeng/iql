@@ -18,10 +18,10 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "40", "49.5", "59"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "60", "69.5", "79"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "80", "89.5", "99"));
-        QueryServletTestUtils.testIQL2(dataset(), expected, "from dataset yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(createDataset(), expected, "from dataset yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)", true);
     }
 
-    public static Dataset dataset() {
+    public static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         for (int i = 0; i < 100; i++) {
