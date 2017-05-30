@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public class GroupByHavingTest extends BasicTest {
 
     @Test
     public void testHaving() throws Exception {
-        testIQL2(GroupByHavingDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2", false);
+        testIQL2(GroupByHavingDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2");
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.squall.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.MemoryFlamdex;
@@ -7,6 +7,7 @@ import com.indeed.ims.client.DatasetInterface;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.squall.iql2.server.web.servlets.Shard;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.HashMap;
@@ -16,29 +17,35 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- *
+ * dataset for normal and dimension shards
+ * for dimension shards will do a mapping:
+ 1. name those int fields as DIMENSION_field_name.
+ 2. create dimensions which map field_name = DIMENSION_field_name + 0
+ * Usage:
+ * for queries that require FTGS on int fields, should use the normal shards, eg: testAll(dataset.getShards(), query)
+ * for other queries use: eg: testAll(dataset, query), it will check the normal shards and dimension shards
  */
 public class Dataset {
 
     public final List<DatasetShard> shards;
-    private final ImsClientInterface aliasImsClient;
+    private final ImsClientInterface dimensionImsClient;
 
     private static final String DIMENSION_PREFIX = "_DIMENSION_";
 
-    protected Dataset(List<DatasetShard> shards) {
+    public Dataset(List<DatasetShard> shards) {
         this.shards = shards;
-        aliasImsClient = new AliasDimensionClient(getShards());
+        dimensionImsClient = new AliasDimensionClient(getShards());
     }
 
-    public ImsClientInterface getAliasImsClient() {
-        return aliasImsClient;
+    public ImsClientInterface getDimensionImsClient() {
+        return dimensionImsClient;
     }
 
     public List<Shard> getShards() {
         return flamdexShards(false);
     }
 
-    public List<Shard> getDimensionFields() {
+    public List<Shard> getDimensionShards() {
         return flamdexShards(true);
     }
 
@@ -58,7 +65,7 @@ public class Dataset {
         return flamdexShards;
     }
 
-    static class DatasetShard {
+    public static class DatasetShard {
         final String dataset;
         final String shardId;
         final DatasetFlamdex flamdex;
@@ -70,35 +77,35 @@ public class Dataset {
         }
     }
 
-    static class DatasetFlamdex {
+    public static class DatasetFlamdex {
         private final List<FlamdexDocument> originDocuments;
         private final List<FlamdexDocument> dimensionDocuments;
 
-        DatasetFlamdex() {
+        public DatasetFlamdex() {
             originDocuments = Lists.newArrayList();
             dimensionDocuments =  Lists.newArrayList();
         }
 
-        DatasetFlamdex addDocument(FlamdexDocument doc) {
+        public DatasetFlamdex addDocument(FlamdexDocument doc) {
             originDocuments.add(doc);
             dimensionDocuments.add(makeDimensionDocument(doc));
             return this;
         }
 
         private FlamdexDocument makeDimensionDocument(FlamdexDocument doc) {
-            final FlamdexDocument aliasDoc = new FlamdexDocument();
+            final FlamdexDocument dimensionDoc = new FlamdexDocument();
             for (Map.Entry<String, LongList> intFieldEntry : doc.getIntFields().entrySet()) {
                 if (intFieldEntry.getKey().equals("unixtime")) {
-                    aliasDoc.addIntTerms(intFieldEntry.getKey(), intFieldEntry.getValue());
+                    dimensionDoc.addIntTerms(intFieldEntry.getKey(), intFieldEntry.getValue());
                 } else {
-                    aliasDoc.addIntTerms(DIMENSION_PREFIX + intFieldEntry.getKey(), intFieldEntry.getValue());
+                    dimensionDoc.addIntTerms(DIMENSION_PREFIX + intFieldEntry.getKey(), intFieldEntry.getValue());
                 }
             }
 
             for (Map.Entry<String, List<String>> stringFieldEntry : doc.getStringFields().entrySet()) {
-                aliasDoc.addStringTerms(stringFieldEntry.getKey(), stringFieldEntry.getValue());
+                dimensionDoc.addStringTerms(stringFieldEntry.getKey(), stringFieldEntry.getValue());
             }
-            return aliasDoc;
+            return dimensionDoc;
         }
     }
 

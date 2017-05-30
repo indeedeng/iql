@@ -1,9 +1,9 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.Options;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -17,33 +17,33 @@ import java.util.List;
 public class ValidationTests extends BasicTest {
     private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
 
-    private List<Shard> trivialOrganic() {
-        final MemoryFlamdex flamdex = new MemoryFlamdex();
+    private List<Dataset.DatasetShard> trivialOrganic() {
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
         doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, TIME_ZONE).getMillis() / 1000);
         doc.addIntTerm("clicked", 1);
         doc.addIntTerm("isOrganic", 1);
         flamdex.addDocument(doc);
         return Collections.singletonList(
-            new Shard("organic", "index20150101", flamdex)
+            new Dataset.DatasetShard("organic", "index20150101", flamdex)
         );
     }
 
-    private List<Shard> trivialSponsored() {
-        final MemoryFlamdex flamdex = new MemoryFlamdex();
+    private List<Dataset.DatasetShard> trivialSponsored() {
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
         doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, TIME_ZONE).getMillis() / 1000);
         doc.addIntTerm("clicked", 1);
         doc.addIntTerm("isOrganic", 0);
         flamdex.addDocument(doc);
         return Collections.singletonList(
-            new Shard("sponsored", "index20150101", flamdex)
+            new Dataset.DatasetShard("sponsored", "index20150101", flamdex)
         );
     }
 
     @Test
     public void testBasicValidationPassing() throws Exception {
-        final List<Shard> shards = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         shards.addAll(trivialOrganic());
         shards.addAll(trivialSponsored());
         final String basic =
@@ -59,20 +59,20 @@ public class ValidationTests extends BasicTest {
         final List<List<String>> expected = ImmutableList.of(Arrays.asList("", "2", "1", "1", "2", "1", "1", "1", "1"));
 
         for (final String query : Arrays.asList(basic, aliases, sameDataset)) {
-            QueryServletTestUtils.testIQL2(shards, expected, query);
+            QueryServletTestUtils.testIQL2(new Dataset(shards), expected, query, true);
         }
     }
 
     @Test
     public void testBasicValidationRejecting() throws Exception {
-        final List<Shard> shards = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         shards.addAll(trivialOrganic());
         shards.addAll(trivialSponsored());
         final String query =
                 "FROM organic 2015-01-01 2015-01-02, sponsored " +
                 "SELECT [organic.clicked + sponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, false, Options.create());
+            QueryServletTestUtils.runQuery(new Dataset(shards).getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, Options.create());
             Assert.fail();
         } catch (Exception ignored) {
         }

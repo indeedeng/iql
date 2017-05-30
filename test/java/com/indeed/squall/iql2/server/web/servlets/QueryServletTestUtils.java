@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import junit.framework.Assert;
@@ -141,20 +142,28 @@ public class QueryServletTestUtils extends BasicTest {
         public Long subQueryTermLimit = -1L;
         public QueryCache queryCache = new NoOpQueryCache();
         public ImsClientInterface imsClient;
+        public boolean alsoTestDimension = false;
 
         Options() {
-        }
-
-        Options(ImsClientInterface imsClient) {
-            this.imsClient = imsClient;
         }
 
         public static Options create() {
             return new Options();
         }
 
-        public static Options create(ImsClientInterface imsClient) {
-            return new Options(imsClient);
+        public static Options create(boolean alsoTestDimension) {
+            final Options options = create();
+            options.alsoTestDimension = alsoTestDimension;
+            return options;
+        }
+
+        public Options setImsClient(ImsClientInterface imsClient) {
+            this.imsClient = imsClient;
+            return this;
+        }
+
+        public void setAlsoTestDimension(boolean alsoTestDimension) {
+            this.alsoTestDimension = alsoTestDimension;
         }
 
         public Long getSubQueryTermLimit() {
@@ -177,23 +186,19 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
-        testIQL1(dataset, expected, query, true);
+        testIQL1(dataset, expected, query, false);
     }
+
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
-        testIQL1(dataset.getShards(), expected, query, Options.create());
-        if (testDimension) {
-            testIQL1(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+        testIQL1(dataset, expected, query, Options.create(testDimension));
+    }
+
+    static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL1(dataset.getShards(), expected, query, options);
+        if (options.alsoTestDimension) {
+            testIQL1(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
-    }
-
-
-    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
-        testIQL1(shards, expected, query, Options.create());
-    }
-
-    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
-        testIQL1(shards, expected, query, Options.create(imsClient));
     }
 
     static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
@@ -201,24 +206,19 @@ public class QueryServletTestUtils extends BasicTest {
         Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
     }
 
-
-    static void testIQL2(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
-        testIQL2(shards, expected, query, Options.create());
-    }
-
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
-        testIQL2(dataset, expected, query, true);
+        testIQL2(dataset, expected, query, false);
     }
 
-    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
-        testIQL2(dataset.getShards(), expected, query, Options.create());
-        if (testDimension) {
-            testIQL2(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean alsoTestDimension) throws Exception {
+        testIQL2(dataset, expected, query, Options.create(alsoTestDimension));
+    }
+
+    static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL2(dataset.getShards(), expected, query, options);
+        if (options.alsoTestDimension) {
+            testIQL2(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
-    }
-
-    static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
-        testIQL2(shards, expected, query, Options.create(imsClient));
     }
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
@@ -235,11 +235,6 @@ public class QueryServletTestUtils extends BasicTest {
         runQuery(shards, query, LanguageVersion.IQL2, true, options);
     }
 
-    static void runIQL2(Dataset dataset, String query) throws Exception {
-        runIQL2(dataset.getShards(), query);
-        runIQL2(dataset.getDimensionFields(), query, Options.create(dataset.getAliasImsClient()));
-    }
-
     static void runIQL1(List<Shard> shards, String query) throws Exception {
         runIQL1(shards, query, Options.create());
     }
@@ -250,47 +245,31 @@ public class QueryServletTestUtils extends BasicTest {
         runQuery(shards, query, LanguageVersion.IQL1, true, options);
     }
 
-    static void runIQL1(Dataset dataset, String query) throws Exception {
-        runIQL1(dataset.getShards(), query);
-        runIQL1(dataset.getDimensionFields(), query, Options.create(dataset.getAliasImsClient()));
-    }
-
     static void runAll(List<Shard> shards, String query) throws Exception {
         runIQL1(shards, query);
         runIQL2(shards, query);
     }
 
-    static void runAll(Dataset dataset, String query) throws Exception {
-        runIQL1(dataset, query);
-        runIQL2(dataset, query);
-    }
-
-    static void testAll(List<Shard> shards, List<List<String>> expected, String query) throws Exception {
-        testAll(shards, expected, query, Options.create());
+    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL1(shards, expected, query, options);
+        testIQL2(shards, expected, query, options);
     }
 
     static void testAll(Dataset dataset, List<List<String>> expected, String query) throws Exception {
-        testAll(dataset, expected, query, true);
+        testAll(dataset, expected, query, false);
     }
 
-    static void testAll(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
-        testAll(dataset.getShards(), expected, query, Options.create());
-        if (testDimension) {
-            testAll(dataset.getDimensionFields(), expected, query, Options.create(dataset.getAliasImsClient()));
+    static void testAll(Dataset dataset, List<List<String>> expected, String query, boolean alsoTestDimension) throws Exception {
+        testAll(dataset, expected, query, Options.create(alsoTestDimension));
+    }
+
+    static void testAll(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
+        testAll(dataset.getShards(), expected, query, options);
+        if (options.alsoTestDimension) {
+            testAll(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
-    static void testAll(List<Shard> shards, List<List<String>> expected, String query, ImsClientInterface imsClient) throws Exception {
-        testAll(shards, expected, query, Options.create(imsClient));
-    }
-
-    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
-
-    }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
         final List<List<String>> output = new ArrayList<>();

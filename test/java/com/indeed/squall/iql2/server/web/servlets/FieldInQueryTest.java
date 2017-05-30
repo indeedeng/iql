@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.junit.Test;

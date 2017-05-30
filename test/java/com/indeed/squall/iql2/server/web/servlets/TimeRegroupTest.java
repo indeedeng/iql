@@ -1,8 +1,9 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -73,8 +74,8 @@ public class TimeRegroupTest extends BasicTest {
 
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "0", "1"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()");
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()", true);
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -88,7 +89,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -102,7 +103,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -118,7 +119,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 6, 7), "1", "0"));
 
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -132,7 +133,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1", "1"));
         }
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()", true);
     }
 
     @Test
@@ -148,7 +149,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "0", "1"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "0", "1"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -165,7 +166,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "1", "0"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "1", "0"));
 
-        testIQL2(OrganicDataset.create(), expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        testIQL2(OrganicDataset.create(), expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()", true);
     }
 
     @Test
@@ -174,7 +175,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("January 2015", "10", "10"));
         expected.add(ImmutableList.of("February 2015", "100", "200"));
         expected.add(ImmutableList.of("March 2015", "1", "3"));
-        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by time(1M) select count(), month");
+        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by time(1M) select count(), month", true);
     }
 
     @Test
@@ -192,14 +193,14 @@ public class TimeRegroupTest extends BasicTest {
         testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month");
     }
 
-    private static List<Shard> multiMonthDataset() {
+    private static Dataset multiMonthDataset() {
         final DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser().withZone(TIME_ZONE);
         // 10 documents in January 2015 with month = 1
         // 100 documents in February 2015 with month = 2
         // 1 document in March 2015 with month = 3
-        final List<Shard> result = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 10; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 1);
@@ -207,11 +208,11 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150101", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 100; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 2);
@@ -219,11 +220,11 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150201", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150201", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 1; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 3);
@@ -231,10 +232,10 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150301", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150301", flamdex));
         }
 
-        return result;
+        return new Dataset(shards);
     }
 
     @Test
@@ -247,7 +248,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("Friday", "8", "37"));
         expected.add(ImmutableList.of("Saturday", "0", "0"));
         expected.add(ImmutableList.of("Sunday", "16", "169"));
-        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-15 group by dayofweek select count(), day");
+        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-15 group by dayofweek select count(), day", true);
     }
 
     @Test
@@ -267,10 +268,10 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Friday", "5", "10"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
-        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
+        testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day", true);
     }
 
-    private static List<Shard> dayOfWeekDataset() {
+    private static Dataset dayOfWeekDataset() {
         // 2015-01-01 THU 1
         // 2015-01-02 FRI 5
         // 2015-01-03 SAT 0
@@ -286,12 +287,12 @@ public class TimeRegroupTest extends BasicTest {
         // 2015-01-13 TUE 7
         // 2015-01-14 WED 1
         final int[] counts = new int[]{1, 5, 0, 1, 10, 100, 5, 50, 3, 0, 15, 8, 7, 1};
-        final List<Shard> result = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (int i = 0; i < counts.length; i++) {
             if (counts[i] == 0) {
                 continue;
             }
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int j = 0; j < counts[i]; j++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("day", i + 1);
@@ -299,8 +300,8 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", String.format("index201501%02d", i + 1), flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", String.format("index201501%02d", i + 1), flamdex));
         }
-        return result;
+        return new Dataset(shards);
     }
 }

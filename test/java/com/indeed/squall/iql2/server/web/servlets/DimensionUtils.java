@@ -1,11 +1,11 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.ims.client.DatasetInterface;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
@@ -143,33 +143,33 @@ public class DimensionUtils {
         }
     }
 
-    public static List<Shard> createDataset() {
-        final List<Shard> result = new ArrayList<>();
+    public static Dataset createDataset() {
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 12), 0, 0, "", "0.1"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 13), 0, 2, "", "0.2"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, 0, 15), 3, 2, "a", "0.3"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 0, 30), 3, 5, "b", "0.4"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 4, 0, 30), 4, 1, "b", "1.0"));
-            result.add(new Shard("dimension", "index20150101.00", flamdex));
+            shards.add(new Dataset.DatasetShard("dimension", "index20150101.00", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 2, 2, 0, 30), 4, 6, "b", "0.1"));
-            result.add(new Shard("dimension", "index20150102.00", flamdex));
+            shards.add(new Dataset.DatasetShard("dimension", "index20150102.00", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 2, 0, 30), 0, 0, "a", "0.1"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 2, 0, 30), 4, -1, "b", "0.1"));
-            result.add(new Shard("dimension2", "index20150101.00", flamdex));
+            shards.add(new Dataset.DatasetShard("dimension2", "index20150101.00", flamdex));
         }
 
-        return result;
+        return new Dataset(shards);
     }
 
     private static FlamdexDocument makeDocument(DateTime timestamp, int i1, int i2, String s1, String f1) {

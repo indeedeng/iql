@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,8 +20,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("a", "4", "1"));
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "145", "2"));
-        testIQL2(dataset, expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)", false);
-        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by tk in ('a', \"b\") with default select count()", false);
+        testIQL2(dataset, expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
+        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by tk in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -28,8 +30,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("c", "4", "1"));
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "6", "2"));
-        testIQL2(dataset, expected, "from organic yesterday today group by tk not in ('a', \"b\") with default select count(), distinct(tk)", false);
-        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by tk not in ('a', \"b\") with default select count()", false);
+        testIQL2(dataset, expected, "from organic yesterday today group by tk not in ('a', \"b\") with default select count(), distinct(tk)");
+        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by tk not in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -38,8 +40,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("1", "84", "3"));
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "65", "4"));
-        testIQL2(dataset, expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)", false);
-        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by ojc in (1, 10) with default select count()", false);
+        testIQL2(dataset, expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)");
+        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by ojc in (1, 10) with default select count()");
     }
 
     @Test
@@ -51,7 +53,7 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("5", "1", "1"));
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "86", "3"));
-        testIQL2(dataset, expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)", false);
-        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()", false);
+        testIQL2(dataset, expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)");
+        testIQL2(dataset, withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()");
     }
 }

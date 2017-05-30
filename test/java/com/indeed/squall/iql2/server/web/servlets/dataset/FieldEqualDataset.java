@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.squall.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.writer.FlamdexDocument;
@@ -7,7 +7,7 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
-class FieldEqualDataset {
+public class FieldEqualDataset {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }

@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,28 +13,28 @@ public class RegexTest {
     public void testNormalDocFilter1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "4"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"a\" select count()");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"a\" select count()", true);
     }
 
     @Test
     public void testNormalDocFilter2() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "6"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"(b|c)\" select count()");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"(b|c)\" select count()", true);
     }
 
     @Test
     public void testNormalDocMetric1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "4"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select tk =~ \"a\"");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select tk =~ \"a\"", true);
     }
 
     @Test
     public void testNormalDocMetric2() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "6"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select tk =~ \"(b|c)\"");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select tk =~ \"(b|c)\"", true);
     }
 
     @Test
@@ -50,7 +51,7 @@ public class RegexTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "6"));
         try {
-            QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"[]*\" select count()");
+            QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \"[]*\" select count()", true);
             Assert.fail("Regex should not have parsed successfully.");
         } catch (Exception e) {
         }
@@ -61,7 +62,7 @@ public class RegexTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "6"));
         try {
-            QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()");
+            QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()", true);
             Assert.fail("Regex should not have parsed successfully.");
         } catch (Exception e) {
         }

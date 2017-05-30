@@ -1,4 +1,4 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.squall.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
 import org.joda.time.DateTime;
@@ -7,7 +7,7 @@ import org.joda.time.DateTimeZone;
 import java.util.ArrayList;
 import java.util.List;
 
-class OrganicDataset {
+public class OrganicDataset {
     // Overall:
     // count = 151
     // oji = 2653

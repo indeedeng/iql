@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "20"));
         expected.add(ImmutableList.of("[-∞, 1)", "2", "0"));
         expected.add(ImmutableList.of("[11, ∞)", "1", "15"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) select count(), ojc");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) select count(), ojc", true);
     }
 
     @Test
@@ -40,7 +41,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("9", "0", "0"));
         expected.add(ImmutableList.of("10", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc", true);
     }
 
     @Test
@@ -53,7 +54,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[9, 11)", "2", "20"));
         expected.add(ImmutableList.of("[-∞, 1)", "2", "0"));
         expected.add(ImmutableList.of("[11, ∞)", "1", "15"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) select count(), ojc");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) select count(), ojc", true);
     }
 
     @Test
@@ -66,6 +67,6 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[7, 9)", "0", "0"));
         expected.add(ImmutableList.of("[9, 11)", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
+        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc", true);
     }
 }

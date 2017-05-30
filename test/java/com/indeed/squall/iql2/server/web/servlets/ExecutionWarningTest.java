@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Assert;
 import org.junit.Test;
 
