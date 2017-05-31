@@ -154,7 +154,7 @@ public class SimpleIterate implements Command {
             }
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional();
+        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts);
 
         session.timer.pop();
 
@@ -220,7 +220,7 @@ public class SimpleIterate implements Command {
         }
     }
 
-    private Optional<Session.RemoteTopKParams> getTopKParamsOptional() {
+    private static Optional<Session.RemoteTopKParams> getTopKParamsOptional(final FieldIterateOpts opts) {
         Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
         if (opts.filter.isPresent()) {
             if (opts.topK.isPresent()) {
