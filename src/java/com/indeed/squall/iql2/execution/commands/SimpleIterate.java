@@ -154,7 +154,14 @@ public class SimpleIterate implements Command {
             }
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts.limit);
+
+        final Optional<Session.RemoteTopKParams> topKParams;
+        if (filterOrNull == null) {
+            topKParams = getTopKParamsOptional(opts.limit);
+        } else {
+            topKParams = Optional.absent();
+        }
+
         session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
