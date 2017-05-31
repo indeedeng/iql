@@ -95,10 +95,8 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
 
     @Test
     public void testGroupByImplicitOrderLimitWithHaving() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("3", "2"));
-        expected.add(ImmutableList.of("2", "4"));
-        testIQL2(createDataset(), expected, "from organic yesterday today group by i1[bottom 5] having count() > 1 limit 2");
+        testIQL2(createDataset(), ImmutableList.of(ImmutableList.of("3", "2"), ImmutableList.of("2", "4")), "from organic yesterday today group by i1[bottom 5] having count() > 1 limit 2");
+        testIQL2(createDataset(), ImmutableList.of(ImmutableList.of("3", "2")), "from organic yesterday today group by i1[1 by i2] limit 2");
     }
 
 
