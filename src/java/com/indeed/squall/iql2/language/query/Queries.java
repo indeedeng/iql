@@ -186,10 +186,7 @@ public class Queries {
         return datasets;
     }
 
-
-
     private static SplitQuery.Dataset extractDataset(final JQLParser.DatasetContext datasetContext, final CharStream queryInputStream) {
-        final String dataset = datasetContext.index.getText();
         final String start, end;
         if (datasetContext.start != null) {
             start = getText(queryInputStream, datasetContext.start);
@@ -198,51 +195,25 @@ public class Queries {
             start = "";
             end = "";
         }
-
-        final String fieldAlias;
-        if (datasetContext.aliases() != null) {
-            fieldAlias = getText(queryInputStream, datasetContext.aliases());
-        } else {
-            fieldAlias = "";
-        }
-        final String alias;
-        if (datasetContext.name != null) {
-            alias = getText(queryInputStream, datasetContext.name);
-        } else {
-            alias = "";
-        }
-        final String where;
-        if (datasetContext.whereContents() != null) {
-            where = getText(queryInputStream, datasetContext.whereContents());
-        } else {
-            where = "";
-        }
+        final String dataset = datasetContext.index.getText();
+        final String fieldAlias = (datasetContext.aliases() != null) ?
+                getText(queryInputStream, datasetContext.aliases()) : "";
+        final String alias = (datasetContext.name != null) ? getText(queryInputStream, datasetContext.name) : "";
+        final String where = (datasetContext.whereContents() != null) ?
+                getText(queryInputStream, datasetContext.whereContents()) : "";
         return new SplitQuery.Dataset(dataset, where, start, end, alias, fieldAlias);
     }
 
-    private static SplitQuery.Dataset extractPartialDataset(final JQLParser.PartialDatasetContext datasetContext, final CharStream queryInputStream, final String start, final String end) {
+    private static SplitQuery.Dataset extractPartialDataset(
+            final JQLParser.PartialDatasetContext datasetContext, final CharStream queryInputStream, final String start, final String end) {
         final String dataset = getText(queryInputStream, datasetContext.index);
-        final String fieldAlias;
-        if (datasetContext.aliases() != null) {
-            fieldAlias = getText(queryInputStream, datasetContext.aliases());
-        } else {
-            fieldAlias = "";
-        }
-        final String alias;
-        if (datasetContext.name != null) {
-            alias = getText(queryInputStream, datasetContext.name);
-        } else {
-            alias = "";
-        }
-        final String where;
-        if (datasetContext.whereContents() != null) {
-            where = getText(queryInputStream, datasetContext.whereContents());
-        } else {
-            where = "";
-        }
+        final String fieldAlias = (datasetContext.aliases() != null) ?
+                getText(queryInputStream, datasetContext.aliases()) : "";
+        final String alias = (datasetContext.name != null) ? getText(queryInputStream, datasetContext.name) : "";
+        final String where = (datasetContext.whereContents() != null) ?
+                getText(queryInputStream, datasetContext.whereContents()) : "";
         return new SplitQuery.Dataset(dataset, where, start, end, alias, fieldAlias);
     }
-
 
     @VisibleForTesting
     static List<String> extractHeaders(Query parsed, CharStream input) {
