@@ -222,22 +222,18 @@ public class SimpleIterate implements Command {
 
     private static Optional<Session.RemoteTopKParams> getTopKParamsOptional(final FieldIterateOpts opts) {
         Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
-        if (opts.filter.isPresent()) {
-            if (opts.topK.isPresent()) {
-                final TopK topK = opts.topK.get();
-                if (topK.metric.isPresent()) {
-                    if (topK.limit.isPresent()) {
-                        final AggregateMetric topKMetric = opts.topK.get().metric.get();
-                        if (topKMetric instanceof DocumentLevelMetric) {
-                            final int limitNum;
-                            if (opts.limit.isPresent()) {
-                                limitNum = Math.min(opts.limit.get(), topK.limit.get());
-                            } else {
-                                limitNum = topK.limit.get();
-                            }
-                            topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
-                        }
+        if (opts.filter.isPresent() && opts.topK.isPresent()) {
+            final TopK topK = opts.topK.get();
+            if (topK.metric.isPresent() && topK.limit.isPresent()) {
+                final AggregateMetric topKMetric = opts.topK.get().metric.get();
+                if (topKMetric instanceof DocumentLevelMetric) {
+                    final int limitNum;
+                    if (opts.limit.isPresent()) {
+                        limitNum = Math.min(opts.limit.get(), topK.limit.get());
+                    } else {
+                        limitNum = topK.limit.get();
                     }
+                    topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
                 }
             }
         }
