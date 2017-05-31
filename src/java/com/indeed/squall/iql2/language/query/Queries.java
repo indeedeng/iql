@@ -15,6 +15,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.Positional;
@@ -146,6 +147,7 @@ public class Queries {
         final String startRawString;
         final String end;
         final String endRawString;
+        final List<SplitQuery.Dataset> datasets;
 
         if (queryContext.fromContents().datasetOptTime().isEmpty()) {
             final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
@@ -162,8 +164,85 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString);
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString,
+                extractDatasets(queryContext.fromContents(), queryInputStream));
     }
+
+    static List<SplitQuery.Dataset> extractDatasets(final JQLParser.FromContentsContext fromContentsContext, final CharStream queryInputStream) {
+        final List<SplitQuery.Dataset> datasets = new ArrayList<>();
+        final SplitQuery.Dataset ds1 = extractDataset(fromContentsContext.dataset(), queryInputStream);
+        datasets.add(ds1);
+        for (final JQLParser.DatasetOptTimeContext datasetOptTimeContext : fromContentsContext.datasetOptTime()) {
+            datasetOptTimeContext.enterRule(new JQLBaseListener() {
+                public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
+                    datasets.add(extractDataset(ctx.dataset(), queryInputStream));
+                }
+
+                public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
+                    datasets.add(extractPartialDataset(ctx, queryInputStream, ds1.start, ds1.end));
+                }
+            });
+        }
+        return datasets;
+    }
+
+
+
+    private static SplitQuery.Dataset extractDataset(final JQLParser.DatasetContext datasetContext, final CharStream queryInputStream) {
+        final String dataset = datasetContext.index.getText();
+        final String start, end;
+        if (datasetContext.start != null) {
+            start = getText(queryInputStream, datasetContext.start);
+            end = getText(queryInputStream, datasetContext.end);
+        } else {
+            start = "";
+            end = "";
+        }
+
+        final String fieldAlias;
+        if (datasetContext.aliases() != null) {
+            fieldAlias = getText(queryInputStream, datasetContext.aliases());
+        } else {
+            fieldAlias = "";
+        }
+        final String alias;
+        if (datasetContext.name != null) {
+            alias = getText(queryInputStream, datasetContext.name);
+        } else {
+            alias = "";
+        }
+        final String where;
+        if (datasetContext.whereContents() != null) {
+            where = getText(queryInputStream, datasetContext.whereContents());
+        } else {
+            where = "";
+        }
+        return new SplitQuery.Dataset(dataset, where, start, end, alias, fieldAlias);
+    }
+
+    private static SplitQuery.Dataset extractPartialDataset(final JQLParser.PartialDatasetContext datasetContext, final CharStream queryInputStream, final String start, final String end) {
+        final String dataset = getText(queryInputStream, datasetContext.index);
+        final String fieldAlias;
+        if (datasetContext.aliases() != null) {
+            fieldAlias = getText(queryInputStream, datasetContext.aliases());
+        } else {
+            fieldAlias = "";
+        }
+        final String alias;
+        if (datasetContext.name != null) {
+            alias = getText(queryInputStream, datasetContext.name);
+        } else {
+            alias = "";
+        }
+        final String where;
+        if (datasetContext.whereContents() != null) {
+            where = getText(queryInputStream, datasetContext.whereContents());
+        } else {
+            where = "";
+        }
+        return new SplitQuery.Dataset(dataset, where, start, end, alias, fieldAlias);
+    }
+
 
     @VisibleForTesting
     static List<String> extractHeaders(Query parsed, CharStream input) {
