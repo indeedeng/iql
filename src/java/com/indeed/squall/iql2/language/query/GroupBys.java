@@ -260,7 +260,7 @@ public class GroupBys {
                     metric = Optional.of(theMetric);
                 } else {
                     if (reverseOrder) {
-                        metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(new AggregateMetric.DocStats(new DocMetric.Count())));
+                        metric = Optional.<AggregateMetric>of(new AggregateMetric.ImplicitDocStats(new DocMetric.Negate(new DocMetric.Count())));
                     } else {
                         metric = Optional.absent();
                     }
