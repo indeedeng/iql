@@ -15,6 +15,7 @@ import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import junit.framework.Assert;

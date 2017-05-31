@@ -8,6 +8,7 @@ import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import junit.framework.Assert;
