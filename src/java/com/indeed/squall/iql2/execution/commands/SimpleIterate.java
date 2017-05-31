@@ -154,13 +154,7 @@ public class SimpleIterate implements Command {
             }
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-
-        final Optional<Session.RemoteTopKParams> topKParams;
-        if (filterOrNull == null) {
-            topKParams = getTopKParamsOptional(opts.limit);
-        } else {
-            topKParams = Optional.absent();
-        }
+        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional();
 
         session.timer.pop();
 
@@ -226,21 +220,23 @@ public class SimpleIterate implements Command {
         }
     }
 
-    private Optional<Session.RemoteTopKParams> getTopKParamsOptional(Optional<Integer> queryRowLimit) {
+    private Optional<Session.RemoteTopKParams> getTopKParamsOptional() {
         Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
-        if (opts.topK.isPresent()) {
-            final TopK topK = opts.topK.get();
-            if (topK.metric.isPresent()) {
-                if (topK.limit.isPresent()) {
-                    final AggregateMetric topKMetric = opts.topK.get().metric.get();
-                    if (topKMetric instanceof DocumentLevelMetric) {
-                        final int limitNum;
-                        if (queryRowLimit.isPresent()) {
-                            limitNum = Math.min(queryRowLimit.get(), topK.limit.get());
-                        } else {
-                            limitNum = topK.limit.get();
+        if (opts.filter.isPresent()) {
+            if (opts.topK.isPresent()) {
+                final TopK topK = opts.topK.get();
+                if (topK.metric.isPresent()) {
+                    if (topK.limit.isPresent()) {
+                        final AggregateMetric topKMetric = opts.topK.get().metric.get();
+                        if (topKMetric instanceof DocumentLevelMetric) {
+                            final int limitNum;
+                            if (opts.limit.isPresent()) {
+                                limitNum = Math.min(opts.limit.get(), topK.limit.get());
+                            } else {
+                                limitNum = topK.limit.get();
+                            }
+                            topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
                         }
-                        topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
                     }
                 }
             }
