@@ -50,15 +50,6 @@ public class SubstituteDimension {
                             if (metricDimension.isPresent()) {
                                 return applyDatasetToExpandedMetric(metricDimension.get().metric, pushStats.dataset);
                             }
-                        } else if (docMetric instanceof DocMetric.HasInt) {
-                            final Optional<Dimension> dimension = dimensionMetrics.getNonAliasDimension(((DocMetric.HasInt) docMetric).field.unwrap());
-                            if (dimension.isPresent()) {
-                                final DocMetric dimensionMetric = getDocMetricOrThrow(dimension.get());
-                                return new AggregateMetric.DocStatsPushes(
-                                        pushStats.dataset,
-                                        new DocMetric.PushableDocMetric(
-                                                new DocMetric.MetricEqual(dimensionMetric, new DocMetric.Constant(((DocMetric.HasInt) docMetric).term))));
-                            }
                         } else {
                             final Function<String, Optional<DocMetric>> getMetricDimensionFunc =
                                     field -> getSubstitutedDimensionDocMetric(ImmutableSet.of(pushStats.dataset), dimensionsMetrics, datasetAliasToOrigin, field);
