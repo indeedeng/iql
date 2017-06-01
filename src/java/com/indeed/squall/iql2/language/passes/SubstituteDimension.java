@@ -118,7 +118,9 @@ public class SubstituteDimension {
                     }
                 } else if (input instanceof DocMetric.HasInt) {
                     final Optional<DocMetric> dimensionMetric = getMetricDimensionFunc.apply(((DocMetric.HasInt) input).field.unwrap());
-                    return new DocMetric.MetricEqual(dimensionMetric.get(), new DocMetric.Constant(((DocMetric.HasInt) input).term));
+                    if (dimensionMetric.isPresent()) {
+                        return new DocMetric.MetricEqual(dimensionMetric.get(), new DocMetric.Constant(((DocMetric.HasInt) input).term));
+                    }
                 } else if (input instanceof DocMetric.FieldEqualMetric) {
                     DocMetric.FieldEqualMetric fieldEqualMetric = ((DocMetric.FieldEqualMetric) input);
                     final Optional<DocMetric> dimensionMetric1 = getMetricDimensionFunc.apply(fieldEqualMetric.field1.unwrap());

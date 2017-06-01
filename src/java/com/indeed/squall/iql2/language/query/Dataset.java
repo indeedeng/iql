@@ -51,11 +51,11 @@ public class Dataset extends AbstractPositional {
     }
 
     public Dataset setDimensionAliases(Map<String, String> dimensionAliases) {
-        final ImmutableMap.Builder<Positioned<String>, Positioned<String>> newFieldAliasesBuilder = new ImmutableMap.Builder<>();
-        newFieldAliasesBuilder.putAll(fieldAliases);
+        final Map<Positioned<String>, Positioned<String>> newFieldAliases = new HashMap<>();
         dimensionAliases.entrySet().forEach(
-                e -> newFieldAliasesBuilder.put(Positioned.unpositioned(e.getKey()), Positioned.unpositioned(e.getValue())));
-        return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliasesBuilder.build());
+                e -> newFieldAliases.put(Positioned.unpositioned(e.getKey()), Positioned.unpositioned(e.getValue())));
+        newFieldAliases.putAll(fieldAliases);
+        return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliases);
     }
 
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
