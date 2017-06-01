@@ -53,9 +53,8 @@ public class StringOrAction implements Action, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
-            final Set<String> stringFields = datasetsFields.getStringFields(dataset);
-            if (!stringFields.contains(this.field)) {
-                validator.error(ErrorMessages.missingStringField(dataset, this.field, this));
+            if (!datasetsFields.containsStringField(dataset, field)) {
+                validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
     }

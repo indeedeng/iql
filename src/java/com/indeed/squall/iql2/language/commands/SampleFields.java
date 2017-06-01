@@ -47,7 +47,7 @@ public class SampleFields implements Command, JsonSerializable {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                if (!datasetsFields.getAllFields(dataset).contains(sample.field.unwrap())) {
+                if (!datasetsFields.containsField(dataset, sample.field.unwrap())) {
                     validator.error(ErrorMessages.missingField(dataset, sample.field.unwrap(), this));
                 }
             }

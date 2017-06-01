@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
+import java.util.function.BiPredicate;
 
 public class ValidationUtil {
     public static DatasetsFields findFieldsUsed(Map<String, Query> perDatasetQuery) {
@@ -33,11 +33,11 @@ public class ValidationUtil {
             final String dataset = entry.getKey();
             final Query query = entry.getValue();
             final DatasetsFields fieldsUsed = findFieldsUsed(dataset, query);
-            for (final String field : fieldsUsed.getIntFields(dataset)) {
-                builder.addIntField(dataset, field);
+            for (final String uppercasedField : fieldsUsed.getUppercasedIntFields(dataset)) {
+                builder.addIntField(dataset, uppercasedField);
             }
-            for (final String field : fieldsUsed.getStringFields(dataset)) {
-                builder.addStringField(dataset, field);
+            for (final String uppercasedField : fieldsUsed.getUppercasedStringFields(dataset)) {
+                builder.addStringField(dataset, uppercasedField);
             }
         }
         return builder.build();
@@ -54,12 +54,12 @@ public class ValidationUtil {
         switch (query.getQueryType()) {
             case TERM:
             case RANGE:
-                final String fieldName = query.getStartTerm().getFieldName();
+                final String uppercasedFieldName = query.getStartTerm().getFieldName().toUpperCase();
                 final boolean isIntField = query.getStartTerm().isIntField();
                 if (isIntField) {
-                    builder.addIntField(dataset, fieldName);
+                    builder.addIntField(dataset, uppercasedFieldName);
                 } else {
-                    builder.addStringField(dataset, fieldName);
+                    builder.addStringField(dataset, uppercasedFieldName);
                 }
                 break;
             case BOOLEAN:
@@ -71,21 +71,21 @@ public class ValidationUtil {
     }
 
     public static void ensureSubset(DatasetsFields superset, DatasetsFields subset, Validator validator, Object source, boolean allowStringFieldsForInts) {
-        for (final String dataset : subset.datasets()) {
-            final ImmutableSet<String> expectedStringFields = subset.getStringFields(dataset);
-            final ImmutableSet<String> actualStringFields = superset.getStringFields(dataset);
+        for (final String uppercasedDataset : subset.uppercasedDatasets()) {
+            final ImmutableSet<String> expectedStringFields = subset.getUppercasedStringFields(uppercasedDataset);
+            final ImmutableSet<String> actualStringFields = superset.getUppercasedStringFields(uppercasedDataset);
             for (final String field : expectedStringFields) {
                 if (!actualStringFields.contains(field)) {
-                    validator.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
+                    validator.error("Dataset \"" + uppercasedDataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
                 }
             }
 
-            final ImmutableSet<String> expectedIntFields = subset.getIntFields(dataset);
-            final ImmutableSet<String> actualIntFields = superset.getIntFields(dataset);
+            final ImmutableSet<String> expectedIntFields = subset.getUppercasedIntFields(uppercasedDataset);
+            final ImmutableSet<String> actualIntFields = superset.getUppercasedIntFields(uppercasedDataset);
             for (final String field : expectedIntFields) {
                 if (!actualIntFields.contains(field)) {
                     if (!(allowStringFieldsForInts && actualStringFields.contains(field))) {
-                        validator.error("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in [" + source + "]");
+                        validator.error("Dataset \"" + uppercasedDataset + "\" does not contain expected int field \"" + field + "\" in [" + source + "]");
                     }
                 }
             }
@@ -94,14 +94,14 @@ public class ValidationUtil {
 
     public static void validateScope(Collection<String> scope, DatasetsFields datasetsFields, Validator validator) {
         for (final String s : scope) {
-            if (!datasetsFields.datasets().contains(s)) {
+            if (!datasetsFields.uppercasedDatasets().contains(s.toUpperCase())) {
                 validator.error(ErrorMessages.missingDataset(s));
             }
         }
     }
 
     public static void validateDataset(String dataset, DatasetsFields datasetsFields, Validator validator) {
-        if (!datasetsFields.datasets().contains(dataset)) {
+        if (!datasetsFields.uppercasedDatasets().contains(dataset.toUpperCase())) {
             validator.error(ErrorMessages.missingDataset(dataset));
         }
     }
@@ -122,35 +122,35 @@ public class ValidationUtil {
 
     public static void validateIntField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, datasetsFields::getIntFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::containsIntField, validator, context);
     }
 
     public static void validateStringField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, datasetsFields::getStringFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::containsStringField, validator, context);
     }
 
     public static void validateField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, datasetsFields::getAllFields, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::containsField, validator, context);
     }
 
     private static void validateField(final Set<String> scope, final String field, final DatasetsFields datasetsFields,
-                                      final Function<String, Set<String>> getFieldsFunc, final Validator validator, final Object context) {
+                                      final BiPredicate<String, String> containsFieldPredicate, final Validator validator, final Object context) {
         scope.forEach(dataset -> {
-            if (datasetsFields.getMetricFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
-                return;
-            }
-            if (!getFieldsFunc.apply(dataset).contains(field)) {
+            if (!containsFieldPredicate.test(dataset, field)) {
+                if (datasetsFields.containsMetricField(dataset, field)) {
+                    validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
+                    return;
+                }
                 validator.error(ErrorMessages.missingIntField(dataset, field, context));
             }
         });
     }
 
     private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {
-        final boolean isIntField = datasetsFields.getIntFields(dataset).contains(field);
-        final boolean isStrField = datasetsFields.getStringFields(dataset).contains(field);
+        final boolean isIntField = datasetsFields.containsIntField(dataset, field);
+        final boolean isStrField = datasetsFields.containsStringField(dataset, field);
         if (isIntField) {
             return FieldType.INT;
         } else if (isStrField) {
@@ -191,12 +191,15 @@ public class ValidationUtil {
         }
     }
 
-    public static Query getFlamdexQuery(final String query, final String dataset, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields) {
+    public static Query getFlamdexQuery(final String query, final String dataset,
+                                        final Map<String, Set<String>> uppercasedDatasetToKeywordAnalyzerFields,
+                                        final Map<String, Set<String>> uppercasedDatasetToIntFields) {
         final Analyzer analyzer;
+        final String uppercasedDataset = dataset.toUpperCase();
         // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
-        if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
+        if (uppercasedDatasetToKeywordAnalyzerFields.containsKey(uppercasedDataset)) {
             final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
-            final Set<String> whitelist = datasetToKeywordAnalyzerFields.get(dataset);
+            final Set<String> whitelist = uppercasedDatasetToKeywordAnalyzerFields.get(uppercasedDataset);
             if (whitelist.contains("*")) {
                 analyzer = kwAnalyzer;
             } else {
@@ -217,11 +220,11 @@ public class ValidationUtil {
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
         }
-        if (!datasetToIntFields.containsKey(dataset)) {
+        if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
             return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
         } else {
             final Set<String> caseInsensitiveIntFields = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            caseInsensitiveIntFields.addAll(datasetToIntFields.get(dataset));
+            caseInsensitiveIntFields.addAll(uppercasedDatasetToIntFields.get(uppercasedDataset));
             return LuceneQueryTranslator.rewrite(parsed, caseInsensitiveIntFields);
         }
     }

@@ -56,8 +56,7 @@ public class SampleAction implements Action, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
-            final Set<String> fields = datasetsFields.getAllFields(dataset);
-            if (!fields.contains(field)) {
+            if (!datasetsFields.containsField(dataset, field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }

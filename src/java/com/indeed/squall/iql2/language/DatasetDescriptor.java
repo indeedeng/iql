@@ -60,8 +60,8 @@ public class DatasetDescriptor {
         if (datasetDimensions.isPresent()) {
             final ImmutableList.Builder<Dimension> builder = new ImmutableList.Builder();
             final DatasetDimensions dimension = datasetDimensions.get();
-            for (String field : dimension.fields()) {
-                builder.add(dimension.getDimension(field).get());
+            for (String uppercasedField : dimension.uppercasedFields()) {
+                builder.add(dimension.getDimension(uppercasedField).get());
             }
             dimensions = builder.build();
         } else {

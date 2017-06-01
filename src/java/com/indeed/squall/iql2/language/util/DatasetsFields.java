@@ -9,43 +9,66 @@ import java.util.Map;
 import java.util.Set;
 
 public class DatasetsFields {
-    private final Map<String, ImmutableSet<String>> datasetToIntFields;
-    private final Map<String, ImmutableSet<String>> datasetToStringFields;
-    private final Map<String, ImmutableSet<String>> datasetToNonAliasMetricFields;
+    private final Map<String, ImmutableSet<String>> uppercasedDatasetToIntFields;
+    private final Map<String, ImmutableSet<String>> uppercasedDatasetToStringFields;
+    private final Map<String, ImmutableSet<String>> uppercasedDatasetToNonAliasMetricFields;
 
     public DatasetsFields(
-            Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields, Map<String, Set<String>> datasetToNonAliasMetricFields) {
-        this.datasetToIntFields = copy(datasetToIntFields);
-        this.datasetToStringFields = copy(datasetToStringFields);
-        this.datasetToNonAliasMetricFields = copy(datasetToNonAliasMetricFields);
+            Map<String, Set<String>> uppercasedDatasetToIntFields, Map<String, Set<String>> uppercasedDatasetToStringFields,
+            Map<String, Set<String>> uppercasedDatasetToNonAliasMetricFields) {
+        this.uppercasedDatasetToIntFields = copy(uppercasedDatasetToIntFields);
+        this.uppercasedDatasetToStringFields = copy(uppercasedDatasetToStringFields);
+        this.uppercasedDatasetToNonAliasMetricFields = copy(uppercasedDatasetToNonAliasMetricFields);
     }
 
-    public ImmutableSet<String> getStringFields(String dataset) {
-        if (!datasetToStringFields.containsKey(dataset)) {
+    public ImmutableSet<String> getUppercasedStringFields(String dataset) {
+        final String uppercasedDataset = dataset.toUpperCase();
+        if (!uppercasedDatasetToStringFields.containsKey(uppercasedDataset)) {
             return ImmutableSet.of();
         } else {
-            return datasetToStringFields.get(dataset);
+            return uppercasedDatasetToStringFields.get(uppercasedDataset);
         }
     }
 
-    public ImmutableSet<String> getIntFields(String dataset) {
-        if (!datasetToIntFields.containsKey(dataset)) {
+    public ImmutableSet<String> getUppercasedIntFields(String dataset) {
+        final String uppercasedDataset = dataset.toUpperCase();
+        if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
             return ImmutableSet.of();
         } else {
-            return datasetToIntFields.get(dataset);
+            return uppercasedDatasetToIntFields.get(uppercasedDataset);
         }
     }
 
-    public ImmutableSet<String> getMetricFields(String dataset) {
-        if (!datasetToNonAliasMetricFields.containsKey(dataset)) {
-            return ImmutableSet.of();
+    public boolean containsStringField(String dataset, String field) {
+        final String uppercasedDataset = dataset.toUpperCase();
+        if (!uppercasedDatasetToStringFields.containsKey(uppercasedDataset)) {
+            return false;
         } else {
-            return datasetToNonAliasMetricFields.get(dataset);
+            return uppercasedDatasetToStringFields.get(uppercasedDataset).contains(field.toUpperCase());
         }
     }
 
-    public Set<String> getAllFields(String dataset) {
-        return Sets.union(getStringFields(dataset), getIntFields(dataset));
+    public boolean containsIntField(String dataset, String field) {
+        final String uppercasedDataset = dataset.toUpperCase();
+        if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
+            return false;
+        } else {
+            return uppercasedDatasetToIntFields.get(uppercasedDataset).contains(field.toUpperCase());
+        }
+    }
+
+    public boolean containsMetricField(String dataset, String field) {
+        final String uppercasedDataset = dataset.toUpperCase();
+        if (!uppercasedDatasetToNonAliasMetricFields.containsKey(uppercasedDataset)) {
+            return false;
+        } else {
+            return uppercasedDatasetToNonAliasMetricFields.get(uppercasedDataset).contains(field.toUpperCase());
+        }
+    }
+
+    // if field is in intFields or stringFields
+    public boolean containsField(String dataset, String field) {
+        return containsIntField(dataset, field) || containsStringField(dataset, field);
     }
 
     public static Builder builder() {
@@ -54,17 +77,17 @@ public class DatasetsFields {
 
     public static Builder builderFrom(DatasetsFields datasetsFields) {
         final Builder builder = new Builder();
-        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToIntFields.entrySet()) {
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.uppercasedDatasetToIntFields.entrySet()) {
             for (final String field : entry.getValue()) {
                 builder.addIntField(entry.getKey(), field);
             }
         }
-        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToStringFields.entrySet()) {
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.uppercasedDatasetToStringFields.entrySet()) {
             for (final String field : entry.getValue()) {
                 builder.addStringField(entry.getKey(), field);
             }
         }
-        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToNonAliasMetricFields.entrySet()) {
+        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.uppercasedDatasetToNonAliasMetricFields.entrySet()) {
             for (final String field : entry.getValue()) {
                 builder.addNonAliasMetricField(entry.getKey(), field);
             }
@@ -72,46 +95,50 @@ public class DatasetsFields {
         return builder;
     }
 
-    public Set<String> datasets() {
-        return Sets.union(datasetToIntFields.keySet(), datasetToStringFields.keySet());
+    public Set<String> uppercasedDatasets() {
+        return Sets.union(uppercasedDatasetToIntFields.keySet(), uppercasedDatasetToStringFields.keySet());
     }
 
     public static class Builder {
-        private final Map<String, Set<String>> datasetToIntFields = Maps.newHashMap();
-        private final Map<String, Set<String>> datasetToStringFields = Maps.newHashMap();
-        private final Map<String, Set<String>> datasetToNonAliasMetricFields = Maps.newHashMap();
+        private final Map<String, Set<String>> uppercasedDatasetToIntFields = Maps.newHashMap();
+        private final Map<String, Set<String>> uppercasedDatasetToStringFields = Maps.newHashMap();
+        private final Map<String, Set<String>> uppercasedDatasetToNonAliasMetricFields = Maps.newHashMap();
 
         public void addIntField(String dataset, String field) {
-            ensurePresent(dataset);
-            datasetToIntFields.get(dataset).add(field);
+            final String uppercasedDataset = dataset.toUpperCase();
+            ensurePresent(uppercasedDataset);
+            uppercasedDatasetToIntFields.get(uppercasedDataset).add(field.toUpperCase());
         }
 
         public void addStringField(String dataset, String field) {
-            ensurePresent(dataset);
-            datasetToStringFields.get(dataset).add(field);
+            final String uppercasedDataset = dataset.toUpperCase();
+            ensurePresent(uppercasedDataset);
+            uppercasedDatasetToStringFields.get(uppercasedDataset).add(field.toUpperCase());
         }
 
         public void addNonAliasMetricField(String dataset, String field) {
+            final String uppercasedDataset = dataset.toUpperCase();
             ensurePresent(dataset);
-            datasetToNonAliasMetricFields.get(dataset).add(field);
+            uppercasedDatasetToNonAliasMetricFields.get(uppercasedDataset).add(field.toUpperCase());
         }
 
         private void ensurePresent(String dataset) {
-            if (!datasetToIntFields.containsKey(dataset)) {
-                datasetToIntFields.put(dataset, Sets.<String>newHashSet());
+            final String uppercasedDataset = dataset.toUpperCase();
+            if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
+                uppercasedDatasetToIntFields.put(uppercasedDataset, Sets.<String>newHashSet());
             }
 
-            if (!datasetToStringFields.containsKey(dataset)) {
-                datasetToStringFields.put(dataset, Sets.<String>newHashSet());
+            if (!uppercasedDatasetToStringFields.containsKey(uppercasedDataset)) {
+                uppercasedDatasetToStringFields.put(uppercasedDataset, Sets.<String>newHashSet());
             }
 
-            if (!datasetToNonAliasMetricFields.containsKey(dataset)) {
-                datasetToNonAliasMetricFields.put(dataset, Sets.newHashSet());
+            if (!uppercasedDatasetToNonAliasMetricFields.containsKey(uppercasedDataset)) {
+                uppercasedDatasetToNonAliasMetricFields.put(uppercasedDataset, Sets.newHashSet());
             }
         }
 
         public DatasetsFields build() {
-            return new DatasetsFields(datasetToIntFields, datasetToStringFields, datasetToNonAliasMetricFields);
+            return new DatasetsFields(uppercasedDatasetToIntFields, uppercasedDatasetToStringFields, uppercasedDatasetToNonAliasMetricFields);
         }
     }
 

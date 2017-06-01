@@ -50,10 +50,9 @@ public class Dataset extends AbstractPositional {
         return alias.or(dataset);
     }
 
-    public Dataset setDimensionAliases(Map<String, String> dimensionAliases) {
+    public Dataset addAliasDimensions(Map<String, String> uppercasedAliasDimensions) {
         final Map<Positioned<String>, Positioned<String>> newFieldAliases = new HashMap<>();
-        dimensionAliases.entrySet().forEach(
-                e -> newFieldAliases.put(Positioned.unpositioned(e.getKey()), Positioned.unpositioned(e.getValue())));
+        uppercasedAliasDimensions.forEach((key, value) -> newFieldAliases.put(Positioned.unpositioned(key), Positioned.unpositioned(value)));
         newFieldAliases.putAll(fieldAliases);
         return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliases);
     }
