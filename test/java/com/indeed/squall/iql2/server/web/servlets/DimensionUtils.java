@@ -80,10 +80,10 @@ public class DimensionUtils {
             calcMetric.setExpr("(i1+i2)*10");
             metrics.add(calcMetric);
 
-            final MetricsYaml combinedMetric = new MetricsYaml();
-            combinedMetric.setName("combined");
-            combinedMetric.setExpr("same+calc");
-            metrics.add(combinedMetric);
+//            final MetricsYaml combinedMetric = new MetricsYaml();
+//            combinedMetric.setName("combined");
+//            combinedMetric.setExpr("same+calc");
+//            metrics.add(combinedMetric);
 
             final MetricsYaml aliasI1 = new MetricsYaml();
             aliasI1.setName("aliasi1");
@@ -94,15 +94,15 @@ public class DimensionUtils {
             aliasI2.setName("aliasi2");
             aliasI2.setExpr("i2");
             metrics.add(aliasI2);
-
-            final MetricsYaml aliesCombined = new MetricsYaml();
-            aliesCombined.setName("aliasCombined");
-            aliesCombined.setExpr("combined");
-            metrics.add(aliesCombined);
+//
+//            final MetricsYaml aliesCombined = new MetricsYaml();
+//            aliesCombined.setName("aliasCombined");
+//            aliesCombined.setExpr("combined");
+//            metrics.add(aliesCombined);
 
             final MetricsYaml funcMetric = new MetricsYaml();
             funcMetric.setName("floatf1");
-            funcMetric.setExpr("FLOATSCALE(f1, 10, 10)");
+            funcMetric.setExpr("FLOATSCALE(floatf1, 10, 10)");
             metrics.add(funcMetric);
 
             final MetricsYaml aggMetric1 = new MetricsYaml();
@@ -180,7 +180,7 @@ public class DimensionUtils {
             doc.addIntTerm("i2", i2);
         }
         doc.addStringTerm("s1", s1);
-        doc.addStringTerm("f1", f1);
+        doc.addStringTerm("floatf1", f1);
         doc.addIntTerm("empty", 0);
         doc.addIntTerm("same", 1);
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.

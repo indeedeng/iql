@@ -171,7 +171,7 @@ public class QueryServlet {
                 final String field = describeDatasetFieldMatcher.group(5);
                 processDescribeField(response, contentType, dataset, field);
                 queryInfo.statementType = "describe";
-            } else if (query.trim().toLowerCase().equals("show datasets")) {
+            } else if (query.trim().toLowerCase().equals("show uppercasedDatasets")) {
                 processShowDatasets(response, contentType);
                 queryInfo.statementType = "show";
             } else if (query.trim().toLowerCase().startsWith("explain ")) {
@@ -285,7 +285,7 @@ public class QueryServlet {
             datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
         }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("uppercasedDatasets", datasetWithEmptyDescriptions)));
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
         }

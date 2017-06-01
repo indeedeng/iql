@@ -97,9 +97,9 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
-    private final Map<String, Set<String>> keywordAnalyzerWhitelist;
-    private final Map<String, Set<String>> datasetToIntFields;
-    private final Map<String, DatasetDimensions> dimensions;
+    private final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist;
+    private final Map<String, Set<String>> uppercasedDatasetToIntFields;
+    private final Map<String, DatasetDimensions> uppercasedDimensions;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -124,9 +124,9 @@ public class SelectQueryExecution {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final Integer groupLimit, ImhotepClient imhotepClient,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final Map<String, Set<String>> datasetToIntFields,
-            final Map<String, DatasetDimensions> dimensions,
+            final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist,
+            final Map<String, Set<String>> uppercasedDatasetToIntFields,
+            final Map<String, DatasetDimensions> uppercasedDimensions,
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
             final TreeTimer timer,
@@ -147,12 +147,12 @@ public class SelectQueryExecution {
         this.skipValidation = skipValidation;
         this.groupLimit = groupLimit;
         this.clock = clock;
-        this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
-        this.datasetToIntFields = datasetToIntFields;
+        this.uppercasedKeywordAnalyzerWhitelist = uppercasedKeywordAnalyzerWhitelist;
+        this.uppercasedDatasetToIntFields = uppercasedDatasetToIntFields;
         this.imhotepClient = imhotepClient;
         this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
-        this.dimensions = dimensions;
+        this.uppercasedDimensions = uppercasedDimensions;
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
@@ -281,7 +281,7 @@ public class SelectQueryExecution {
         timer.push(q);
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, uppercasedKeywordAnalyzerWhitelist, uppercasedDatasetToIntFields, warn, clock);
         timer.pop();
 
         {
@@ -334,7 +334,8 @@ public class SelectQueryExecution {
             final Set<String> cacheKeys = new HashSet<>();
             final ListMultimap<String, List<ShardIdWithVersion>> allShardsUsed = ArrayListMultimap.create();
 
-            final Query query = originalQuery.transform(
+            final Query aliasedQuery = addAliasDimension(originalQuery, uppercasedDimensions);
+            final Query query = aliasedQuery.transform(
                     Functions.<GroupBy>identity(),
                     Functions.<AggregateMetric>identity(),
                     Functions.<DocMetric>identity(),
@@ -386,7 +387,7 @@ public class SelectQueryExecution {
                                     for (final long v : p.getFirst()) {
                                         terms.add(String.valueOf(v));
                                     }
-                                    filters.add(new DocFilter.StringFieldIn(keywordAnalyzerWhitelist, scopedField.field, terms));
+                                    filters.add(new DocFilter.StringFieldIn(uppercasedKeywordAnalyzerWhitelist, scopedField.field, terms));
                                 } else if (!p.getFirst().isEmpty()) {
                                     filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
                                 }
@@ -405,14 +406,14 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), dimensions);
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), uppercasedDimensions);
             timer.pop();
 
             if (!skipValidation) {
                 timer.push("validate commands");
                 final Set<String> errors = new HashSet<>();
                 final Set<String> warnings = new HashSet<>();
-                CommandValidator.validate(commands, imhotepClient, query, dimensions, datasetToIntFields, errors, warnings);
+                CommandValidator.validate(commands, imhotepClient, query, uppercasedDimensions, uppercasedDatasetToIntFields, errors, warnings);
 
                 if (errors.size() != 0) {
                     throw new IllegalArgumentException("Errors found when validating query: " + errors);
@@ -425,9 +426,7 @@ public class SelectQueryExecution {
                 timer.pop();
             }
 
-            final Query aliasedQuery = addDimensionAliasToDatasets(query, dimensions);
-
-            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, aliasedQuery, commands, imhotepClient);
+            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
 
@@ -443,13 +442,13 @@ public class SelectQueryExecution {
                     final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
                     timer.pop();
 
-                    queryCached.put(aliasedQuery, isCached);
+                    queryCached.put(query, isCached);
 
                     if (isCached) {
                         timer.push("read cache");
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, aliasedQuery.rowLimit, queryCache);
+                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
                         return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys,
                                 Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
@@ -486,8 +485,8 @@ public class SelectQueryExecution {
                     }
                 }
                 final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
-                if (aliasedQuery.rowLimit.isPresent()) {
-                    final int rowLimit = aliasedQuery.rowLimit.get();
+                if (query.rowLimit.isPresent()) {
+                    final int rowLimit = query.rowLimit.get();
                     final Consumer<String> oldOut = out;
                     out = new Consumer<String>() {
                         int rowsWritten = 0;
@@ -517,7 +516,7 @@ public class SelectQueryExecution {
                 }
 
                 final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(inputStream, aliasedQuery));
+                request.put("datasets", Queries.createDatasetMap(inputStream, query));
                 request.put("commands", commands);
 
                 request.put("groupLimit", groupLimit);
@@ -616,12 +615,12 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static Query addDimensionAliasToDatasets(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
+    private static Query addAliasDimension(final Query query, final Map<String, DatasetDimensions> uppercasedDimensions) {
         final List<Dataset> aliasDatasets = Lists.newArrayList();
         for (Dataset dataset : query.datasets) {
-            if (dimensionsMetrics.containsKey(dataset.dataset.unwrap())) {
-                final DatasetDimensions datasetDimensions = dimensionsMetrics.get(dataset.dataset.unwrap());
-                aliasDatasets.add(dataset.setDimensionAliases(datasetDimensions.getUppercaseAliasDimensions()));
+            if (uppercasedDimensions.containsKey(dataset.dataset.unwrap().toUpperCase())) {
+                final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.dataset.unwrap().toUpperCase());
+                aliasDatasets.add(dataset.addAliasDimensions(datasetDimensions.getUppercaseAliasDimensions()));
             } else {
                 aliasDatasets.add(dataset);
             }

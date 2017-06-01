@@ -1,102 +1,168 @@
 package com.indeed.squall.iql2.server.web.metadata;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.ims.client.yamlFile.DatasetYaml;
+import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.Validator;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
+import com.indeed.squall.iql2.language.dimensions.Dimension;
+import com.indeed.squall.iql2.language.util.DatasetsFields;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MetadataCacheTest {
-    @Test
-    public void testExpandMetricExpression() {
-        final Map<String, String> metricsExpressions = new HashMap<>();
-        metricsExpressions.put("same", "same");
-        metricsExpressions.put("complex", "c1+c2*c3");
-        metricsExpressions.put("alias", "complex");
-        metricsExpressions.put("recursive", "alias+same");
-        metricsExpressions.put("a-2", "a2");
-        metricsExpressions.put("test-dash", "a1+`a-2`");
-        metricsExpressions.put("test_under", "a+b");
-
-        Assert.assertEquals("plain", MetadataCache.expandMetricExpression("plain", metricsExpressions));
-        Assert.assertEquals("(c1+c2*c3)", MetadataCache.expandMetricExpression("complex", metricsExpressions));
-        Assert.assertEquals("avg((c1+c2*c3))", MetadataCache.expandMetricExpression("avg(complex)", metricsExpressions));
-        Assert.assertEquals("(a1+same)", MetadataCache.expandMetricExpression("(a1+same)", metricsExpressions));
-        Assert.assertEquals("a2+((c1+c2*c3))", MetadataCache.expandMetricExpression("a2+alias", metricsExpressions));
-        Assert.assertEquals("((c1+c2*c3)*10)/(((c1+c2*c3))+same)", MetadataCache.expandMetricExpression("(complex*10)/recursive", metricsExpressions));
-        Assert.assertEquals("`a-1`", MetadataCache.expandMetricExpression("`a-1`", metricsExpressions));
-        Assert.assertEquals("(a1+(a2))+a3", MetadataCache.expandMetricExpression("`test-dash`+a3", metricsExpressions));
-        Assert.assertEquals("(a+b)", MetadataCache.expandMetricExpression("test_under", metricsExpressions));
-    }
-
     @Test
     public void testParseMetric() {
         final MetadataCache metadataCache = new MetadataCache(null, null);
 
-        final Map<String, String> metricsExpressions = new HashMap<>();
         final MetricsYaml countsMetric = new MetricsYaml();
         countsMetric.setName("counts");
         countsMetric.setExpr("count()");
-        metricsExpressions.put(countsMetric.getName(), countsMetric.getExpr());
-        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()), metadataCache.parseMetric(countsMetric, metricsExpressions));
+        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()), metadataCache.parseMetric(countsMetric));
 
         final MetricsYaml sameMetric = new MetricsYaml();
         sameMetric.setName("same");
         sameMetric.setExpr("same");
-        metricsExpressions.put(sameMetric.getName(), sameMetric.getExpr());
-        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Field("SAME")), metadataCache.parseMetric(sameMetric, metricsExpressions));
+        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Field("SAME")), metadataCache.parseMetric(sameMetric));
 
         final MetricsYaml calcMetric = new MetricsYaml();
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
-        metricsExpressions.put(calcMetric.getName(), calcMetric.getExpr());
         Assert.assertEquals(
                 new AggregateMetric.ImplicitDocStats(
                         new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10))),
-                metadataCache.parseMetric(calcMetric, metricsExpressions));
-
-        final MetricsYaml combinedMetric = new MetricsYaml();
-        combinedMetric.setName("combined");
-        combinedMetric.setExpr("same+complex");
-        metricsExpressions.put(combinedMetric.getName(), combinedMetric.getExpr());
-        Assert.assertEquals(
-                new AggregateMetric.ImplicitDocStats(
-                        new DocMetric.Add(
-                                new DocMetric.Field("SAME"),
-                                new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10)))),
-                metadataCache.parseMetric(combinedMetric, metricsExpressions));
+                metadataCache.parseMetric(calcMetric));
 
         final MetricsYaml aggregateMetric1 = new MetricsYaml();
         aggregateMetric1.setName("agg1");
         aggregateMetric1.setExpr("oji/ojc");
-        metricsExpressions.put(aggregateMetric1.getName(), aggregateMetric1.getExpr());
         Assert.assertEquals(
                 new AggregateMetric.Divide(
                         new AggregateMetric.DocStats(new DocMetric.Field("OJI")),
                         new AggregateMetric.DocStats(new DocMetric.Field("OJC"))),
-                metadataCache.parseMetric(aggregateMetric1, metricsExpressions));
+                metadataCache.parseMetric(aggregateMetric1));
 
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
         aggregateMetric2.setName("agg2");
         aggregateMetric2.setExpr("(score-100)/4");
-        metricsExpressions.put(aggregateMetric2.getName(), aggregateMetric2.getExpr());
         Assert.assertEquals(
                 new AggregateMetric.Divide(
                         new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
                         new AggregateMetric.Constant(4)),
-                metadataCache.parseMetric(aggregateMetric2, metricsExpressions));
+                metadataCache.parseMetric(aggregateMetric2));
+
+        final MetricsYaml overideMetric = new MetricsYaml();
+        overideMetric.setName("o1");
+        overideMetric.setExpr("o1+o2");
+        Assert.assertEquals(
+                new AggregateMetric.ImplicitDocStats(
+                        new DocMetric.Add(new DocMetric.Field("O1"), new DocMetric.Field("O2"))),
+                metadataCache.parseMetric(overideMetric));
+
+        // won't do recursive expansion
+        final MetricsYaml combinedMetric = new MetricsYaml();
+        combinedMetric.setName("combined");
+        combinedMetric.setExpr("same+complex");
+        Assert.assertEquals(
+                new AggregateMetric.ImplicitDocStats(new DocMetric.Add(new DocMetric.Field("SAME"), new DocMetric.Field("COMPLEX"))),
+                metadataCache.parseMetric(combinedMetric));
 
         final MetricsYaml requireFTGSMetric = new MetricsYaml();
         requireFTGSMetric.setName("ftgsFunc");
         requireFTGSMetric.setExpr("PERCENTILE(oji, 95)");
-        metricsExpressions.put(requireFTGSMetric.getName(), requireFTGSMetric.getExpr());
         try {
-            metadataCache.parseMetric(requireFTGSMetric, metricsExpressions);
+            metadataCache.parseMetric(requireFTGSMetric);
             Assert.fail("require FTGS func is not supported");
         } catch (UnsupportedOperationException ex) {
         }
+    }
+
+    // for manual test: add @Test
+    public void testExistedDimension() throws URISyntaxException {
+        final ImsClientInterface realIMSClient = ImsClient.build("***REMOVED***");
+        final MetadataCache metadataCache = new MetadataCache(realIMSClient, null);
+        // check if all existed dimensions can be parsed correctly
+        metadataCache.updateMetadata();
+        // validate all dimensions
+        final Map<String, DatasetDimensions> uppercasedDimensions = metadataCache.getUppercasedDimensions();
+        final Map<String, Set<String>> datasetIntFields = new HashMap<>();
+        final Map<String, Set<String>> datasetStringFields = new HashMap<>();
+
+        final DatasetsFields.Builder builder = DatasetsFields.builder();
+
+        final DatasetYaml[] datasets = realIMSClient.getDatasets();
+        for (DatasetYaml dataset : datasets) {
+            if (dataset.getDeprecated()) {
+                continue;
+            }
+            System.out.println(dataset.getName());
+            datasetIntFields.put(dataset.getName().toUpperCase(), new HashSet<>());
+            datasetStringFields.put(dataset.getName().toUpperCase(), new HashSet<>());
+            for (FieldsYaml fieldsYaml : dataset.getFields()) {
+                if (fieldsYaml == null || fieldsYaml.getType() == null) {
+                    continue;
+                }
+                if (fieldsYaml.getType().equalsIgnoreCase("Integer")) {
+                    builder.addIntField(dataset.getName(), fieldsYaml.getName());
+                } else {
+                    builder.addStringField(dataset.getName(), fieldsYaml.getName());
+                }
+                final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.getName().toUpperCase());
+                for (String field : datasetDimensions.uppercasedFields()) {
+                    final Dimension dimension = datasetDimensions.getDimension(field).get();
+                    if (dimension.isAlias) {
+                        builder.addIntField(dataset.getName(), dimension.name);
+                    } else {
+                        builder.addNonAliasMetricField(dataset.getName(), dimension.name.toUpperCase());
+                    }
+                }
+            }
+        }
+
+        final DatasetsFields datasetsFields = builder.build();
+        List<String> errors = Lists.newArrayList();
+        List<String> warnings = Lists.newArrayList();
+
+        final Validator validator = new Validator() {
+
+            @Override
+            public void error(final String error) {
+                errors.add(error);
+            }
+
+            @Override
+            public void warn(final String warn) {
+                warnings.add(warn);
+            }
+        };
+        for (String dataset : uppercasedDimensions.keySet()) {
+            final DatasetDimensions dimensions = uppercasedDimensions.get(dataset);
+            for (String field : dimensions.uppercasedFields()) {
+                final Dimension dimension = dimensions.getDimension(field).get();
+                dimension.metric.validate(
+                        ImmutableSet.of(dataset),
+                        datasetsFields, validator);
+            }
+        }
+
+        System.out.printf("errors num: %d", errors.size());
+        System.out.println(Joiner.on("\n").join(errors));
+
+        System.out.printf("warnings num: %d", warnings.size());
+        System.out.println(Joiner.on("\n").join(warnings));
     }
 }
