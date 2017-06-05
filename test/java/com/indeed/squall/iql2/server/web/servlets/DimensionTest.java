@@ -34,6 +34,7 @@ public class DimensionTest extends BasicTest {
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today SELECT LUCENE('i1:0')", options);
 
         assertFailQuery("from dimension yesterday today SELECT i1divi2=1", "");
+        assertFailQuery("from dimension yesterday today SELECT field_min(plus)", "non alias dimension in FTGS is not supported");
         assertFailQuery("from dimension yesterday today SELECT distinct(i1divi2)", "non alias dimension in FTGS is not supported");
         assertIQL2FailQuery("from dimension yesterday today SELECT LUCENE('aliasi1:0')", "dimension is not supported in lucene");
     }
