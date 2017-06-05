@@ -32,6 +32,7 @@ public class TimeRegroupTest extends BasicTest {
         // Remove DISTINCT to allow streaming, rather than regroup.
         testAll(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
         testAll(OrganicDataset.create(), withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
+        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
     }
 
     @Test
