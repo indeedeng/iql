@@ -41,9 +41,9 @@ public class DimensionTest extends BasicTest {
 
     @Test
     public void testSelectMultiple() throws Exception {
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "200", "100", "300", "1", "2", "2", "2")),
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "200", "100", "300", "1", "2", "2", "2", "2")),
                 "from dimension 2015-01-01 2015-01-02 as d1, dimension 2015-01-02 2015-01-03 as d2 " +
-                        "SELECT d1.calc, d2.calc, calc, d1.i1divi2,  [(d1.aliasi1+d1.i2)=5], [if d1.plus=5 then 1 else 0], [d1.aliasi1 > d1.i2]",
+                        "SELECT d1.calc, d2.calc, calc, d1.i1divi2, d1.calc = 50, [(d1.aliasi1+d1.i2)=5], [if d1.plus=5 then 1 else 0], [d1.aliasi1 > d1.i2]",
                 options);
         assertIQL2FailQuery("from dimension yesterday today as d1, dimension2 as d2 SELECT d1.i1 = d2.calc", "field equality for different uppercasedDatasets is not supported");
         assertIQL2FailQuery("from dimension yesterday today, dimension2 SELECT plus", "metric plus is not in dimension2");
@@ -98,6 +98,7 @@ public class DimensionTest extends BasicTest {
     public void testFilterMultiple() throws Exception {
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today as d1, dimension2 as d2 WHERE i2 = 4 AND i1 = 4", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today as d1, dimension2 as d2 WHERE calc = 0", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from dimension yesterday today as d1, dimension2 as d2 WHERE d1.plus = 0", options);
         assertIQL2FailQuery("from dimension yesterday today, dimension2 WHERE plus = 0", "dimension [plus] is not in dimension2");
     }
 

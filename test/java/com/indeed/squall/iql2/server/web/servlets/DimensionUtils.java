@@ -80,11 +80,6 @@ public class DimensionUtils {
             calcMetric.setExpr("(i1+i2)*10");
             metrics.add(calcMetric);
 
-//            final MetricsYaml combinedMetric = new MetricsYaml();
-//            combinedMetric.setName("combined");
-//            combinedMetric.setExpr("same+calc");
-//            metrics.add(combinedMetric);
-
             final MetricsYaml aliasI1 = new MetricsYaml();
             aliasI1.setName("aliasi1");
             aliasI1.setExpr("i1");
@@ -94,11 +89,6 @@ public class DimensionUtils {
             aliasI2.setName("aliasi2");
             aliasI2.setExpr("i2");
             metrics.add(aliasI2);
-//
-//            final MetricsYaml aliesCombined = new MetricsYaml();
-//            aliesCombined.setName("aliasCombined");
-//            aliesCombined.setExpr("combined");
-//            metrics.add(aliesCombined);
 
             final MetricsYaml funcMetric = new MetricsYaml();
             funcMetric.setName("floatf1");
