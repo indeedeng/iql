@@ -24,66 +24,35 @@ public class DatasetsFields {
     }
 
     public ImmutableSet<String> getUppercasedStringFields(String dataset) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToStringFields.containsKey(uppercasedDataset)) {
-            return ImmutableSet.of();
-        } else {
-            return uppercasedDatasetToStringFields.get(uppercasedDataset);
-        }
+        return uppercasedDatasetToStringFields.getOrDefault(dataset.toUpperCase(), ImmutableSet.of());
     }
 
     public ImmutableSet<String> getUppercasedIntFields(String dataset) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
-            return ImmutableSet.of();
-        } else {
-            return uppercasedDatasetToIntFields.get(uppercasedDataset);
-        }
+        return uppercasedDatasetToIntFields.getOrDefault(dataset.toUpperCase(), ImmutableSet.of());
     }
 
     public boolean containsStringField(String dataset, String field) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToStringFields.containsKey(uppercasedDataset)) {
-            return false;
-        } else {
-            return uppercasedDatasetToStringFields.get(uppercasedDataset).contains(field.toUpperCase());
-        }
+       return getUppercasedStringFields(dataset).contains(field.toUpperCase());
     }
 
     public boolean containsIntField(String dataset, String field) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToIntFields.containsKey(uppercasedDataset)) {
-            return false;
-        } else {
-            return uppercasedDatasetToIntFields.get(uppercasedDataset).contains(field.toUpperCase());
-        }
+        return getUppercasedIntFields(dataset).contains(field.toUpperCase());
     }
 
     public boolean containsIntOrAliasField(String dataset, String field) {
         return containsIntField(dataset, field) || containsAliasMetricField(dataset, field);
     }
 
-
     public boolean containsMetricField(String dataset, String field) {
         return containsNonAliasMetricField(dataset, field) || containsAliasMetricField(dataset, field);
     }
 
     public boolean containsNonAliasMetricField(String dataset, String field) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToNonAliasMetricFields.containsKey(uppercasedDataset)) {
-            return false;
-        } else {
-            return uppercasedDatasetToNonAliasMetricFields.get(uppercasedDataset).contains(field.toUpperCase());
-        }
+        return uppercasedDatasetToNonAliasMetricFields.getOrDefault(dataset.toUpperCase(), ImmutableSet.of()).contains(field.toUpperCase());
     }
 
     public boolean containsAliasMetricField(String dataset, String field) {
-        final String uppercasedDataset = dataset.toUpperCase();
-        if (!uppercasedDatasetToAliasMetricFields.containsKey(uppercasedDataset)) {
-            return false;
-        } else {
-            return uppercasedDatasetToAliasMetricFields.get(uppercasedDataset).contains(field.toUpperCase());
-        }
+        return uppercasedDatasetToAliasMetricFields.getOrDefault(dataset.toUpperCase(), ImmutableSet.of()).contains(field.toUpperCase());
     }
 
 

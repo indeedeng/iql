@@ -48,7 +48,7 @@ public class SampleFields implements Command, JsonSerializable {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                ValidationUtil.validateIntField(ImmutableSet.of(dataset), sample.field.unwrap(), datasetsFields, validator, this);
+                ValidationUtil.validateField(ImmutableSet.of(dataset), sample.field.unwrap(), datasetsFields, validator, this);
             }
         }
     }
