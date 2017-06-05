@@ -620,7 +620,7 @@ public class SelectQueryExecution {
         for (Dataset dataset : query.datasets) {
             if (uppercasedDimensions.containsKey(dataset.dataset.unwrap().toUpperCase())) {
                 final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.dataset.unwrap().toUpperCase());
-                aliasDatasets.add(dataset.addAliasDimensions(datasetDimensions.getUppercaseAliasDimensionFields()));
+                aliasDatasets.add(dataset.addAliasDimensions(datasetDimensions.getUppercasedAliasToActualField()));
             } else {
                 aliasDatasets.add(dataset);
             }
