@@ -20,20 +20,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SubstituteDimension {
-    public static Query substitute(final Query query, final Map<String, DatasetDimensions> dimensionsMetrics) {
+    public static Query substitute(final Query query, final Map<String, DatasetDimensions> uppercasedDatasetDimensions) {
         final Map<String, String> datasetAliasToOriginal = query.nameToIndex();
         final Set<String> datasets = query.datasets.stream().map(d -> d.getDisplayName().unwrap()).collect(Collectors.toSet());
-        final Function<String, Optional<DocMetric>> getSubstitutedDimensionMetricFunc = field -> getSubstitutedDimensionDocMetric(datasets, dimensionsMetrics, datasetAliasToOriginal, field);
+        final Function<String, Optional<DocMetric>> getSubstitutedDimensionMetricFunc = field -> getSubstitutedDimensionDocMetric(datasets, uppercasedDatasetDimensions, datasetAliasToOriginal, field);
         return query.transform(
                 Functions.identity(),
-                substituteDimensionAggregateMetric(dimensionsMetrics, datasetAliasToOriginal),
+                substituteDimensionAggregateMetric(uppercasedDatasetDimensions, datasetAliasToOriginal),
                 substituteDocMetric(getSubstitutedDimensionMetricFunc),
                 Functions.identity(),
                 substituteDocFilter(getSubstitutedDimensionMetricFunc));
     }
 
     private static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(
-            final Map<String, DatasetDimensions> dimensionsMetrics, final Map<String, String> datasetAliasToOrigin) {
+            final Map<String, DatasetDimensions> uppercasedDatasetDimensions, final Map<String, String> datasetAliasToOrigin) {
         return new Function<AggregateMetric, AggregateMetric>() {
             @Override
             public AggregateMetric apply(final AggregateMetric input) {
@@ -42,7 +42,7 @@ public class SubstituteDimension {
                 if (input instanceof AggregateMetric.DocStatsPushes) {
                     final AggregateMetric.DocStatsPushes pushStats = (AggregateMetric.DocStatsPushes) input;
                     final String dataset = datasetAliasToOrigin.get(pushStats.dataset);
-                    final DatasetDimensions dimensionMetrics = dimensionsMetrics.get(dataset);
+                    final DatasetDimensions dimensionMetrics = uppercasedDatasetDimensions.get(dataset.toUpperCase());
                     final DocMetric docMetric = pushStats.pushes.metric;
                     if (dimensionMetrics != null) {
                         if (docMetric instanceof DocMetric.Field) {
@@ -52,7 +52,7 @@ public class SubstituteDimension {
                             }
                         } else {
                             final Function<String, Optional<DocMetric>> getDimensionMetricFunc =
-                                    field -> getSubstitutedDimensionDocMetric(ImmutableSet.of(pushStats.dataset), dimensionsMetrics, datasetAliasToOrigin, field);
+                                    field -> getSubstitutedDimensionDocMetric(ImmutableSet.of(pushStats.dataset), uppercasedDatasetDimensions, datasetAliasToOrigin, field);
                             return new AggregateMetric.DocStatsPushes(pushStats.dataset,
                                     new DocMetric.PushableDocMetric(docMetric.transform(
                                             substituteDocMetric(getDimensionMetricFunc),
@@ -160,14 +160,14 @@ public class SubstituteDimension {
     // if there is no dimension existed for the field, it will return Optional.absent
     // if dimension metric is not DocMetric, it will throw IllegalArgumentException
     private static Optional<DocMetric> getSubstitutedDimensionDocMetric(
-            final Set<String> datasets, final Map<String, DatasetDimensions> dimensionsMetrics, final Map<String, String> datasetAliasToOrigin, final String field) {
+            final Set<String> datasets, final Map<String, DatasetDimensions> uppercasedDatasetDimensions, final Map<String, String> datasetAliasToOrigin, final String field) {
         final Map<String, DocMetric> datasetToMetric = Maps.newHashMap();
         boolean foundDimensionMetric = false;
 
         for (final String dataset : datasets) {
-            final String originDataset = datasetAliasToOrigin.get(dataset);
-            if (dimensionsMetrics.containsKey(originDataset) && dimensionsMetrics.get(originDataset).getNonAliasDimension(field).isPresent()) {
-                final Dimension dimension = dimensionsMetrics.get(originDataset).getNonAliasDimension(field).get();
+            final String originDataset = datasetAliasToOrigin.get(dataset).toUpperCase();
+            if (uppercasedDatasetDimensions.containsKey(originDataset) && uppercasedDatasetDimensions.get(originDataset).getNonAliasDimension(field).isPresent()) {
+                final Dimension dimension = uppercasedDatasetDimensions.get(originDataset).getNonAliasDimension(field).get();
                 datasetToMetric.put(dataset, getDocMetricOrThrow(dimension));
                 foundDimensionMetric = true;
             } else {

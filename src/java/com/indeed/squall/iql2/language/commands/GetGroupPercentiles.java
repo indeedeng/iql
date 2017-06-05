@@ -41,7 +41,7 @@ public class GetGroupPercentiles implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
+        ValidationUtil.validateIntField(scope, field, datasetsFields, validator, this);
     }
 
     @Override

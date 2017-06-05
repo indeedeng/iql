@@ -270,7 +270,7 @@ public class Queries {
         return new JQLParser(tokens);
     }
 
-    public static List<Command> queryCommands(Query query, Map<String, DatasetDimensions> dimensionsMetrics) {
+    public static List<Command> queryCommands(Query query, Map<String, DatasetDimensions> uppercasedDimensions) {
         Loggers.trace(log, "query = %s", query);
         final Query query1 = FixTopKHaving.apply(query);
         Loggers.trace(log, "query1 = %s", query1);
@@ -283,7 +283,7 @@ public class Queries {
         Loggers.trace(log, "query4 = %s", query4);
         final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
-        final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, dimensionsMetrics);
+        final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, uppercasedDimensions);
         final ExtractPrecomputed.Extracted dimensionExtracted = new ExtractPrecomputed.Extracted(substitutedDimension, extracted.computedNames);
         Loggers.trace(log, "substituted = %s", dimensionExtracted);
         final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(dimensionExtracted.query);

@@ -3,7 +3,7 @@ package com.indeed.squall.iql2.language.dimensions;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.indeed.squall.iql2.language.AggregateMetric;
 
-@JsonIgnoreProperties({"metric"})
+@JsonIgnoreProperties({"metric", "isAlias"})
 public class Dimension {
     public final String name;
     public final String expression;

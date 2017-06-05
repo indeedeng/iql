@@ -76,6 +76,10 @@ public class ValidationUtil {
             final ImmutableSet<String> actualStringFields = superset.getUppercasedStringFields(uppercasedDataset);
             for (final String field : expectedStringFields) {
                 if (!actualStringFields.contains(field)) {
+                    if (superset.containsMetricField(uppercasedDataset, field)) {
+                        validator.error(ErrorMessages.metricFieldIsNotSupported(field, source));
+                        continue;
+                    }
                     validator.error("Dataset \"" + uppercasedDataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
                 }
             }
@@ -122,7 +126,7 @@ public class ValidationUtil {
 
     public static void validateIntField(
             final Set<String> scope, final String field, final DatasetsFields datasetsFields, final Validator validator, final Object context) {
-        validateField(scope, field, datasetsFields, datasetsFields::containsIntField, validator, context);
+        validateField(scope, field, datasetsFields, datasetsFields::containsIntOrAliasField, validator, context);
     }
 
     public static void validateStringField(
@@ -139,7 +143,7 @@ public class ValidationUtil {
                                       final BiPredicate<String, String> containsFieldPredicate, final Validator validator, final Object context) {
         scope.forEach(dataset -> {
             if (!containsFieldPredicate.test(dataset, field)) {
-                if (datasetsFields.containsMetricField(dataset, field)) {
+                if (datasetsFields.containsNonAliasMetricField(dataset, field)) {
                     validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
                     return;
                 }
@@ -149,7 +153,7 @@ public class ValidationUtil {
     }
 
     private static FieldType getFieldType(DatasetsFields datasetsFields, String dataset, String field) {
-        final boolean isIntField = datasetsFields.containsIntField(dataset, field);
+        final boolean isIntField = datasetsFields.containsIntOrAliasField(dataset, field);
         final boolean isStrField = datasetsFields.containsStringField(dataset, field);
         if (isIntField) {
             return FieldType.INT;
