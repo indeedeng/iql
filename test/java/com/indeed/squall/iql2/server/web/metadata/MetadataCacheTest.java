@@ -18,11 +18,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class MetadataCacheTest {
     @Test
@@ -91,7 +88,8 @@ public class MetadataCacheTest {
         }
     }
 
-    // for manual test: add @Test
+    // for manual test: uncomment @Test
+//    @Test
     public void testExistedDimension() throws URISyntaxException {
         final ImsClientInterface realIMSClient = ImsClient.build("***REMOVED***");
         final MetadataCache metadataCache = new MetadataCache(realIMSClient, null);
@@ -99,19 +97,13 @@ public class MetadataCacheTest {
         metadataCache.updateMetadata();
         // validate all dimensions
         final Map<String, DatasetDimensions> uppercasedDimensions = metadataCache.getUppercasedDimensions();
-        final Map<String, Set<String>> datasetIntFields = new HashMap<>();
-        final Map<String, Set<String>> datasetStringFields = new HashMap<>();
-
         final DatasetsFields.Builder builder = DatasetsFields.builder();
 
         final DatasetYaml[] datasets = realIMSClient.getDatasets();
         for (DatasetYaml dataset : datasets) {
-            if (dataset.getDeprecated()) {
+            if (Boolean.TRUE.equals(dataset.getDeprecated())) {
                 continue;
             }
-            System.out.println(dataset.getName());
-            datasetIntFields.put(dataset.getName().toUpperCase(), new HashSet<>());
-            datasetStringFields.put(dataset.getName().toUpperCase(), new HashSet<>());
             for (FieldsYaml fieldsYaml : dataset.getFields()) {
                 if (fieldsYaml == null || fieldsYaml.getType() == null) {
                     continue;
@@ -124,11 +116,7 @@ public class MetadataCacheTest {
                 final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.getName().toUpperCase());
                 for (String field : datasetDimensions.uppercasedFields()) {
                     final Dimension dimension = datasetDimensions.getDimension(field).get();
-                    if (dimension.isAlias) {
-                        builder.addIntField(dataset.getName(), dimension.name);
-                    } else {
-                        builder.addNonAliasMetricField(dataset.getName(), dimension.name.toUpperCase());
-                    }
+                    builder.addMetricField(dataset.getName(), dimension.name, dimension.isAlias);
                 }
             }
         }
@@ -149,7 +137,7 @@ public class MetadataCacheTest {
                 warnings.add(warn);
             }
         };
-        for (String dataset : uppercasedDimensions.keySet()) {
+        for (String dataset : datasetsFields.uppercasedDatasets()) {
             final DatasetDimensions dimensions = uppercasedDimensions.get(dataset);
             for (String field : dimensions.uppercasedFields()) {
                 final Dimension dimension = dimensions.getDimension(field).get();
@@ -159,10 +147,10 @@ public class MetadataCacheTest {
             }
         }
 
-        System.out.printf("errors num: %d", errors.size());
+        System.out.printf("errors num: %d\n", errors.size());
         System.out.println(Joiner.on("\n").join(errors));
 
-        System.out.printf("warnings num: %d", warnings.size());
+        System.out.printf("warnings num: %d\n", warnings.size());
         System.out.println(Joiner.on("\n").join(warnings));
     }
 }

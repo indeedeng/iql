@@ -93,11 +93,7 @@ public class CommandValidator {
             }
 
             for (final Dimension dimension : datasetDescriptor.getDimensions()) {
-                if (dimension.isAlias) {
-                    builder.addIntField(name, dimension.name);
-                } else {
-                    builder.addNonAliasMetricField(name, dimension.name.toUpperCase());
-                }
+                builder.addMetricField(name, dimension.name, dimension.isAlias);
             }
             builder.addIntField(name, "count()");
         }
@@ -117,7 +113,7 @@ public class CommandValidator {
             for (final Map.Entry<Positioned<String>, Positioned<String>> entry : aliasToActual.entrySet()) {
                 final String aliasField = entry.getKey().unwrap();
                 final String actualField = entry.getValue().unwrap();
-                if (datasetsFields.containsIntField(dataset, actualField) || datasetsFields.containsMetricField(dataset, actualField)) {
+                if (datasetsFields.containsIntField(dataset, actualField) || datasetsFields.containsAliasMetricField(dataset, actualField)) {
                     builder.addIntField(dataset, aliasField);
                 } else if (datasetsFields.containsStringField(dataset, actualField)) {
                     builder.addStringField(dataset, aliasField);
