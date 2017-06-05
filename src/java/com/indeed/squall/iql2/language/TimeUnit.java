@@ -32,7 +32,7 @@ public enum TimeUnit {
             case 'm': return MINUTE;
             case 'h': return HOUR;
             case 'd': return DAY;
-            case 'w': return WEEK;
+            case 'w': case 'W': return WEEK;
             case 'M': return MONTH;
             case 'b': return BUCKETS;
             case 'y': return YEAR;

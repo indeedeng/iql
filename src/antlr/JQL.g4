@@ -450,6 +450,8 @@ dateTime
     | timePeriod
     // Oh god I hate myself:
     | 'TODAY'
+    | 'T'
+    | 'TO'
     | 'TODA'
     | 'TOD'
     | 'TOMORROW'
