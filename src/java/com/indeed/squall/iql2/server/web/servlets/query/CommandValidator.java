@@ -117,6 +117,8 @@ public class CommandValidator {
                     builder.addIntField(dataset, aliasField);
                 } else if (datasetsFields.containsStringField(dataset, actualField)) {
                     builder.addStringField(dataset, aliasField);
+                } else if (datasetsFields.containsMetricField(dataset, actualField)) {
+                    throw new IllegalArgumentException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));
                 } else {
                     throw new IllegalArgumentException("Alias for non-existent field: " + entry.getValue() + " in dataset " + dataset);
                 }

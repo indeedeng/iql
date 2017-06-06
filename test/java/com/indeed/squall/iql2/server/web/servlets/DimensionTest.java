@@ -104,10 +104,11 @@ public class DimensionTest extends BasicTest {
 
     @Test
     public void testDatasetAlias() throws  Exception {
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "10", "10", "210")),
-                "from dimension yesterday today ALIASING(i2 as aliasi1, aliasi2 as aliasi3) SELECT aliasi1, aliasi3, calc+aliasi3",
-                options);
-        assertIQL2FailQuery("from dimension yesterday today ALIASING(aliasi1 as aliasi2, aliasi2 as aliasi1) SELECT aliasi1", "circle reference of alias");
+       testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "10", "10", "210")),
+               "from dimension yesterday today ALIASING(i2 as aliasi1, aliasi2 as aliasi3) SELECT aliasi1, aliasi3, calc+aliasi3",
+               options);
+       assertIQL2FailQuery("from dimension yesterday today ALIASING(aliasi1 as aliasi2, aliasi2 as aliasi1) SELECT aliasi1", "circle reference of alias");
+       assertIQL2FailQuery("from dimension yesterday today ALIASING(plus as p) SELECT p", "non-alias metrics can be used in alias");
     }
 
     private void assertIQL1FailQuery(final String query, final String reason) throws Exception {
