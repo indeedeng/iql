@@ -9,5 +9,6 @@ public class DateTimeTest extends BasicTest {
     @Test
     public void testWordDate() throws Exception {
         testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y t select count(), oji, ojc");
+        testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic 3days ago select count(), oji, ojc");
     }
 }
