@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.execution.aliasing;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -15,6 +14,7 @@ import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.DocIterator;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RawFTGSIterator;
@@ -28,10 +28,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,24 +44,10 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private String rewrite(String field) {
-        String rewriteField = field;
-        final Set<String> seenField = new LinkedHashSet<>();
-        seenField.add(field);
-        while (aliasToReal.containsKey(rewriteField)) {
-            final String newRewriteField = aliasToReal.get(rewriteField);
-            // for the dimension: same -> same
-            if (newRewriteField.equals(rewriteField)) {
-                return newRewriteField;
-            }
-            if (seenField.contains(newRewriteField)) {
-                throw new IllegalArgumentException(
-                        String.format("alias field %s has circular reference: %s -> %s", field, field,
-                                Joiner.on(" -> ").join(seenField.toArray()), newRewriteField));
-            }
-            seenField.add(newRewriteField);
-            rewriteField = newRewriteField;
+        if (aliasToReal.containsKey(field)) {
+            return aliasToReal.get(field);
         }
-        return rewriteField;
+        return field;
     }
 
     private static final Pattern REGEXMATCH_COMMAND = Pattern.compile("regexmatch\\s+(\\w+)\\s+([0-9]+)\\s(.+)");
