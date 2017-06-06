@@ -51,6 +51,10 @@ public class TimePeriods {
                     start = current;
                 }
             }
+            for (Token rawTimeunit : periodContext.timeunits) {
+                final TimeUnit timeUnit = TimeUnit.fromString(rawTimeunit.getText());
+                result.add(Pair.of(1, timeUnit));
+            }
             return result;
         } else if (timePeriodContext instanceof JQLParser.TimePeriodStringLiteralContext) {
             final String unquoted = ParserCommon.unquote(((JQLParser.TimePeriodStringLiteralContext) timePeriodContext).STRING_LITERAL().getText());

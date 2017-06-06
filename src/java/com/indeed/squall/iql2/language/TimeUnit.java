@@ -28,14 +28,26 @@ public enum TimeUnit {
 
     public static TimeUnit fromChar(char c) {
         switch (c) {
-            case 's': return SECOND;
             case 'm': return MINUTE;
-            case 'h': return HOUR;
-            case 'd': return DAY;
-            case 'w': case 'W': return WEEK;
             case 'M': return MONTH;
-            case 'b': return BUCKETS;
-            case 'y': return YEAR;
+            case 's':
+            case 'S':
+                return SECOND;
+            case 'h':
+            case 'H':
+                return HOUR;
+            case 'd':
+            case 'D':
+                return DAY;
+            case 'w':
+            case 'W':
+                return WEEK;
+            case 'b':
+            case 'B':
+                return BUCKETS;
+            case 'y':
+            case 'Y':
+                return YEAR;
             default:
                 throw new IllegalArgumentException("Invalid time unit: " + c);
         }
@@ -45,21 +57,22 @@ public enum TimeUnit {
         if (s.length() == 1) {
             return fromChar(s.charAt(0));
         } else {
-            if ("seconds".startsWith(s)) {
+            final String lowerTimeUnit = s.toLowerCase();
+            if ("seconds".startsWith(lowerTimeUnit)) {
                 return SECOND;
-            } else if ("minutes".startsWith(s)) {
+            } else if ("minutes".startsWith(lowerTimeUnit)) {
                 return MINUTE;
-            } else if ("hours".startsWith(s)) {
+            } else if ("hours".startsWith(lowerTimeUnit)) {
                 return HOUR;
-            } else if ("days".startsWith(s)) {
+            } else if ("days".startsWith(lowerTimeUnit)) {
                 return DAY;
-            } else if ("weeks".startsWith(s)) {
+            } else if ("weeks".startsWith(lowerTimeUnit)) {
                 return WEEK;
-            } else if ("months".startsWith(s)) {
+            } else if ("months".startsWith(lowerTimeUnit)) {
                 return MONTH;
-            } else if ("buckets".startsWith(s)) {
+            } else if ("buckets".startsWith(lowerTimeUnit)) {
                 return BUCKETS;
-            } else if ("years".startsWith(s)) {
+            } else if ("years".startsWith(lowerTimeUnit)) {
                 return YEAR;
             }
         }
