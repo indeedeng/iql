@@ -469,6 +469,7 @@ dateTime
     | 'YES'
     | 'YE'
     | Y
+    | 'AGO'
     ;
 
 aliases
