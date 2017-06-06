@@ -20,7 +20,6 @@ import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.Positional;
-import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -70,11 +69,7 @@ public class Queries {
             m.put("end", dataset.endExclusive.unwrap().toString());
             m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
-                final Map<String, String> unPositionedFieldAliases = new HashMap<>();
-                for (final Map.Entry<Positioned<String>, Positioned<String>> entry : dataset.fieldAliases.entrySet()) {
-                    unPositionedFieldAliases.put(entry.getKey().unwrap(), entry.getValue().unwrap());
-                }
-                m.put("fieldAliases", objectMapper.writeValueAsString(unPositionedFieldAliases));
+                m.put("fieldAliases", objectMapper.writeValueAsString(Dataset.resolveAliasToRealField(dataset.fieldAliases)));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
                 throw Throwables.propagate(e);

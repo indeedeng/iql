@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language.query;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -20,9 +21,11 @@ import org.joda.time.DateTimeZone;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
@@ -55,6 +58,33 @@ public class Dataset extends AbstractPositional {
         uppercasedAliasToActualField.forEach((key, value) -> newFieldAliases.put(Positioned.unpositioned(key), Positioned.unpositioned(value)));
         newFieldAliases.putAll(fieldAliases);
         return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliases);
+    }
+
+    public static Map<String, String> resolveAliasToRealField(Map<Positioned<String>, Positioned<String>> fieldAliases) {
+        final Map<String, String> aliasToField = fieldAliases.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().unwrap(),
+                e -> e.getValue().unwrap()));
+        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
+        for (String originField : aliasToField.keySet()) {
+            String targetField = aliasToField.get(originField);
+            final Set<String> seenField = new LinkedHashSet<>();
+            seenField.add(targetField);
+            while (aliasToField.containsKey(targetField)) {
+                final String newTargetField = aliasToField.get(targetField);
+                // for the dimension: same -> same
+                if (newTargetField.equals(targetField)) {
+                    break;
+                }
+                if (seenField.contains(newTargetField)) {
+                    throw new IllegalArgumentException(
+                            String.format("field alias has circular reference: %s -> %s", originField,
+                                    Joiner.on(" -> ").join(seenField.toArray())));
+                }
+                seenField.add(newTargetField);
+                targetField = newTargetField;
+            }
+            resolvedAliasToRealFieldBuilder.put(originField, targetField);
+        }
+        return resolvedAliasToRealFieldBuilder.build();
     }
 
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
