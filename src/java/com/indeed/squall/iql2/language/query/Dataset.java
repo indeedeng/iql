@@ -181,11 +181,12 @@ public class Dataset extends AbstractPositional {
     }
 
     private static DateTime parseWordDate(String textValue, boolean useLegacy, WallClock clock) {
-        if ("yesterday".startsWith(textValue.toLowerCase())) {
+        final String lowerCasedValue = textValue.toLowerCase();
+        if ("yesterday".startsWith(lowerCasedValue)) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
-        } else if ("ago".equalsIgnoreCase(textValue) || ((useLegacy || (textValue.length() >= 3)) && "today".startsWith(textValue.toLowerCase()))) {
+        } else if ("ago".equals(lowerCasedValue) || ((useLegacy || (textValue.length() >= 3)) && "today".startsWith(lowerCasedValue))) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue.toLowerCase())) {
+        } else if (textValue.length() >= 3 && "tomorrow".startsWith(lowerCasedValue)) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
         }
         return null;
