@@ -10,6 +10,8 @@ public class PrettyPrintTest {
     @Test
     public void prettyPrint() throws Exception {
         Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d select count()"));
+        Assert.assertEquals("FROM jobsearch /* hi */ 2d 1d\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch /* hi */ 2d 1d select count()"));
+        Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT /*before*/ count() /* AFTER */", PrettyPrint.prettyPrint("from jobsearch 2d 1d select /*before*/count()/* AFTER */"));
         Assert.assertEquals("FROM jobsearch 2d 1d\nGROUP BY time(1week)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d GROUP BY time(1week) select count()"));
         Assert.assertEquals("FROM jobsearch 2d 1d\nGROUP BY time(1day1hour)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d GROUP BY time(1d1h) select count()"));
         Assert.assertEquals("FROM jobsearch 2d 1d\nGROUP BY time(1day1hour2seconds)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d GROUP BY time(90002s) select count()"));

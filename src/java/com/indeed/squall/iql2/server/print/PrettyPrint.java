@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class PrettyPrint {
     };
 
     public static void main(String[] args) {
-        final String pretty = prettyPrint("from jobsearch 2d 1d as blah, mobsearch where foo:\"3\" country:us (oji + ojc) = 10 group by something select somethingElse, distinct(thing)");
+        final String pretty = prettyPrint("from jobsearch /* index name! */ 2d 1d as blah, mobsearch where foo:\"3\" /* hi */ country:us (oji + ojc) = 10 group by something select somethingElse /* after */, /* before */ distinct(thing) /*eof*/");
         System.out.println("pretty = " + pretty);
     }
 
@@ -70,13 +71,53 @@ public class PrettyPrint {
 
     private final CharStream inputStream;
     private final StringBuilder sb = new StringBuilder();
+    // This is used to prevent the situation where multiple layers of abstraction all share the same comment
+    // causing it to be printed multiple times as we pp() each point in the tree.
+    // A bit of a hack. Can probably be removed by making the wrappers not pp(), but that's effort.
+    private final Set<Interval> seenCommentIntervals = new HashSet<>();
 
     private PrettyPrint(JQLParser.QueryContext queryContext) {
         this.inputStream = queryContext.start.getInputStream();
     }
 
     private String getText(Positional positional) {
-        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
+        final StringBuilder sb = new StringBuilder();
+        appendCommentBeforeText(positional, sb);
+        sb.append(inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex)));
+        appendCommentAfterText(positional, sb);
+        return sb.toString();
+    }
+
+    private void appendCommentAfterText(Positional positional, StringBuilder sb) {
+        final Interval interval = positional.getCommentAfter();
+        if (interval == null) {
+            return;
+        }
+        if (seenCommentIntervals.contains(interval)) {
+            return;
+        }
+        seenCommentIntervals.add(interval);
+        final String comment = inputStream.getText(interval).trim();
+        if (comment.isEmpty()) {
+            return;
+        }
+        sb.append(' ').append(comment);
+    }
+
+    private void appendCommentBeforeText(Positional positional, StringBuilder sb) {
+        final Interval interval = positional.getCommentBefore();
+        if (interval == null) {
+            return;
+        }
+        if (seenCommentIntervals.contains(interval)) {
+            return;
+        }
+        seenCommentIntervals.add(interval);
+        final String comment = inputStream.getText(interval).trim();
+        if (comment.isEmpty()) {
+            return;
+        }
+        sb.append(comment).append(' ');
     }
 
     private void pp(Query query) {
@@ -90,6 +131,9 @@ public class PrettyPrint {
             if (multiDataSets) {
                 sb.append("\n    ");
             }
+
+            appendCommentBeforeText(dataset, sb);
+
             sb.append(getText(dataset.dataset));
             if (!dataset.startInclusive.unwrap().equals(firstDatasetStart)
                     || !dataset.endExclusive.unwrap().equals(firstDatasetEnd)) {
@@ -117,6 +161,8 @@ public class PrettyPrint {
                 }
                 sb.append(")");
             }
+
+            appendCommentAfterText(dataset, sb);
         }
         sb.append('\n');
 
@@ -175,6 +221,7 @@ public class PrettyPrint {
         }
     }
 
+    // TODO: prettyprint comments
     private void pp(GroupByMaybeHaving groupBy) {
         pp(groupBy.groupBy);
         if (groupBy.filter.isPresent()) {
@@ -183,8 +230,10 @@ public class PrettyPrint {
         }
     }
 
-    private void pp(final GroupBy gb) {
-        gb.visit(new GroupBy.Visitor<Void, RuntimeException>() {
+    private void pp(final GroupBy groupBy) {
+        appendCommentBeforeText(groupBy, sb);
+
+        groupBy.visit(new GroupBy.Visitor<Void, RuntimeException>() {
             @Override
             public Void visit(GroupBy.GroupByMetric groupByMetric) {
                 sb.append("bucket(");
@@ -301,6 +350,8 @@ public class PrettyPrint {
                 return null;
             }
         });
+
+        appendCommentAfterText(groupBy, sb);
     }
 
     private void covertTimeMillisToDateString(long periodMillis) {
@@ -318,6 +369,8 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateFilter aggregateFilter) {
+        appendCommentBeforeText(aggregateFilter, sb);
+
         aggregateFilter.visit(new AggregateFilter.Visitor<Void, RuntimeException>() {
             @Override
             public Void visit(AggregateFilter.TermIs termIs) {
@@ -426,9 +479,13 @@ public class PrettyPrint {
                 throw new UnsupportedOperationException("What even is this operation?: " + isDefaultGroup);
             }
         });
+
+        appendCommentAfterText(aggregateFilter, sb);
     }
 
     private void pp(AggregateMetric aggregateMetric) {
+        appendCommentBeforeText(aggregateMetric, sb);
+
         aggregateMetric.visit(new AggregateMetric.Visitor<Void, RuntimeException>() {
             private Void binop(AggregateMetric.Binop binop, String op) {
                 sb.append('(');
@@ -684,9 +741,13 @@ public class PrettyPrint {
                 throw new UnsupportedOperationException("You need to implement this");
             }
         });
+
+        appendCommentAfterText(aggregateMetric, sb);
     }
 
     private void pp(DocFilter docFilter) {
+        appendCommentBeforeText(docFilter, sb);
+
         sb.append('(');
         docFilter.visit(new DocFilter.Visitor<Void, RuntimeException>() {
             @Override
@@ -898,9 +959,13 @@ public class PrettyPrint {
         });
 
         sb.append(')');
+
+        appendCommentAfterText(docFilter, sb);
     }
 
     private void pp(DocMetric docMetric) {
+        appendCommentBeforeText(docMetric, sb);
+
         docMetric.visit(new DocMetric.Visitor<Void, RuntimeException>() {
             @Override
             public Void visit(DocMetric.Log log) {
@@ -1152,6 +1217,8 @@ public class PrettyPrint {
                 return null;
             }
         });
+
+        appendCommentAfterText(docMetric, sb);
     }
 
     @VisibleForTesting
