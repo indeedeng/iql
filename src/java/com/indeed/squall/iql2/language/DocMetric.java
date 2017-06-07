@@ -8,6 +8,7 @@ import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -17,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -1419,13 +1419,11 @@ public abstract class DocMetric extends AbstractPositional {
 
     public static class Lucene extends DocMetric {
         public final String query;
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
-        public final Map<String, Set<String>> datasetToIntFields;
+        public final DatasetsMetadata datasetsMetadata;
 
-        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        public Lucene(String query, DatasetsMetadata datasetsMetadata) {
             this.query = query;
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.datasetToIntFields = datasetToIntFields;
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -1435,7 +1433,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         protected List<String> getPushes(final String dataset) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
             final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
             return Lists.newArrayList("lucene " + base64EncodedQuery);
@@ -1448,9 +1447,10 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
             final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, upperCasedQuery)), validator, this, true);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, upperCasedQuery), validator, this, true);
         }
 
         @Override

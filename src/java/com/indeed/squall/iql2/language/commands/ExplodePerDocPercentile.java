@@ -36,7 +36,7 @@ public class ExplodePerDocPercentile implements Command, JsonSerializable {
 
     @Override
     public void validate(final DatasetsFields datasetsFields, final Validator validator) {
-        ValidationUtil.validateIntField(datasetsFields.uppercasedDatasets(), field, datasetsFields, validator, this);
+        ValidationUtil.validateIntField(datasetsFields.datasets(), field, datasetsFields, validator, this);
     }
 
     @Override

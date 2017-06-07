@@ -1,18 +1,12 @@
 package com.indeed.squall.iql2.language;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.indeed.imhotep.DatasetInfo;
-import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author jwolfe
@@ -32,43 +26,17 @@ public class DatasetDescriptor {
         this.dimensions = dimensions;
     }
 
-
-    public static DatasetDescriptor from(DatasetInfo datasetInfo, Optional<DatasetDimensions> datasetDimensions, @Nullable Set<String> intFields) {
-        if (intFields == null) {
-            intFields = Collections.emptySet();
-        }
-        final Set<String> seenFields = Sets.newHashSet();
+    public static DatasetDescriptor from(final String dataset, final DatasetMetadata datasetMetadata) {
         final List<FieldDescriptor> fields = Lists.newArrayList();
 
-        for (final String field : datasetInfo.getIntFields()) {
-            if (!seenFields.contains(field)) {
-                fields.add(new FieldDescriptor(field, "", "Integer"));
-                seenFields.add(field);
-            }
+        for (final String field : datasetMetadata.intFields) {
+            fields.add(new FieldDescriptor(field, "", "Integer"));
+        }
+        for (final String field : datasetMetadata.stringFields) {
+            fields.add(new FieldDescriptor(field, "", "String"));
         }
 
-        for (final String field : datasetInfo.getStringFields()) {
-            if (!seenFields.contains(field)) {
-                if (intFields.contains(field)) {
-                    fields.add(new FieldDescriptor(field, "", "Integer"));
-                }
-                fields.add(new FieldDescriptor(field, "", "String"));
-                seenFields.add(field);
-            }
-        }
-        final ImmutableList<Dimension> dimensions;
-        if (datasetDimensions.isPresent()) {
-            final ImmutableList.Builder<Dimension> builder = new ImmutableList.Builder();
-            final DatasetDimensions dimension = datasetDimensions.get();
-            for (String uppercasedField : dimension.uppercasedFields()) {
-                builder.add(dimension.getDimension(uppercasedField).get());
-            }
-            dimensions = builder.build();
-        } else {
-            dimensions = ImmutableList.of();
-        }
-
-        return new DatasetDescriptor(datasetInfo.getDataset(), "", fields, dimensions);
+        return new DatasetDescriptor(dataset, "", fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
     }
 
     public String getName() {

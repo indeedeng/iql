@@ -6,15 +6,13 @@ import com.indeed.common.util.time.StoppedClock;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 
 import static com.indeed.squall.iql2.language.DocMetric.Add;
 import static com.indeed.squall.iql2.language.DocMetric.Divide;
@@ -27,14 +25,12 @@ public class DocMetricsTest {
 
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
-            final Map<String, Set<String>> datasetToIntFields = Collections.emptyMap();
             final JQLParser.DocMetricContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.DocMetricContext>() {
                 public JQLParser.DocMetricContext apply(JQLParser input) {
                     return input.docMetric(true);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+            return DocMetrics.parseDocMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
@@ -45,14 +41,12 @@ public class DocMetricsTest {
 
     private static final Function<String, DocMetric> PARSE_IQL2_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
-            final Map<String, Set<String>> datasetToIntFields = Collections.emptyMap();
             final JQLParser.DocMetricContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.DocMetricContext>() {
                 public JQLParser.DocMetricContext apply(JQLParser input) {
                     return input.docMetric(false);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+            return DocMetrics.parseDocMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);

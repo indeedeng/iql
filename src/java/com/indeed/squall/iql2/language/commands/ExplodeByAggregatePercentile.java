@@ -40,13 +40,13 @@ public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : datasetsFields.uppercasedDatasets()) {
+        for (final String dataset : datasetsFields.datasets()) {
             if (!datasetsFields.containsField(dataset, field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
-        metric.validate(datasetsFields.uppercasedDatasets(), datasetsFields, validator);
+        metric.validate(datasetsFields.datasets(), datasetsFields, validator);
     }
 
     @Override

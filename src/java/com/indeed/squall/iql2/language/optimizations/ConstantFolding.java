@@ -8,10 +8,8 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
-
-import java.util.Collections;
-import java.util.Set;
 
 public class ConstantFolding {
     public static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
@@ -287,7 +285,7 @@ public class ConstantFolding {
     public static void main(String[] args) {
         final JQLParser parser = Queries.parserForString("sortingTime!=-1");
         final JQLParser.DocFilterContext ctx = parser.docFilter(true);
-        final DocFilter filter = DocFilters.parseDocFilter(ctx, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), null, new Consumer<String>() {
+        final DocFilter filter = DocFilters.parseDocFilter(ctx, DatasetsMetadata.empty(), null, new Consumer<String>() {
             @Override
             public void accept(String s) {
                 System.out.println("WARNING: " + s);

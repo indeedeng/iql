@@ -2,32 +2,31 @@ package com.indeed.squall.iql2.language;
 
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class FlamdexQueryTranslator {
-    public static DocFilter translate(Query query, Map<String, Set<String>> datasetToKeywordAnalyzerFields) {
+    public static DocFilter translate(Query query, DatasetsMetadata datasetsMetadata) {
         switch (query.getQueryType()) {
             case TERM:
                 final Term term = query.getStartTerm();
-                return new DocFilter.FieldIs(datasetToKeywordAnalyzerFields, Positioned.unpositioned(term.getFieldName()), translate(term));
+                return new DocFilter.FieldIs(datasetsMetadata, Positioned.unpositioned(term.getFieldName()), translate(term));
             case BOOLEAN:
                 final List<Query> operands = query.getOperands();
                 if (operands.isEmpty()) {
                     return new DocFilter.Always();
                 }
-                DocFilter filter = translate(operands.get(0), datasetToKeywordAnalyzerFields);
+                DocFilter filter = translate(operands.get(0), datasetsMetadata);
                 switch (query.getOperator()) {
                     case AND:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.And(filter, translate(operands.get(i), datasetToKeywordAnalyzerFields));
+                            filter = new DocFilter.And(filter, translate(operands.get(i), datasetsMetadata));
                         }
                         return filter;
                     case OR:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.Or(filter, translate(operands.get(i), datasetToKeywordAnalyzerFields));
+                            filter = new DocFilter.Or(filter, translate(operands.get(i), datasetsMetadata));
                         }
                         return filter;
                     case NOT:

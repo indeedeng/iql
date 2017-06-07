@@ -20,6 +20,7 @@ import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -28,8 +29,6 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
@@ -37,30 +36,29 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
+    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final List<JQLParser.GroupByElementWithHavingContext> elements = groupByContentsContext.groupByElementWithHaving();
         final List<GroupByMaybeHaving> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByElementWithHavingContext element : elements) {
-            result.add(parseGroupByMaybeHaving(element, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+            result.add(parseGroupByMaybeHaving(element, datasetsMetadata, warn, clock));
         }
         return result;
     }
 
     public static GroupByMaybeHaving parseGroupByMaybeHaving(
             final JQLParser.GroupByElementWithHavingContext ctx,
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields,
-            final Map<String, Set<String>> datasetToIntFields,
+            final DatasetsMetadata datasetsMetadata,
             final Consumer<String> warn, WallClock clock
     ) {
-        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), datasetsMetadata, warn, clock);
         if (ctx.filter != null) {
-            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, datasetsMetadata, warn, clock));
         } else {
             return GroupByMaybeHaving.of(groupBy);
         }
     }
 
-    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn, final WallClock clock) {
+    public static GroupBy parseGroupBy(JQLParser.GroupByElementContext groupByElementContext, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
         final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
@@ -96,7 +94,7 @@ public class GroupBys {
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetsMetadata, warn, clock));
                 } else {
                     metric = Optional.absent();
                 }
@@ -151,7 +149,7 @@ public class GroupBys {
                 final boolean withDefault;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetsMetadata, warn, clock);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -166,7 +164,7 @@ public class GroupBys {
                     withDefault = ctx2.withDefault != null;
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), datasetsMetadata, warn, clock);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -248,7 +246,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, datasetsMetadata, warn, clock);
                     if (reverseOrder) {
                         if (theMetric instanceof AggregateMetric.ImplicitDocStats) {
                             theMetric = new AggregateMetric.ImplicitDocStats(
@@ -267,7 +265,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, datasetsMetadata, warn, clock));
                 } else {
                     filter = Optional.absent();
                 }
@@ -283,7 +281,7 @@ public class GroupBys {
 
             @Override
             public void enterPredicateGroupBy(JQLParser.PredicateGroupByContext ctx) {
-                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock);
+                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, null, warn, clock);
                 accept(new GroupBy.GroupByPredicate(filter));
             }
         });

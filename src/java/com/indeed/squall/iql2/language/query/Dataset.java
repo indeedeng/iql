@@ -14,6 +14,7 @@ import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -53,9 +54,9 @@ public class Dataset extends AbstractPositional {
         return alias.or(dataset);
     }
 
-    public Dataset addAliasDimensions(Map<String, String> uppercasedAliasToActualField) {
+    public Dataset addAliasDimensions(Map<String, String> dimensionAliases) {
         final Map<Positioned<String>, Positioned<String>> newFieldAliases = new HashMap<>();
-        uppercasedAliasToActualField.forEach((key, value) -> newFieldAliases.put(Positioned.unpositioned(key), Positioned.unpositioned(value)));
+        dimensionAliases.forEach((key, value) -> newFieldAliases.put(Positioned.unpositioned(key.toUpperCase()), Positioned.unpositioned(value.toUpperCase())));
         newFieldAliases.putAll(fieldAliases);
         return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliases);
     }
@@ -87,17 +88,17 @@ public class Dataset extends AbstractPositional {
         return resolvedAliasToRealFieldBuilder.build();
     }
 
-    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
+    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
-        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock);
+        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetsMetadata, warn, clock);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.getFirst().startInclusive.unwrap(), ds1.getFirst().endExclusive.unwrap(), dataset, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive.unwrap(), ds1.getFirst().endExclusive.unwrap(), dataset, datasetsMetadata, warn, clock));
         }
         return result;
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
+    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final Positioned<String> dataset = parseIdentifier(datasetContext.index);
         final Positioned<DateTime> start = parseDateTime(datasetContext.start, clock);
         final Positioned<DateTime> end = parseDateTime(datasetContext.end, clock);
@@ -112,7 +113,7 @@ public class Dataset extends AbstractPositional {
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
+                filters.add(DocFilters.parseDocFilter(ctx, datasetsMetadata, null, warn, clock));
             }
             initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
         } else {
@@ -123,7 +124,7 @@ public class Dataset extends AbstractPositional {
         return Pair.of(dataset1, initializerFilter);
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final Map<String, Set<String>> datasetToKeywordAnalyzerFields, final Map<String, Set<String>> datasetToIntFields, final Consumer<String> warn, final WallClock clock) {
+    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
         final Object[] ref = new Object[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -135,7 +136,7 @@ public class Dataset extends AbstractPositional {
             }
 
             public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
-                accept(parseDataset(ctx.dataset(), datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+                accept(parseDataset(ctx.dataset(), datasetsMetadata, warn, clock));
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
@@ -153,7 +154,7 @@ public class Dataset extends AbstractPositional {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetsMetadata, null, warn, clock));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
                 } else {

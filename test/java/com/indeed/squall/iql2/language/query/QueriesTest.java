@@ -3,10 +3,10 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.collect.ImmutableList;
 import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,7 +28,7 @@ public class QueriesTest {
 
     private List<String> extractHeadersHelper(final String q, final boolean useLegacy) {
         final Query query = Queries.parseQuery(
-                q, useLegacy, Collections.emptyMap(), Collections.emptyMap(), new DefaultWallClock()).query;
+                q, useLegacy, DatasetsMetadata.empty(), new DefaultWallClock()).query;
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
         return Queries.extractHeaders(query, queryContext.start.getInputStream());
     }

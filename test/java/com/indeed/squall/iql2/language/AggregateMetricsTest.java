@@ -6,14 +6,12 @@ import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.DocMetric.Field;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 
 import static com.indeed.squall.iql2.language.AggregateMetric.Add;
 import static com.indeed.squall.iql2.language.AggregateMetric.Divide;
@@ -27,14 +25,12 @@ public class AggregateMetricsTest {
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
-            final Map<String, Set<String>> datasetToIntFields = Collections.emptyMap();
             final JQLParser.AggregateMetricContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
                 public JQLParser.AggregateMetricContext apply(JQLParser input) {
                     return input.aggregateMetric(false);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+            return AggregateMetrics.parseAggregateMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
@@ -44,14 +40,12 @@ public class AggregateMetricsTest {
     };
     public static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = Collections.emptyMap();
-            final Map<String, Set<String>> datasetToIntFields = Collections.emptyMap();
             final JQLParser.AggregateMetricContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
                 public JQLParser.AggregateMetricContext apply(JQLParser input) {
                     return input.aggregateMetric(true);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+            return AggregateMetrics.parseAggregateMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
