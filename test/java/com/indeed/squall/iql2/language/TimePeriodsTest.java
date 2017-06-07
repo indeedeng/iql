@@ -52,6 +52,12 @@ public class TimePeriodsTest {
             new TestDef("minute", Pair.of(1, TimeUnit.MINUTE)),
             new TestDef("HOUR", Pair.of(1, TimeUnit.HOUR)),
             new TestDef("d", Pair.of(1, TimeUnit.DAY)),
+            new TestDef("BUCKET", Pair.of(1, TimeUnit.BUCKETS)),
+            new TestDef(
+                    "y 3d",
+                    Pair.of(1, TimeUnit.YEAR),
+                    Pair.of(3, TimeUnit.DAY)
+            ),
             new TestDef(
                     "3d 5h 10m",
                     Pair.of(3, TimeUnit.DAY),

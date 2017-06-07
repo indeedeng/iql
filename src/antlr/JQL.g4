@@ -84,12 +84,9 @@ M: 'M' ;
 
 Y : 'Y' ;
 
-TIME_UNIT_ATOM: [sSmMhHdDwWyYbB] ;
+TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 
-TIME_UNIT : 'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
-
-TIME_PERIOD_ATOM : ([0-9]+ (TIME_UNIT|BUCKET|BUCKETS|TIME_UNIT_ATOM))+ ;
-
+TIME_PERIOD_ATOM : ([0-9]* (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
 
 NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
@@ -128,7 +125,8 @@ identifier
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | M
     ;
-timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | M | BUCKET | BUCKETS | TIME_UNIT_ATOM)) | timeunits+=(TIME_UNIT_ATOM|TIME_UNIT))+ AGO? #TimePeriodParseable
+timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
+timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
 timePeriodTerminal : timePeriod EOF ;
 
