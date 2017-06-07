@@ -306,7 +306,6 @@ public class EventRegexServlet {
                 new NoOpProgressCallback(),
                 -1L,
                 -1L,
-                new DefaultWallClock(),
                 "jwolfe"
         );
 

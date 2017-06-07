@@ -525,7 +525,7 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
