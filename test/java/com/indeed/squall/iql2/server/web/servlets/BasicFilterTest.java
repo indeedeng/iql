@@ -20,10 +20,10 @@ public class BasicFilterTest extends BasicTest {
 
     @Test
     public void testNegateFilters() throws Exception {
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
         testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");
+        testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
         testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where -tk:c select count()");
+        testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");
     }
 
 }
