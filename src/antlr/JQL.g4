@@ -374,7 +374,7 @@ jqlDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
     | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
-    | ('!' | '-') jqlDocFilter # DocNot
+    | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
     | jqlDocFilter (OR|'||') jqlDocFilter # DocOr
