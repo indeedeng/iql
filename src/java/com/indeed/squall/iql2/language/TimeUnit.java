@@ -28,11 +28,11 @@ public enum TimeUnit {
 
     public static TimeUnit fromChar(char c) {
         switch (c) {
-            case 'm': return MINUTE;
-            case 'M': return MONTH;
             case 's':
             case 'S':
                 return SECOND;
+            case 'm':
+                return MINUTE;
             case 'h':
             case 'H':
                 return HOUR;
@@ -42,6 +42,8 @@ public enum TimeUnit {
             case 'w':
             case 'W':
                 return WEEK;
+            case 'M':
+                return MONTH;
             case 'b':
             case 'B':
                 return BUCKETS;
