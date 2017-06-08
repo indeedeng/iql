@@ -81,6 +81,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -99,6 +100,7 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
+
     private final DatasetsMetadata datasetsMetadata;
 
     // Query output state
@@ -511,7 +513,7 @@ public class SelectQueryExecution {
                 }
 
                 final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(inputStream, addDimensionAliasesToFieldAliases(query, datasetsMetadata)));
+                request.put("datasets", Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields()));
                 request.put("commands", commands);
 
                 request.put("groupLimit", groupLimit);
@@ -521,7 +523,9 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
+                    final Session.CreateSessionResult createResult = Session.createSession(
+                            imhotepClient, datasetToChosenShards, requestJson, closer, out, timer,
+                            compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
@@ -608,28 +612,6 @@ public class SelectQueryExecution {
             }
         }
         return hasMoreRows;
-    }
-
-    private static Query addDimensionAliasesToFieldAliases(final Query query, final DatasetsMetadata datasetsMetadata) {
-        final List<Dataset> aliasDatasets = Lists.newArrayList();
-        final Map<String, String> datasetAliasToActual = query.nameToIndex();
-        for (Dataset dataset : query.datasets) {
-            final String aliasName = dataset.getDisplayName().unwrap();
-            final String actualName = datasetAliasToActual.get(aliasName);
-            if (datasetsMetadata.getMetadata(actualName).isPresent()) {
-                final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualName).get();
-                final Map<String, String> dimensionAliases = new HashMap<>();
-                for (Map.Entry<String, Dimension> entry : datasetMetadata.fieldToDimension.entrySet()) {
-                    if (entry.getValue().isAlias) {
-                        dimensionAliases.put(entry.getKey(), entry.getValue().getAliasActualField().get());
-                    }
-                }
-                aliasDatasets.add(dataset.addAliasDimensions(dimensionAliases));
-            } else {
-                aliasDatasets.add(dataset);
-            }
-        }
-        return new Query(aliasDatasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.rowLimit);
     }
 
     private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
