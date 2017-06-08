@@ -330,9 +330,10 @@ public class Session {
         return groupMultiRemapRuleRewriter;
     }
 
-    private static DateTime parseDateTime(String descriptor) {
+    // this datetime is serialized by standard Datetime by iql2-language
+    private static DateTime parseDateTime(String datetime) {
         try {
-            return DateTime.parse(descriptor);
+            return DateTime.parse(datetime);
         } catch (final IllegalArgumentException e) {
             throw Throwables.propagate(e);
         }
