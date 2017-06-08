@@ -146,7 +146,8 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards,
+                    closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -229,6 +230,8 @@ public class Session {
             final String displayName = elem.get("displayName").textValue();
             final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
             });
+            final Set<String> dimensionAliases = MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Set<String>>() {
+            });
             treeTimer.push("session:" + displayName);
 
             treeTimer.push("get dataset info");
@@ -236,13 +239,22 @@ public class Session {
             final DatasetInfo datasetInfo = client.getDatasetShardInfo(actualDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
-            final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
+            final Set<String> uppercasedDimensionFields = upperCase(dimensionAliases);
+            final Set<String> sessionStringFields = new HashSet<>();
+
+            for (String stringField : datasetInfo.getStringFields()) {
+                if (uppercasedDimensionFields.contains(stringField.toUpperCase())) {
+                    sessionIntFields.add(stringField);
+                } else {
+                    sessionStringFields.add(stringField);
+                }
+            }
 
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
             for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
-                if (upperCasedIntFields.contains(entry.getValue())) {
+                if (upperCasedIntFields.contains(entry.getValue()) || uppercasedDimensionFields.contains(entry.getValue())) {
                     sessionIntFields.add(entry.getKey());
                     upperCasedIntFields.add(entry.getKey().toUpperCase());
                 } else if (upperCasedStringFields.contains(entry.getValue())) {
