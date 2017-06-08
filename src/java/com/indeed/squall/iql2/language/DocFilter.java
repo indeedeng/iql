@@ -1352,8 +1352,7 @@ public abstract class DocFilter extends AbstractPositional {
         public DocMetric asZeroOneMetric(String dataset) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            final DocFilter filter = FlamdexQueryTranslator.translate(upperCasedQuery, datasetsMetadata);
+            final DocFilter filter = FlamdexQueryTranslator.translate(flamdexQuery, datasetsMetadata);
             return filter.asZeroOneMetric(dataset);
         }
 
@@ -1363,8 +1362,7 @@ public abstract class DocFilter extends AbstractPositional {
             for (final String dataset : scope.keySet()) {
                 final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                         query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
-                final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-                datasetToQuery.put(dataset, upperCasedQuery);
+                datasetToQuery.put(dataset, flamdexQuery);
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
         }
@@ -1378,8 +1376,7 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, upperCasedQuery), validator, this, true);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 
         @Override

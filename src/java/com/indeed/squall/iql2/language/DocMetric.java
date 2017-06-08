@@ -1449,8 +1449,7 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, upperCasedQuery), validator, this, true);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 
         @Override

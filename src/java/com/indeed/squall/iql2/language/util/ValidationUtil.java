@@ -2,11 +2,9 @@ package com.indeed.squall.iql2.language.util;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.indeed.common.util.StringUtils;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
-import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
@@ -48,9 +46,9 @@ public class ValidationUtil {
     }
 
     public static void validateQuery(DatasetsFields datasetFields, Map<String, Query> perDatasetQuery, Validator validator, Object source, boolean allowStringFieldsForInts) {
-        Map<String, Set<String>> datasetToIntFields = new HashMap<>();
-        Map<String, Set<String>> datasetToStringFields = new HashMap<>();
-        for (Map.Entry<String, Query> datasetEntry : perDatasetQuery.entrySet()) {
+        final Map<String, Set<String>> datasetToIntFields = new HashMap<>();
+        final Map<String, Set<String>> datasetToStringFields = new HashMap<>();
+        for (final Map.Entry<String, Query> datasetEntry : perDatasetQuery.entrySet()) {
             final String dataset = datasetEntry.getKey();
             final Set<String> intFields = new HashSet<>();
             final Set<String> stringFields = new HashSet<>();
@@ -153,33 +151,6 @@ public class ValidationUtil {
 
     private enum FieldType {
         INT, STR, NULL
-    }
-
-    private static Term uppercaseTerm(Term term) {
-        if (term.isIntField()) {
-            return Term.intTerm(term.getFieldName().toUpperCase(), term.getTermIntVal());
-        } else {
-            return Term.stringTerm(term.getFieldName().toUpperCase(), term.getTermStringVal());
-        }
-    }
-
-    public static Query uppercaseTermQuery(Query query) {
-        if (query.getOperands() == null) {
-            final Term startTerm = query.getStartTerm();
-            final Term endTerm = query.getEndTerm();
-            if (endTerm == null) {
-                return Query.newTermQuery(uppercaseTerm(startTerm));
-            } else {
-                return Query.newRangeQuery(
-                        uppercaseTerm(startTerm), uppercaseTerm(endTerm), query.isMaxInclusive());
-            }
-        } else {
-            List<Query> upperOperands = Lists.newArrayListWithCapacity(query.getOperands().size());
-            for (Query operand : query.getOperands()) {
-                upperOperands.add(uppercaseTermQuery(operand));
-            }
-            return Query.newBooleanQuery(query.getOperator(), upperOperands);
-        }
     }
 
     public static Query getFlamdexQuery(final String query, final String dataset,
