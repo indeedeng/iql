@@ -10,7 +10,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- *
+ * all fields are case insensitive
  */
 public class DatasetMetadata {
     public final String datasetName;

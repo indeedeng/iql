@@ -6,6 +6,8 @@ import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class DatasetsFields {
     private final DatasetsMetadata datasetsMetadata;
@@ -16,9 +18,19 @@ public class DatasetsFields {
                           final Map<String, Set<String>> datasetAliasIntFields,
                           final Map<String, Set<String>> datasetAliasStringFields) {
         this.datasetsMetadata = datasetsMetadata;
-        this.datasetAliasIntFields = datasetAliasIntFields;
-        this.datasetAliasStringFields = datasetAliasStringFields;
+        this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
+        this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);
     }
+
+    private Map<String, Set<String>> toCaseInsensitive(final Map<String, Set<String>> map) {
+        final Map<String, Set<String>> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
+            caseInsensitiveMap.put(entry.getKey(), new TreeSet<>(String.CASE_INSENSITIVE_ORDER));
+            caseInsensitiveMap.get(entry.getKey()).addAll(entry.getValue());
+        }
+        return caseInsensitiveMap;
+    }
+
 
     public boolean containsStringField(String dataset, String field) {
         return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(field)) ||
