@@ -168,7 +168,7 @@ public class MetadataCacheTest {
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
         imhotepDataset.setMetrics(new MetricsYaml[]{calcMetric});
-        final ImmutableMap<String, Dimension> dimensions = metadataCache.parseAndGetGlobalDimensions(imhotepDataset);
+        final ImmutableMap<String, Dimension> dimensions = metadataCache.parseAndGetDefaultDimensions(imhotepDataset);
 
         final ImmutableMap<String, String> expectedDimensions = ImmutableMap.of(
                 "complex", "(a1+a2)*10",
