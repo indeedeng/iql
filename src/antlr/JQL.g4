@@ -452,7 +452,6 @@ dateTime
     | STRING_LITERAL
     | NAT // This is for unix timestamps.
     | timePeriod
-    // Oh god I hate myself:
     | TODAYS
     | TOMRROWS
     | YESTERDAYS
