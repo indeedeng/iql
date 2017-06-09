@@ -43,6 +43,56 @@ public class SplitQuery {
         this.datasets = datasets;
     }
 
+    @Override
+    public String toString() {
+        return "SplitQuery{" +
+                "from='" + from + '\'' +
+                ", where='" + where + '\'' +
+                ", groupBy='" + groupBy + '\'' +
+                ", select='" + select + '\'' +
+                ", limit='" + limit + '\'' +
+                ", headers=" + headers +
+                ", groupBys=" + groupBys +
+                ", selects=" + selects +
+                ", dataset='" + dataset + '\'' +
+                ", start='" + start + '\'' +
+                ", startRawString='" + startRawString + '\'' +
+                ", end='" + end + '\'' +
+                ", endRawString='" + endRawString + '\'' +
+                ", datasets=" + datasets +
+                '}';
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final SplitQuery that = (SplitQuery) o;
+        return Objects.equal(from, that.from) &&
+                Objects.equal(where, that.where) &&
+                Objects.equal(groupBy, that.groupBy) &&
+                Objects.equal(select, that.select) &&
+                Objects.equal(limit, that.limit) &&
+                Objects.equal(headers, that.headers) &&
+                Objects.equal(groupBys, that.groupBys) &&
+                Objects.equal(selects, that.selects) &&
+                Objects.equal(dataset, that.dataset) &&
+                Objects.equal(start, that.start) &&
+                Objects.equal(startRawString, that.startRawString) &&
+                Objects.equal(end, that.end) &&
+                Objects.equal(endRawString, that.endRawString) &&
+                Objects.equal(datasets, that.datasets);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(from, where, groupBy, select, limit, headers, groupBys, selects, dataset, start, startRawString, end, endRawString, datasets);
+    }
+
     static class Dataset {
         public final String name;
         public final String where;
