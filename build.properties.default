@@ -5,3 +5,5 @@ coverage.line.minimum_pct=3
 coverage.method.minimum_pct=3
 coverage.block.minimum_pct=3
 coverage.class.minimum_pct=3
+
+use.gradle.resolver=true
