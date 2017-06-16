@@ -24,8 +24,8 @@ public class DimensionTest extends BasicTest {
     @Test
     public void testDefaultDimension() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "25300", "20", "5"));
-        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek, counts", options);
+        expected.add(ImmutableList.of("", "25300", "20"));
+        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek", options);
     }
 
 
@@ -82,7 +82,7 @@ public class DimensionTest extends BasicTest {
             testIQL2(dataset, expected, "from dimension yesterday today GROUP BY bucket(plus, 0, 5, 2)", options);
         }
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("1", "1")), "from dimension yesterday today GROUP BY i2 HAVING i1divi2 > 1", options);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING counts > 1", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING count() > 1", options);
 
         assertFailQuery("from dimension yesterday today GROUP BY calc", "group by non alias metric is not supported");
         assertFailQuery("from dimension yesterday today GROUP BY i1divi2 in (1, 2)", "group by in aggregate metric is not supported");
