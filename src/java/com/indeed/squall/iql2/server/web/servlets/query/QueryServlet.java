@@ -2,7 +2,6 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -15,6 +14,7 @@ import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.language.DatasetDescriptor;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
@@ -67,8 +67,7 @@ public class QueryServlet {
 //        GlobalUncaughtExceptionHandler.register();
         try {
             hostname = java.net.InetAddress.getLocalHost().getHostName();
-        }
-        catch (java.net.UnknownHostException ex) {
+        } catch (java.net.UnknownHostException ex) {
             hostname = "(unknown)";
         }
     }
@@ -155,7 +154,7 @@ public class QueryServlet {
         final boolean isStream = contentType.contains("text/event-stream");
         queryInfo.statementType = "invalid";
         try {
-            if(Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
+            if (Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
                 throw new RuntimeException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
             accessControl.checkAllowedAccess(username);
@@ -182,11 +181,10 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "application/json");
                 }
                 final String selectQuery = query.trim().substring("explain ".length());
-                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient,
-                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDimensions(),
-                        response.getWriter(), selectQuery, version, isJSON, clock);
+                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
+                        metadataCache.get(), response.getWriter(), selectQuery, version, isJSON, clock);
                 explainQueryExecution.processExplain();
-            }  else {
+            } else {
                 final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
                 final Integer groupLimit;
                 if (request.getParameter("groupLimit") != null) {
@@ -203,8 +201,7 @@ public class QueryServlet {
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient,
-                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), metadataCache.getUppercasedDimensions(),
-                        response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
+                        metadataCache.get(), response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect();
                 queryStartTimestamp = selectQueryExecution.getQueryStartTimestamp();
             }
@@ -232,7 +229,7 @@ public class QueryServlet {
     }
 
     public static void handleError(HttpServletResponse response, boolean isJson, Throwable e, boolean status500, boolean isStream) throws IOException {
-        if(!(e instanceof Exception || e instanceof OutOfMemoryError)) {
+        if (!(e instanceof Exception || e instanceof OutOfMemoryError)) {
             throw Throwables.propagate(e);
         }
         // output parse/execute error
@@ -252,7 +249,7 @@ public class QueryServlet {
                 printStream.close();
             }
         } else {
-            if(status500) {
+            if (status500) {
                 response.setStatus(500);
             }
             // construct a parsed error object to be JSON serialized
@@ -325,12 +322,16 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(
-                imhotepClient.getDatasetShardInfo(dataset),
-                Optional.fromNullable(metadataCache.getUppercasedDimensions().get(dataset)),
-                metadataCache.getUppercasedDatasetToIntFields().get(dataset));
+        final DatasetsMetadata metadata = metadataCache.get();
+        final String content;
+        if (!metadata.getMetadata(dataset).isPresent()) {
+            content = "dataset " + dataset + " not existed";
+        } else {
+            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(dataset, metadata.getMetadata(dataset).get());
+            content = OBJECT_MAPPER.writeValueAsString(datasetDescriptor);
+        }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
+            response.getWriter().println(content);
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
         }
@@ -367,7 +368,7 @@ public class QueryServlet {
                           String remoteAddr,
                           SelectQueryExecution.QueryInfo queryInfo) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
-        if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
+        if (timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
         }
 
@@ -379,7 +380,7 @@ public class QueryServlet {
         logEntry.setProperty("client", client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
-        logEntry.setProperty("tottime", (int)timeTaken);
+        logEntry.setProperty("tottime", (int) timeTaken);
 
         logString(logEntry, "statement", queryInfo.statementType);
 
@@ -403,7 +404,7 @@ public class QueryServlet {
 
         final List<String> params = Lists.newArrayList();
         final Enumeration<String> paramsEnum = req.getParameterNames();
-        while(paramsEnum.hasMoreElements()) {
+        while (paramsEnum.hasMoreElements()) {
             final String param = paramsEnum.nextElement();
             // TODO: Add whitelist
             params.add(param);
@@ -413,7 +414,7 @@ public class QueryServlet {
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", query.length());
         logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
-        if(errorOccurred != null) {
+        if (errorOccurred != null) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
             String message = errorOccurred.getMessage();
             if (message == null) {
@@ -465,7 +466,7 @@ public class QueryServlet {
     }
 
     private void logQueryToLog4J(String query, String identification, long timeTaken) {
-        if(query.length() > 500) {
+        if (query.length() > 500) {
             query = query.replaceAll("\\(([^\\)]{0,100}+)[^\\)]+\\)", "\\($1\\.\\.\\.\\)");
         }
         final String timeTakenStr = timeTaken >= 0 ? String.valueOf(timeTaken) : "";

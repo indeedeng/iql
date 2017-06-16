@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -33,7 +34,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class PrettyPrint {
     private static final Function<String, String> RENDER_STRING = new Function<String, String>() {
@@ -50,7 +50,7 @@ public class PrettyPrint {
     @Nonnull
     public static String prettyPrint(String q) {
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, true);
-        final Query query = Query.parseQuery(queryContext, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), new Consumer<String>() {
+        final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), new Consumer<String>() {
             @Override
             public void accept(String s) {
 

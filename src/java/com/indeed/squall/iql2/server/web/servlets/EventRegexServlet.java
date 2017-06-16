@@ -382,7 +382,7 @@ public class EventRegexServlet {
             public void accept(String s) {
             }
         };
-        return DocFilters.parseJQLDocFilter(docFilterContext, metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), null, noOpWarn, new DefaultWallClock());
+        return DocFilters.parseJQLDocFilter(docFilterContext, metadataCache.get(), null, noOpWarn, new DefaultWallClock());
     }
 
     public static class EventDescription {

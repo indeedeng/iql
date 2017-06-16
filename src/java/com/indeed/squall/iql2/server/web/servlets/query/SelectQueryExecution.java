@@ -36,11 +36,13 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
-import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
+import com.indeed.squall.iql2.language.dimensions.Dimension;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.util.core.Pair;
@@ -97,9 +99,7 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
-    private final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist;
-    private final Map<String, Set<String>> uppercasedDatasetToIntFields;
-    private final Map<String, DatasetDimensions> uppercasedDimensions;
+    private final DatasetsMetadata datasetsMetadata;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -124,9 +124,7 @@ public class SelectQueryExecution {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final Integer groupLimit, ImhotepClient imhotepClient,
-            final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist,
-            final Map<String, Set<String>> uppercasedDatasetToIntFields,
-            final Map<String, DatasetDimensions> uppercasedDimensions,
+            final DatasetsMetadata datasetsMetadata,
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
             final TreeTimer timer,
@@ -147,12 +145,10 @@ public class SelectQueryExecution {
         this.skipValidation = skipValidation;
         this.groupLimit = groupLimit;
         this.clock = clock;
-        this.uppercasedKeywordAnalyzerWhitelist = uppercasedKeywordAnalyzerWhitelist;
-        this.uppercasedDatasetToIntFields = uppercasedDatasetToIntFields;
         this.imhotepClient = imhotepClient;
+        this.datasetsMetadata = datasetsMetadata;
         this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
-        this.uppercasedDimensions = uppercasedDimensions;
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
@@ -281,7 +277,7 @@ public class SelectQueryExecution {
         timer.push(q);
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, uppercasedKeywordAnalyzerWhitelist, uppercasedDatasetToIntFields, warn, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warn, clock);
         timer.pop();
 
         {
@@ -334,8 +330,7 @@ public class SelectQueryExecution {
             final Set<String> cacheKeys = new HashSet<>();
             final ListMultimap<String, List<ShardIdWithVersion>> allShardsUsed = ArrayListMultimap.create();
 
-            final Query aliasedQuery = addAliasDimension(originalQuery, uppercasedDimensions);
-            final Query query = aliasedQuery.transform(
+            final Query query = originalQuery.transform(
                     Functions.<GroupBy>identity(),
                     Functions.<AggregateMetric>identity(),
                     Functions.<DocMetric>identity(),
@@ -387,9 +382,9 @@ public class SelectQueryExecution {
                                     for (final long v : p.getFirst()) {
                                         terms.add(String.valueOf(v));
                                     }
-                                    filters.add(new DocFilter.StringFieldIn(uppercasedKeywordAnalyzerWhitelist, scopedField.field, terms));
+                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, scopedField.field, terms));
                                 } else if (!p.getFirst().isEmpty()) {
-                                    filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
+                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, scopedField.field, p.getFirst()));
                                 }
                                 final DocFilter.Ors orred = new DocFilter.Ors(filters);
                                 final DocFilter maybeNegated;
@@ -406,14 +401,14 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), uppercasedDimensions);
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), datasetsMetadata);
             timer.pop();
 
             if (!skipValidation) {
                 timer.push("validate commands");
                 final Set<String> errors = new HashSet<>();
                 final Set<String> warnings = new HashSet<>();
-                CommandValidator.validate(commands, imhotepClient, query, uppercasedDimensions, uppercasedDatasetToIntFields, errors, warnings);
+                CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
 
                 if (errors.size() != 0) {
                     throw new IllegalArgumentException("Errors found when validating query: " + errors);
@@ -516,7 +511,7 @@ public class SelectQueryExecution {
                 }
 
                 final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(inputStream, query));
+                request.put("datasets", Queries.createDatasetMap(inputStream, addDimensionAliasesToFieldAliases(query, datasetsMetadata)));
                 request.put("commands", commands);
 
                 request.put("groupLimit", groupLimit);
@@ -615,12 +610,21 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static Query addAliasDimension(final Query query, final Map<String, DatasetDimensions> uppercasedDimensions) {
+    private static Query addDimensionAliasesToFieldAliases(final Query query, final DatasetsMetadata datasetsMetadata) {
         final List<Dataset> aliasDatasets = Lists.newArrayList();
+        final Map<String, String> datasetAliasToActual = query.nameToIndex();
         for (Dataset dataset : query.datasets) {
-            if (uppercasedDimensions.containsKey(dataset.dataset.unwrap().toUpperCase())) {
-                final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.dataset.unwrap().toUpperCase());
-                aliasDatasets.add(dataset.addAliasDimensions(datasetDimensions.getUppercasedAliasToActualField()));
+            final String aliasName = dataset.getDisplayName().unwrap();
+            final String actualName = datasetAliasToActual.get(aliasName);
+            if (datasetsMetadata.getMetadata(actualName).isPresent()) {
+                final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualName).get();
+                final Map<String, String> dimensionAliases = new HashMap<>();
+                for (Map.Entry<String, Dimension> entry : datasetMetadata.fieldToDimension.entrySet()) {
+                    if (entry.getValue().isAlias) {
+                        dimensionAliases.put(entry.getKey(), entry.getValue().getAliasActualField().get());
+                    }
+                }
+                aliasDatasets.add(dataset.addAliasDimensions(dimensionAliases));
             } else {
                 aliasDatasets.add(dataset);
             }

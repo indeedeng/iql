@@ -7,6 +7,7 @@ import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
@@ -17,7 +18,6 @@ import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,15 +37,13 @@ public class CacheTest extends BasicTest {
     );
 
     private static String getCacheKey(ImhotepClient imhotepClient, String queryString) {
-        final HashMap<String, Set<String>> datasetToKeywordAnalyzerFields = new HashMap<>();
-        final HashMap<String, Set<String>> datasetToIntFields = new HashMap<>();
-        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, DatasetsMetadata.empty(), new Consumer<String>() {
             @Override
             public void accept(String s) {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())).query;
-        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, Collections.emptyMap()), imhotepClient).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, DatasetsMetadata.empty()), imhotepClient).cacheFileName;
     }
 
     @Test
