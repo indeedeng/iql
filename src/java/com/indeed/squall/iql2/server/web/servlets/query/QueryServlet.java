@@ -325,7 +325,7 @@ public class QueryServlet {
         final DatasetsMetadata metadata = metadataCache.get();
         final String content;
         if (!metadata.getMetadata(dataset).isPresent()) {
-            content = "dataset " + dataset + " not existed";
+            content = "dataset " + dataset + " does not exist";
         } else {
             final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(dataset, metadata.getMetadata(dataset).get());
             content = OBJECT_MAPPER.writeValueAsString(datasetDescriptor);
