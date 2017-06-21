@@ -12,18 +12,29 @@ import java.util.TreeMap;
  */
 public class DatasetsMetadata {
     private final Map<String, DatasetMetadata> metadata;
+    private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+    private final Map<String, Set<String>> datasetToIntFields;
+    private static final DatasetsMetadata emptyDatasets = new DatasetsMetadata();
 
     private DatasetsMetadata() {
         metadata = Collections.emptyMap();
+        datasetToKeywordAnalyzerFields = Collections.emptyMap();
+        datasetToIntFields = Collections.emptyMap();
     }
 
     public DatasetsMetadata(final Map<String, DatasetMetadata> metadata) {
         this.metadata = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         this.metadata.putAll(metadata);
+        datasetToKeywordAnalyzerFields = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        datasetToIntFields = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        metadata.forEach((dataset, meta) -> {
+            datasetToKeywordAnalyzerFields.put(dataset, meta.keywordAnaylzerWhitelist);
+            datasetToIntFields.put(dataset, meta.intFields);
+        });
     }
 
     public static DatasetsMetadata empty() {
-        return new DatasetsMetadata();
+        return emptyDatasets;
     }
 
     public Map<String, DatasetMetadata> getDatasetToMetadata() {
@@ -36,14 +47,10 @@ public class DatasetsMetadata {
 
 
     public Map<String, Set<String>> getDatasetToKeywordAnalyzerFields() {
-        final Map<String, Set<String>> keywords = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        metadata.forEach((dataset, metadata) -> keywords.put(dataset, metadata.keywordAnaylzerWhitelist));
-        return keywords;
+        return datasetToKeywordAnalyzerFields;
     }
 
     public Map<String, Set<String>> getDatasetToIntFields() {
-        final Map<String, Set<String>> intFields = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        metadata.forEach((dataset, metadata) -> intFields.put(dataset, metadata.intFields));
-        return intFields;
+        return datasetToIntFields;
     }
 }

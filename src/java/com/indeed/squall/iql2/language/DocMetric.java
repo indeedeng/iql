@@ -1434,7 +1434,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         protected List<String> getPushes(final String dataset) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
-                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
+                    query, dataset, datasetsMetadata);
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
             final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
             return Lists.newArrayList("lucene " + base64EncodedQuery);
@@ -1448,7 +1448,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
-                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
+                    query, dataset, datasetsMetadata);
             ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 

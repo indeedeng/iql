@@ -8,6 +8,7 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
@@ -154,9 +155,10 @@ public class ValidationUtil {
     }
 
     public static Query getFlamdexQuery(final String query, final String dataset,
-                                        final Map<String, Set<String>> keywordAnalyzerFields,
-                                        final Map<String, Set<String>> datasetToIntFields) {
+                                        final DatasetsMetadata datasetsMeta) {
         final Analyzer analyzer;
+        final Map<String, Set<String>> keywordAnalyzerFields = datasetsMeta.getDatasetToKeywordAnalyzerFields();
+        final Map<String, Set<String>> datasetToIntFields = datasetsMeta.getDatasetToIntFields();
         // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
         if (keywordAnalyzerFields.containsKey(dataset)) {
             final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();

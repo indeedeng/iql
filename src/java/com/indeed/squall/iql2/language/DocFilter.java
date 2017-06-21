@@ -1351,7 +1351,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
-                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
+                    query, dataset, datasetsMetadata);
             final DocFilter filter = FlamdexQueryTranslator.translate(flamdexQuery, datasetsMetadata);
             return filter.asZeroOneMetric(dataset);
         }
@@ -1361,7 +1361,7 @@ public abstract class DocFilter extends AbstractPositional {
             final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
             for (final String dataset : scope.keySet()) {
                 final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
-                        query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
+                        query, dataset, datasetsMetadata);
                 datasetToQuery.put(dataset, flamdexQuery);
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
@@ -1375,7 +1375,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
-                    query, dataset, datasetsMetadata.getDatasetToKeywordAnalyzerFields(), datasetsMetadata.getDatasetToIntFields());
+                    query, dataset, datasetsMetadata);
             ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 
