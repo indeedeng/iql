@@ -145,11 +145,10 @@ public class MetadataCacheTest {
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
         imhotepDataset.setMetrics(new MetricsYaml[]{calcMetric});
-        final ImmutableMap<String, Dimension> dimensions = metadataCache.buildDatasetDimension(imhotepDataset);
+        final ImmutableMap<String, Dimension> dimensions = metadataCache.buildDatasetDimension(imhotepDataset, DatasetsMetadata.empty());
 
         final ImmutableMap<String, String> expectedDimensions = ImmutableMap.of(
                 "complex", "(a1+a2)*10",
-                "counts", "count()",
                 "dayofweek", "(((unixtime-280800)%604800)\\86400)",
                 "timeofday", "((unixtime-21600)%86400)");
         final Map<String, String> returnedDimensions = dimensions.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().expression));
