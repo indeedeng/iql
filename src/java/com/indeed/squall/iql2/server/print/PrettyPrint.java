@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.util.ParserUtil;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -89,10 +90,12 @@ public class PrettyPrint {
     }
 
     private void appendCommentAfterText(Positional positional, StringBuilder sb) {
-        final Interval interval = positional.getCommentAfter();
-        if (interval == null) {
+        final Optional<Interval> optionalInterval = ParserUtil.getNextNode(positional.getParserRuleContext());
+        if (!optionalInterval.isPresent()) {
             return;
         }
+
+        final Interval interval = optionalInterval.get();
         if (seenCommentIntervals.contains(interval)) {
             return;
         }
@@ -105,10 +108,12 @@ public class PrettyPrint {
     }
 
     private void appendCommentBeforeText(Positional positional, StringBuilder sb) {
-        final Interval interval = positional.getCommentBefore();
-        if (interval == null) {
+        final Optional<Interval> optionalInterval = ParserUtil.getPreviousNode(positional.getParserRuleContext());
+        if (!optionalInterval.isPresent()) {
             return;
         }
+
+        final Interval interval = optionalInterval.get();
         if (seenCommentIntervals.contains(interval)) {
             return;
         }
