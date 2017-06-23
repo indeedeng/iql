@@ -23,7 +23,6 @@ import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
@@ -74,8 +73,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author jwolfe
@@ -136,7 +133,6 @@ public class Session {
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final WallClock clock,
             final String username
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
@@ -155,7 +151,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
+            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
@@ -193,7 +189,7 @@ public class Session {
             return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username, progressCallback);
+            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, dimensions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
@@ -220,7 +216,6 @@ public class Session {
             final TreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final WallClock clock,
             final String username,
             final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException, IOException {
@@ -269,8 +264,8 @@ public class Session {
                 }
             }
 
-            final DateTime startDateTime = parseDateTime(start, clock);
-            final DateTime endDateTime = parseDateTime(end, clock);
+            final DateTime startDateTime = parseDateTime(start);
+            final DateTime endDateTime = parseDateTime(end);
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
@@ -335,54 +330,12 @@ public class Session {
         return groupMultiRemapRuleRewriter;
     }
 
-    private static final Pattern relativePattern = Pattern.compile("(\\d+)([smhdwMy])");
-    private static DateTime parseDateTime(String descriptor, WallClock clock) {
-        descriptor = descriptor.trim();
-        final DateTime startOfToday = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        if (descriptor.equals("today")) {
-            return startOfToday;
-        } else if (descriptor.equals("yesterday")) {
-            return startOfToday.minusDays(1);
-        } else if (descriptor.equals("tomorrow")) {
-            return startOfToday.plusDays(1);
-        } else if (relativePattern.matcher(descriptor).matches()) {
-            final Matcher matcher = relativePattern.matcher(descriptor);
-            matcher.matches();
-            final int offset = Integer.parseInt(matcher.group(1));
-            final String unit = matcher.group(2);
-            DateTime result = startOfToday;
-            switch (unit) {
-                case "s":
-                    result = result.minusSeconds(offset);
-                    break;
-                case "m":
-                    result = result.minusMinutes(offset);
-                    break;
-                case "h":
-                    result = result.minusHours(offset);
-                    break;
-                case "d":
-                    result = result.minusDays(offset);
-                    break;
-                case "w":
-                    result = result.minusWeeks(offset);
-                    break;
-                case "M":
-                    result = result.minusMonths(offset);
-                    break;
-                case "y":
-                    result = result.minusYears(offset);
-                    break;
-                default:
-                    throw new RuntimeException("Unrecognized unit: " + unit);
-            }
-            return result;
-        } else {
-            try {
-                return DateTime.parse(descriptor.replaceAll(" ", "T"));
-            } catch (final IllegalArgumentException e) {
-                throw Throwables.propagate(e);
-            }
+    // this datetime is serialized by standard Datetime by iql2-language
+    private static DateTime parseDateTime(String datetime) {
+        try {
+            return DateTime.parse(datetime);
+        } catch (final IllegalArgumentException e) {
+            throw Throwables.propagate(e);
         }
     }
 

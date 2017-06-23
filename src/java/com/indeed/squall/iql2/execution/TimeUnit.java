@@ -1,7 +1,5 @@
 package com.indeed.squall.iql2.execution;
 
-import org.joda.time.DateTime;
-
 /**
  * @author jwolfe
  */
@@ -20,37 +18,5 @@ public enum TimeUnit {
     TimeUnit(long millis, String formatString) {
         this.millis = millis;
         this.formatString = formatString;
-    }
-
-    public static TimeUnit fromChar(char c) {
-        switch (c) {
-            case 's': return SECOND;
-            case 'm': return MINUTE;
-            case 'h': return HOUR;
-            case 'd': return DAY;
-            case 'w': return WEEK;
-            case 'M': return MONTH;
-            default:
-                throw new IllegalArgumentException("Invalid time unit: " + c);
-        }
-    }
-
-    public static DateTime subtract(DateTime start, int value, TimeUnit unit) {
-        switch (unit) {
-            case SECOND:
-                return start.minusSeconds(value);
-            case MINUTE:
-                return start.minusMinutes(value);
-            case HOUR:
-                return start.minusHours(value);
-            case DAY:
-                return start.minusDays(value);
-            case WEEK:
-                return start.minusWeeks(value);
-            case MONTH:
-                return start.minusMonths(value);
-            default:
-                throw new IllegalArgumentException("Unknown time unit: " + unit);
-        }
     }
 }
