@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.execution;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.indeed.flamdex.MemoryFlamdex;
@@ -12,8 +11,6 @@ import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.execution.dimensions.DimensionDetails;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
@@ -47,11 +44,10 @@ public class TestUtil {
             datasetIntFields.get(document.dataset).addAll(document.intFields.keySet());
             datasetStringFields.get(document.dataset).addAll(document.stringFields.keySet());
         }
-        final DatasetDimensions dimensions = new DatasetDimensions(ImmutableMap.<String, DimensionDetails>of());
         final Map<String, Session.ImhotepSessionInfo> sessionInfoMap = new HashMap<>();
         for (final Map.Entry<String, MemoryFlamdex> entry : datasetFlamdexes.entrySet()) {
             final ImhotepSession session = new ImhotepJavaLocalSession(entry.getValue());
-            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", dimensions, datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
+            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
         }
 
         return new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null);
