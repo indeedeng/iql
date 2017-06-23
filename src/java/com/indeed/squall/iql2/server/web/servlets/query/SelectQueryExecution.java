@@ -28,7 +28,6 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
-import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.squall.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
 import com.indeed.squall.iql2.language.AggregateFilter;
@@ -526,7 +525,7 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clock, username);
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
