@@ -16,15 +16,10 @@ public class TimePeriods {
             return Collections.singletonList(Pair.of(1, TimeUnit.HOUR));
         } else if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
             final JQLParser.TimePeriodParseableContext periodContext = (JQLParser.TimePeriodParseableContext) timePeriodContext;
-            final List<Token> coeffs = periodContext.coeffs;
-            final List<Token> units = periodContext.units;
-            if (coeffs.size() != units.size()) {
-                throw new IllegalArgumentException("How did I get here?");
-            }
             final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
-            for (int i = 0; i < coeffs.size(); i++) {
-                final int coeff = Integer.parseInt(coeffs.get(i).getText());
-                final TimeUnit unit = TimeUnit.fromString(units.get(i).getText());
+            for (JQLParser.TimeUnitContext timeunit : periodContext.timeunits) {
+                final int coeff = (timeunit.coeff == null) ? 1 : Integer.parseInt(timeunit.coeff.getText());
+                final TimeUnit unit = TimeUnit.fromString(timeunit.unit.getText());
                 result.add(Pair.of(coeff, unit));
             }
             for (final Token atom : periodContext.atoms) {
@@ -44,7 +39,8 @@ public class TimePeriods {
                     }
                     final int periodEndExcl = current;
 
-                    final int coeff = Integer.parseInt(raw.substring(numberStart, numberEndExcl));
+                    final String coeffString = raw.substring(numberStart, numberEndExcl);
+                    final int coeff = coeffString.isEmpty() ? 1 : Integer.parseInt(coeffString);
                     final TimeUnit unit = TimeUnit.fromString(raw.substring(periodStart, periodEndExcl));
                     result.add(Pair.of(coeff, unit));
 

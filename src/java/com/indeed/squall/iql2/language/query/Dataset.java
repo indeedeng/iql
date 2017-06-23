@@ -60,8 +60,8 @@ public class Dataset extends AbstractPositional {
 
     public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
         final Positioned<String> dataset = parseIdentifier(datasetContext.index);
-        final Positioned<DateTime> start = parseDateTime(datasetContext.start, clock);
-        final Positioned<DateTime> end = parseDateTime(datasetContext.end, clock);
+        final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, clock);
+        final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, clock);
         final Optional<Positioned<String>> name;
         if (datasetContext.name != null) {
             name = Optional.of(parseIdentifier(datasetContext.name));
@@ -114,7 +114,7 @@ public class Dataset extends AbstractPositional {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields, null, warn, clock));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetToKeywordAnalyzerFields, datasetToIntFields,null, warn, clock));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
                 } else {
@@ -147,7 +147,7 @@ public class Dataset extends AbstractPositional {
         return result;
     }
 
-    public static Positioned<DateTime> parseDateTime(JQLParser.DateTimeContext dateTimeContext, WallClock clock) {
+    public static Positioned<DateTime> parseDateTime(JQLParser.DateTimeContext dateTimeContext, boolean useLegacy, WallClock clock) {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
             return Positioned.from(new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
         } else if (dateTimeContext.DATE_TOKEN() != null) {
@@ -160,7 +160,7 @@ public class Dataset extends AbstractPositional {
                 final JQLParser jqlParser = Queries.parserForString(unquoted);
                 final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                 if (jqlParser.getNumberOfSyntaxErrors() > 0) {
-                    final DateTime dt = parseWordDate(unquoted, clock);
+                    final DateTime dt = parseWordDate(unquoted, useLegacy, clock);
                     if (dt != null) {
                         return Positioned.from(dt, dateTimeContext);
                     }
@@ -174,18 +174,19 @@ public class Dataset extends AbstractPositional {
             return Positioned.from(new DateTime(Long.parseLong(dateTimeContext.NAT().getText())), dateTimeContext);
         } else {
             final String textValue = dateTimeContext.getText();
-            final DateTime dt = parseWordDate(textValue, clock);
+            final DateTime dt = parseWordDate(textValue, useLegacy, clock);
             if (dt != null) return Positioned.from(dt, dateTimeContext);
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }
 
-    private static DateTime parseWordDate(String textValue, WallClock clock) {
-        if ("yesterday".startsWith(textValue.toLowerCase())) {
+    private static DateTime parseWordDate(String textValue, boolean useLegacy, WallClock clock) {
+        final String lowerCasedValue = textValue.toLowerCase();
+        if ("yesterday".startsWith(lowerCasedValue)) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
-        } else if (textValue.length() >= 3 && "today".startsWith(textValue.toLowerCase())) {
+        } else if ("ago".equals(lowerCasedValue) || ((useLegacy || (textValue.length() >= 3)) && "today".startsWith(lowerCasedValue))) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        } else if (textValue.length() >= 3 && "tomorrow".startsWith(textValue.toLowerCase())) {
+        } else if (textValue.length() >= 3 && "tomorrow".startsWith(lowerCasedValue)) {
             return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
         }
         return null;

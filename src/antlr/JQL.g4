@@ -81,12 +81,15 @@ RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
 M: 'M' ;
-
 Y : 'Y' ;
+
+TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
+TOMRROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
+YESTERDAYS : Y | 'YE' | 'YES' | 'YEST' | 'YESTE' | 'YESTER' | 'YESTERD' | 'YESTERDA' | 'YESTERDAY' ;
 
 TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 
-TIME_PERIOD_ATOM : ([0-9]+ (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
+TIME_PERIOD_ATOM : ([0-9]* (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
 
 NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
@@ -117,7 +120,7 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 identifier
     : TIME_UNIT | Y | ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | DIFF | RATIODIFF | SINGLESCORE
     | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
-    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO
+    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT | TIME | TIMEBUCKETS | TO | TODAYS | TOMRROWS | YESTERDAYS
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
@@ -125,7 +128,8 @@ identifier
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | M
     ;
-timePeriod : (atoms+=TIME_PERIOD_ATOM | (coeffs+=NAT units+=(TIME_UNIT | Y | M | BUCKET | BUCKETS)))+ AGO? #TimePeriodParseable
+timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
+timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
 timePeriodTerminal : timePeriod EOF ;
 
@@ -448,25 +452,10 @@ dateTime
     | STRING_LITERAL
     | NAT // This is for unix timestamps.
     | timePeriod
-    // Oh god I hate myself:
-    | 'TODAY'
-    | 'TODA'
-    | 'TOD'
-    | 'TOMORROW'
-    | 'TOMORRO'
-    | 'TOMORR'
-    | 'TOMOR'
-    | 'TOMO'
-    | 'TOM'
-    | 'YESTERDAY'
-    | 'YESTERDA'
-    | 'YESTERD'
-    | 'YESTER'
-    | 'YESTE'
-    | 'YEST'
-    | 'YES'
-    | 'YE'
-    | Y
+    | TODAYS
+    | TOMRROWS
+    | YESTERDAYS
+    | AGO
     ;
 
 aliases
