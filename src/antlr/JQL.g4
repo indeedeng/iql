@@ -356,7 +356,7 @@ legacyDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' field=identifier ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
     | SAMPLE '(' field=identifier ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # LegacyDocSample
-    | '!' legacyDocFilter # LegacyDocNot
+    | ('!' | '-') legacyDocFilter # LegacyDocNot
     | NOT '(' legacyDocFilter ')' # LegacyDocNot
     | legacyDocFilter (AND|'&&') legacyDocFilter # LegacyDocAnd
     | legacyDocFilter (OR|'||') legacyDocFilter # LegacyDocOr
