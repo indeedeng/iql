@@ -9,7 +9,6 @@ import org.junit.Test;
 public class PrettyPrintTest {
     @Test
     public void prettyPrint() throws Exception {
-        Assert.assertEquals("FROM jobsearch 1d 0d\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch w2d t"));
         Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d select count()"));
         Assert.assertEquals("FROM jobsearch /* hi */ 2d 1d\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch /* hi */ 2d 1d select count()"));
         Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT /*before*/ count() /* AFTER */", PrettyPrint.prettyPrint("from jobsearch 2d 1d select /*before*/count()/* AFTER */"));
