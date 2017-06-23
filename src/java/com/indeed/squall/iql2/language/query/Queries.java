@@ -6,6 +6,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -34,6 +35,7 @@ import com.indeed.squall.iql2.language.passes.FixTopKHaving;
 import com.indeed.squall.iql2.language.passes.HandleWhereClause;
 import com.indeed.squall.iql2.language.passes.RemoveNames;
 import com.indeed.squall.iql2.language.passes.SubstituteNamed;
+import com.indeed.squall.iql2.language.util.ParserUtil;
 import com.indeed.util.logging.Loggers;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
@@ -49,6 +51,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,53 +112,73 @@ public class Queries {
         return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
     }
 
-    private static String getText(CharStream inputStream, ParserRuleContext context) {
+    private static String getText(CharStream inputStream, ParserRuleContext context, Set<Interval> seenComments) {
         if (context == null) {
             return "";
         }
-        return inputStream.getText(new Interval(context.start.getStartIndex(), context.stop.getStopIndex()));
+        StringBuilder textBuilder = new StringBuilder();
+        final Optional<Interval> previousNode = ParserUtil.getPreviousNode(context);
+        if (previousNode.isPresent() && !seenComments.contains(previousNode.get())) {
+            textBuilder.append(inputStream.getText(previousNode.get()));
+            seenComments.add(previousNode.get());
+        }
+        textBuilder.append(getText(inputStream, context));
+        final Optional<Interval> nextNode = ParserUtil.getNextNode(context);
+        if (nextNode.isPresent() && !seenComments.contains(nextNode.get())) {
+            textBuilder.append(inputStream.getText(nextNode.get()));
+            seenComments.add(nextNode.get());
+        }
+        return textBuilder.toString();
+    }
+
+    private static String getText(CharStream inputStream, ParserRuleContext context) {
+        if (context == null) {
+            return "";
+        } else {
+            return inputStream.getText(new Interval(context.start.getStartIndex(), context.stop.getStopIndex()));
+        }
     }
 
     public static SplitQuery parseSplitQuery(String q, boolean useLegacy, WallClock clock) {
+        Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
         final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
-        final String from = getText(queryInputStream, queryContext.fromContents());
+        final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
         if (queryContext.whereContents() != null) {
             where = Joiner.on(' ').join(Iterables.transform(queryContext.whereContents().docFilter(), new Function<JQLParser.DocFilterContext, String>() {
                 public String apply(@Nullable JQLParser.DocFilterContext input) {
-                    return getText(queryInputStream, input);
+                    return getText(queryInputStream, input, seenComments);
                 }
-            }));
+            })).trim();
         } else {
             where = "";
         }
 
         final List<String> groupBys = extractGroupBys(queryContext, queryInputStream);
-        final String groupBy = getText(queryInputStream, queryContext.groupByContents());
+        final String groupBy = getText(queryInputStream, queryContext.groupByContents(), seenComments).trim();
 
         final List<String> selects = extractSelects(queryContext, queryInputStream);
         final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
             public String apply(@Nullable JQLParser.SelectContentsContext input) {
-                return getText(queryInputStream, input);
+                return getText(queryInputStream, input, seenComments);
             }
-        }));
+        })).trim();
 
         final String dataset;
         final String start;
         final String startRawString;
         final String end;
         final String endRawString;
-        final List<SplitQuery.Dataset> datasets;
 
         if (queryContext.fromContents().datasetOptTime().isEmpty()) {
             final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
             dataset = datasetCtx.index.getText();
             start = parsed.datasets.get(0).startInclusive.unwrap().toString();
-            startRawString = removeQuotes(getText(queryInputStream, datasetCtx.start));
+            startRawString = removeQuotes(getText(queryInputStream, datasetCtx.start, seenComments));
             end = parsed.datasets.get(0).endExclusive.unwrap().toString();
-            endRawString = removeQuotes(getText(queryInputStream, datasetCtx.end));
+            endRawString = removeQuotes(getText(queryInputStream, datasetCtx.end, seenComments));
         } else {
             dataset = "";
             start = "";
@@ -164,7 +187,8 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream), groupBys, selects, dataset, start, startRawString, end, endRawString,
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream),
+                groupBys, selects, dataset, start, startRawString, end, endRawString,
                 extractDatasets(queryContext.fromContents(), queryInputStream));
     }
 
