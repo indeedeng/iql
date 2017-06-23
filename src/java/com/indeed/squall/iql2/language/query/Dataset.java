@@ -1,14 +1,16 @@
 package com.indeed.squall.iql2.language.query;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.common.util.time.WallClock;
+import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
-import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -19,9 +21,11 @@ import org.joda.time.DateTimeZone;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
@@ -36,7 +40,8 @@ public class Dataset extends AbstractPositional {
     public final Optional<Positioned<String>> alias;
     public final ImmutableMap<Positioned<String>, Positioned<String>> fieldAliases;
 
-    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive, Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
+    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive,
+                   Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
         this.dataset = dataset;
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
@@ -46,6 +51,40 @@ public class Dataset extends AbstractPositional {
 
     public Positioned<String> getDisplayName() {
         return alias.or(dataset);
+    }
+
+    public Dataset addAliasDimensions(Map<String, String> uppercasedAliasToActualField) {
+        final Map<Positioned<String>, Positioned<String>> newFieldAliases = new HashMap<>();
+        uppercasedAliasToActualField.forEach((key, value) -> newFieldAliases.put(Positioned.unpositioned(key), Positioned.unpositioned(value)));
+        newFieldAliases.putAll(fieldAliases);
+        return new Dataset(dataset, startInclusive, endExclusive, alias, newFieldAliases);
+    }
+
+    public static Map<String, String> resolveAliasToRealField(Map<Positioned<String>, Positioned<String>> fieldAliases) {
+        final Map<String, String> aliasToField = fieldAliases.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().unwrap(),
+                e -> e.getValue().unwrap()));
+        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
+        for (String originField : aliasToField.keySet()) {
+            String targetField = aliasToField.get(originField);
+            final Set<String> seenField = new LinkedHashSet<>();
+            seenField.add(targetField);
+            while (aliasToField.containsKey(targetField)) {
+                final String newTargetField = aliasToField.get(targetField);
+                // for the dimension: same -> same
+                if (newTargetField.equals(targetField)) {
+                    break;
+                }
+                if (seenField.contains(newTargetField)) {
+                    throw new IllegalArgumentException(
+                            String.format("field alias has circular reference: %s -> %s", originField,
+                                    Joiner.on(" -> ").join(seenField.toArray())));
+                }
+                seenField.add(newTargetField);
+                targetField = newTargetField;
+            }
+            resolvedAliasToRealFieldBuilder.put(originField, targetField);
+        }
+        return resolvedAliasToRealFieldBuilder.build();
     }
 
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
@@ -193,30 +232,24 @@ public class Dataset extends AbstractPositional {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Dataset dataset1 = (Dataset) o;
-
-        if (dataset != null ? !dataset.equals(dataset1.dataset) : dataset1.dataset != null) return false;
-        if (startInclusive != null ? !startInclusive.equals(dataset1.startInclusive) : dataset1.startInclusive != null)
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
-        if (endExclusive != null ? !endExclusive.equals(dataset1.endExclusive) : dataset1.endExclusive != null)
-            return false;
-        if (alias != null ? !alias.equals(dataset1.alias) : dataset1.alias != null) return false;
-        return !(fieldAliases != null ? !fieldAliases.equals(dataset1.fieldAliases) : dataset1.fieldAliases != null);
-
+        }
+        final Dataset dataset1 = (Dataset) o;
+        return Objects.equal(dataset, dataset1.dataset) &&
+                Objects.equal(startInclusive, dataset1.startInclusive) &&
+                Objects.equal(endExclusive, dataset1.endExclusive) &&
+                Objects.equal(alias, dataset1.alias) &&
+                Objects.equal(fieldAliases, dataset1.fieldAliases);
     }
 
     @Override
     public int hashCode() {
-        int result = dataset != null ? dataset.hashCode() : 0;
-        result = 31 * result + (startInclusive != null ? startInclusive.hashCode() : 0);
-        result = 31 * result + (endExclusive != null ? endExclusive.hashCode() : 0);
-        result = 31 * result + (alias != null ? alias.hashCode() : 0);
-        result = 31 * result + (fieldAliases != null ? fieldAliases.hashCode() : 0);
-        return result;
+        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, fieldAliases);
     }
 
     @Override

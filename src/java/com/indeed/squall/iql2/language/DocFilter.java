@@ -75,16 +75,34 @@ public abstract class DocFilter extends AbstractPositional {
 
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
-    public static class FieldIs extends DocFilter {
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+    public abstract static class FieldTermEqual extends DocFilter {
         public final Positioned<String> field;
         public final Term term;
+        public boolean equal;
 
-        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
-            // TODO: Immutable clone
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+        public FieldTermEqual(Positioned<String> field, Term term, boolean equal) {
             this.field = field;
             this.term = term;
+            this.equal = equal;
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (term.isIntTerm) {
+                ValidationUtil.validateIntField(datasetsFields.uppercasedDatasets(), field.unwrap(), datasetsFields, validator, this);
+            } else {
+                ValidationUtil.validateStringField(datasetsFields.uppercasedDatasets(), field.unwrap(), datasetsFields, validator, this);
+            }
+        }
+    }
+
+    public static class FieldIs extends FieldTermEqual {
+        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+
+        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
+            super(field, term, true);
+            // TODO: Immutable clone
+            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
         }
 
         @Override
@@ -145,19 +163,6 @@ public abstract class DocFilter extends AbstractPositional {
             return visitor.visit(this);
         }
 
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
         private List<String> tokenize(String dataset) {
             if (term.isIntTerm) {
                 throw new IllegalStateException("Called tokenize on int term?!");
@@ -215,15 +220,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class FieldIsnt extends DocFilter {
-        public final Positioned<String> field;
-        public final Term term;
+    public static class FieldIsnt extends FieldTermEqual {
         public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
 
         public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
+            super(field, term, false);
             this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.field = field;
-            this.term = term;
         }
 
         @Override
@@ -244,19 +246,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
         }
 
         @Override
@@ -388,9 +377,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-            }
+            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.unwrap(), datasetsFields, validator, this);
         }
 
         @Override
@@ -1126,7 +1113,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1186,7 +1173,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1451,7 +1438,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }
@@ -1601,7 +1588,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            // TODO: Should this care about the keyword analyzer fields?
+            // TODO: Should this care about the keyword analyzer uppercasedFields?
             return Collections.<Action>singletonList(new StringOrAction(scope.keySet(), field.unwrap(), terms, target, positive, negative));
         }
 
@@ -1612,7 +1599,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1682,7 +1669,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }

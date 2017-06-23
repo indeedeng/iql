@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -41,11 +41,7 @@ public class GetGroupPercentiles implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : scope) {
-            if (!datasetsFields.getIntFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingIntField(dataset, field, this));
-            }
-        }
+        ValidationUtil.validateIntField(scope, field, datasetsFields, validator, this);
     }
 
     @Override

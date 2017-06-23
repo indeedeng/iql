@@ -55,8 +55,7 @@ public class RegexAction implements Action, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : scope) {
-            final ImmutableSet<String> stringFields = datasetsFields.getStringFields(dataset);
-            if (!stringFields.contains(field)) {
+            if (!datasetsFields.containsStringField(dataset, field)) {
                 validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }
