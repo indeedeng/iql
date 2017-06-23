@@ -47,17 +47,17 @@ public class IterateAndExplode implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(datasetsFields.uppercasedDatasets(), field, datasetsFields, validator, this);
+        ValidationUtil.validateField(datasetsFields.datasets(), field, datasetsFields, validator, this);
 
         if (fieldOpts.topK.isPresent()) {
             final TopK topK = fieldOpts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(datasetsFields.uppercasedDatasets(), datasetsFields, validator);
+                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, validator);
             }
         }
 
         if (fieldOpts.filter.isPresent()) {
-            fieldOpts.filter.get().validate(datasetsFields.uppercasedDatasets(), datasetsFields, validator);
+            fieldOpts.filter.get().validate(datasetsFields.datasets(), datasetsFields, validator);
         }
     }
 

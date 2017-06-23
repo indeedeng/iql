@@ -46,7 +46,7 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
         if (timeField.isPresent()) {
-            ValidationUtil.validateIntField(datasetsFields.uppercasedDatasets(), timeField.get(), datasetsFields, validator, this);
+            ValidationUtil.validateIntField(datasetsFields.datasets(), timeField.get(), datasetsFields, validator, this);
         }
     }
 

@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.language;
 
 import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.query.Queries;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -11,8 +11,6 @@ import org.apache.log4j.SimpleLayout;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
 
 public class CompatibilityTest {
     private static final Logger log = Logger.getLogger(CompatibilityTest.class);
@@ -33,7 +31,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Queries.parseQuery(q, true, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), new DefaultWallClock());
+                    Queries.parseQuery(q, true, DatasetsMetadata.empty(), new DefaultWallClock());
                 } catch (Exception e) {
                     successes--;
                     failures++;
