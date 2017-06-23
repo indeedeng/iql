@@ -12,7 +12,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 public class ParserUtil {
 
     public static Optional<Interval> getNextNode(ParserRuleContext parserRuleContext) {
-        if (parserRuleContext.getParent() != null) {
+        if (parserRuleContext != null && parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while ((cur.getParent() != null) && (cur.getParent().getChildCount() != 0) &&
                     (cur.getParent().children.indexOf(cur) == (cur.getParent().getChildCount() - 1))) {
@@ -40,7 +40,7 @@ public class ParserUtil {
     }
 
     public static Optional<Interval> getPreviousNode(ParserRuleContext parserRuleContext) {
-        if (parserRuleContext.getParent() != null) {
+        if (parserRuleContext != null && parserRuleContext.getParent() != null) {
             ParserRuleContext cur = parserRuleContext;
             while (cur.getParent() != null && cur.getParent().getChildCount() != 0 && cur.getParent().children.indexOf(cur) == 0) {
                 cur = cur.getParent();
