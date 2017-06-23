@@ -2,10 +2,10 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
-import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,22 +14,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 @Controller
 public class ParseServlet {
 
-    // TODO: use a shared reloader, and have actual values
-    private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        return Collections.emptyMap();
-    }
+    final MetadataCache metadataCache;
 
-    // TODO: use a shared reloader, and have actual values
-    private Map<String, Set<String>> getDatasetToIntFields() {
-        return Collections.emptyMap();
+    @Autowired
+    public ParseServlet(final MetadataCache metadataCache) {
+        this.metadataCache = metadataCache;
     }
 
     @RequestMapping("parse")
@@ -42,7 +36,7 @@ public class ParseServlet {
         final int version = ServletUtil.getVersion(request);
         try {
             response.setHeader("Content-Type", "application/json");
-            Queries.parseQuery(q, version == 1, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), new StoppedClock());
+            Queries.parseQuery(q, version == 1, metadataCache.get(), new StoppedClock());
             return ImmutableMap.of("parsed", true);
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();

@@ -18,6 +18,7 @@ import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
@@ -52,7 +53,7 @@ public class PrettyPrint {
     @Nonnull
     public static String prettyPrint(String q) {
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, true);
-        final Query query = Query.parseQuery(queryContext, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), new Consumer<String>() {
+        final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), new Consumer<String>() {
             @Override
             public void accept(String s) {
 

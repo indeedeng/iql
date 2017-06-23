@@ -22,6 +22,14 @@ public class DimensionTest extends BasicTest {
     private final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create().setSkipTestDimension(true).setImsClient(imsClient);
 
     @Test
+    public void testDefaultDimension() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "25300", "20"));
+        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek", options);
+    }
+
+
+    @Test
     public void testSelect() throws Exception {
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "0", "5", "200", "10", "1", "20", "70", "2", "3", "3")),
                 "from dimension yesterday today SELECT " +
@@ -45,7 +53,7 @@ public class DimensionTest extends BasicTest {
                 "from dimension 2015-01-01 2015-01-02 as d1, dimension 2015-01-02 2015-01-03 as d2 " +
                         "SELECT d1.calc, d2.calc, calc, d1.i1divi2, d1.calc = 50, [(d1.aliasi1+d1.i2)=5], [if d1.plus=5 then 1 else 0], [d1.aliasi1 > d1.i2]",
                 options);
-        assertIQL2FailQuery("from dimension yesterday today as d1, dimension2 as d2 SELECT d1.i1 = d2.calc", "field equality for different uppercasedDatasets is not supported");
+        assertIQL2FailQuery("from dimension yesterday today as d1, dimension2 as d2 SELECT d1.i1 = d2.calc", "field equality for different datasets is not supported");
         assertIQL2FailQuery("from dimension yesterday today, dimension2 SELECT plus", "metric plus is not in dimension2");
     }
 
@@ -74,7 +82,7 @@ public class DimensionTest extends BasicTest {
             testIQL2(dataset, expected, "from dimension yesterday today GROUP BY bucket(plus, 0, 5, 2)", options);
         }
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("1", "1")), "from dimension yesterday today GROUP BY i2 HAVING i1divi2 > 1", options);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING counts > 1", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING count() > 1", options);
 
         assertFailQuery("from dimension yesterday today GROUP BY calc", "group by non alias metric is not supported");
         assertFailQuery("from dimension yesterday today GROUP BY i1divi2 in (1, 2)", "group by in aggregate metric is not supported");
@@ -99,6 +107,7 @@ public class DimensionTest extends BasicTest {
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today as d1, dimension2 as d2 WHERE i2 = 4 AND i1 = 4", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today as d1, dimension2 as d2 WHERE calc = 0", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from dimension yesterday today as d1, dimension2 as d2 WHERE d1.plus = 0", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension 2015-01-01 2015-01-02 as d1, dimension 2015-01-02 2015-01-03 as d2 WHERE plus = 0", options);
         assertIQL2FailQuery("from dimension yesterday today, dimension2 WHERE plus = 0", "dimension [plus] is not in dimension2");
     }
 
