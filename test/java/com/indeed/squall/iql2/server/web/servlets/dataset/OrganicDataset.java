@@ -1,6 +1,5 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.squall.iql2.server.web.servlets.dataset;
 
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -8,16 +7,16 @@ import org.joda.time.DateTimeZone;
 import java.util.ArrayList;
 import java.util.List;
 
-class OrganicDataset {
+public class OrganicDataset {
     // Overall:
     // count = 151
     // oji = 2653
     // ojc = 306
     // distinct(tk) = { "a", "b", "c", "d" }, || = 4
-    public static List<Shard> create() {
+    public static Dataset create() {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
 
-        final List<Shard> result = new ArrayList<>();
+        final List<Dataset.DatasetShard> result = new ArrayList<>();
 
         // 2015-01-01 00:00:00 - 2015-01-01 01:00:00
         // Random smattering of documents, including one 1ms before the shard ends.
@@ -29,7 +28,7 @@ class OrganicDataset {
         // count(tk="b") = 2
         // count(tk="c") = 4
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, timeZone), 10, 0, "a"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30, timeZone), 10, 1, "a"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15, timeZone), 10, 5, "a"));
@@ -40,7 +39,7 @@ class OrganicDataset {
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 30, 30, timeZone), 10, 10, "c"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 45, 30, timeZone), 10, 10, "c"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 59, 59, 999, timeZone), 10, 0, "c"));
-            result.add(new Shard("organic", "index20150101.00", flamdex));
+            result.add(new Dataset.DatasetShard("organic", "index20150101.00", flamdex));
         }
 
         // 2015-01-01 01:00:00 - 2015-01-01 02:00:00
@@ -51,11 +50,11 @@ class OrganicDataset {
         // distinct(tk) = { "d" }, || = 1
         // count(tk="d") = 60
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 60; i++) {
                 flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, i, 0, timeZone), 10, 1, "d"));
             }
-            result.add(new Shard("organic", "index20150101.01", flamdex));
+            result.add(new Dataset.DatasetShard("organic", "index20150101.01", flamdex));
         }
 
         // 2015-01-01 02:00:00 - 03:00:00
@@ -66,11 +65,11 @@ class OrganicDataset {
         // distinct(tk) = { "d" }, || = 1
         // count(tk="d") = 60
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 60; i++) {
                 flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, i, 0, timeZone), 10, 3, "d"));
             }
-            result.add(new Shard("organic", "index20150101.02", flamdex));
+            result.add(new Dataset.DatasetShard("organic", "index20150101.02", flamdex));
         }
 
         // 1 document per hour from 2015-01-01 03:00:00 to 2015-01-02 00:00:00
@@ -83,12 +82,11 @@ class OrganicDataset {
         // distinct(tk) = { "d" }, || = 1
         // total count(tk="d") = 21
         for (int h = 3; h < 24; h++) {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, h, 0, 0, timeZone), h, 1, "d"));
-            result.add(new Shard("organic", String.format("index20150101.%02d", h), flamdex));
+            result.add(new Dataset.DatasetShard("organic", String.format("index20150101.%02d", h), flamdex));
         }
-
-        return result;
+        return new Dataset(result);
     }
 
     private static FlamdexDocument makeDocument(DateTime timestamp, int oji, int ojc, String tk) {

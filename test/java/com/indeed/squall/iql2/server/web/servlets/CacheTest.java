@@ -7,7 +7,8 @@ import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import junit.framework.Assert;
@@ -44,13 +45,13 @@ public class CacheTest extends BasicTest {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())).query;
-        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query), imhotepClient).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, Collections.emptyMap()), imhotepClient).cacheFileName;
     }
 
     @Test
     public void testUniqueCacheValues() {
         final Set<String> values = new HashSet<>();
-        final ImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create());
+        final ImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create().getShards());
         for (final String query : uniqueQueries) {
             final String cacheKey = getCacheKey(imhotepClient, query);
             Assert.assertFalse(values.contains(cacheKey));
@@ -60,7 +61,7 @@ public class CacheTest extends BasicTest {
 
     @Test
     public void testConsistentCaching() {
-        final TestImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create());
+        final TestImhotepClient imhotepClient = new TestImhotepClient(OrganicDataset.create().getShards());
         for (final String query : uniqueQueries) {
             final String cacheKey1 = getCacheKey(imhotepClient, query);
             final String cacheKey2 = getCacheKey(imhotepClient, query);
@@ -71,7 +72,7 @@ public class CacheTest extends BasicTest {
     @Test
     public void testStorageAndLoading() throws Exception {
         for (final boolean withLimit : new boolean[]{false, true}) {
-            final List<Shard> shards = OrganicDataset.create();
+            final List<Shard> shards = OrganicDataset.create().getShards();
             final String query = "from organic yesterday today group by time(1h) select count()" + (withLimit ? " limit 100" : "");
 
             final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();

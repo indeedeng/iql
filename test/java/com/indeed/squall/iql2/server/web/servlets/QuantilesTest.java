@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -18,12 +18,12 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "40", "49.5", "59"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "60", "69.5", "79"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "80", "89.5", "99"));
-        QueryServletTestUtils.testIQL2(dataset(), expected, "from dataset yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)");
+        QueryServletTestUtils.testIQL2(createDataset(), expected, "from dataset yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)", true);
     }
 
-    public static List<Shard> dataset() {
-        final List<Shard> result = new ArrayList<>();
-        final MemoryFlamdex flamdex = new MemoryFlamdex();
+    public static Dataset createDataset() {
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         for (int i = 0; i < 100; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
             doc.addIntTerm("f", i);
@@ -32,8 +32,8 @@ public class QuantilesTest extends BasicTest {
             flamdex.addDocument(doc);
         }
 
-        result.add(new Shard("dataset", "index20150101", flamdex));
+        shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
 
-        return result;
+        return new Dataset(shards);
     }
 }

@@ -27,6 +27,7 @@
         <dependency org="com.indeed" name="util-io" rev="${indeed-util-io.version}"/>
         <dependency org="com.indeed" name="util-varexport" rev="${indeed-util-varexport.version}"/>
         <dependency org="com.indeed" name="status-core" rev="${indeed-status-core.version}"/>
+        <dependency org="com.indeed" name="ims-rest-client" rev="${ims.version}"/>
         <dependency org="indeed" name="common-util" rev="${common-util.version}"/>
         <dependency org="indeed" name="logging" rev="${logging.version}"/>
         <dependency org="indeed" name="common-jobsearch" rev="${common-jobsearch.version}"/>

@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -13,16 +14,14 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
-import com.indeed.squall.iql2.execution.DatasetDescriptor;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
-import com.indeed.squall.iql2.server.dimensions.DimensionsLoader;
+import com.indeed.squall.iql2.language.DatasetDescriptor;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.TreeTimer;
@@ -77,8 +76,7 @@ public class QueryServlet {
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
-    private final DimensionsLoader dimensionsLoader;
-    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
     private final Long imhotepLocalTempFileSizeLimit;
@@ -94,8 +92,7 @@ public class QueryServlet {
             final ImhotepClient imhotepClient,
             final QueryCache queryCache,
             final ExecutionManager executionManager,
-            final DimensionsLoader dimensionsLoader,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader,
+            final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final Long imhotepLocalTempFileSizeLimit,
@@ -106,8 +103,7 @@ public class QueryServlet {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.executionManager = executionManager;
-        this.dimensionsLoader = dimensionsLoader;
-        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
@@ -126,21 +122,6 @@ public class QueryServlet {
             upperCased.put(e.getKey().toUpperCase(), upperCaseTerms);
         }
         return upperCased;
-    }
-
-    private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        // TODO: Don't make a copy per use
-        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist());
-    }
-
-    private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        // TODO: Don't make a copy per use
-        return upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getDatasetToIntFields());
-    }
-
-    private Map<String, DatasetDimensions> getDimensions() {
-        // TODO: Uppercase it?
-        return dimensionsLoader.getDimensions();
     }
 
     @RequestMapping("query")
@@ -190,7 +171,7 @@ public class QueryServlet {
                 final String field = describeDatasetFieldMatcher.group(5);
                 processDescribeField(response, contentType, dataset, field);
                 queryInfo.statementType = "describe";
-            } else if (query.trim().toLowerCase().equals("show datasets")) {
+            } else if (query.trim().toLowerCase().equals("show dataset")) {
                 processShowDatasets(response, contentType);
                 queryInfo.statementType = "show";
             } else if (query.trim().toLowerCase().startsWith("explain ")) {
@@ -201,7 +182,9 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "application/json");
                 }
                 final String selectQuery = query.trim().substring("explain ".length());
-                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), selectQuery, version, isJSON, clock);
+                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(imhotepClient,
+                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDimensions(),
+                        response.getWriter(), selectQuery, version, isJSON, clock);
                 explainQueryExecution.processExplain();
             }  else {
                 final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
@@ -218,7 +201,10 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
 
-                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), getDimensions(), response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
+                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                        queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient,
+                        metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), metadataCache.getUppercasedDimensions(),
+                        response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect();
                 queryStartTimestamp = selectQueryExecution.getQueryStartTimestamp();
             }
@@ -339,7 +325,10 @@ public class QueryServlet {
     }
 
     private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(imhotepClient.getDatasetShardInfo(dataset), getDimensions().get(dataset), getDatasetToIntFields().get(dataset));
+        final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(
+                imhotepClient.getDatasetShardInfo(dataset),
+                Optional.fromNullable(metadataCache.getUppercasedDimensions().get(dataset)),
+                metadataCache.getUppercasedDatasetToIntFields().get(dataset));
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(datasetDescriptor));
         } else {

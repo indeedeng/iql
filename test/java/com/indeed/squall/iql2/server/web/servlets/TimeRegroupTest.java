@@ -1,8 +1,9 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -195,17 +196,17 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("3", "January 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
-        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month");
+        testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
     }
 
-    private static List<Shard> multiMonthDataset() {
+    private static Dataset multiMonthDataset() {
         final DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser().withZone(TIME_ZONE);
         // 10 documents in January 2015 with month = 1
         // 100 documents in February 2015 with month = 2
         // 1 document in March 2015 with month = 3
-        final List<Shard> result = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 10; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 1);
@@ -213,11 +214,11 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150101", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 100; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 2);
@@ -225,11 +226,11 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150201", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150201", flamdex));
         }
 
         {
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int i = 0; i < 1; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 3);
@@ -237,10 +238,10 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", "index20150301", flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", "index20150301", flamdex));
         }
 
-        return result;
+        return new Dataset(shards);
     }
 
     @Test
@@ -276,7 +277,7 @@ public class TimeRegroupTest extends BasicTest {
         testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
     }
 
-    private static List<Shard> dayOfWeekDataset() {
+    private static Dataset dayOfWeekDataset() {
         // 2015-01-01 THU 1
         // 2015-01-02 FRI 5
         // 2015-01-03 SAT 0
@@ -292,12 +293,12 @@ public class TimeRegroupTest extends BasicTest {
         // 2015-01-13 TUE 7
         // 2015-01-14 WED 1
         final int[] counts = new int[]{1, 5, 0, 1, 10, 100, 5, 50, 3, 0, 15, 8, 7, 1};
-        final List<Shard> result = new ArrayList<>();
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (int i = 0; i < counts.length; i++) {
             if (counts[i] == 0) {
                 continue;
             }
-            final MemoryFlamdex flamdex = new MemoryFlamdex();
+            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             for (int j = 0; j < counts[i]; j++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("day", i + 1);
@@ -305,8 +306,8 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            result.add(new Shard("dataset", String.format("index201501%02d", i + 1), flamdex));
+            shards.add(new Dataset.DatasetShard("dataset", String.format("index201501%02d", i + 1), flamdex));
         }
-        return result;
+        return new Dataset(shards);
     }
 }

@@ -26,7 +26,6 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.squall.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
@@ -37,6 +36,7 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
@@ -97,9 +97,9 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
-    private final Map<String, Set<String>> keywordAnalyzerWhitelist;
-    private final Map<String, Set<String>> datasetToIntFields;
-    private final Map<String, DatasetDimensions> dimensions;
+    private final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist;
+    private final Map<String, Set<String>> uppercasedDatasetToIntFields;
+    private final Map<String, DatasetDimensions> uppercasedDimensions;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -124,9 +124,9 @@ public class SelectQueryExecution {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final Integer groupLimit, ImhotepClient imhotepClient,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final Map<String, Set<String>> datasetToIntFields,
-            final Map<String, DatasetDimensions> dimensions,
+            final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist,
+            final Map<String, Set<String>> uppercasedDatasetToIntFields,
+            final Map<String, DatasetDimensions> uppercasedDimensions,
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
             final TreeTimer timer,
@@ -147,12 +147,12 @@ public class SelectQueryExecution {
         this.skipValidation = skipValidation;
         this.groupLimit = groupLimit;
         this.clock = clock;
-        this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
-        this.datasetToIntFields = datasetToIntFields;
+        this.uppercasedKeywordAnalyzerWhitelist = uppercasedKeywordAnalyzerWhitelist;
+        this.uppercasedDatasetToIntFields = uppercasedDatasetToIntFields;
         this.imhotepClient = imhotepClient;
         this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
-        this.dimensions = dimensions;
+        this.uppercasedDimensions = uppercasedDimensions;
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
@@ -281,7 +281,7 @@ public class SelectQueryExecution {
         timer.push(q);
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, uppercasedKeywordAnalyzerWhitelist, uppercasedDatasetToIntFields, warn, clock);
         timer.pop();
 
         {
@@ -334,7 +334,8 @@ public class SelectQueryExecution {
             final Set<String> cacheKeys = new HashSet<>();
             final ListMultimap<String, List<ShardIdWithVersion>> allShardsUsed = ArrayListMultimap.create();
 
-            final Query query = originalQuery.transform(
+            final Query aliasedQuery = addAliasDimension(originalQuery, uppercasedDimensions);
+            final Query query = aliasedQuery.transform(
                     Functions.<GroupBy>identity(),
                     Functions.<AggregateMetric>identity(),
                     Functions.<DocMetric>identity(),
@@ -357,7 +358,7 @@ public class SelectQueryExecution {
                                         final SelectExecutionInformation execInfo = new ParsedQueryExecution(inputStream, new Consumer<String>() {
                                             @Override
                                             public void accept(String s) {
-                                                if (subQueryTermLimit > 0 && terms.size() + stringTerms.size() >= subQueryTermLimit) {
+                                                if ((subQueryTermLimit > 0) && ((terms.size() + stringTerms.size()) >= subQueryTermLimit)) {
                                                     throw new IllegalStateException("Sub query cannot have more than [" + subQueryTermLimit + "] terms!");
                                                 }
                                                 final String term = s.split("\t")[0];
@@ -386,7 +387,7 @@ public class SelectQueryExecution {
                                     for (final long v : p.getFirst()) {
                                         terms.add(String.valueOf(v));
                                     }
-                                    filters.add(new DocFilter.StringFieldIn(keywordAnalyzerWhitelist, scopedField.field, terms));
+                                    filters.add(new DocFilter.StringFieldIn(uppercasedKeywordAnalyzerWhitelist, scopedField.field, terms));
                                 } else if (!p.getFirst().isEmpty()) {
                                     filters.add(new DocFilter.IntFieldIn(scopedField.field, p.getFirst()));
                                 }
@@ -405,14 +406,14 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query));
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), uppercasedDimensions);
             timer.pop();
 
             if (!skipValidation) {
                 timer.push("validate commands");
                 final Set<String> errors = new HashSet<>();
                 final Set<String> warnings = new HashSet<>();
-                CommandValidator.validate(commands, imhotepClient, query, dimensions, datasetToIntFields, errors, warnings);
+                CommandValidator.validate(commands, imhotepClient, query, uppercasedDimensions, uppercasedDatasetToIntFields, errors, warnings);
 
                 if (errors.size() != 0) {
                     throw new IllegalArgumentException("Errors found when validating query: " + errors);
@@ -525,8 +526,8 @@ public class SelectQueryExecution {
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
-                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, dimensions, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
-                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
+                    final Session.CreateSessionResult createResult = Session.createSession(imhotepClient, datasetToChosenShards, requestJson, closer, out, timer, compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
+                    return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
@@ -536,7 +537,6 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
                             hasMoreRows.get());
-                    return selectExecutionInformation;
                 } catch (Exception e) {
                     errorOccurred.set(true);
                     throw Throwables.propagate(e);
@@ -615,6 +615,19 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
+    private static Query addAliasDimension(final Query query, final Map<String, DatasetDimensions> uppercasedDimensions) {
+        final List<Dataset> aliasDatasets = Lists.newArrayList();
+        for (Dataset dataset : query.datasets) {
+            if (uppercasedDimensions.containsKey(dataset.dataset.unwrap().toUpperCase())) {
+                final DatasetDimensions datasetDimensions = uppercasedDimensions.get(dataset.dataset.unwrap().toUpperCase());
+                aliasDatasets.add(dataset.addAliasDimensions(datasetDimensions.getUppercasedAliasToActualField()));
+            } else {
+                aliasDatasets.add(dataset);
+            }
+        }
+        return new Query(aliasDatasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.rowLimit);
+    }
+
     private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
         final MessageDigest sha1;
         try {
@@ -651,23 +664,19 @@ public class SelectQueryExecution {
     }
 
     static class QueryInfo {
-        public @Nullable
-        String statementType;
-        public @Nullable
-        Set<String> datasets;
-        public @Nullable
-        Duration totalDatasetRange; // SUM(dataset (End - Start))
-        public @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
-        public @Nullable Long ftgsMB;
-        public @Nullable
-        Collection<String> sessionIDs;
-        public @Nullable Integer numShards;
-        public @Nullable Long numDocs;
-        public @Nullable Boolean cached;
-        public @Nullable Integer rows;
-        public @Nullable Set<String> cacheHashes;
-        public @Nullable Integer maxGroups;
-        public @Nullable Integer maxConcurrentSessions;
+        @Nullable String statementType;
+        @Nullable Set<String> datasets;
+        @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
+        @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
+        @Nullable Long ftgsMB;
+        @Nullable Collection<String> sessionIDs;
+        @Nullable Integer numShards;
+        @Nullable Long numDocs;
+        @Nullable Boolean cached;
+        @Nullable Integer rows;
+        @Nullable Set<String> cacheHashes;
+        @Nullable Integer maxGroups;
+        @Nullable Integer maxConcurrentSessions;
     }
 
     private static class SelectExecutionInformation {
@@ -741,8 +750,12 @@ public class SelectQueryExecution {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             DatasetWithTimeRangeAndAliases that = (DatasetWithTimeRangeAndAliases) o;
             return start == that.start &&
                     end == that.end &&
@@ -789,8 +802,12 @@ public class SelectQueryExecution {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if ((o == null) || (getClass() != o.getClass())) {
+                return false;
+            }
             FieldAlias that = (FieldAlias) o;
             return Objects.equals(originalName, that.originalName) &&
                     Objects.equals(newName, that.newName);

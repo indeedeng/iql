@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
@@ -20,8 +20,8 @@ public class DatasetGroupByTest {
     public static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
     public static final DateTimeZone DATE_TIME_ZONE = DateTimeZone.forOffsetHours(-6);
 
-    private static Shard makeShard(LocalDate day, int count) {
-        final MemoryFlamdex flamdex = new MemoryFlamdex();
+    private static Dataset.DatasetShard makeShard(LocalDate day, int count) {
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument document = new FlamdexDocument.Builder().addIntTerm("label", 1).addIntTerm("fakeField", 0).addIntTerm("unixtime", day.toDateTimeAtStartOfDay(DATE_TIME_ZONE).getMillis() / 1000).build();
         for (int i = 0; i < count / 2; i++) {
             flamdex.addDocument(document);
@@ -30,7 +30,7 @@ public class DatasetGroupByTest {
         for (int i = 0; i < count / 2; i++) {
             flamdex.addDocument(document2);
         }
-        return new Shard(DATASET, "index" + FORMATTER.print(day), flamdex);
+        return new Dataset.DatasetShard(DATASET, "index" + FORMATTER.print(day), flamdex);
     }
 
     /**
@@ -49,14 +49,14 @@ public class DatasetGroupByTest {
      * 2015-01-13: 6000
      * 2015-01-14: 7000
      */
-    private List<Shard> createDataset() {
-        final List<Shard> result = new ArrayList<>();
+    private Dataset createDataset() {
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
-            result.add(makeShard(new LocalDate(2015, 1, 1 + i), 100 * (i + 1)));
-            result.add(makeShard(new LocalDate(2015, 1, 8 + i), 1000 * (i + 1)));
-            result.add(makeShard(new LocalDate(2015, 1, 15 + i), 10000 * (i + 1)));
+            shards.add(makeShard(new LocalDate(2015, 1, 1 + i), 100 * (i + 1)));
+            shards.add(makeShard(new LocalDate(2015, 1, 8 + i), 1000 * (i + 1)));
+            shards.add(makeShard(new LocalDate(2015, 1, 15 + i), 10000 * (i + 1)));
         }
-        return result;
+        return new Dataset(shards);
     }
 
     @Test
@@ -124,7 +124,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by label, DATASET() " +
-                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()"
+                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
 
@@ -138,7 +138,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by DATASET(), label " +
-                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()"
+                        "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
 
@@ -150,8 +150,7 @@ public class DatasetGroupByTest {
 
         QueryServletTestUtils.testIQL2(createDataset(), expected,
                 "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 " +
-                        "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))"
+                        "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))", true
         );
     }
-
 }

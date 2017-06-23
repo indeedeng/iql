@@ -1,6 +1,8 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.squall.iql2.server.web.servlets.dataset.FieldEqualDataset;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,7 +15,7 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testEqualFieldMetric() throws Exception {
-        final List<Shard> dataset = FieldEqualDataset.create();
+        final Dataset dataset = FieldEqualDataset.create();
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today select s1=s2");
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3", "4")), "from organic yesterday today select i1=i2, count()");
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from organic yesterday today select s1=s2, i1=i2, count()");
@@ -35,7 +37,7 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testNotEqualFieldMetric() throws Exception {
-        final List<Shard> dataset = FieldEqualDataset.create();
+        final Dataset dataset = FieldEqualDataset.create();
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from organic yesterday today select i1!=i2");
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today select s1!=s2");
         testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "1")), "from organic yesterday today select s1!=s2, i1!=i2");

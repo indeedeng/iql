@@ -15,7 +15,6 @@ import com.indeed.squall.iql2.execution.actions.Actions;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.execution.compat.Consumer;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.execution.progress.NoOpProgressCallback;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
@@ -23,8 +22,7 @@ import com.indeed.squall.iql2.language.GroupSuppliers;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.query.Queries;
-import com.indeed.squall.iql2.server.web.data.KeywordAnalyzerWhitelistLoader;
-import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import dk.brics.automaton.Automaton;
@@ -47,7 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Controller
 public class EventRegexServlet {
@@ -56,15 +53,15 @@ public class EventRegexServlet {
     public static final String JOIN_FIELD = "THEONETRUEJOINFIELD";
 
     private final ImhotepClient imhotepClient;
-    private final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader;
+    private final MetadataCache metadataCache;
 
     @Autowired
     public EventRegexServlet(
             final ImhotepClient imhotepClient,
-            final KeywordAnalyzerWhitelistLoader keywordAnalyzerWhitelistLoader
+            final MetadataCache metadataCache
     ) {
         this.imhotepClient = imhotepClient;
-        this.keywordAnalyzerWhitelistLoader = keywordAnalyzerWhitelistLoader;
+        this.metadataCache = metadataCache;
     }
 
     @RequestMapping(value="regex", method = {RequestMethod.GET, RequestMethod.POST})
@@ -301,7 +298,6 @@ public class EventRegexServlet {
                 OBJECT_MAPPER.readTree(json),
                 closer,
                 out,
-                Collections.<String, DatasetDimensions>emptyMap(),
                 timer,
                 new NoOpProgressCallback(),
                 -1L,
@@ -374,17 +370,6 @@ public class EventRegexServlet {
         }
     }
 
-
-    private Map<String, Set<String>> getKeywordAnalyzerWhitelist() {
-        // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getKeywordAnalyzerWhitelist());
-    }
-
-    private Map<String, Set<String>> getDatasetToIntFields() throws IOException {
-        // TODO: Don't make a copy per use
-        return QueryServlet.upperCaseMapToSet(keywordAnalyzerWhitelistLoader.getDatasetToIntFields());
-    }
-
     private DocFilter parseDocFilter(String filterString) throws IOException {
         JQLParser.JqlDocFilterContext docFilterContext = Queries.runParser(filterString, new Function<JQLParser, JQLParser.JqlDocFilterContext>() {
             public JQLParser.JqlDocFilterContext apply(JQLParser input) {
@@ -396,7 +381,7 @@ public class EventRegexServlet {
             public void accept(String s) {
             }
         };
-        return DocFilters.parseJQLDocFilter(docFilterContext, getKeywordAnalyzerWhitelist(), getDatasetToIntFields(), null, noOpWarn, new DefaultWallClock());
+        return DocFilters.parseJQLDocFilter(docFilterContext, metadataCache.getUppercasedKeywordAnalyzerWhitelist(), metadataCache.getUppercasedDatasetToIntFields(), null, noOpWarn, new DefaultWallClock());
     }
 
     public static class EventDescription {

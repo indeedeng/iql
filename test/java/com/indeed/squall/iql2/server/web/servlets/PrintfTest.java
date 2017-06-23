@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class PrintfTest extends BasicTest {
         expected.add(ImmutableList.of("b", "0.33"));
         expected.add(ImmutableList.of("c", "0.33"));
         expected.add(ImmutableList.of("d", "0.33"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by tk select printf('%.2f', count()/(3*count()))");
+        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by tk select printf('%.2f', count()/(3*count()))", true);
     }
 
     @Test

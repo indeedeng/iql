@@ -7,13 +7,13 @@ import com.google.common.base.Joiner;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.squall.iql2.execution.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.dimensions.DatasetDimensions;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
@@ -37,9 +37,9 @@ public class ExplainQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
-    private final Map<String, Set<String>> keywordAnalyzerWhitelist;
-    private final Map<String, Set<String>> datasetToIntFields;
-    private final Map<String, DatasetDimensions> dimensions;
+    private final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist;
+    private final Map<String, Set<String>> uppercasedDatasetToIntFields;
+    private final Map<String, DatasetDimensions> uppercasedDimensions;
     private final boolean isJSON;
     private final WallClock clock;
 
@@ -55,9 +55,9 @@ public class ExplainQueryExecution {
 
     public ExplainQueryExecution(
             final ImhotepClient imhotepClient,
-            final Map<String, Set<String>> keywordAnalyzerWhitelist,
-            final Map<String, Set<String>> datasetToIntFields,
-            final Map<String, DatasetDimensions> dimensions,
+            final Map<String, Set<String>> uppercasedKeywordAnalyzerWhitelist,
+            final Map<String, Set<String>> uppercasedDatasetToIntFields,
+            final Map<String, DatasetDimensions> uppercasedDimensions,
             final PrintWriter outputStream,
             final String query,
             final int version,
@@ -67,10 +67,10 @@ public class ExplainQueryExecution {
         this.outputStream = outputStream;
         this.query = query;
         this.version = version;
-        this.keywordAnalyzerWhitelist = keywordAnalyzerWhitelist;
-        this.datasetToIntFields = datasetToIntFields;
+        this.uppercasedKeywordAnalyzerWhitelist = uppercasedKeywordAnalyzerWhitelist;
+        this.uppercasedDatasetToIntFields = uppercasedDatasetToIntFields;
         this.imhotepClient = imhotepClient;
-        this.dimensions = dimensions;
+        this.uppercasedDimensions = uppercasedDimensions;
         this.isJSON = isJSON;
         this.clock = clock;
         this.printer = new LevelPrinter();
@@ -86,7 +86,7 @@ public class ExplainQueryExecution {
             }
         };
 
-        final Query parsedQuery = Queries.parseQuery(query, version==1, keywordAnalyzerWhitelist, datasetToIntFields, warn, clock).query;
+        final Query parsedQuery = Queries.parseQuery(query, version==1, uppercasedKeywordAnalyzerWhitelist, uppercasedDatasetToIntFields, warn, clock).query;
         new ParsedQueryExplain(parsedQuery, errors, warnings).explainParsedQuery();
         if (!isJSON) {
             outputStream.println(printer.toString());
@@ -141,8 +141,8 @@ public class ExplainQueryExecution {
                     }
             );
 
-            final List<Command> commands = Queries.queryCommands(query);
-            CommandValidator.validate(commands, imhotepClient, query, dimensions, datasetToIntFields, errors, warnings);
+            final List<Command> commands = Queries.queryCommands(query, uppercasedDimensions);
+            CommandValidator.validate(commands, imhotepClient, query, uppercasedDimensions, uppercasedDatasetToIntFields, errors, warnings);
 
             for (final Command command : commands) {
                 printer.push(command.toString());
