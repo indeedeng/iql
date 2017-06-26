@@ -36,13 +36,11 @@ import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
-import com.indeed.squall.iql2.language.dimensions.Dimension;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
-import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.util.core.Pair;
@@ -81,7 +79,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);

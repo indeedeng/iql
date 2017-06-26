@@ -77,6 +77,10 @@ public class DimensionUtils {
             calcMetric.setExpr("(i1+i2)*10");
             metrics.add(calcMetric);
 
+            final MetricsYaml i3 = new MetricsYaml();
+            i3.setName("i3");
+            i3.setExpr("i2+i3");
+
             final MetricsYaml aliasI1 = new MetricsYaml();
             aliasI1.setName("aliasi1");
             aliasI1.setExpr("i1");
@@ -87,6 +91,10 @@ public class DimensionUtils {
             aliasI2.setExpr("i2");
             metrics.add(aliasI2);
 
+            final MetricsYaml aliassi1 = new MetricsYaml();
+            aliassi1.setName("si1");
+            aliassi1.setExpr("si1");
+
             final MetricsYaml funcMetric = new MetricsYaml();
             funcMetric.setName("floatf1");
             funcMetric.setExpr("FLOATSCALE(floatf1, 10, 10)");
@@ -96,7 +104,6 @@ public class DimensionUtils {
             aggMetric1.setName("i1divi2");
             aggMetric1.setExpr("i1/i2");
             metrics.add(aggMetric1);
-
 
             DatasetYaml dimensionDataset = new DatasetYaml();
             dimensionDataset.setName("dimension");
@@ -130,7 +137,6 @@ public class DimensionUtils {
             return new HashMap<>();
         }
     }
-
 
     public static Dataset createDataset() {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
@@ -169,7 +175,10 @@ public class DimensionUtils {
         if (i2 != -1) {
             doc.addIntTerm("i2", i2);
         }
+        doc.addIntTerm("i3", i1);
         doc.addStringTerm("s1", s1);
+        doc.addStringTerm("si1", "");
+        doc.addIntTerm("si1", i1);
         doc.addStringTerm("floatf1", f1);
         doc.addIntTerm("empty", 0);
         doc.addIntTerm("same", 1);

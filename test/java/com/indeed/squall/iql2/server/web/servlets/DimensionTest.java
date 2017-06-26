@@ -28,12 +28,11 @@ public class DimensionTest extends BasicTest {
         testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek", options);
     }
 
-
     @Test
     public void testSelect() throws Exception {
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "0", "5", "200", "10", "1", "20", "70", "2", "3", "3")),
+        testAll(dataset, ImmutableList.of(ImmutableList.of("", "0", "5", "200", "10", "10", "1", "20", "70", "2", "3", "3")),
                 "from dimension yesterday today SELECT " +
-                        "empty, same, calc, aliasi1, i1divi2, i1+aliasi1, floatf1, aliasi1=0,  plus!=5, distinct(aliasi1)",
+                        "empty, same, calc, i3, aliasi1, i1divi2, i1+aliasi1, floatf1, aliasi1=0,  plus!=5, distinct(aliasi1)",
                 options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT [i1*plus]", options);
         testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT i1*plus", options);
@@ -61,6 +60,11 @@ public class DimensionTest extends BasicTest {
     public void testAggregateDimension() throws Exception {
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "11", "100")), "from dimension yesterday today SELECT i1+i1divi2, aliasi1*10", options);
         assertIQL1FailQuery("from dimension yesterday today SELECT i1+i1divi2", "compound dimension is not supported in IQL1");
+    }
+
+    @Test
+    public void testDimensionAliasFieldRewrite() throws Exception {
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "10")), "from dimension yesterday today SELECT si1", options);
     }
 
     @Test
@@ -112,12 +116,17 @@ public class DimensionTest extends BasicTest {
     }
 
     @Test
-    public void testDatasetAlias() throws  Exception {
-       testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "10", "10", "210")),
-               "from dimension yesterday today ALIASING(i2 as aliasi1, aliasi2 as aliasi3) SELECT aliasi1, aliasi3, calc+aliasi3",
-               options);
-       assertIQL2FailQuery("from dimension yesterday today ALIASING(aliasi1 as aliasi2, aliasi2 as aliasi1) SELECT aliasi1", "circle reference of alias");
-       assertIQL2FailQuery("from dimension yesterday today ALIASING(plus as p) SELECT p", "non-alias metrics cannot be used in alias");
+    public void testDatasetAlias() throws Exception {
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")),
+                "from dimension yesterday today ALIASING(i2 as aliasi1) where i2 > 2 SELECT aliasi1",
+                options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")),
+                "from dimension yesterday today ALIASING(aliasi1 as a1) where i1 > 3 SELECT a1+i2",
+                options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "10", "10", "210")),
+                "from dimension yesterday today ALIASING(i2 as aliasi1, aliasi2 as aliasi3) SELECT aliasi1, aliasi3, calc+aliasi3",
+                options);
+        assertIQL2FailQuery("from dimension yesterday today ALIASING(plus as p) SELECT p", "non-alias metrics cannot be used in alias");
     }
 
     private void assertIQL1FailQuery(final String query, final String reason) throws Exception {

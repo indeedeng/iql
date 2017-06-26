@@ -296,7 +296,6 @@ public class EventRegexServlet {
                 imhotepClient,
                 datasetToChosenShards,
                 OBJECT_MAPPER.readTree(json),
-                Collections.emptyMap(),
                 closer,
                 out,
                 timer,
