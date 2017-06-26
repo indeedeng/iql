@@ -1,7 +1,9 @@
 package com.indeed.squall.iql2.language;
 
+import java.util.regex.Pattern;
+
 public class Identifiers {
-    private static final String IDENTIFIER_PATTERN = "[a-zA-Z][a-zA-Z0-9_-]*";
+    private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_-]*");
 
     public static Positioned<String> parseIdentifier(JQLParser.IdentifierContext identifierContext) {
         final String result;
@@ -10,8 +12,8 @@ public class Identifiers {
         } else {
             result = identifierContext.getText().toUpperCase();
         }
-        if (!result.isEmpty() && !result.matches(IDENTIFIER_PATTERN)) {
-            throw new IllegalArgumentException("identifier " + result +" doesn't match pattern : " + IDENTIFIER_PATTERN);
+        if (!result.isEmpty() && !IDENTIFIER_PATTERN.matcher(result).matches()) {
+            throw new IllegalArgumentException("identifier " + result +" doesn't match pattern : " + IDENTIFIER_PATTERN.toString());
         }
         return Positioned.from(result, identifierContext);
     }
