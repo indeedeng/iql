@@ -8,6 +8,9 @@ public class Identifiers {
         } else {
             result = identifierContext.getText().toUpperCase();
         }
+        if (!result.isEmpty() && Character.isDigit(result.charAt(0))) {
+            throw new IllegalArgumentException("identifier starts with digit is not allowed");
+        }
         return Positioned.from(result, identifierContext);
     }
 }
