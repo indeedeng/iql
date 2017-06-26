@@ -75,14 +75,12 @@ public class Queries {
             m.put("end", dataset.endExclusive.unwrap().toString());
             m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
-                final Map<String, String> uppercasedFieldAliases = dataset.fieldAliases.entrySet().stream().collect(
+                final Map<String, String> fieldAliases = dataset.fieldAliases.entrySet().stream().collect(
                         Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap()));
                 final Map<String, String> dimensionAliases = datasetToDimensionAliasFields.getOrDefault(
                         dataset.dataset.unwrap(), Collections.emptyMap());
-                final Map<String, String> uppercasedDimensionAliases = dimensionAliases.entrySet().stream()
-                        .collect(Collectors.toMap(e -> e.getKey().toUpperCase(), e -> e.getValue().toUpperCase()));
-                m.put("fieldAliases", objectMapper.writeValueAsString(uppercasedFieldAliases));
-                m.put("dimensionAliases", objectMapper.writeValueAsString(uppercasedDimensionAliases));
+                m.put("fieldAliases", objectMapper.writeValueAsString(fieldAliases));
+                m.put("dimensionAliases", objectMapper.writeValueAsString(dimensionAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
                 throw Throwables.propagate(e);
