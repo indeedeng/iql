@@ -170,7 +170,7 @@ public class QueryServlet {
                 final String field = describeDatasetFieldMatcher.group(5);
                 processDescribeField(response, contentType, dataset, field);
                 queryInfo.statementType = "describe";
-            } else if (query.trim().toLowerCase().equals("show dataset")) {
+            } else if (query.trim().toLowerCase().equals("show datasets")) {
                 processShowDatasets(response, contentType);
                 queryInfo.statementType = "show";
             } else if (query.trim().toLowerCase().startsWith("explain ")) {
