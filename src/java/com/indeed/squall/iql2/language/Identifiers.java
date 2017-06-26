@@ -3,7 +3,7 @@ package com.indeed.squall.iql2.language;
 import java.util.regex.Pattern;
 
 public class Identifiers {
-    private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_-]*");
+    private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_-]*");
 
     public static Positioned<String> parseIdentifier(JQLParser.IdentifierContext identifierContext) {
         final String result;

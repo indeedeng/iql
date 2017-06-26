@@ -17,6 +17,7 @@ public class IdentifiersTest {
     public void test() throws Exception {
         Assert.assertEquals("HI", Queries.runParser("hi", PARSE_IDENTIFIER));
         Assert.assertEquals("HI", Queries.runParser("`hi`", PARSE_IDENTIFIER));
+        Assert.assertEquals("_HI_", Queries.runParser("`_hi_`", PARSE_IDENTIFIER));
         Assert.assertEquals("ABC123", Queries.runParser("abc123", PARSE_IDENTIFIER));
         Assert.assertEquals("ABC-123", Queries.runParser("`abc-123`", PARSE_IDENTIFIER));
         Assert.assertEquals("YYYYMMDD", Queries.runParser("yyyymmdd", PARSE_IDENTIFIER));
