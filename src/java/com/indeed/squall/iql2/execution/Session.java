@@ -232,10 +232,13 @@ public class Session {
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
             final String displayName = elem.get("displayName").textValue();
-            final Map<String, String> uppercasedFieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
-            });
-            final Map<String, String> uppercasedDimensionAliases = MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Map<String, String>>() {
-            });
+            final Map<String, String> uppercasedFieldAliases = upperCaseMap(
+                    MAPPER.readValue(elem.get("fieldAliases").textValue(),
+                            new TypeReference<Map<String, String>>() {
+                            }));
+            final Map<String, String> uppercasedDimensionAliases = upperCaseMap(
+                    MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Map<String, String>>() {
+                    }));
             final Map<String, String> uppercasedCombinedAliases = combineAliases(uppercasedFieldAliases, uppercasedDimensionAliases);
             treeTimer.push("session:" + displayName);
 
@@ -365,6 +368,10 @@ public class Session {
             result.add(value.toUpperCase());
         }
         return result;
+    }
+
+    private static Map<String, String> upperCaseMap(final Map<String, String> map) {
+        return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().toUpperCase(), Map.Entry::getValue));
     }
 
     private static ImhotepSession wrapSession(Map<String, String> fieldAliases, ImhotepSession build, Set<String> fieldNames) {
