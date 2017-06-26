@@ -228,9 +228,9 @@ public class Session {
             final String end = elem.get("end").textValue();
             final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
             final String displayName = elem.get("displayName").textValue();
-            final Map<String, String> fieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
+            final Map<String, String> uppercasedFieldAliases = MAPPER.readValue(elem.get("fieldAliases").textValue(), new TypeReference<Map<String, String>>() {
             });
-            final Set<String> dimensionAliases = MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Set<String>>() {
+            final Map<String, String> uppercasedDimensionAliases = MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Map<String, String>>() {
             });
             treeTimer.push("session:" + displayName);
 
@@ -239,11 +239,10 @@ public class Session {
             final DatasetInfo datasetInfo = client.getDatasetShardInfo(actualDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
-            final Set<String> uppercasedDimensionFields = upperCase(dimensionAliases);
             final Set<String> sessionStringFields = new HashSet<>();
 
             for (String stringField : datasetInfo.getStringFields()) {
-                if (uppercasedDimensionFields.contains(stringField.toUpperCase())) {
+                if (uppercasedDimensionAliases.containsKey(stringField.toUpperCase())) {
                     sessionIntFields.add(stringField);
                 } else {
                     sessionStringFields.add(stringField);
@@ -253,15 +252,16 @@ public class Session {
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
-            for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
-                if (upperCasedIntFields.contains(entry.getValue()) || uppercasedDimensionFields.contains(entry.getValue())) {
+            for (final Map.Entry<String, String> entry : uppercasedFieldAliases.entrySet()) {
+                final String uppercasedField = entry.getValue();
+                if (upperCasedIntFields.contains(uppercasedField) || uppercasedDimensionAliases.containsKey(uppercasedField)) {
                     sessionIntFields.add(entry.getKey());
                     upperCasedIntFields.add(entry.getKey().toUpperCase());
-                } else if (upperCasedStringFields.contains(entry.getValue())) {
+                } else if (upperCasedStringFields.contains(uppercasedField)) {
                     sessionStringFields.add(entry.getKey());
                     upperCasedStringFields.add(entry.getKey().toUpperCase());
                 } else {
-                    throw new IllegalStateException("Field [" + entry.getValue() + "] not found in index [" + datasetName + "]");
+                    throw new IllegalStateException("Field [" + uppercasedField + "] not found in index [" + datasetName + "]");
                 }
             }
 
@@ -282,7 +282,7 @@ public class Session {
             final ImhotepSession build = sessionBuilder.build();
             progressCallback.sessionOpened(build);
             treeTimer.pop();
-            final ImhotepSession session = closer.register(wrapSession(fieldAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
+            final ImhotepSession session = closer.register(wrapSession(uppercasedFieldAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
