@@ -8,10 +8,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -65,10 +67,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author jwolfe
@@ -232,6 +236,7 @@ public class Session {
             });
             final Map<String, String> uppercasedDimensionAliases = MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Map<String, String>>() {
             });
+            final Map<String, String> uppercasedCombinedAliases = combineAliases(uppercasedFieldAliases, uppercasedDimensionAliases);
             treeTimer.push("session:" + displayName);
 
             treeTimer.push("get dataset info");
@@ -252,7 +257,7 @@ public class Session {
             final Set<String> upperCasedIntFields = upperCase(sessionIntFields);
             final Set<String> upperCasedStringFields = upperCase(sessionStringFields);
 
-            for (final Map.Entry<String, String> entry : uppercasedFieldAliases.entrySet()) {
+            for (final Map.Entry<String, String> entry : uppercasedCombinedAliases.entrySet()) {
                 final String uppercasedField = entry.getValue();
                 if (upperCasedIntFields.contains(uppercasedField) || uppercasedDimensionAliases.containsKey(uppercasedField)) {
                     sessionIntFields.add(entry.getKey());
@@ -282,7 +287,7 @@ public class Session {
             final ImhotepSession build = sessionBuilder.build();
             progressCallback.sessionOpened(build);
             treeTimer.pop();
-            final ImhotepSession session = closer.register(wrapSession(uppercasedFieldAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
+            final ImhotepSession session = closer.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
@@ -314,6 +319,45 @@ public class Session {
             treeTimer.pop();
         }
     }
+
+    private static Map<String, String> combineAliases(final Map<String, String> fieldAliases, final Map<String, String> dimensionAliases) {
+        final Map<String, String> combinedAliases = new HashMap<>();
+        combinedAliases.putAll(dimensionAliases);
+        combinedAliases.putAll(fieldAliases);
+        final Map<String, String> resolvedAliasesFields = resolveAliasToRealField(combinedAliases);
+        // alias target to the same field will cause the CaseInsensitiveSession fail
+        // uppercased field may overwrite the origin field
+        return resolvedAliasesFields.entrySet().stream().filter(
+                e -> !e.getKey().equalsIgnoreCase(e.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+
+    private static Map<String, String> resolveAliasToRealField(Map<String, String> fieldAliases) {
+        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
+        for (String originField : fieldAliases.keySet()) {
+            String targetField = fieldAliases.get(originField);
+            final Set<String> seenField = new LinkedHashSet<>();
+            seenField.add(targetField);
+            while (fieldAliases.containsKey(targetField)) {
+                final String newTargetField = fieldAliases.get(targetField);
+                // for the dimension: same -> same
+                if (newTargetField.equals(targetField)) {
+                    break;
+                }
+                if (seenField.contains(newTargetField)) {
+                    throw new IllegalArgumentException(
+                            String.format("field alias has circular reference: %s -> %s", originField,
+                                    Joiner.on(" -> ").join(seenField.toArray())));
+                }
+                seenField.add(newTargetField);
+                targetField = newTargetField;
+            }
+            resolvedAliasToRealFieldBuilder.put(originField, targetField);
+        }
+        return resolvedAliasToRealFieldBuilder.build();
+    }
+
 
     private static Set<String> upperCase(Collection<String> collection) {
         final Set<String> result = new HashSet<>(collection.size());
