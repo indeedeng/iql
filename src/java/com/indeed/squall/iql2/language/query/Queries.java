@@ -8,6 +8,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.DefaultWallClock;
@@ -55,14 +56,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
 
-    public static List<Map<String, String>> createDatasetMap(CharStream inputStream, Query query) {
+    public static List<Map<String, String>> createDatasetMap(
+            CharStream inputStream, Query query, Map<String, Map<String, String>> datasetToDimensionAliasFields) {
         final List<Map<String, String>> result = new ArrayList<>();
         final ObjectMapper objectMapper = new ObjectMapper();
         for (final Dataset dataset : query.datasets) {
@@ -73,7 +77,22 @@ public class Queries {
             m.put("end", dataset.endExclusive.unwrap().toString());
             m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
-                m.put("fieldAliases", objectMapper.writeValueAsString(Dataset.resolveAliasToRealField(dataset.fieldAliases)));
+                final Map<String, String> uppercasedFieldAliases = dataset.fieldAliases.entrySet().stream().collect(
+                        Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap()));
+                final Map<String, String> dimensionAliases = datasetToDimensionAliasFields.getOrDefault(
+                        dataset.dataset.unwrap(), Collections.emptyMap());
+                final Map<String, String> uppercasedDimensionAliases = dimensionAliases.entrySet().stream()
+                        .collect(Collectors.toMap(e -> e.getKey().toUpperCase(), e -> e.getValue().toUpperCase()));
+                final Map<String, String> combinedAliases = new HashMap<>();
+                combinedAliases.putAll(uppercasedDimensionAliases);
+                combinedAliases.putAll(uppercasedFieldAliases);
+                final Map<String, String> resolvedAliasesFields = resolveAliasToRealField(combinedAliases);
+                final Map<String, String> filteredAliasFields = resolvedAliasesFields.entrySet().stream().filter(
+                        e -> !e.getKey().equalsIgnoreCase(e.getValue()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                m.put("fieldAliases", objectMapper.writeValueAsString(filteredAliasFields));
+                m.put("dimensionAliases", objectMapper.writeValueAsString(uppercasedDimensionAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
                 throw Throwables.propagate(e);
@@ -82,6 +101,32 @@ public class Queries {
         }
         return result;
     }
+
+    private static Map<String, String> resolveAliasToRealField(Map<String, String> fieldAliases) {
+        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
+        for (String originField : fieldAliases.keySet()) {
+            String targetField = fieldAliases.get(originField);
+            final Set<String> seenField = new LinkedHashSet<>();
+            seenField.add(targetField);
+            while (fieldAliases.containsKey(targetField)) {
+                final String newTargetField = fieldAliases.get(targetField);
+                // for the dimension: same -> same
+                if (newTargetField.equals(targetField)) {
+                    break;
+                }
+                if (seenField.contains(newTargetField)) {
+                    throw new IllegalArgumentException(
+                            String.format("field alias has circular reference: %s -> %s", originField,
+                                    Joiner.on(" -> ").join(seenField.toArray())));
+                }
+                seenField.add(newTargetField);
+                targetField = newTargetField;
+            }
+            resolvedAliasToRealFieldBuilder.put(originField, targetField);
+        }
+        return resolvedAliasToRealFieldBuilder.build();
+    }
+
 
     public static class ParseResult {
         public final CharStream inputStream;
