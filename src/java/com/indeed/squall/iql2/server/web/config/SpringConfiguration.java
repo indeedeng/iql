@@ -181,8 +181,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    public ImhotepMetadataServiceClientPinger imhotepClientPinger(ImsClientInterface imsClient) {
-        return new ImhotepMetadataServiceClientPinger(imsClient);
+    public ImhotepMetadataServiceClientPinger imhotepMetadataServiceClientPinger(ImsClientInterface imsClient) {
+        return new ImhotepMetadataServiceClientPinger(imsClient, env.getProperty("ims.check_dataset"));
     }
 
     @Bean
