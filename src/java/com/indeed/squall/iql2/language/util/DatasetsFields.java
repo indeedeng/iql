@@ -1,99 +1,80 @@
 package com.indeed.squall.iql2.language.util;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.indeed.squall.iql2.language.dimensions.Dimension;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class DatasetsFields {
-    private final ImmutableMap<String, ImmutableSet<String>> datasetToIntFields;
-    private final ImmutableMap<String, ImmutableSet<String>> datasetToStringFields;
+    private final DatasetsMetadata datasetsMetadata;
+    private final Map<String, Set<String>> datasetAliasIntFields;
+    private final Map<String, Set<String>> datasetAliasStringFields;
 
-    public DatasetsFields(Map<String, Set<String>> datasetToIntFields, Map<String, Set<String>> datasetToStringFields) {
-        this.datasetToIntFields = copy(datasetToIntFields);
-        this.datasetToStringFields = copy(datasetToStringFields);
+    public DatasetsFields(final DatasetsMetadata datasetsMetadata,
+                          final Map<String, Set<String>> datasetAliasIntFields,
+                          final Map<String, Set<String>> datasetAliasStringFields) {
+        this.datasetsMetadata = datasetsMetadata;
+        this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
+        this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);
     }
-    
-    public ImmutableSet<String> getStringFields(String dataset) {
-        if (!datasetToStringFields.containsKey(dataset)) {
-            return ImmutableSet.of();
+
+    private Map<String, Set<String>> toCaseInsensitive(final Map<String, Set<String>> map) {
+        final Map<String, Set<String>> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
+            caseInsensitiveMap.put(entry.getKey(), new TreeSet<>(String.CASE_INSENSITIVE_ORDER));
+            caseInsensitiveMap.get(entry.getKey()).addAll(entry.getValue());
+        }
+        return caseInsensitiveMap;
+    }
+
+
+    public boolean containsStringField(String dataset, String field) {
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(field)) ||
+                (datasetAliasStringFields.containsKey(dataset) && datasetAliasStringFields.get(dataset).contains(field));
+    }
+
+    public boolean containsIntField(String dataset, String field) {
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(field)) ||
+                (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
+    }
+
+    public boolean containsIntOrAliasField(String dataset, String field) {
+        return containsIntField(dataset, field) || containsAliasMetricField(dataset, field);
+    }
+
+    public boolean containsMetricField(String dataset, String field) {
+        return getDimension(dataset, field).isPresent();
+    }
+
+    public boolean containsNonAliasMetricField(String dataset, String field) {
+        final Optional<Dimension> dimension = getDimension(dataset, field);
+        return dimension.isPresent() && !dimension.get().isAlias;
+    }
+
+    public boolean containsAliasMetricField(String dataset, String field) {
+        final Optional<Dimension> dimension = getDimension(dataset, field);
+        return dimension.isPresent() && dimension.get().isAlias;
+    }
+
+    // if field is in intFields or stringFields
+    public boolean containsField(String dataset, String field) {
+        return containsIntField(dataset, field) || containsStringField(dataset, field) || containsAliasMetricField(dataset, field);
+    }
+
+    private Optional<Dimension> getDimension(String dataset, String field) {
+        if (datasetsMetadata.getMetadata(dataset).isPresent() &&
+                datasetsMetadata.getMetadata(dataset).get().fieldToDimension.containsKey(field)) {
+            return Optional.of(datasetsMetadata.getMetadata(dataset).get().fieldToDimension.get(field));
         } else {
-            return datasetToStringFields.get(dataset);
+            return Optional.empty();
         }
-    }
-    
-    public ImmutableSet<String> getIntFields(String dataset) {
-        if (!datasetToIntFields.containsKey(dataset)) {
-            return ImmutableSet.of();
-        } else {
-            return datasetToIntFields.get(dataset);
-        }
-    }
-
-    public Set<String> getAllFields(String dataset) {
-        return Sets.union(getStringFields(dataset), getIntFields(dataset));
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static Builder builderFrom(DatasetsFields datasetsFields) {
-        final Builder builder = new Builder();
-        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToIntFields.entrySet()) {
-            for (final String field : entry.getValue()) {
-                builder.addIntField(entry.getKey(), field);
-            }
-        }
-        for (final Map.Entry<String, ImmutableSet<String>> entry : datasetsFields.datasetToStringFields.entrySet()) {
-            for (final String field : entry.getValue()) {
-                builder.addStringField(entry.getKey(), field);
-            }
-        }
-        return builder;
     }
 
     public Set<String> datasets() {
-        return Sets.union(datasetToIntFields.keySet(), datasetToStringFields.keySet());
-    }
-
-    public static class Builder {
-        private final Map<String, Set<String>> datasetToIntFields = Maps.newHashMap();
-        private final Map<String, Set<String>> datasetToStringFields = Maps.newHashMap();
-
-        public void addIntField(String dataset, String field) {
-            ensurePresent(dataset);
-            datasetToIntFields.get(dataset).add(field);
-        }
-
-        public void addStringField(String dataset, String field) {
-            ensurePresent(dataset);
-            datasetToStringFields.get(dataset).add(field);
-        }
-
-        private void ensurePresent(String dataset) {
-            if (!datasetToIntFields.containsKey(dataset)) {
-                datasetToIntFields.put(dataset, Sets.<String>newHashSet());
-            }
-
-            if (!datasetToStringFields.containsKey(dataset)) {
-                datasetToStringFields.put(dataset, Sets.<String>newHashSet());
-            }
-        }
-
-        public DatasetsFields build() {
-            return new DatasetsFields(datasetToIntFields, datasetToStringFields);
-        }
-    }
-
-    private static ImmutableMap<String, ImmutableSet<String>> copy(Map<String, Set<String>> m) {
-        ImmutableMap.Builder<String, ImmutableSet<String>> builder = ImmutableMap.builder();
-        for (final Map.Entry<String, Set<String>> entry : m.entrySet()) {
-            builder.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-        }
-        return builder.build();
+        return datasetsMetadata.getDatasetToMetadata().keySet();
     }
 }

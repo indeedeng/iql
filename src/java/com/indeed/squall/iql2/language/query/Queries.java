@@ -10,9 +10,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.common.util.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
+import com.indeed.squall.iql2.language.AggregateMetrics;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
@@ -20,7 +22,6 @@ import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.Positional;
-import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.UpperCaseInputStream;
 import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.compat.Consumer;
@@ -28,12 +29,14 @@ import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.execution.passes.FixDistinctFilterRunning;
 import com.indeed.squall.iql2.language.execution.passes.GroupIterations;
 import com.indeed.squall.iql2.language.execution.passes.OptimizeLast;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.optimizations.CollapseFilters;
 import com.indeed.squall.iql2.language.passes.ExtractNames;
 import com.indeed.squall.iql2.language.passes.ExtractPrecomputed;
 import com.indeed.squall.iql2.language.passes.FixTopKHaving;
 import com.indeed.squall.iql2.language.passes.HandleWhereClause;
 import com.indeed.squall.iql2.language.passes.RemoveNames;
+import com.indeed.squall.iql2.language.passes.SubstituteDimension;
 import com.indeed.squall.iql2.language.passes.SubstituteNamed;
 import com.indeed.squall.iql2.language.util.ParserUtil;
 import com.indeed.util.logging.Loggers;
@@ -55,11 +58,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
 
-    public static List<Map<String, String>> createDatasetMap(CharStream inputStream, Query query) {
+    public static List<Map<String, String>> createDatasetMap(
+            CharStream inputStream, Query query, Map<String, Map<String, String>> datasetToDimensionAliasFields) {
         final List<Map<String, String>> result = new ArrayList<>();
         final ObjectMapper objectMapper = new ObjectMapper();
         for (final Dataset dataset : query.datasets) {
@@ -70,11 +75,12 @@ public class Queries {
             m.put("end", dataset.endExclusive.unwrap().toString());
             m.put("name", dataset.alias.or(dataset.dataset).unwrap());
             try {
-                final Map<String, String> unPositionedFieldAliases = new HashMap<>();
-                for (final Map.Entry<Positioned<String>, Positioned<String>> entry : dataset.fieldAliases.entrySet()) {
-                    unPositionedFieldAliases.put(entry.getKey().unwrap(), entry.getValue().unwrap());
-                }
-                m.put("fieldAliases", objectMapper.writeValueAsString(unPositionedFieldAliases));
+                final Map<String, String> fieldAliases = dataset.fieldAliases.entrySet().stream().collect(
+                        Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap()));
+                final Map<String, String> dimensionAliases = datasetToDimensionAliasFields.getOrDefault(
+                        dataset.dataset.unwrap(), Collections.emptyMap());
+                m.put("fieldAliases", objectMapper.writeValueAsString(fieldAliases));
+                m.put("dimensionAliases", objectMapper.writeValueAsString(dimensionAliases));
             } catch (JsonProcessingException e) {
                 // We really shouldn't have a problem serializing a Map<String, String> to a String...
                 throw Throwables.propagate(e);
@@ -98,8 +104,8 @@ public class Queries {
         return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, WallClock clock) {
-        return parseQuery(q, useLegacy, datasetToKeywordAnalyzerFields, datasetToIntFields, new Consumer<String>() {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, WallClock clock) {
+        return parseQuery(q, useLegacy, datasetsMetadata, new Consumer<String>() {
             @Override
             public void accept(String s) {
 
@@ -107,9 +113,9 @@ public class Queries {
         }, clock);
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields, Consumer<String> warn, WallClock clock) {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetToKeywordAnalyzerFields, datasetToIntFields, warn, clock));
+        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetsMetadata, warn, clock));
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context, Set<Interval> seenComments) {
@@ -142,7 +148,7 @@ public class Queries {
     public static SplitQuery parseSplitQuery(String q, boolean useLegacy, WallClock clock) {
         Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), clock).query;
+        final Query parsed = parseQuery(q, useLegacy, DatasetsMetadata.empty(), clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
@@ -327,13 +333,20 @@ public class Queries {
         });
     }
 
+    public static AggregateMetric parseAggregateMetricFromString(
+            final String expression, final boolean useLegacy,
+            final DatasetsMetadata datasetsMetadata, final Consumer<String> warn) {
+        final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(expression, parser -> parser.aggregateMetric(useLegacy));
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, datasetsMetadata, warn, new DefaultWallClock());
+    }
+
     public static JQLParser parserForString(String q) {
         final JQLLexer lexer = new JQLLexer(new UpperCaseInputStream(new ANTLRInputStream(q)));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         return new JQLParser(tokens);
     }
 
-    public static List<Command> queryCommands(Query query) {
+    public static List<Command> queryCommands(Query query, DatasetsMetadata datasetsMetadata) {
         Loggers.trace(log, "query = %s", query);
         final Query query1 = FixTopKHaving.apply(query);
         Loggers.trace(log, "query1 = %s", query1);
@@ -344,11 +357,15 @@ public class Queries {
         Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = CollapseFilters.collapseFilters(query3);
         Loggers.trace(log, "query4 = %s", query4);
-        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(query4);
-        final List<ExecutionStep> firstSteps = query5Result.steps;
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query5Result.query);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
-        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(extracted)));
+        final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, datasetsMetadata);
+        final ExtractPrecomputed.Extracted dimensionExtracted = new ExtractPrecomputed.Extracted(substitutedDimension, extracted.computedNames);
+        Loggers.trace(log, "substituted = %s", dimensionExtracted);
+        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(dimensionExtracted.query);
+        final List<ExecutionStep> firstSteps = query5Result.steps;
+
+        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(dimensionExtracted)));
         if (log.isTraceEnabled()) {
             log.trace("executionSteps = " + executionSteps);
             for (final ExecutionStep executionStep : executionSteps) {

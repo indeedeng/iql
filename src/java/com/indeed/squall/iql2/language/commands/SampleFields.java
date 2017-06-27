@@ -5,10 +5,11 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,9 +48,7 @@ public class SampleFields implements Command, JsonSerializable {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                if (!datasetsFields.getAllFields(dataset).contains(sample.field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, sample.field.unwrap(), this));
-                }
+                ValidationUtil.validateField(ImmutableSet.of(dataset), sample.field.unwrap(), datasetsFields, validator, this);
             }
         }
     }

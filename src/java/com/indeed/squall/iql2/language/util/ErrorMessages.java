@@ -17,6 +17,14 @@ public class ErrorMessages {
         return "Expected dataset \"" + dataset + "\" does not exist";
     }
 
+    public static String nonAliasMetricInFTGS(String field, Object context) {
+        return String.format("For functions that requires FTGS, non alias metric \"%s\" is not allowed, [ %s ]", field, context);
+    }
+
+    public static String metricFieldIsNotSupported(String field, Object context) {
+        return String.format("metric field '%s' is not supported in context: [ %s ]", field, context);
+    }
+
     public static String scopeMismatch(String scope1, String scope2) {
         return String.format("scope mismatches between equality fields [%s != %s]", scope1, scope2);
     }

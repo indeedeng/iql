@@ -41,7 +41,7 @@ public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
         for (final String dataset : datasetsFields.datasets()) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+            if (!datasetsFields.containsField(dataset, field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }

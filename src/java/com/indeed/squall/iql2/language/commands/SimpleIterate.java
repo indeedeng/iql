@@ -8,7 +8,7 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -58,12 +58,7 @@ public class SimpleIterate implements Command, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : datasetsFields.datasets()) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
-        }
-
+        ValidationUtil.validateField(datasetsFields.datasets(), field, datasetsFields, validator, this);
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {

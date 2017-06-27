@@ -16,6 +16,7 @@ import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
@@ -75,16 +76,33 @@ public abstract class DocFilter extends AbstractPositional {
 
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
-    public static class FieldIs extends DocFilter {
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+    public abstract static class FieldTermEqual extends DocFilter {
         public final Positioned<String> field;
         public final Term term;
+        public boolean equal;
 
-        public FieldIs(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
-            // TODO: Immutable clone
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+        public FieldTermEqual(Positioned<String> field, Term term, boolean equal) {
             this.field = field;
             this.term = term;
+            this.equal = equal;
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (term.isIntTerm) {
+                ValidationUtil.validateIntField(datasetsFields.datasets(), field.unwrap(), datasetsFields, validator, this);
+            } else {
+                ValidationUtil.validateStringField(datasetsFields.datasets(), field.unwrap(), datasetsFields, validator, this);
+            }
+        }
+    }
+
+    public static class FieldIs extends FieldTermEqual {
+        public final DatasetsMetadata datasetsMetadata;
+
+        public FieldIs(DatasetsMetadata datasetsMetadata, Positioned<String> field, Term term) {
+            super(field, term, true);
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -145,23 +163,11 @@ public abstract class DocFilter extends AbstractPositional {
             return visitor.visit(this);
         }
 
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
-        }
-
         private List<String> tokenize(String dataset) {
             if (term.isIntTerm) {
                 throw new IllegalStateException("Called tokenize on int term?!");
             }
+            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = datasetsMetadata.getDatasetToKeywordAnalyzerFields();
             final Set<String> keywordAnalyzerFields;
             if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
                 keywordAnalyzerFields = datasetToKeywordAnalyzerFields.get(dataset);
@@ -215,15 +221,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class FieldIsnt extends DocFilter {
-        public final Positioned<String> field;
-        public final Term term;
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+    public static class FieldIsnt extends FieldTermEqual {
+        public final DatasetsMetadata datasetsMetadata;
 
-        public FieldIsnt(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Term term) {
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.field = field;
-            this.term = term;
+        public FieldIsnt(DatasetsMetadata datasetsMetadata, Positioned<String> field, Term term) {
+            super(field, term, false);
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -233,30 +236,17 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            return new Not(new FieldIs(datasetToKeywordAnalyzerFields, field, term)).asZeroOneMetric(dataset);
+            return new Not(new FieldIs(datasetsMetadata, field, term)).asZeroOneMetric(dataset);
         }
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new Not(new FieldIs(datasetToKeywordAnalyzerFields, field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+            return new Not(new FieldIs(datasetsMetadata, field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (term.isIntTerm) {
-                if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-                }
-            } else {
-                if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
-                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
-                }
-            }
         }
 
         @Override
@@ -388,9 +378,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
-                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
-            }
+            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.unwrap(), datasetsFields, validator, this);
         }
 
         @Override
@@ -1126,7 +1114,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1186,7 +1174,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1348,14 +1336,11 @@ public abstract class DocFilter extends AbstractPositional {
 
     public static class Lucene extends DocFilter {
         public final String query;
-        // TODO: Ensure capitalization
-        private final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
-        private final Map<String, Set<String>> datasetToIntFields;
+        private final DatasetsMetadata datasetsMetadata;
 
-        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        public Lucene(String query, DatasetsMetadata datasetsMetadata) {
             this.query = query;
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.datasetToIntFields = datasetToIntFields;
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -1365,9 +1350,9 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            final DocFilter filter = FlamdexQueryTranslator.translate(upperCasedQuery, datasetToKeywordAnalyzerFields);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata);
+            final DocFilter filter = FlamdexQueryTranslator.translate(flamdexQuery, datasetsMetadata);
             return filter.asZeroOneMetric(dataset);
         }
 
@@ -1375,9 +1360,9 @@ public abstract class DocFilter extends AbstractPositional {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
             for (final String dataset : scope.keySet()) {
-                final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
-                final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-                datasetToQuery.put(dataset, upperCasedQuery);
+                final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                        query, dataset, datasetsMetadata);
+                datasetToQuery.put(dataset, flamdexQuery);
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
         }
@@ -1389,9 +1374,9 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, upperCasedQuery)), validator, this, true);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 
         @Override
@@ -1451,7 +1436,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }
@@ -1568,12 +1553,12 @@ public abstract class DocFilter extends AbstractPositional {
     }
 
     public static class StringFieldIn extends DocFilter {
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
+        public final DatasetsMetadata datasetsMetadata;
         public final Positioned<String> field;
         public final Set<String> terms;
 
-        public StringFieldIn(Map<String, Set<String>> datasetToKeywordAnalyzerFields, Positioned<String> field, Set<String> terms) {
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
+        public StringFieldIn(DatasetsMetadata datasetsMetadata, Positioned<String> field, Set<String> terms) {
+            this.datasetsMetadata = datasetsMetadata;
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
             }
@@ -1591,9 +1576,9 @@ public abstract class DocFilter extends AbstractPositional {
             DocFilter filter = null;
             for (final String term : terms) {
                 if (filter == null) {
-                    filter = new FieldIs(datasetToKeywordAnalyzerFields, field, Term.term(term));
+                    filter = new FieldIs(datasetsMetadata, field, Term.term(term));
                 } else {
-                    filter = new Or(filter, new FieldIs(datasetToKeywordAnalyzerFields, field, Term.term(term)));
+                    filter = new Or(filter, new FieldIs(datasetsMetadata, field, Term.term(term)));
                 }
             }
             return filter.asZeroOneMetric(dataset);
@@ -1612,7 +1597,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1643,13 +1628,15 @@ public abstract class DocFilter extends AbstractPositional {
     public static class IntFieldIn extends DocFilter {
         public final Positioned<String> field;
         public final Set<Long> terms;
+        public final DatasetsMetadata datasetsMetadata;
 
-        public IntFieldIn(Positioned<String> field, Set<Long> terms) {
+        public IntFieldIn(DatasetsMetadata datasetsMetadata, Positioned<String> field, Set<Long> terms) {
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Cannot have empty set of terms!");
             }
             this.field = field;
             this.terms = new LongOpenHashSet(terms);
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -1662,9 +1649,9 @@ public abstract class DocFilter extends AbstractPositional {
             DocFilter filter = null;
             for (final long term : terms) {
                 if (filter == null) {
-                    filter = new FieldIs(Collections.<String, Set<String>>emptyMap(), field, Term.term(term));
+                    filter = new FieldIs(datasetsMetadata, field, Term.term(term));
                 } else {
-                    filter = new Or(filter, new FieldIs(Collections.<String, Set<String>>emptyMap(), field, Term.term(term)));
+                    filter = new Or(filter, new FieldIs(datasetsMetadata, field, Term.term(term)));
                 }
             }
             return filter.asZeroOneMetric(dataset);
@@ -1682,7 +1669,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
             }
         }

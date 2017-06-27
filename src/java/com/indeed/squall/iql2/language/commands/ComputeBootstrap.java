@@ -6,12 +6,11 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,19 +36,6 @@ public class ComputeBootstrap implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : scope) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
-        }
-        metric.validate(scope, datasetsFields, validator);
-        if (filter.isPresent()) {
-            filter.get().validate(scope, datasetsFields, validator);
-        }
-    }
-
-    @Override
     public void serialize(JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
         gen.writeStartObject();
         gen.writeStringField("command", "computeBootstrap");
@@ -66,6 +52,15 @@ public class ComputeBootstrap implements Command, JsonSerializable {
     @Override
     public void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
         this.serialize(jsonGenerator, serializerProvider);
+    }
+
+    @Override
+    public void validate(DatasetsFields datasetsFields, Validator validator) {
+        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
+        metric.validate(scope, datasetsFields, validator);
+        if (filter.isPresent()) {
+            filter.get().validate(scope, datasetsFields, validator);
+        }
     }
 
     @Override

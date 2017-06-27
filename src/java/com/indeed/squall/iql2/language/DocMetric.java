@@ -3,10 +3,12 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -16,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -24,6 +25,7 @@ public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
         T visit(PushableDocMetric pushableDocMetric) throws E;
+        T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
         T visit(Count count) throws E;
         T visit(Field field) throws E;
         T visit(Exponentiate exponentiate) throws E;
@@ -69,7 +71,7 @@ public abstract class DocMetric extends AbstractPositional {
     public abstract void validate(String dataset, DatasetsFields datasetsFields, Validator validator);
 
     public static class PushableDocMetric extends DocMetric {
-        private final DocMetric metric;
+        public final DocMetric metric;
 
         public PushableDocMetric(DocMetric metric) {
             this.metric = metric;
@@ -112,6 +114,66 @@ public abstract class DocMetric extends AbstractPositional {
         public String toString() {
             return "PushableDocMetric{" +
                     "metric=" + metric +
+                    '}';
+        }
+    }
+
+    public static class PerDatasetDocMetric extends DocMetric {
+        public final ImmutableMap<String, DocMetric> datasetToMetric;
+
+        public PerDatasetDocMetric(final Map<String, DocMetric> datasetToMetric) {
+            this.datasetToMetric = ImmutableMap.copyOf(datasetToMetric);
+        }
+
+        @Override
+        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
+            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))));
+        }
+
+        @Override
+        protected List<String> getPushes(String dataset) {
+            if (!datasetToMetric.containsKey(dataset)) {
+                throw new IllegalArgumentException("Unknown dataset: " + dataset + " in [" + this + "]");
+            } else {
+                return datasetToMetric.get(dataset).getPushes(dataset);
+            }
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
+            if (!datasetToMetric.containsKey(dataset)) {
+                throw new IllegalArgumentException("Unknown dataset: " + dataset + " in [" + this + "]");
+            } else {
+                datasetToMetric.get(dataset).validate(dataset, datasetsFields, validator);
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final PerDatasetDocMetric that = (PerDatasetDocMetric) o;
+            return com.google.common.base.Objects.equal(datasetToMetric, that.datasetToMetric);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(datasetToMetric);
+        }
+
+        @Override
+        public String toString() {
+            return "PerDatasetDocMetric{" +
+                    "datasetToMetric=" + datasetToMetric +
                     '}';
         }
     }
@@ -186,7 +248,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getAllFields(dataset).contains(field)) {
+            if (!datasetsFields.containsField(dataset, field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
@@ -785,7 +847,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -898,7 +960,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1098,7 +1160,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsIntOrAliasField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
             }
         }
@@ -1152,7 +1214,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if (!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1359,13 +1421,11 @@ public abstract class DocMetric extends AbstractPositional {
 
     public static class Lucene extends DocMetric {
         public final String query;
-        public final Map<String, Set<String>> datasetToKeywordAnalyzerFields;
-        public final Map<String, Set<String>> datasetToIntFields;
+        public final DatasetsMetadata datasetsMetadata;
 
-        public Lucene(String query, Map<String, Set<String>> datasetToKeywordAnalyzerFields, Map<String, Set<String>> datasetToIntFields) {
+        public Lucene(String query, DatasetsMetadata datasetsMetadata) {
             this.query = query;
-            this.datasetToKeywordAnalyzerFields = datasetToKeywordAnalyzerFields;
-            this.datasetToIntFields = datasetToIntFields;
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -1375,7 +1435,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         protected List<String> getPushes(final String dataset) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata);
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
             final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
             return Lists.newArrayList("lucene " + base64EncodedQuery);
@@ -1388,9 +1449,9 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(query, dataset, datasetToKeywordAnalyzerFields, datasetToIntFields);
-            final com.indeed.flamdex.query.Query upperCasedQuery = ValidationUtil.uppercaseTermQuery(flamdexQuery);
-            ValidationUtil.ensureSubset(datasetsFields, ValidationUtil.findFieldsUsed(ImmutableMap.of(dataset, upperCasedQuery)), validator, this, true);
+            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                    query, dataset, datasetsMetadata);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
         }
 
         @Override
@@ -1437,7 +1498,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            if(!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if(!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }
@@ -1491,7 +1552,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            if(!datasetsFields.getIntFields(dataset).contains(field.unwrap())) {
+            if(!datasetsFields.containsIntOrAliasField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
             }
         }
@@ -1545,7 +1606,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            if(!datasetsFields.getStringFields(dataset).contains(field.unwrap())) {
+            if(!datasetsFields.containsStringField(dataset, field.unwrap())) {
                 validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
             }
         }

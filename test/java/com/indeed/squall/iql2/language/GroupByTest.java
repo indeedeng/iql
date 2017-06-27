@@ -8,13 +8,11 @@ import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;
 import com.indeed.squall.iql2.language.query.Queries;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Set;
 
 public class GroupByTest {
     public static final Consumer<String> WARN = new Consumer<String>() {
@@ -29,14 +27,14 @@ public class GroupByTest {
     public static final Function<JQLParser, GroupByMaybeHaving> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByMaybeHaving>() {
         @Override
         public GroupByMaybeHaving apply(JQLParser input) {
-            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(true), Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), WARN, CLOCK);
+            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(true), DatasetsMetadata.empty(), WARN, CLOCK);
         }
     };
 
     public static final Function<JQLParser, GroupByMaybeHaving> PARSE_IQL2_GROUP_BY = new Function<JQLParser, GroupByMaybeHaving>() {
         @Override
         public GroupByMaybeHaving apply(JQLParser input) {
-            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(false), Collections.<String, Set<String>>emptyMap(), Collections.<String, Set<String>>emptyMap(), WARN, CLOCK);
+            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(false), DatasetsMetadata.empty(), WARN, CLOCK);
         }
     };
 
