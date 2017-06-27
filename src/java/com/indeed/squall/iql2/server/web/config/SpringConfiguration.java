@@ -71,7 +71,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 false);
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean
     public ImsClientInterface imsClient() {
         try {
             return ImsClient.build(env.getProperty("ims.url"));
