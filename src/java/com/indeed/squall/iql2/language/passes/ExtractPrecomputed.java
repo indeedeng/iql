@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Query;
@@ -29,8 +30,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ExtractPrecomputed {
-    public static Extracted extractPrecomputed(Query query) {
-        final Processor processor = new Processor(1, 1, query.extractDatasetNames());
+    public static Extracted extractPrecomputed(Query query, DatasetsMetadata datasetsMetadata) {
+        final Processor processor = new Processor(1, 1, query.extractDatasetNames(),
+                SubstituteDimension.substituteDimensionAggregateMetric(query, datasetsMetadata));
         final List<GroupByMaybeHaving> groupBys = new ArrayList<>();
         for (int i = 0; i < query.groupBys.size(); i++) {
             final GroupByMaybeHaving groupBy = query.groupBys.get(i);
@@ -155,10 +157,11 @@ public class ExtractPrecomputed {
         private Set<String> scope;
         private int nextName = 0;
         private ComputationType computationType;
+        private final Function<AggregateMetric, AggregateMetric> substituteAggregateDimensionMetricFunc;
 
         private final Map<ComputationType, Map<ComputationInfo, String>> computedNames = new HashMap<>();
 
-        public Processor(int depth, int startDepth, Set<String> scope) {
+        public Processor(int depth, int startDepth, Set<String> scope, Function<AggregateMetric, AggregateMetric> substituteAggregateDimensionMetricFunc) {
             this.depth = depth;
             this.startDepth = startDepth;
             this.scope = scope;
@@ -166,6 +169,7 @@ public class ExtractPrecomputed {
                 computedNames.put(computationType, new HashMap<>());
             }
             computationType = ComputationType.PreComputation;
+            this.substituteAggregateDimensionMetricFunc =substituteAggregateDimensionMetricFunc;
         }
 
         public AggregateMetric apply(AggregateMetric input) {
@@ -233,7 +237,7 @@ public class ExtractPrecomputed {
                             aggregateMetric = new AggregateMetric.Add(metric, aggregateMetric);
                         }
                     }
-                    return aggregateMetric;
+                    return  substituteAggregateDimensionMetricFunc.apply(aggregateMetric);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -255,7 +259,7 @@ public class ExtractPrecomputed {
                     if (!totalized.isTotal()) {
                         throw new IllegalStateException("groupBy.makeTotal() returned non-total GroupBy!");
                     }
-                    return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(totalized.traverse1(this), apply(new AggregateMetric.IfThenElse(new AggregateFilter.IsDefaultGroup(), new AggregateMetric.Constant(0), sumAcross.metric))));
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(totalized.traverse1(this), apply(new AggregateMetric.IfThenElse(new AggregateFilter.IsDefaultGroup(), new AggregateMetric.Constant(0), apply(sumAcross.metric)))));
                 }
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;

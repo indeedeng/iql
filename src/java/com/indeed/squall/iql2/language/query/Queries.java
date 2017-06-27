@@ -357,7 +357,7 @@ public class Queries {
         Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = CollapseFilters.collapseFilters(query3);
         Loggers.trace(log, "query4 = %s", query4);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4, datasetsMetadata);
         Loggers.trace(log, "extracted = %s", extracted);
         final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, datasetsMetadata);
         final ExtractPrecomputed.Extracted dimensionExtracted = new ExtractPrecomputed.Extracted(substitutedDimension, extracted.computedNames);

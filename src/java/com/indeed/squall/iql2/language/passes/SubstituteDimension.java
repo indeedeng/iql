@@ -32,6 +32,11 @@ public class SubstituteDimension {
                 substituteDocFilter(getSubstitutedDimensionMetricFunc));
     }
 
+    public static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(final Query query, final DatasetsMetadata datasetsMetadata) {
+        final Map<String, String> datasetAliasToOriginal = query.nameToIndex();
+        return substituteDimensionAggregateMetric(datasetsMetadata, datasetAliasToOriginal);
+    }
+
     private static Function<AggregateMetric, AggregateMetric> substituteDimensionAggregateMetric(
             final DatasetsMetadata datasetsMetadata, final Map<String, String> datasetAliasToOrigin) {
         return new Function<AggregateMetric, AggregateMetric>() {
