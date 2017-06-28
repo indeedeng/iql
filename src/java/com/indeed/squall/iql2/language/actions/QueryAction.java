@@ -56,7 +56,7 @@ public class QueryAction implements Action, JsonSerializable {
 
     @Override
     public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateQuery(datasetsFields, perDatasetQuery, validator, this, true);
+        ValidationUtil.validateQuery(datasetsFields, perDatasetQuery, validator, this);
     }
 
     @Override

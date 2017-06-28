@@ -1160,8 +1160,16 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            if (!datasetsFields.containsIntOrAliasField(dataset, field.unwrap())) {
-                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
+            final String datasetField = field.unwrap();
+            if (!datasetsFields.containsIntOrAliasField(dataset, datasetField)) {
+                // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
+                if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch"))
+                        && datasetField.equalsIgnoreCase("page")) {
+                } else if (datasetsFields.containsStringField(dataset, datasetField)) {
+                    validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, this));
+                } else {
+                    validator.error(ErrorMessages.missingIntField(dataset, datasetField, this));
+                }
             }
         }
 
@@ -1451,7 +1459,7 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
-            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this);
         }
 
         @Override
