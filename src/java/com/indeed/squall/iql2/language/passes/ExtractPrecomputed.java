@@ -237,7 +237,7 @@ public class ExtractPrecomputed {
                             aggregateMetric = new AggregateMetric.Add(metric, aggregateMetric);
                         }
                     }
-                    return  substituteAggregateDimensionMetricFunc.apply(aggregateMetric);
+                    return substituteAggregateDimensionMetricFunc.apply(aggregateMetric);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
