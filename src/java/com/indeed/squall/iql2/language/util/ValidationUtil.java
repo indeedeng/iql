@@ -46,7 +46,7 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateQuery(DatasetsFields datasetFields, Map<String, Query> perDatasetQuery, Validator validator, Object source, boolean allowStringFieldsForInts) {
+    public static void validateQuery(DatasetsFields datasetFields, Map<String, Query> perDatasetQuery, Validator validator, Object source) {
         final Map<String, Set<String>> datasetToIntFields = new HashMap<>();
         final Map<String, Set<String>> datasetToStringFields = new HashMap<>();
         for (final Map.Entry<String, Query> datasetEntry : perDatasetQuery.entrySet()) {
@@ -70,12 +70,13 @@ public class ValidationUtil {
 
             for (final String field : datasetToIntFields.get(dataset)) {
                 if (!datasetFields.containsIntOrAliasField(dataset, field)) {
-                    if (!(allowStringFieldsForInts && datasetFields.containsStringField(dataset, field))) {
-                        if (datasetFields.containsMetricField(dataset, field)) {
-                            validator.error(ErrorMessages.metricFieldIsNotSupported(field, source));
-                            continue;
-                        }
-                        validator.error("Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in [" + source + "]");
+                    // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
+                    if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch"))
+                            && field.equalsIgnoreCase("page")) {
+                    } else if (datasetFields.containsStringField(dataset, field)) {
+                        validator.warn(ErrorMessages.stringFieldMismatch(dataset, field, source));
+                    } else {
+                        validator.error(ErrorMessages.missingField(dataset, field, source));
                     }
                 }
             }

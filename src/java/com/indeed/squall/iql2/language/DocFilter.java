@@ -1376,7 +1376,7 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
             final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
-            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this, true);
+            ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this);
         }
 
         @Override
