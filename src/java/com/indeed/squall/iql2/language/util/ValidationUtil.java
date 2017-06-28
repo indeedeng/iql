@@ -133,7 +133,7 @@ public class ValidationUtil {
                     validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
                     return;
                 }
-                validator.error(ErrorMessages.missingIntField(dataset, field, context));
+                validator.error(ErrorMessages.missingField(dataset, field, context));
             }
         });
     }
