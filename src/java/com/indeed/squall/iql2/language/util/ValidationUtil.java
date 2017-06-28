@@ -75,6 +75,8 @@ public class ValidationUtil {
                             && field.equalsIgnoreCase("page")) {
                     } else if (datasetFields.containsStringField(dataset, field)) {
                         validator.warn(ErrorMessages.stringFieldMismatch(dataset, field, source));
+                    } else if (datasetFields.containsMetricField(dataset, field)) {
+                        validator.error(ErrorMessages.metricFieldIsNotSupported(field, source));
                     } else {
                         validator.error(ErrorMessages.missingField(dataset, field, source));
                     }
