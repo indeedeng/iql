@@ -9,6 +9,10 @@ public class ErrorMessages {
         return "Dataset \"" + dataset + "\" does not contain expected int field \"" + field + "\" in [" + context + "]";
     }
 
+    public static String stringFieldMismatch(String field, Object context) {
+        return "Field \"" + field + "\" is a string field but it is used as an int field in [" + context + "]";
+    }
+
     public static String missingField(String dataset, String field, Object context) {
         return "Dataset \"" + dataset + "\" does not contain expected field \"" + field + "\" in [" + context + "]";
     }
