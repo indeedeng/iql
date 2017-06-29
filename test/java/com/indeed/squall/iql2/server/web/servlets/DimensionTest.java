@@ -24,8 +24,8 @@ public class DimensionTest extends BasicTest {
     @Test
     public void testDefaultDimension() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "25300", "20"));
-        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek", options);
+        expected.add(ImmutableList.of("", "25300", "20", "5"));
+        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek, counts", options);
     }
 
     @Test
