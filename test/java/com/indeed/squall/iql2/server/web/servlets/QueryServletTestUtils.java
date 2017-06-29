@@ -187,6 +187,20 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
+    static void testWarning(List<Shard> shards, List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
+        final JsonNode header = getQueryHeader(shards, query, version, Options.create());
+        if (expectedWarnings.isEmpty()) {
+            Assert.assertNull(header.get("IQL-Warning"));
+        } else {
+            Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
+        }
+    }
+
+    static void testWarning(Dataset dataset, List<String> expectedWarnings, String query) throws Exception {
+        testWarning(dataset.getShards(), expectedWarnings, query, LanguageVersion.IQL1);
+        testWarning(dataset.getShards(), expectedWarnings, query, LanguageVersion.IQL2);
+    }
+
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL1(dataset, expected, query, false);
     }
