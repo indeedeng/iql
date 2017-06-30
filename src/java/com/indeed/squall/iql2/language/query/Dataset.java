@@ -173,7 +173,7 @@ public class Dataset extends AbstractPositional {
         } else if (dateTimeContext.timePeriod() != null) {
             return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
         } else if (dateTimeContext.NAT() != null) {
-            return Positioned.from(new DateTime(Long.parseLong(dateTimeContext.NAT().getText())), dateTimeContext);
+            return Positioned.from(new DateTime(Long.parseLong(dateTimeContext.NAT().getText())/1000), dateTimeContext);
         } else {
             final String textValue = dateTimeContext.getText();
             final DateTime dt = parseWordDate(textValue, useLegacy, clock);
