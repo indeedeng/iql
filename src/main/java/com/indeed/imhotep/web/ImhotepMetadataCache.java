@@ -65,8 +65,6 @@ public class ImhotepMetadataCache {
     private static final Logger log = Logger.getLogger(ImhotepMetadataCache.class);
 
     private LinkedHashMap<String, DatasetMetadata> datasets = Maps.newLinkedHashMap();
-    // TODO: integrate into the metadata above?
-    private volatile Map<String, Set<String>> datasetToKeywordAnaylzerWhitelist = Maps.newHashMap();
     private final ImhotepClient imhotepClient;
     private final List<Pattern> disabledFields = Lists.newArrayList();
     private ImsClientInterface metadataClient;
@@ -85,6 +83,7 @@ public class ImhotepMetadataCache {
                 ports.add(port);
             }
             String url = "http://localhost:" + ports.get(0)+"/iql/";
+ //            String url = "https://squall.ausprod.indeed.net/iql/";
             metadataClient = ImsClient.build(url);
         } catch (URISyntaxException e) {
                 log.error("Failed to connect to the metadata service",e);
@@ -228,23 +227,6 @@ public class ImhotepMetadataCache {
             return new DatasetMetadata(dataset);    // empty
         }
         return datasets.get(dataset);
-    }
-
-    public Set<String> getKeywordAnalyzerWhitelist(String dataset) {
-        if(!datasetToKeywordAnaylzerWhitelist.containsKey(dataset)) {
-            return Collections.emptySet();
-        }
-        return Collections.unmodifiableSet(datasetToKeywordAnaylzerWhitelist.get(dataset));
-    }
-
-    @Scheduled(fixedRate = 60000)
-    private void updateKeywordAnalyzerWhitelist() {
-        try {
-            datasetToKeywordAnaylzerWhitelist = metadataClient.getWhitelist();//newKeywordAnaylzerWhitelist;
-        } catch (Exception e) {
-            log.error("Failed to load the keyword analyzer whitelist from IMS", e);
-        }
-
     }
 
     // aliases applicable to all indexes
