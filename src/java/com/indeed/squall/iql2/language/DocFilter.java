@@ -1,11 +1,11 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
+import com.indeed.flamdex.query.Query;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.actions.IntOrAction;
 import com.indeed.squall.iql2.language.actions.MetricAction;
@@ -14,19 +14,14 @@ import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
-import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import org.apache.lucene.analysis.Token;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -115,45 +110,16 @@ public abstract class DocFilter extends AbstractPositional {
             if (term.isIntTerm) {
                 return new DocMetric.HasInt(field, term.intTerm);
             } else {
-                final List<String> tokens = tokenize(dataset);
-                if (tokens.size() == 1) {
-                    return new DocMetric.HasString(field, term.stringTerm);
-                }
-                DocMetric docMetric = null;
-                for (final String token : tokens) {
-                    if (docMetric == null) {
-                        docMetric = new DocMetric.HasString(field, token);
-                    } else {
-                        docMetric = new DocMetric.Add(docMetric, new DocMetric.HasString(field, token));
-                    }
-                }
-                return new DocMetric.MetricEqual(docMetric, new DocMetric.Constant(tokens.size()));
+                return new DocMetric.HasString(field, term.stringTerm);
             }
         }
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
-            if (term.isIntTerm) {
-                final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(term.toFlamdex(field.unwrap()));
-                for (final String dataset : scope.keySet()) {
-                    datasetToQuery.put(dataset, query);
-                }
-            } else {
-                for (final String dataset : scope.keySet()) {
-                    final List<String> tokens = tokenize(scope.get(dataset));
-                    final List<com.indeed.flamdex.query.Query> clauses = new ArrayList<>();
-                    for (final String token : tokens) {
-                        clauses.add(com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.stringTerm(field.unwrap(), token)));
-                    }
-                    final com.indeed.flamdex.query.Query query;
-                    if (clauses.size() == 1) {
-                        query = clauses.get(0);
-                    } else {
-                        query = com.indeed.flamdex.query.Query.newBooleanQuery(BooleanOp.AND, clauses);
-                    }
-                    datasetToQuery.put(dataset, query);
-                }
+            final Map<String, Query> datasetToQuery = new HashMap<>();
+            final Query query = Query.newTermQuery(term.toFlamdex(field.unwrap()));
+            for (final String dataset : scope.keySet()) {
+                datasetToQuery.put(dataset, query);
             }
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), datasetToQuery, target, positive, negative));
         }
@@ -161,41 +127,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        private List<String> tokenize(String dataset) {
-            if (term.isIntTerm) {
-                throw new IllegalStateException("Called tokenize on int term?!");
-            }
-            final Map<String, Set<String>> datasetToKeywordAnalyzerFields = datasetsMetadata.getDatasetToKeywordAnalyzerFields();
-            final Set<String> keywordAnalyzerFields;
-            if (datasetToKeywordAnalyzerFields.containsKey(dataset)) {
-                keywordAnalyzerFields = datasetToKeywordAnalyzerFields.get(dataset);
-            } else {
-                keywordAnalyzerFields = Collections.emptySet();
-            }
-            if (keywordAnalyzerFields.contains(field.unwrap()) || keywordAnalyzerFields.contains("*")) {
-                return Collections.singletonList(term.stringTerm);
-            }
-            final List<String> tokens = new ArrayList<>();
-            final WhitespaceAnalyzer whitespaceAnalyzer = new WhitespaceAnalyzer();
-            try {
-                final TokenStream tokenStream = whitespaceAnalyzer.tokenStream(null, new StringReader(term.stringTerm));
-                Token token = new Token();
-                try {
-                    while ((token = tokenStream.next(token)) != null) {
-                        tokens.add(token.term());
-                    }
-                } catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
-            } finally {
-                whitespaceAnalyzer.close();
-            }
-            if (tokens.isEmpty()) {
-                throw new IllegalStateException("Found no terms in WhitespaceAnalyzer field: " + field.unwrap() + ", term = [" + term + "]");
-            }
-            return tokens;
         }
 
         @Override
@@ -360,14 +291,14 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
             return new And(
-                new MetricGte(new DocMetric.Field(field), new DocMetric.Constant(lowerBound)),
-                new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
+                    new MetricGte(new DocMetric.Field(field), new DocMetric.Constant(lowerBound)),
+                    new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
             ).asZeroOneMetric(dataset);
         }
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newRangeQuery(field.unwrap(), lowerBound, upperBound, false);
+            final Query query = Query.newRangeQuery(field.unwrap(), lowerBound, upperBound, false);
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, query), target, positive, negative));
         }
 
@@ -535,8 +466,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         private static List<Action> getFieldNotEqualValue(Map<String, String> scope, String field, long value, int target, int positive, int negative) {
-            final com.indeed.flamdex.query.Query query = com.indeed.flamdex.query.Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
-            final com.indeed.flamdex.query.Query negated = com.indeed.flamdex.query.Query.newBooleanQuery(BooleanOp.NOT, Collections.singletonList(query));
+            final Query query = Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
+            final Query negated = Query.newBooleanQuery(BooleanOp.NOT, Collections.singletonList(query));
             return Collections.<Action>singletonList(new QueryAction(scope.keySet(), MapUtil.replicate(scope, negated), target, positive, negative));
         }
 
@@ -1350,7 +1281,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             final DocFilter filter = FlamdexQueryTranslator.translate(flamdexQuery, datasetsMetadata);
             return filter.asZeroOneMetric(dataset);
@@ -1358,9 +1289,9 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            final Map<String, com.indeed.flamdex.query.Query> datasetToQuery = new HashMap<>();
+            final Map<String, Query> datasetToQuery = new HashMap<>();
             for (final String dataset : scope.keySet()) {
-                final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                         query, dataset, datasetsMetadata);
                 datasetToQuery.put(dataset, flamdexQuery);
             }
@@ -1374,7 +1305,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this);
         }

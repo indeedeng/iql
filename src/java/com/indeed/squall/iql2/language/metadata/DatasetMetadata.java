@@ -17,22 +17,19 @@ public class DatasetMetadata {
     public final Set<String> intFields;
     public final Set<String> stringFields;
     public final Map<String, Dimension> fieldToDimension;
-    public final Set<String> keywordAnaylzerWhitelist;
 
     public DatasetMetadata(String datasetName) {
         this.datasetName = datasetName;
         intFields = ImmutableSet.of();
         stringFields = ImmutableSet.of();
         fieldToDimension = ImmutableMap.of();
-        keywordAnaylzerWhitelist = ImmutableSet.of();
     }
 
     public DatasetMetadata(final String datasetName, final Set<String> intFields, final Set<String> stringFields,
-                           final Set<String> keywordAnaylzerWhitelist, final Map<String, Dimension> fieldToDimension) {
+                           final Map<String, Dimension> fieldToDimension) {
         this.datasetName = datasetName;
         this.intFields = toCaseInsensitive(intFields);
         this.stringFields = toCaseInsensitive(stringFields);
-        this.keywordAnaylzerWhitelist = toCaseInsensitive(keywordAnaylzerWhitelist);
 
         final Map<String, Dimension> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         caseInsensitiveMap.putAll(fieldToDimension);

@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language.util;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.indeed.common.util.StringUtils;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
@@ -8,11 +9,10 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 
@@ -159,25 +159,7 @@ public class ValidationUtil {
 
     public static Query getFlamdexQuery(final String query, final String dataset,
                                         final DatasetsMetadata datasetsMeta) {
-        final Analyzer analyzer;
-        final Map<String, Set<String>> keywordAnalyzerFields = datasetsMeta.getDatasetToKeywordAnalyzerFields();
-        final Map<String, Set<String>> datasetToIntFields = datasetsMeta.getDatasetToIntFields();
-        // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
-        if (keywordAnalyzerFields.containsKey(dataset)) {
-            final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
-            final Set<String> whitelist = keywordAnalyzerFields.get(dataset);
-            if (whitelist.contains("*")) {
-                analyzer = kwAnalyzer;
-            } else {
-                final PerFieldAnalyzerWrapper perFieldAnalyzerWrapper = new PerFieldAnalyzerWrapper(new WhitespaceAnalyzer());
-                for (final String field : whitelist) {
-                    perFieldAnalyzerWrapper.addAnalyzer(field, kwAnalyzer);
-                }
-                analyzer = perFieldAnalyzerWrapper;
-            }
-        } else {
-            analyzer = new WhitespaceAnalyzer();
-        }
+        final Analyzer analyzer = new KeywordAnalyzer();
         final QueryParser qp = new QueryParser("foo", analyzer);
         qp.setDefaultOperator(QueryParser.Operator.AND);
         final org.apache.lucene.search.Query parsed;
@@ -186,10 +168,12 @@ public class ValidationUtil {
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
         }
-        if (!datasetToIntFields.containsKey(dataset)) {
+
+        final Optional<DatasetMetadata> metadata = datasetsMeta.getMetadata(dataset);
+        if (!metadata.isPresent()) {
             return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
         } else {
-            return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.get(dataset));
+            return LuceneQueryTranslator.rewrite(parsed, metadata.get().intFields);
         }
     }
 

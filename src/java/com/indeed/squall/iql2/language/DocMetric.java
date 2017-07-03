@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
@@ -1443,7 +1444,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         protected List<String> getPushes(final String dataset) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
             final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
@@ -1457,7 +1458,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final DatasetsFields datasetsFields, final Validator validator) {
-            final com.indeed.flamdex.query.Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this);
         }
