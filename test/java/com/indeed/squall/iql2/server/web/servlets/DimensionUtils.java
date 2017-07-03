@@ -126,16 +126,6 @@ public class DimensionUtils {
         public DatasetYaml[] getDatasets() {
             return datasets;
         }
-
-        @Override
-        public Set<String> getKeywordAnalyzerWhitelist(final String s) {
-            return new HashSet<>();
-        }
-
-        @Override
-        public Map<String, Set<String>> getWhitelist() {
-            return new HashMap<>();
-        }
     }
 
     public static Dataset createDataset() {
