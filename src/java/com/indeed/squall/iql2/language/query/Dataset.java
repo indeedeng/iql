@@ -173,13 +173,22 @@ public class Dataset extends AbstractPositional {
         } else if (dateTimeContext.timePeriod() != null) {
             return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
         } else if (dateTimeContext.NAT() != null) {
-            return Positioned.from(new DateTime(Long.parseLong(dateTimeContext.NAT().getText())/1000), dateTimeContext);
+
+            return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
         } else {
             final String textValue = dateTimeContext.getText();
             final DateTime dt = parseWordDate(textValue, useLegacy, clock);
             if (dt != null) return Positioned.from(dt, dateTimeContext);
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
+    }
+
+    private static DateTime parseUnixTimestamp(String value) {
+        long timestamp = Long.parseLong(value);
+        if(timestamp < Integer.MAX_VALUE) {
+            timestamp *= 1000;  // seconds to milliseconds
+        }
+        return new DateTime(timestamp);
     }
 
     private static DateTime parseWordDate(String textValue, boolean useLegacy, WallClock clock) {
