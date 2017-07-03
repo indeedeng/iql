@@ -19,6 +19,7 @@ import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
 import com.indeed.squall.iql2.language.util.DatasetsFields;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
+import com.indeed.squall.iql2.language.util.ParserUtil;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -1281,7 +1282,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ParserUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             final DocFilter filter = FlamdexQueryTranslator.translate(flamdexQuery, datasetsMetadata);
             return filter.asZeroOneMetric(dataset);
@@ -1291,7 +1292,7 @@ public abstract class DocFilter extends AbstractPositional {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Map<String, Query> datasetToQuery = new HashMap<>();
             for (final String dataset : scope.keySet()) {
-                final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+                final Query flamdexQuery = ParserUtil.getFlamdexQuery(
                         query, dataset, datasetsMetadata);
                 datasetToQuery.put(dataset, flamdexQuery);
             }
@@ -1305,7 +1306,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, DatasetsFields datasetsFields, Validator validator) {
-            final Query flamdexQuery = ValidationUtil.getFlamdexQuery(
+            final Query flamdexQuery = ParserUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             ValidationUtil.validateQuery(datasetsFields, ImmutableMap.of(dataset, flamdexQuery), validator, this);
         }
