@@ -57,11 +57,6 @@ public class DimensionUtils {
             emptyMetric.setName("empty");
             metrics.add(emptyMetric);
 
-            final MetricsYaml countsMetrics = new MetricsYaml();
-            countsMetrics.setName("counts");
-            countsMetrics.setExpr("count()");
-            metrics.add(countsMetrics);
-
             final MetricsYaml sameMetric = new MetricsYaml();
             sameMetric.setName("same");
             sameMetric.setExpr("same");
