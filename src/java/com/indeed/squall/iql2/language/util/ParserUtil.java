@@ -1,15 +1,45 @@
 package com.indeed.squall.iql2.language.util;
 
 import com.google.common.base.Optional;
+import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.flamdex.query.Query;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordAnalyzer;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+
+import java.util.Collections;
 
 /**
  *
  */
 public class ParserUtil {
+
+    public static Query getFlamdexQuery(final String query, final String dataset,
+                                        final DatasetsMetadata datasetsMeta) {
+        final Analyzer analyzer = new KeywordAnalyzer();
+        final QueryParser qp = new QueryParser("foo", analyzer);
+        qp.setDefaultOperator(QueryParser.Operator.AND);
+        final org.apache.lucene.search.Query parsed;
+        try {
+            parsed = qp.parse(query);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
+        }
+
+        final Optional<DatasetMetadata> metadata = datasetsMeta.getMetadata(dataset);
+        if (!metadata.isPresent()) {
+            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+        } else {
+            return LuceneQueryTranslator.rewrite(parsed, metadata.get().intFields);
+        }
+    }
 
     public static Optional<Interval> getNextNode(ParserRuleContext parserRuleContext) {
         if (parserRuleContext != null && parserRuleContext.getParent() != null) {

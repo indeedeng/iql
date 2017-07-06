@@ -3,21 +3,12 @@ package com.indeed.squall.iql2.language.util;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.indeed.common.util.StringUtils;
-import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.KeywordAnalyzer;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -155,42 +146,6 @@ public class ValidationUtil {
 
     private enum FieldType {
         INT, STR, NULL
-    }
-
-    public static Query getFlamdexQuery(final String query, final String dataset,
-                                        final DatasetsMetadata datasetsMeta) {
-        final Analyzer analyzer;
-        final Map<String, Set<String>> keywordAnalyzerFields = datasetsMeta.getDatasetToKeywordAnalyzerFields();
-        final Map<String, Set<String>> datasetToIntFields = datasetsMeta.getDatasetToIntFields();
-        // TODO: Detect if imhotep index and use KeywordAnalyzer always in that case..?
-        if (keywordAnalyzerFields.containsKey(dataset)) {
-            final KeywordAnalyzer kwAnalyzer = new KeywordAnalyzer();
-            final Set<String> whitelist = keywordAnalyzerFields.get(dataset);
-            if (whitelist.contains("*")) {
-                analyzer = kwAnalyzer;
-            } else {
-                final PerFieldAnalyzerWrapper perFieldAnalyzerWrapper = new PerFieldAnalyzerWrapper(new WhitespaceAnalyzer());
-                for (final String field : whitelist) {
-                    perFieldAnalyzerWrapper.addAnalyzer(field, kwAnalyzer);
-                }
-                analyzer = perFieldAnalyzerWrapper;
-            }
-        } else {
-            analyzer = new WhitespaceAnalyzer();
-        }
-        final QueryParser qp = new QueryParser("foo", analyzer);
-        qp.setDefaultOperator(QueryParser.Operator.AND);
-        final org.apache.lucene.search.Query parsed;
-        try {
-            parsed = qp.parse(query);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
-        }
-        if (!datasetToIntFields.containsKey(dataset)) {
-            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
-        } else {
-            return LuceneQueryTranslator.rewrite(parsed, datasetToIntFields.get(dataset));
-        }
     }
 
     public static void compileRegex(String regex) {
