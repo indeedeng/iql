@@ -13,7 +13,7 @@ import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import org.junit.Assert;
 import org.junit.Test;
@@ -105,7 +105,7 @@ public class MetadataCacheTest {
         metadataCache.updateMetadata();
         // validate all dimensions
         final DatasetsMetadata datasetsMetadata = metadataCache.get();
-        final DatasetsFields datasetsFields = new DatasetsFields(datasetsMetadata, Collections.emptyMap(), Collections.emptyMap());
+        final ValidationHelper validationHelper = new ValidationHelper(datasetsMetadata, Collections.emptyMap(), Collections.emptyMap(), true);
         final List<String> errors = Lists.newArrayList();
         final List<String> warnings = Lists.newArrayList();
 
@@ -120,11 +120,11 @@ public class MetadataCacheTest {
                 warnings.add(warn);
             }
         };
-        for (String dataset : datasetsFields.datasets()) {
+        for (String dataset : validationHelper.datasets()) {
             for (final Dimension dimension : datasetsMetadata.getMetadata(dataset).get().fieldToDimension.values()) {
                 dimension.metric.validate(
                         ImmutableSet.of(dataset),
-                        datasetsFields, validator);
+                        validationHelper, validator);
             }
         }
 

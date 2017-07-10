@@ -550,7 +550,7 @@ public class SelectQueryExecution {
                 return (integer == null) ? integer : integer + 1;
             }
         });
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit, query.useLegacy);
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
