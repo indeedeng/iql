@@ -207,7 +207,9 @@ public class Query extends AbstractPositional {
         return nameToIndex;
     }
 
+    // rewrite field in (A, B), group by field to group by field in (A, B...)
     private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByMaybeHaving> groupBys) {
+        Set<String> rewritedFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
             if ((filter instanceof DocFilter.IntFieldIn) || (filter instanceof DocFilter.StringFieldIn)) {
@@ -215,26 +217,36 @@ public class Query extends AbstractPositional {
                 final LongList intTerms = new LongArrayList();
                 final List<String> stringTerms = Lists.newArrayList();
                 if (filter instanceof DocFilter.IntFieldIn) {
-                    filterField = ((DocFilter.IntFieldIn) filter).field.unwrap();
-                    intTerms.addAll(((DocFilter.IntFieldIn) filter).terms);
+                    DocFilter.IntFieldIn intFiledIn = (DocFilter.IntFieldIn)filter;
+                    filterField = intFiledIn.field.unwrap();
+                    intTerms.addAll(intFiledIn.terms);
                 } else {
-                    filterField = ((DocFilter.StringFieldIn) filter).field.unwrap();
-                    stringTerms.addAll(((DocFilter.StringFieldIn) filter).terms);
+                    DocFilter.StringFieldIn stringFiledIn = (DocFilter.StringFieldIn)filter;
+                    filterField = stringFiledIn.field.unwrap();
+                    stringTerms.addAll(stringFiledIn.terms);
                 }
+                if (rewritedFields.contains(filterField)) {
+                    continue;
+                }
+                boolean foundRewriteGroupBy = false;
                 for (int j = 0; j < groupBys.size(); j++) {
                     final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(j);
                     final GroupBy groupBy = groupByMaybeHaving.groupBy;
                     if (groupBy instanceof GroupBy.GroupByField) {
-                        final String grouopByField = ((GroupBy.GroupByField) groupBy).field.unwrap();
-                        if (filterField.equalsIgnoreCase(grouopByField)) {
+                        GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
+                        if (filterField.equalsIgnoreCase(groupByField.field.unwrap())) {
                             groupBys.set(j, new GroupByMaybeHaving(
-                                    new GroupBy.GroupByFieldIn(((GroupBy.GroupByField) groupBy).field, intTerms, stringTerms,
-                                            ((GroupBy.GroupByField) groupBy).withDefault),
+                                    new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
+                                            groupByField.withDefault),
                                     groupByMaybeHaving.filter));
-                            filters.remove(i);
-                            i--;
+                            foundRewriteGroupBy = true;
                         }
                     }
+                }
+                if (foundRewriteGroupBy) {
+                    rewritedFields.add(filterField);
+                    filters.remove(i);
+                    i--;
                 }
             }
         }
