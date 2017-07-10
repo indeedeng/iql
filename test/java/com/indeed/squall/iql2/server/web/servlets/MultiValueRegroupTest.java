@@ -44,9 +44,6 @@ public class MultiValueRegroupTest extends BasicTest {
         QueryServletTestUtils.testIQL1(createDataset(),
                 ImmutableList.of(),
                 "from dataset yesterday today where f in (1) f in (2) i = 1 GROUP BY f", true);
-        QueryServletTestUtils.testIQL1(createDataset(),
-                ImmutableList.of(),
-                "from dataset yesterday today where f in (1, 2) f in (3, 4) GROUP BY f, f", true);
     }
 
     @Test
