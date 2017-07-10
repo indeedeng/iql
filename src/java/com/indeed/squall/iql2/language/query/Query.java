@@ -35,14 +35,16 @@ public class Query extends AbstractPositional {
     public final List<AggregateMetric> selects;
     public final List<Optional<String>> formatStrings;
     public final Optional<Integer> rowLimit;
+    public final boolean useLegacy;
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, Optional<Integer> rowLimit) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, Optional<Integer> rowLimit, boolean useLegacy) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
         this.selects = selects;
         this.formatStrings = formatStrings;
         this.rowLimit = rowLimit;
+        this.useLegacy = useLegacy;
     }
 
     public static Query parseQuery(
@@ -116,8 +118,7 @@ public class Query extends AbstractPositional {
             rowLimit = Optional.of(Integer.parseInt(limit.getText()));
         }
 
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit);
-
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit, fromContents.useLegacy);
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
@@ -156,7 +157,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit, useLegacy);
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
@@ -168,7 +169,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.traverse1(f));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit, useLegacy);
     }
 
     public Set<String> extractDatasetNames() {

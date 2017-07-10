@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
@@ -53,9 +53,9 @@ public class RegexAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final String dataset : scope) {
-            if (!datasetsFields.containsStringField(dataset, field)) {
+            if (!validationHelper.containsStringField(dataset, field)) {
                 validator.error(ErrorMessages.missingStringField(dataset, field, this));
             }
         }

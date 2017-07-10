@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -44,9 +44,9 @@ public class TimePeriodRegroup implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
         if (timeField.isPresent()) {
-            ValidationUtil.validateIntField(datasetsFields.datasets(), timeField.get(), datasetsFields, validator, this);
+            ValidationUtil.validateIntField(validationHelper.datasets(), timeField.get(), validationHelper, validator, this);
         }
     }
 

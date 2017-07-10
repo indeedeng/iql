@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -35,8 +35,8 @@ public class ExplodePerDocPercentile implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(final DatasetsFields datasetsFields, final Validator validator) {
-        ValidationUtil.validateIntField(datasetsFields.datasets(), field, datasetsFields, validator, this);
+    public void validate(final ValidationHelper validationHelper, final Validator validator) {
+        ValidationUtil.validateIntField(validationHelper.datasets(), field, validationHelper, validator, this);
     }
 
     @Override

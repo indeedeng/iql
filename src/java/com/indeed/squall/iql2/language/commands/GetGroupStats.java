@@ -8,7 +8,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 import java.io.IOException;
 import java.util.List;
@@ -53,9 +53,9 @@ public class GetGroupStats implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final AggregateMetric metric : metrics) {
-            metric.validate(datasetsFields.datasets(), datasetsFields, validator);
+            metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
     }
 

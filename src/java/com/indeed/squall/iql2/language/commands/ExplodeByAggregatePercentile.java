@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
@@ -39,14 +39,14 @@ public class ExplodeByAggregatePercentile implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        for (final String dataset : datasetsFields.datasets()) {
-            if (!datasetsFields.containsField(dataset, field)) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        for (final String dataset : validationHelper.datasets()) {
+            if (!validationHelper.containsField(dataset, field)) {
                 validator.error(ErrorMessages.missingField(dataset, field, this));
             }
         }
 
-        metric.validate(datasetsFields.datasets(), datasetsFields, validator);
+        metric.validate(validationHelper.datasets(), validationHelper, validator);
     }
 
     @Override

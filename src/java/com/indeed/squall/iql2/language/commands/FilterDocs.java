@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,9 +44,9 @@ public class FilterDocs implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final Map.Entry<String, DocMetric.PushableDocMetric> entry : perDatasetFilterMetric.entrySet()) {
-            entry.getValue().validate(entry.getKey(), datasetsFields, validator);
+            entry.getValue().validate(entry.getKey(), validationHelper, validator);
         }
     }
 

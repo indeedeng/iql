@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -44,11 +44,11 @@ public class SampleFields implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
+    public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final Map.Entry<String, List<DocFilter.Sample>> entry : perDatasetSamples.entrySet()) {
             final String dataset = entry.getKey();
             for (final DocFilter.Sample sample : entry.getValue()) {
-                ValidationUtil.validateField(ImmutableSet.of(dataset), sample.field.unwrap(), datasetsFields, validator, this);
+                ValidationUtil.validateField(ImmutableSet.of(dataset), sample.field.unwrap(), validationHelper, validator, this);
             }
         }
     }

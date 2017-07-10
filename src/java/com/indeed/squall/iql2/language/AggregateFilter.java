@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.query.GroupBy;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
@@ -39,7 +39,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
     public abstract AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    public abstract void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator);
+    public abstract void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator);
 
     public abstract boolean isOrdered();
 
@@ -66,7 +66,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
         }
 
         @Override
@@ -130,9 +130,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
             if (m1.equals(new AggregateMetric.Constant(1.0))) {
                 validator.warn("Direct comparison of aggregate [" + m2 + "] to 1 is likely in error. Consider what happens when multiple docs occur in the aggregate");
             }
@@ -204,9 +204,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -272,9 +272,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -340,9 +340,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -408,9 +408,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -476,9 +476,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            m1.validate(scope, datasetsFields, validator);
-            m2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+            m2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -544,9 +544,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            f1.validate(scope, datasetsFields, validator);
-            f2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            f1.validate(scope, validationHelper, validator);
+            f2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -612,9 +612,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            f1.validate(scope, datasetsFields, validator);
-            f2.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            f1.validate(scope, validationHelper, validator);
+            f2.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -678,8 +678,8 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
-            filter.validate(scope, datasetsFields, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            filter.validate(scope, validationHelper, validator);
         }
 
         @Override
@@ -744,9 +744,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
             for (final String dataset : scope) {
-                if (!datasetsFields.containsField(dataset, field.unwrap())) {
+                if (!validationHelper.containsField(dataset, field.unwrap())) {
                     validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
                 }
             }
@@ -807,7 +807,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
 
         }
 
@@ -859,7 +859,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
 
         }
 
@@ -910,7 +910,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, DatasetsFields datasetsFields, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
 
         }
 

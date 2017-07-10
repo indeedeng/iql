@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -57,21 +57,21 @@ public class SimpleIterate implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(datasetsFields.datasets(), field, datasetsFields, validator, this);
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        ValidationUtil.validateField(validationHelper.datasets(), field, validationHelper, validator, this);
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, validator);
+                topK.metric.get().validate(validationHelper.datasets(), validationHelper, validator);
             }
         }
 
         if (opts.filter.isPresent()) {
-            opts.filter.get().validate(datasetsFields.datasets(), datasetsFields, validator);
+            opts.filter.get().validate(validationHelper.datasets(), validationHelper, validator);
         }
 
         for (final AggregateMetric metric : selecting) {
-            metric.validate(datasetsFields.datasets(), datasetsFields, validator);
+            metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
     }
 

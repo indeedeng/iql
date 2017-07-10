@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -44,10 +44,10 @@ public class GetGroupDistincts implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
         if (filter.isPresent()) {
-            filter.get().validate(scope, datasetsFields, validator);
+            filter.get().validate(scope, validationHelper, validator);
         }
     }
 

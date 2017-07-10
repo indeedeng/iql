@@ -8,7 +8,7 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -45,12 +45,12 @@ public class SumAcross implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(scope, field, datasetsFields, validator, this);
-        metric.validate(scope, datasetsFields, validator);
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
+        metric.validate(scope, validationHelper, validator);
 
         if (filter.isPresent()) {
-            filter.get().validate(scope, datasetsFields, validator);
+            filter.get().validate(scope, validationHelper, validator);
         }
     }
 

@@ -9,14 +9,17 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public class DatasetsFields {
+public class ValidationHelper {
+    public final boolean useLegacy;
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
 
-    public DatasetsFields(final DatasetsMetadata datasetsMetadata,
-                          final Map<String, Set<String>> datasetAliasIntFields,
-                          final Map<String, Set<String>> datasetAliasStringFields) {
+    public ValidationHelper(final DatasetsMetadata datasetsMetadata,
+                            final Map<String, Set<String>> datasetAliasIntFields,
+                            final Map<String, Set<String>> datasetAliasStringFields,
+                            final boolean useLegacy) {
+        this.useLegacy = useLegacy;
         this.datasetsMetadata = datasetsMetadata;
         this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
         this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);

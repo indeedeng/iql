@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -55,8 +55,8 @@ public class QueryAction implements Action, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateQuery(datasetsFields, perDatasetQuery, validator, this);
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        ValidationUtil.validateQuery(validationHelper, perDatasetQuery, validator, this);
     }
 
     @Override

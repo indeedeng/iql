@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -46,18 +46,18 @@ public class IterateAndExplode implements Command, JsonSerializable {
     }
 
     @Override
-    public void validate(DatasetsFields datasetsFields, Validator validator) {
-        ValidationUtil.validateField(datasetsFields.datasets(), field, datasetsFields, validator, this);
+    public void validate(ValidationHelper validationHelper, Validator validator) {
+        ValidationUtil.validateField(validationHelper.datasets(), field, validationHelper, validator, this);
 
         if (fieldOpts.topK.isPresent()) {
             final TopK topK = fieldOpts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(datasetsFields.datasets(), datasetsFields, validator);
+                topK.metric.get().validate(validationHelper.datasets(), validationHelper, validator);
             }
         }
 
         if (fieldOpts.filter.isPresent()) {
-            fieldOpts.filter.get().validate(datasetsFields.datasets(), datasetsFields, validator);
+            fieldOpts.filter.get().validate(validationHelper.datasets(), validationHelper, validator);
         }
     }
 
