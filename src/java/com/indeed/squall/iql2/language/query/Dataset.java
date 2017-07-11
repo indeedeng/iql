@@ -178,7 +178,6 @@ public class Dataset extends AbstractPositional {
             } else if (dateTimeContext.timePeriod() != null) {
                 return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock, useLegacy), dateTimeContext);
             } else if (dateTimeContext.NAT() != null) {
-
                 return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
             }
         }
