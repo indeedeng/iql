@@ -209,7 +209,7 @@ public class Query extends AbstractPositional {
 
     // rewrite field in (A, B), group by field to group by field in (A, B...)
     private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByMaybeHaving> groupBys) {
-        Set<String> rewritedFields = new HashSet<>();
+        final Set<String> rewrittenFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
             if ((filter instanceof DocFilter.IntFieldIn) || (filter instanceof DocFilter.StringFieldIn)) {
@@ -217,15 +217,15 @@ public class Query extends AbstractPositional {
                 final LongList intTerms = new LongArrayList();
                 final List<String> stringTerms = Lists.newArrayList();
                 if (filter instanceof DocFilter.IntFieldIn) {
-                    DocFilter.IntFieldIn intFiledIn = (DocFilter.IntFieldIn)filter;
-                    filterField = intFiledIn.field.unwrap();
-                    intTerms.addAll(intFiledIn.terms);
+                    final DocFilter.IntFieldIn intFieldIn = (DocFilter.IntFieldIn)filter;
+                    filterField = intFieldIn.field.unwrap();
+                    intTerms.addAll(intFieldIn.terms);
                 } else {
-                    DocFilter.StringFieldIn stringFiledIn = (DocFilter.StringFieldIn)filter;
-                    filterField = stringFiledIn.field.unwrap();
-                    stringTerms.addAll(stringFiledIn.terms);
+                    final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
+                    filterField = stringFieldIn.field.unwrap();
+                    stringTerms.addAll(stringFieldIn.terms);
                 }
-                if (rewritedFields.contains(filterField)) {
+                if (rewrittenFields.contains(filterField)) {
                     continue;
                 }
                 boolean foundRewriteGroupBy = false;
@@ -233,7 +233,7 @@ public class Query extends AbstractPositional {
                     final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(j);
                     final GroupBy groupBy = groupByMaybeHaving.groupBy;
                     if (groupBy instanceof GroupBy.GroupByField) {
-                        GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
+                        final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
                         if (filterField.equalsIgnoreCase(groupByField.field.unwrap())) {
                             groupBys.set(j, new GroupByMaybeHaving(
                                     new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
@@ -244,7 +244,7 @@ public class Query extends AbstractPositional {
                     }
                 }
                 if (foundRewriteGroupBy) {
-                    rewritedFields.add(filterField);
+                    rewrittenFields.add(filterField);
                     filters.remove(i);
                     i--;
                 }
