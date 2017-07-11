@@ -150,35 +150,37 @@ public class Dataset extends AbstractPositional {
     }
 
     public static Positioned<DateTime> parseDateTime(JQLParser.DateTimeContext dateTimeContext, boolean useLegacy, WallClock clock) {
-        if (dateTimeContext.DATETIME_TOKEN() != null) {
-            return Positioned.from(new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
-        } else if (dateTimeContext.DATE_TOKEN() != null) {
-            return Positioned.from(new DateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
-        } else if (dateTimeContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
-            try {
-                return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
-            } catch (IllegalArgumentException e) {
-                final JQLParser jqlParser = Queries.parserForString(unquoted);
-                final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
-                if (jqlParser.getNumberOfSyntaxErrors() > 0) {
-                    final DateTime dt = parseWordDate(unquoted, useLegacy, clock);
-                    if (dt != null) {
-                        return Positioned.from(dt, dateTimeContext);
-                    }
-                    throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
-                }
-                return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock), dateTimeContext);
-            }
-        } else if (dateTimeContext.timePeriod() != null) {
-            return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
-        } else if (dateTimeContext.NAT() != null) {
-
-            return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
+        final String textValue = dateTimeContext.getText();
+        final DateTime wordDate = parseWordDate(textValue, useLegacy, clock);
+        if (wordDate != null) {
+            return Positioned.from(wordDate, dateTimeContext);
         } else {
-            final String textValue = dateTimeContext.getText();
-            final DateTime dt = parseWordDate(textValue, useLegacy, clock);
-            if (dt != null) return Positioned.from(dt, dateTimeContext);
+            if (dateTimeContext.DATETIME_TOKEN() != null) {
+                return Positioned.from(new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
+            } else if (dateTimeContext.DATE_TOKEN() != null) {
+                return Positioned.from(new DateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
+            } else if (dateTimeContext.STRING_LITERAL() != null) {
+                final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+                try {
+                    return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
+                } catch (IllegalArgumentException e) {
+                    final JQLParser jqlParser = Queries.parserForString(unquoted);
+                    final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
+                    if (jqlParser.getNumberOfSyntaxErrors() > 0) {
+                        final DateTime dt = parseWordDate(unquoted, useLegacy, clock);
+                        if (dt != null) {
+                            return Positioned.from(dt, dateTimeContext);
+                        }
+                        throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
+                    }
+                    return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock), dateTimeContext);
+                }
+            } else if (dateTimeContext.timePeriod() != null) {
+                return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
+            } else if (dateTimeContext.NAT() != null) {
+
+                return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
+            }
         }
         throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
     }
