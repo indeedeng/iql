@@ -26,7 +26,7 @@ public enum TimeUnit {
         this.identifier = identifier;
     }
 
-    public static TimeUnit fromChar(char c) {
+    public static TimeUnit fromChar(char c, boolean useLegacy) {
         switch (c) {
             case 's':
             case 'S':
@@ -43,7 +43,7 @@ public enum TimeUnit {
             case 'W':
                 return WEEK;
             case 'M':
-                return MONTH;
+                return useLegacy ? MINUTE : MONTH;
             case 'b':
             case 'B':
                 return BUCKETS;
@@ -55,9 +55,9 @@ public enum TimeUnit {
         }
     }
 
-    public static TimeUnit fromString(String s) {
+    public static TimeUnit fromString(String s, boolean useLegacy) {
         if (s.length() == 1) {
-            return fromChar(s.charAt(0));
+            return fromChar(s.charAt(0), useLegacy);
         } else {
             final String lowerTimeUnit = s.toLowerCase();
             if ("seconds".startsWith(lowerTimeUnit)) {

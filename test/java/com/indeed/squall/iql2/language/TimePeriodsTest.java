@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @SuppressWarnings("unchecked")
@@ -16,11 +17,21 @@ public class TimePeriodsTest {
     private static class TestDef {
         public final List<Pair<Integer, TimeUnit>> expected;
         public final String withSpaces;
+        public final Optional<Boolean> useLegacy;
 
         private TestDef(String withSpaces, Pair<Integer, TimeUnit>... expected) {
             this.expected = Arrays.asList(expected);
             this.withSpaces = withSpaces;
+            useLegacy = Optional.empty();
         }
+
+
+        private TestDef(String withSpaces, boolean useLegacy, Pair<Integer, TimeUnit>... expected) {
+            this.expected = Arrays.asList(expected);
+            this.withSpaces = withSpaces;
+            this.useLegacy = Optional.of(useLegacy);
+        }
+
     }
     
     private static List<TestDef> TEST_CASES = Arrays.asList(
@@ -30,7 +41,8 @@ public class TimePeriodsTest {
             new TestDef("1 y", Pair.of(1, TimeUnit.YEAR)),
             new TestDef("1 year", Pair.of(1, TimeUnit.YEAR)),
             new TestDef("100 years", Pair.of(100, TimeUnit.YEAR)),
-            new TestDef("1 M", Pair.of(1, TimeUnit.MONTH)),
+            new TestDef("1 M", false, Pair.of(1, TimeUnit.MONTH)),
+            new TestDef("1 M", true, Pair.of(1, TimeUnit.MINUTE)),
             new TestDef("1 month", Pair.of(1, TimeUnit.MONTH)),
             new TestDef("100 months", Pair.of(100, TimeUnit.MONTH)),
             new TestDef("1 w", Pair.of(1, TimeUnit.WEEK)),
@@ -66,6 +78,7 @@ public class TimePeriodsTest {
             ),
             new TestDef(
                     "1s 15m 200h 50d 2w 1M 5y",
+                    false,
                     Pair.of(1, TimeUnit.SECOND),
                     Pair.of(15, TimeUnit.MINUTE),
                     Pair.of(200, TimeUnit.HOUR),
@@ -73,30 +86,45 @@ public class TimePeriodsTest {
                     Pair.of(2, TimeUnit.WEEK),
                     Pair.of(1, TimeUnit.MONTH),
                     Pair.of(5, TimeUnit.YEAR)
+            ),
+            new TestDef(
+                    "1M 2d",
+                    true,
+                    Pair.of(1, TimeUnit.MINUTE),
+                    Pair.of(2, TimeUnit.DAY)
             )
     );
 
     @Test
     public void testWithSpaces() throws Exception {
         for (final TestDef testCase : TEST_CASES) {
-            checkOrderInvariant(testCase.expected, parseTimePeriod(testCase.withSpaces));
+            verifyTestDef(testCase.expected, testCase.withSpaces, testCase.useLegacy);
         }
     }
 
     @Test
     public void testWithoutSpaces() throws Exception {
         for (final TestDef testCase : TEST_CASES) {
-            checkOrderInvariant(testCase.expected, parseTimePeriod(testCase.withSpaces.replace(" ", "")));
+            verifyTestDef(testCase.expected, testCase.withSpaces.replace(" ", ""), testCase.useLegacy);
         }
     }
 
-    private List<Pair<Integer, TimeUnit>> parseTimePeriod(String input) {
+    private void verifyTestDef(List<Pair<Integer, TimeUnit>> expected, String withSpaces, Optional<Boolean> useLegacy) {
+        if (useLegacy.isPresent()) {
+            checkOrderInvariant(expected, parseTimePeriod(withSpaces, useLegacy.get()));
+        } else {
+            checkOrderInvariant(expected, parseTimePeriod(withSpaces, true));
+            checkOrderInvariant(expected, parseTimePeriod(withSpaces, false));
+        }
+    }
+
+    private List<Pair<Integer, TimeUnit>> parseTimePeriod(String input, boolean useLegacy) {
         final JQLParser.TimePeriodContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.TimePeriodContext>() {
             public JQLParser.TimePeriodContext apply(JQLParser input) {
                 return input.timePeriodTerminal().timePeriod();
             }
         });
-        return TimePeriods.parseTimePeriod(ctx);
+        return TimePeriods.parseTimePeriod(ctx, useLegacy);
     }
 
     private static <T> void checkOrderInvariant(List<T> expected, List<T> actual) {

@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TimePeriods {
-    public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext) {
+    public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext, boolean useLegacy) {
         if (timePeriodContext == null) {
             return Collections.singletonList(Pair.of(1, TimeUnit.HOUR));
         } else if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
@@ -19,7 +19,7 @@ public class TimePeriods {
             final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
             for (JQLParser.TimeUnitContext timeunit : periodContext.timeunits) {
                 final int coeff = (timeunit.coeff == null) ? 1 : Integer.parseInt(timeunit.coeff.getText());
-                final TimeUnit unit = TimeUnit.fromString(timeunit.unit.getText());
+                final TimeUnit unit = TimeUnit.fromString(timeunit.unit.getText(), useLegacy);
                 result.add(Pair.of(coeff, unit));
             }
             for (final Token atom : periodContext.atoms) {
@@ -41,7 +41,7 @@ public class TimePeriods {
 
                     final String coeffString = raw.substring(numberStart, numberEndExcl);
                     final int coeff = coeffString.isEmpty() ? 1 : Integer.parseInt(coeffString);
-                    final TimeUnit unit = TimeUnit.fromString(raw.substring(periodStart, periodEndExcl));
+                    final TimeUnit unit = TimeUnit.fromString(raw.substring(periodStart, periodEndExcl), useLegacy);
                     result.add(Pair.of(coeff, unit));
 
                     start = current;
@@ -51,7 +51,7 @@ public class TimePeriods {
         } else if (timePeriodContext instanceof JQLParser.TimePeriodStringLiteralContext) {
             final String unquoted = ParserCommon.unquote(((JQLParser.TimePeriodStringLiteralContext) timePeriodContext).STRING_LITERAL().getText());
             final JQLParser parser = Queries.parserForString(unquoted);
-            final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod());
+            final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod(), useLegacy);
             if (parser.getNumberOfSyntaxErrors() > 0) {
                 throw new IllegalArgumentException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");
             }
@@ -62,8 +62,8 @@ public class TimePeriods {
 
     }
 
-    public static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext, WallClock clock) {
-        final List<Pair<Integer, TimeUnit>> pairs = parseTimePeriod(timePeriodContext);
+    public static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext, WallClock clock, boolean useLegacy) {
+        final List<Pair<Integer, TimeUnit>> pairs = parseTimePeriod(timePeriodContext, useLegacy);
         DateTime dt = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
         for (final Pair<Integer, TimeUnit> pair : pairs) {
             dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());

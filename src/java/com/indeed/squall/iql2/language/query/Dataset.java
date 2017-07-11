@@ -173,10 +173,10 @@ public class Dataset extends AbstractPositional {
                         }
                         throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
                     }
-                    return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock), dateTimeContext);
+                    return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock, useLegacy), dateTimeContext);
                 }
             } else if (dateTimeContext.timePeriod() != null) {
-                return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock), dateTimeContext);
+                return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock, useLegacy), dateTimeContext);
             } else if (dateTimeContext.NAT() != null) {
 
                 return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
