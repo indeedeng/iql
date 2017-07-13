@@ -1166,9 +1166,11 @@ public abstract class DocMetric extends AbstractPositional {
             if (!validationHelper.containsIntOrAliasField(dataset, datasetField)) {
                 // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
                 if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch"))
-                        && datasetField.equalsIgnoreCase("page")) {
+                        && (datasetField.equalsIgnoreCase("page") || datasetField.equalsIgnoreCase("vp"))) {
                 } else if (validationHelper.containsStringField(dataset, datasetField)) {
-                    validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, this));
+                    if (!validationHelper.useLegacy) {
+                        validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, this));
+                    }
                 } else {
                     validator.error(ErrorMessages.missingIntField(dataset, datasetField, this));
                 }
