@@ -19,10 +19,11 @@ public class StringAsIntFieldTest {
     @Test
     public void testSelectStringAsIntField() throws Exception {
         testWarning(dataset, ImmutableList.of("Field \"PAGE\" in Dataset \"DATASET\" is a string field but it is used as an int field in [HasInt{field='Positioned{t=PAGE}', term=0}]"),
-                "from dataset yesterday today SELECT page = 0");
-        testWarning(dataset, ImmutableList.of("Field \"PAGE\" in Dataset \"DATASET\" is a string field but it is used as an int field in [HasInt{field='Positioned{t=PAGE}', term=0}]"),
-                "from dataset yesterday today SELECT page != 0");
+                "from dataset yesterday today SELECT page = 0", QueryServletTestUtils.LanguageVersion.IQL2);
+        testWarning(dataset, ImmutableList.of("Field \"VP\" in Dataset \"DATASET\" is a string field but it is used as an int field in [HasInt{field='Positioned{t=VP}', term=0}]"),
+                "from dataset yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
 
+        testWarning(dataset, ImmutableList.of(), "from dataset yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.IQL1);
         testWarning(dataset, ImmutableList.of(), "from jobsearch yesterday today SELECT page = 0");
     }
 
