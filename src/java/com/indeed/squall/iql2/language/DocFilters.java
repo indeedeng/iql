@@ -255,7 +255,7 @@ public class DocFilters {
                         datasetsMetadata,
                         warn,
                         clock,
-                        queryCtx.fromContents().useLegacy
+                        false
                 );
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(new DocFilter.FieldInQuery(query, scopedField, ctx.not != null));
