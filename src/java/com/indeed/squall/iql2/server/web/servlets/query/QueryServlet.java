@@ -18,6 +18,7 @@ import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
+import com.indeed.squall.iql2.server.web.GlobalUncaughtExceptionHandler;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
@@ -63,8 +64,7 @@ public class QueryServlet {
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
-        // TODO: Copy this over from iql1?
-//        GlobalUncaughtExceptionHandler.register();
+        GlobalUncaughtExceptionHandler.register();
         try {
             hostname = java.net.InetAddress.getLocalHost().getHostName();
         } catch (java.net.UnknownHostException ex) {
