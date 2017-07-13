@@ -6,7 +6,7 @@ import com.indeed.squall.iql2.language.commands.Command;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
-import com.indeed.squall.iql2.language.util.DatasetsFields;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 
 import java.util.HashMap;
@@ -33,14 +33,14 @@ public class CommandValidator {
                 warnings.add(warn);
             }
         };
-        final DatasetsFields datasetsFields = buildDatasetsFields(query.datasets, query.nameToIndex(), datasetsMetadata);
+        final ValidationHelper validationHelper = buildDatasetsFields(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
         for (final Command command : commands) {
-            command.validate(datasetsFields, validator);
+            command.validate(validationHelper, validator);
         }
     }
 
-    private static DatasetsFields buildDatasetsFields(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
-                                                      final DatasetsMetadata datasetsMetadata) {
+    private static ValidationHelper buildDatasetsFields(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
+                                                        final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
         final Map<String, Set<String>> relevantDatasetAliasIntFields = new HashMap<>();
         final Map<String, Set<String>> relevantDatasetAliasStringFields = new HashMap<>();
@@ -72,6 +72,6 @@ public class CommandValidator {
             relevantDatasetAliasIntFields.put(aliasDataset, aliasIntField);
             relevantDatasetAliasStringFields.put(aliasDataset, aliasStringField);
         }
-        return new DatasetsFields(new DatasetsMetadata(relevantDatasetToMetadata), relevantDatasetAliasIntFields, relevantDatasetAliasStringFields);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), relevantDatasetAliasIntFields, relevantDatasetAliasStringFields, useLegacy);
     }
 }
