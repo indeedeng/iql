@@ -118,7 +118,12 @@ public class Query extends AbstractPositional {
         if (useLegacy) {
             rewriteMultiTermIn(allFilters, groupBys);
         }
-        final Optional<DocFilter> whereFilter = Optional.of(DocFilters.and(allFilters));
+        final Optional<DocFilter> whereFilter;
+        if (allFilters.isEmpty()) {
+            whereFilter = Optional.absent();
+        } else {
+            whereFilter = Optional.of(DocFilters.and(allFilters));
+        }
         return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit, useLegacy);
     }
 
