@@ -287,9 +287,11 @@ public class Session {
                           .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit);
             treeTimer.pop();
             treeTimer.push("build session builder");
-            final ImhotepSession build = sessionBuilder.build();
+            final ImhotepSession build = closer.register(sessionBuilder.build());
             progressCallback.sessionOpened(build);
             treeTimer.pop();
+            // Just in case they have resources, register the wrapped session as well.
+            // Double close() is supposed to be safe.
             final ImhotepSession session = closer.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
