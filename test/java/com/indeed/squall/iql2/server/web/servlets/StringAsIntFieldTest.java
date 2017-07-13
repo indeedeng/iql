@@ -30,10 +30,11 @@ public class StringAsIntFieldTest {
     public void testFilterStringAsIntField() throws Exception {
         testWarning(dataset, ImmutableList.of("Field \"PAGE\" in Dataset \"DATASET\" is a string field but it is used as an int field in " +
                         "[QueryAction{scope=[DATASET], perDatasetQuery={DATASET=int:PAGE:0}, targetGroup=1, positiveGroup=1, negativeGroup=0}]"),
-                "from dataset yesterday today where page = 0");
-        testWarning(dataset, ImmutableList.of("Field \"PAGE\" in Dataset \"DATASET\" is a string field but it is used as an int field in " +
-                        "[QueryAction{scope=[DATASET], perDatasetQuery={DATASET=int:PAGE:0}, targetGroup=1, positiveGroup=0, negativeGroup=1}]"),
-                "from dataset yesterday today where page != 0");
+                "from dataset yesterday today where page = 0", QueryServletTestUtils.LanguageVersion.IQL2);
+        testWarning(dataset, ImmutableList.of("Field \"VP\" in Dataset \"DATASET\" is a string field but it is used as an int field in " +
+                        "[QueryAction{scope=[DATASET], perDatasetQuery={DATASET=int:VP:0}, targetGroup=1, positiveGroup=0, negativeGroup=1}]"),
+                "from dataset yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
+        testWarning(dataset, ImmutableList.of(), "from dataset yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL1);
 
         testWarning(dataset, ImmutableList.of(), "from jobsearch yesterday today where page = 0");
     }
@@ -48,6 +49,7 @@ public class StringAsIntFieldTest {
                     new FlamdexDocument.Builder()
                             .addIntTerm("id", i)
                             .addStringTerm("page", ((i % 2) == 0) ? "0" : "1")
+                            .addStringTerm("vp", ((i % 2) == 0) ? "0" : "1")
                             .build()
             );
         }

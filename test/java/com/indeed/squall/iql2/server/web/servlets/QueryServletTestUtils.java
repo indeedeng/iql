@@ -201,6 +201,10 @@ public class QueryServletTestUtils extends BasicTest {
         testWarning(dataset.getShards(), expectedWarnings, query, LanguageVersion.IQL2);
     }
 
+    static void testWarning(Dataset dataset, List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
+        testWarning(dataset.getShards(), expectedWarnings, query, version);
+    }
+
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL1(dataset, expected, query, false);
     }
