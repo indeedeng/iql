@@ -18,6 +18,8 @@ import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
@@ -55,7 +57,8 @@ public class Query extends AbstractPositional {
             Token limit,
             DatasetsMetadata datasetsMetadata,
             Consumer<String> warn,
-            WallClock clock
+            WallClock clock,
+            boolean useLegacy
     ) {
         final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, datasetsMetadata, warn, clock);
 
@@ -71,12 +74,6 @@ public class Query extends AbstractPositional {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
                 allFilters.add(DocFilters.parseDocFilter(ctx, datasetsMetadata, fromContents, warn, clock));
             }
-        }
-        final Optional<DocFilter> whereFilter;
-        if (allFilters.isEmpty()) {
-            whereFilter = Optional.absent();
-        } else {
-            whereFilter = Optional.of(DocFilters.and(allFilters));
         }
 
         final List<GroupByMaybeHaving> groupBys;
@@ -118,7 +115,11 @@ public class Query extends AbstractPositional {
             rowLimit = Optional.of(Integer.parseInt(limit.getText()));
         }
 
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit, fromContents.useLegacy);
+        if (useLegacy) {
+            rewriteMultiTermIn(allFilters, groupBys);
+        }
+        final Optional<DocFilter> whereFilter = Optional.of(DocFilters.and(allFilters));
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit, useLegacy);
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
@@ -130,7 +131,8 @@ public class Query extends AbstractPositional {
                 queryContext.limit,
                 datasetsMetadata,
                 warn,
-                clock
+                clock,
+                queryContext.useLegacy
         );
         query.copyPosition(queryContext);
         return query;
@@ -204,6 +206,51 @@ public class Query extends AbstractPositional {
             nameToIndex.put(name.unwrap(), dataset.dataset.unwrap());
         }
         return nameToIndex;
+    }
+
+    // rewrite field in (A, B), group by field to group by field in (A, B...)
+    private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByMaybeHaving> groupBys) {
+        final Set<String> rewrittenFields = new HashSet<>();
+        for (int i = 0; i < filters.size(); i++) {
+            final DocFilter filter = filters.get(i);
+            if ((filter instanceof DocFilter.IntFieldIn) || (filter instanceof DocFilter.StringFieldIn)) {
+                final String filterField;
+                final LongList intTerms = new LongArrayList();
+                final List<String> stringTerms = Lists.newArrayList();
+                if (filter instanceof DocFilter.IntFieldIn) {
+                    final DocFilter.IntFieldIn intFieldIn = (DocFilter.IntFieldIn)filter;
+                    filterField = intFieldIn.field.unwrap();
+                    intTerms.addAll(intFieldIn.terms);
+                } else {
+                    final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
+                    filterField = stringFieldIn.field.unwrap();
+                    stringTerms.addAll(stringFieldIn.terms);
+                }
+                if (rewrittenFields.contains(filterField)) {
+                    continue;
+                }
+                boolean foundRewriteGroupBy = false;
+                for (int j = 0; j < groupBys.size(); j++) {
+                    final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(j);
+                    final GroupBy groupBy = groupByMaybeHaving.groupBy;
+                    if (groupBy instanceof GroupBy.GroupByField) {
+                        final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
+                        if (filterField.equalsIgnoreCase(groupByField.field.unwrap())) {
+                            groupBys.set(j, new GroupByMaybeHaving(
+                                    new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
+                                            groupByField.withDefault),
+                                    groupByMaybeHaving.filter));
+                            foundRewriteGroupBy = true;
+                        }
+                    }
+                }
+                if (foundRewriteGroupBy) {
+                    rewrittenFields.add(filterField);
+                    filters.remove(i);
+                    i--;
+                }
+            }
+        }
     }
 
     @Override
