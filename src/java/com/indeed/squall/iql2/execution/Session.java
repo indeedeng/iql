@@ -290,9 +290,8 @@ public class Session {
             final ImhotepSession build = closer.register(sessionBuilder.build());
             progressCallback.sessionOpened(build);
             treeTimer.pop();
-            // Just in case they have resources, register the wrapped session as well.
-            // Double close() is supposed to be safe.
-            final ImhotepSession session = closer.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
+            // TODO: closer.register() the wrapped session as well once AbstractImhotepMultiSession's close() is idempotent
+            final ImhotepSession session = wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields));
             treeTimer.pop();
 
             treeTimer.push("determine time range");
