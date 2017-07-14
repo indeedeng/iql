@@ -60,20 +60,7 @@ public class ValidationUtil {
             }
 
             for (final String field : datasetToIntFields.get(dataset)) {
-                if (!validationHelper.containsIntOrAliasField(dataset, field)) {
-                    if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch")) &&
-                            (field.equalsIgnoreCase("page") || field.equalsIgnoreCase("vp"))) {
-                    } else if (validationHelper.containsStringField(dataset, field)) {
-                        // allow auto conversion from string to int field for legacy mode
-                        if (!validationHelper.useLegacy) {
-                            validator.warn(ErrorMessages.stringFieldMismatch(dataset, field, source));
-                        }
-                    } else if (validationHelper.containsMetricField(dataset, field)) {
-                        validator.error(ErrorMessages.metricFieldIsNotSupported(field, source));
-                    } else {
-                        validator.error(ErrorMessages.missingField(dataset, field, source));
-                    }
-                }
+                validationHelper.validateIntField(dataset, field, validator, source);
             }
         }
     }

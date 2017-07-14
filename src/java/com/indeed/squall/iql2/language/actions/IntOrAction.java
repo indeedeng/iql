@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
-import com.indeed.squall.iql2.language.util.ErrorMessages;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -53,9 +52,7 @@ public class IntOrAction implements Action, JsonSerializable {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final String dataset : scope) {
-            if (!validationHelper.containsIntOrAliasField(dataset, field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
-            }
+            validationHelper.validateIntField(dataset, field, validator, this);
         }
     }
 

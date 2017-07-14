@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language.util;
 
+import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 
@@ -43,6 +44,21 @@ public class ValidationHelper {
     public boolean containsIntField(String dataset, String field) {
         return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(field)) ||
                 (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
+    }
+
+    public void validateIntField(String dataset, String datasetField, Validator validator, Object context) {
+        if (!containsIntOrAliasField(dataset, datasetField)) {
+            // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
+            if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch"))
+                    && (datasetField.equalsIgnoreCase("page") || datasetField.equalsIgnoreCase("vp"))) {
+            } else if (containsStringField(dataset, datasetField)) {
+                if (!useLegacy) {
+                    validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, context));
+                }
+            } else {
+                validator.error(ErrorMessages.missingIntField(dataset, datasetField, context));
+            }
+        }
     }
 
     public boolean containsIntOrAliasField(String dataset, String field) {
