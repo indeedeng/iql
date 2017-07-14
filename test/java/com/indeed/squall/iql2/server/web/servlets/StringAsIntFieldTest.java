@@ -35,8 +35,12 @@ public class StringAsIntFieldTest {
         testWarning(dataset, ImmutableList.of("Field \"VP\" in Dataset \"DATASET\" is a string field but it is used as an int field in " +
                         "[QueryAction{scope=[DATASET], perDatasetQuery={DATASET=int:VP:0}, targetGroup=1, positiveGroup=0, negativeGroup=1}]"),
                 "from dataset yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
-        testWarning(dataset, ImmutableList.of(), "from dataset yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL1);
+        testWarning(dataset, ImmutableList.of("Field \"VP\" in Dataset \"DATASET\" is a string field but it is used as an int field in " +
+                        "[IntOrAction{scope=[DATASET], field='VP', terms=[2, 3, 1], targetGroup=1, positiveGroup=1, negativeGroup=0}]"),
+                "from dataset yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL2);
 
+        testWarning(dataset, ImmutableList.of(), "from dataset yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL1);
+        testWarning(dataset, ImmutableList.of(), "from dataset yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL1);
         testWarning(dataset, ImmutableList.of(), "from jobsearch yesterday today where page = 0");
     }
 
