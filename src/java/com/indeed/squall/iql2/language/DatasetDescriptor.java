@@ -17,13 +17,14 @@ public class DatasetDescriptor {
     final String name;
     final String description;
     final ImmutableList<FieldDescriptor> fields;
-    final ImmutableList<Dimension> dimensions;
+    // for IQL1 convention
+    final ImmutableList<Dimension> metrics;
 
     public DatasetDescriptor(String name, String description, List<FieldDescriptor> fields, ImmutableList<Dimension> dimensions) {
         this.name = name;
         this.description = description;
         this.fields = ImmutableList.copyOf(fields);
-        this.dimensions = dimensions;
+        this.metrics = dimensions;
     }
 
     public static DatasetDescriptor from(final String dataset, final DatasetMetadata datasetMetadata) {
@@ -52,7 +53,7 @@ public class DatasetDescriptor {
         return fields;
     }
 
-    public List<Dimension> getDimensions() {
-        return dimensions;
+    public List<Dimension> getMetrics() {
+        return metrics;
     }
 }
