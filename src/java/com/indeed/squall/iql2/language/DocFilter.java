@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -86,9 +87,9 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
             if (term.isIntTerm) {
-                ValidationUtil.validateIntField(validationHelper.datasets(), field.unwrap(), validationHelper, validator, this);
+                ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.unwrap(), validationHelper, validator, this);
             } else {
-                ValidationUtil.validateStringField(validationHelper.datasets(), field.unwrap(), validationHelper, validator, this);
+                ValidationUtil.validateStringField(ImmutableSet.of(dataset), field.unwrap(), validationHelper, validator, this);
             }
         }
     }
