@@ -23,9 +23,12 @@ import com.indeed.imhotep.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.CORSInterceptor;
+import com.indeed.imhotep.web.DataSourceLoader;
+import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
 import com.indeed.imhotep.web.QueryServlet;
+import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
 import com.indeed.ims.server.SpringContextAware;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -45,6 +48,7 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import javax.xml.bind.PropertyException;
 import java.io.File;
 import java.util.Collections;
@@ -180,6 +184,23 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         @SuppressWarnings("unchecked")
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
         return new AccessControl(bannedUserList);
+    }
+
+    @Bean
+    public IQLDB iqldb() {
+        return new IQLDB(iqlDbDataSource());
+    }
+
+    @Bean
+    public DataSource iqlDbDataSource() {
+        return DataSourceLoader.tryGetDataSource("iqldb", env);
+    }
+
+    @Bean
+    public RunningQueriesManager runningQueriesManager() {
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb());
+        runningQueriesManager.onStartup();
+        return runningQueriesManager;
     }
 
     @Bean

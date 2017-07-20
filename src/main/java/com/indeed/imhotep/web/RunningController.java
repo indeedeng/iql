@@ -29,15 +29,19 @@ import java.util.List;
 @Controller
 public class RunningController {
     private final ExecutionManager executionManager;
+    private final RunningQueriesManager runningQueriesManager;
+    private final IQLDB iqldb;
 
     @Autowired
-    public RunningController(ExecutionManager executionManager) {
+    public RunningController(ExecutionManager executionManager, RunningQueriesManager runningQueriesManager, IQLDB iqldb) {
         this.executionManager = executionManager;
+        this.runningQueriesManager = runningQueriesManager;
+        this.iqldb = iqldb;
     }
 
     @RequestMapping("/running")
     @ResponseBody
-    public State handle() {
+    public State handleRunning() {
         List<ExecutionManager.QueryTracker> queries = executionManager.getRunningQueries();
         Collections.sort(queries, new Comparator<ExecutionManager.QueryTracker>() {
             @Override
@@ -62,5 +66,33 @@ public class RunningController {
         public void setQueries(List<ExecutionManager.QueryTracker> queries) {
             this.queries = queries;
         }
+    }
+
+    public static class RunningQueriesState {
+        private List<RunningQuery> queries;
+
+        public RunningQueriesState(List<RunningQuery> queries) {
+            this.queries = queries;
+        }
+
+        public List<RunningQuery> getQueries() {
+            return queries;
+        }
+
+        public void setQueries(List<RunningQuery> queries) {
+            this.queries = queries;
+        }
+    }
+
+    @RequestMapping("/lastrunning")
+    @ResponseBody
+    public RunningQueriesState handleLastRunning() {
+        return new RunningQueriesState(runningQueriesManager.lastDaemonRunningQueries);
+    }
+
+    @RequestMapping("/allrunning")
+    @ResponseBody
+    public RunningQueriesState handleAllRunning() {
+        return new RunningQueriesState(iqldb.getRunningQueries());
     }
 }

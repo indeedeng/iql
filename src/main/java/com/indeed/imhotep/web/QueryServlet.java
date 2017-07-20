@@ -103,10 +103,7 @@ public class QueryServlet {
 
     private static final Logger log = Logger.getLogger(QueryServlet.class);
     private static final Logger dataLog = Logger.getLogger("indeed.logentry");
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final String METADATA_FILE_SUFFIX = ".meta";
-    // this can be incremented to invalidate the old cache
-    private static final byte VERSION_FOR_HASHING = 2;
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
@@ -117,7 +114,7 @@ public class QueryServlet {
     private final ImhotepMetadataCache metadata;
     private final TopTermsCache topTermsCache;
     private final QueryCache queryCache;
-    private final ExecutionManager executionManager;
+    private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
     private final long imhotepLocalTempFileSizeLimit;
     private final long imhotepDaemonTempFileSizeLimit;
@@ -130,7 +127,7 @@ public class QueryServlet {
                         ImhotepMetadataCache metadata,
                         TopTermsCache topTermsCache,
                         QueryCache queryCache,
-                        ExecutionManager executionManager,
+                        RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
                         Integer rowLimit,
                         Long imhotepLocalTempFileSizeLimit,
@@ -142,7 +139,7 @@ public class QueryServlet {
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
         this.queryCache = queryCache;
-        this.executionManager = executionManager;
+        this.runningQueriesManager = runningQueriesManager;
         this.executorService = executorService;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
@@ -157,12 +154,12 @@ public class QueryServlet {
 
         final String httpUserName = getUserNameFromRequest(req);
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
-        long queryStartTimestamp = System.currentTimeMillis();
+        long querySubmitTimestamp = System.currentTimeMillis();
 
         final boolean json = req.getParameter("json") != null;
         IQLStatement parsedQuery = null;
-        final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
         Throwable errorOccurred = null;
+        SelectQuery selectQuery = null;
         try {
             if(Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(userName)) {
                 throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
@@ -173,19 +170,20 @@ public class QueryServlet {
             if(parsedQuery instanceof SelectStatement) {
                 logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
 
-                final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, userName);
+                selectQuery = new SelectQuery(runningQueriesManager, query, userName, new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
                 try {
-                    queryTracker.acquireLocks(); // blocks and waits if necessary
+                    selectQuery.lock(); // blocks and waits if necessary
 
-                    queryStartTimestamp = System.currentTimeMillis();   // ignore time spent waiting
+                    querySubmitTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                     // actually process
                     final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName);
-                    handleSelectStatement(selectRequestArgs, resp, (SelectStatement) parsedQuery, queryTracker, selectExecutionStats);
+
+                    handleSelectStatement(selectQuery, selectRequestArgs, resp);
                 } finally {
                     // this must be closed. but we may have to defer it to the async thread finishing query processing
-                    if(!queryTracker.isAsynchronousRelease()) {
-                        Closeables2.closeQuietly(queryTracker, log);
+                    if(!selectQuery.isAsynchronousRelease()) {
+                        Closeables2.closeQuietly(selectQuery, log);
                     }
                 }
             } else if(parsedQuery instanceof DescribeStatement) {
@@ -208,7 +206,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, userName, queryStartTimestamp, parsedQuery, selectExecutionStats, errorOccurred, remoteAddr);
+                logQuery(req, query, userName, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -285,7 +283,9 @@ public class QueryServlet {
         }
     }
 
-    private void handleSelectStatement(final SelectRequestArgs args, final HttpServletResponse resp, SelectStatement parsedQuery, final ExecutionManager.QueryTracker queryTracker, final @Nonnull SelectExecutionStats selectExecutionStats) throws IOException {
+    private void handleSelectStatement(final SelectQuery selectQuery, final SelectRequestArgs args, final HttpServletResponse resp) throws IOException {
+        final SelectExecutionStats selectExecutionStats = selectQuery.selectExecutionStats;
+        final SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
@@ -295,7 +295,7 @@ public class QueryServlet {
         selectExecutionStats.shardCount = iqlQuery.getShardVersionList().size();
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
-        final String queryHash = getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
+        final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
         selectExecutionStats.hashForCaching = queryHash;
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         long beginTimeMillis = System.currentTimeMillis();
@@ -454,12 +454,12 @@ public class QueryServlet {
                                     log.warn("Failed to upload cache: " + cacheFileName, e);
                                 }
                             } finally {
-                                Closeables2.closeQuietly(queryTracker, log);
+                                Closeables2.closeQuietly(selectQuery, log);
                             }
                             return null;
                         }
                     });
-                    queryTracker.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
+                    selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
                 }
             } catch (ImhotepOutOfMemoryException e) {
                 throw Throwables.propagate(e);
@@ -493,11 +493,11 @@ public class QueryServlet {
                             return null;
                         } finally {
                             Closeables2.closeQuietly(iqlQuery, log);
-                            Closeables2.closeQuietly(queryTracker, log);
+                            Closeables2.closeQuietly(selectQuery, log);
                         }
                     }
                 });
-                queryTracker.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
+                selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
             }
 
             final URL baseURL = new URL(args.requestURL);
@@ -688,31 +688,6 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    /**
-     * Produces a Base64 encoded SHA-1 hash of the query and the list of shard names/versions which has to be sorted.
-     */
-    private String getQueryHash(String query, Collection<ShardIdWithVersion> shards, boolean csv) {
-        final MessageDigest sha1;
-        try {
-            sha1 = MessageDigest.getInstance("SHA-1");
-        }
-        catch(NoSuchAlgorithmException e) {
-            log.error("Failed to init SHA1", e);
-            throw Throwables.propagate(e);
-        }
-        final String standardizedQuery = query.trim().replace('"', '\'').replaceAll("\\s+", " ");
-        sha1.update(standardizedQuery.getBytes(UTF8_CHARSET));
-        if(shards != null) {
-            for(ShardIdWithVersion shard : shards) {
-                sha1.update(shard.getShardId().getBytes(UTF8_CHARSET));
-                sha1.update(Longs.toByteArray(shard.getVersion()));
-                sha1.update(csv ? (byte)1 : 0);
-            }
-        }
-        sha1.update(VERSION_FOR_HASHING);
-        return Base64.encodeBase64URLSafeString(sha1.digest());
-    }
-
     static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean status500, boolean isEventStream) throws IOException {
         if(!(e instanceof Exception || e instanceof OutOfMemoryError)) {
             throw Throwables.propagate(e);
@@ -767,9 +742,9 @@ public class QueryServlet {
                           String userName,
                           long queryStartTimestamp,
                           IQLStatement parsedQuery,
-                          SelectExecutionStats selectExecutionStats,
                           Throwable errorOccurred,
-                          String remoteAddr) {
+                          String remoteAddr,
+                          @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
@@ -808,11 +783,13 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        final String queryType = logStatementData(parsedQuery, selectExecutionStats, logEntry);
+        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry);
         logEntry.setProperty("statement", queryType);
 
-        for (Map.Entry<String, Long> phase: selectExecutionStats.phases.entrySet()) {
-            logEntry.setProperty(phase.getKey(), phase.getValue());
+        if(selectQuery != null) {
+            for (Map.Entry<String, Long> phase : selectQuery.selectExecutionStats.phases.entrySet()) {
+                logEntry.setProperty(phase.getKey(), phase.getValue());
+            }
         }
 
         dataLog.info(logEntry);
@@ -820,7 +797,7 @@ public class QueryServlet {
 
     // Log to logrepo
     private static String logStatementData(IQLStatement parsedQuery,
-                                    SelectExecutionStats selectExecutionStats,
+                                    SelectQuery selectQuery,
                                     QueryLogEntry logEntry) {
         if(parsedQuery == null) {
             return "invalid";
@@ -828,7 +805,7 @@ public class QueryServlet {
         final String queryType;
         if(parsedQuery instanceof SelectStatement) {
             queryType = "select";
-            logSelectStatementData((SelectStatement) parsedQuery, selectExecutionStats, logEntry);
+            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry);
         } else if(parsedQuery instanceof DescribeStatement) {
             queryType = "describe";
             final DescribeStatement describeStatement = (DescribeStatement) parsedQuery;
@@ -845,7 +822,7 @@ public class QueryServlet {
     }
 
     private static void logSelectStatementData(SelectStatement selectStatement,
-                                        SelectExecutionStats selectExecutionStats,
+                                        SelectQuery selectQuery,
                                         QueryLogEntry logEntry) {
         final FromClause from = selectStatement.from;
         final GroupByClause groupBy = selectStatement.groupBy;
@@ -875,17 +852,17 @@ public class QueryServlet {
         }
         logEntry.setProperty("groupbycnt", groupByCount);
 
-        logEntry.setProperty("sessionid", selectExecutionStats.sessionId);
-        logEntry.setProperty("numdocs", selectExecutionStats.numDocs);
-        logEntry.setProperty("cached", selectExecutionStats.cached ? "1" : "0");
-        logEntry.setProperty("rows", selectExecutionStats.rowsWritten);
-        logEntry.setProperty("shards", selectExecutionStats.shardCount);
-        logEntry.setProperty("disk", selectExecutionStats.overflowedToDisk ? "1" : "0");
-        logEntry.setProperty("hash", selectExecutionStats.hashForCaching);
-        logEntry.setProperty("head", selectExecutionStats.headOnly ? "1" : "0");
-        logEntry.setProperty("maxgroups", selectExecutionStats.maxImhotepGroups);
+        logEntry.setProperty("sessionid", selectQuery.selectExecutionStats.sessionId);
+        logEntry.setProperty("numdocs", selectQuery.selectExecutionStats.numDocs);
+        logEntry.setProperty("cached", selectQuery.selectExecutionStats.cached ? "1" : "0");
+        logEntry.setProperty("rows", selectQuery.selectExecutionStats.rowsWritten);
+        logEntry.setProperty("shards", selectQuery.selectExecutionStats.shardCount);
+        logEntry.setProperty("disk", selectQuery.selectExecutionStats.overflowedToDisk ? "1" : "0");
+        logEntry.setProperty("hash", selectQuery.selectExecutionStats.hashForCaching);
+        logEntry.setProperty("head", selectQuery.selectExecutionStats.headOnly ? "1" : "0");
+        logEntry.setProperty("maxgroups", selectQuery.selectExecutionStats.maxImhotepGroups);
         // convert bytes to megabytes
-        logEntry.setProperty("ftgsmb", selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
+        logEntry.setProperty("ftgsmb", selectQuery.selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
     }
 
     private static void logQueryToLog4J(String query, String identification, long timeTaken) {
