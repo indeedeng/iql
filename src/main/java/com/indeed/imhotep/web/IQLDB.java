@@ -92,14 +92,14 @@ public class IQLDB {
     }
 
     private List<RunningQuery> getRunningQueries(@Nullable String hostname) {
-        String query = "SELECT id, query, qhash, username, submit_time, execution_start_time, hostname FROM tblrunning";
+        String query = "SELECT id, query, qhash, username, submit_time, execution_start_time, hostname, killed FROM tblrunning";
         String[] args = new String[0];
         if(hostname != null) {
             query += " WHERE hostname = ?";
             args = new String[] {hostname};
         }
         query += " ORDER BY hostname, execution_start_time";
-        return jdbcTemplate.query(query, RunningQuery.resultSetExtractor, (Object)args);
+        return jdbcTemplate.query(query, RunningQuery.resultSetRowMapper, (Object[])args);
     }
 
 
