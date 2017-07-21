@@ -39,7 +39,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -61,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
+@EnableTransactionManagement
 @ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
@@ -244,6 +247,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/metadata").setViewName("redirect:/metadata/");
         registry.addViewController("/metadata/").setViewName("forward:/metadata/index.html");
+    }
+
+    @Bean
+    public DataSourceTransactionManager dataSourceTransactionManager() {
+        return new DataSourceTransactionManager(iqlDbDataSource());
     }
 
     // do we need this?

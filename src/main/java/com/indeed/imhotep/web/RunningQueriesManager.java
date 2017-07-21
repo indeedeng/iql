@@ -1,7 +1,7 @@
 package com.indeed.imhotep.web;
 
-import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
+import org.springframework.dao.DataAccessException;
 
 import java.util.List;
 
@@ -12,8 +12,6 @@ import java.util.List;
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
     private final IQLDB iqldb;
-    List<SelectQuery> queries = Lists.newArrayList();
-    List<SelectQuery> waiting = Lists.newArrayList();
 
     public List<RunningQuery> lastDaemonRunningQueries;
 
@@ -28,13 +26,6 @@ public class RunningQueriesManager {
         }
         lastDaemonRunningQueries = iqldb.getRunningQueriesForThisHost();
         if(lastDaemonRunningQueries.size() > 0) {
-            // sorted in SQL now
-//            Collections.sort(lastDaemonRunningQueries, new Comparator<RunningQuery>() {
-//                @Override
-//                public int compare(RunningQuery o1, RunningQuery o2) {
-//                    return o1.executionStartTime.compareTo(o2.executionStartTime);
-//                }
-//            });
             log.warn("Daemon was in the process of running the following queries when it was shutdown: ");
             for (RunningQuery query : lastDaemonRunningQueries) {
                 log.warn(query.toString());
@@ -46,13 +37,22 @@ public class RunningQueriesManager {
 
 
     public void register(SelectQuery selectQuery) {
-        //waiting.add(selectQuery);
         boolean started = false;
         while(!started) {
-            started = iqldb.tryStartRunningQuery(selectQuery);
             try {
-                Thread.sleep(500);
-            } catch (InterruptedException ignored) {}
+                started = iqldb.tryStartRunningQuery(selectQuery);
+            } catch (DataAccessException e) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ignored) {}
+                continue;
+            }
+
+            if(!started) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {}
+            }
         }
     }
 
@@ -69,7 +69,7 @@ public class RunningQueriesManager {
                 released = true;
             } catch (Exception e) {
                 log.error("Failed to release query, going to retry. Id " + selectQuery.id
-                        + ". " + selectQuery.queryStringTruncatedForPrint);
+                        + ". " + selectQuery.queryStringTruncatedForPrint, e);
                 try {
                     Thread.sleep(1000);
                 } catch (Exception ignored) { }
