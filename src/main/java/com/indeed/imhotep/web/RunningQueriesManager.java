@@ -15,12 +15,14 @@ public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
     private final IQLDB iqldb;
 
-    private List<SelectQuery> queriesWaiting = Lists.newArrayList();
+    private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
 
     public List<RunningQuery> lastDaemonRunningQueries;
 
     @Value("${user.concurrent.query.limit}")
     private int maxQueriesPerUser;
+    @Value("${user.concurrent.imhotep.sessions.limit}")
+    private byte maxSessionsPerUser;
 
 
     public RunningQueriesManager(IQLDB iqldb) {
@@ -50,7 +52,7 @@ public class RunningQueriesManager {
                     log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
                     final List<SelectQuery> queriesStarted =
-                            iqldb.tryStartPendingQueries(queriesWaiting, maxQueriesPerUser);
+                            iqldb.tryStartPendingQueries(queriesWaiting, maxQueriesPerUser, maxSessionsPerUser);
 
                     for(SelectQuery startedQuery: queriesStarted) {
                         startedQuery.onStarted();

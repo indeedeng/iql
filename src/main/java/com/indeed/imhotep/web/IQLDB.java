@@ -46,16 +46,22 @@ public class IQLDB {
 
     /** Returns true iff query was registered successfully. **/
     @Transactional
-    public boolean tryStartRunningQuery(SelectQuery query, int maxQueriesPerUser) {
+    public boolean tryStartRunningQuery(SelectQuery query, int maxQueriesPerUser, int maxImhotepSessionsPerUser) {
         final String username = query.username;
         final String queryHash = query.queryHash;
         final Map<String, Object> sqlResult = jdbcTemplate.queryForMap(
-            "SELECT COUNT(username = ?) AS queriesRunningForUser, COUNT(qhash = ?) AS runningWithSameHash " +
+            "SELECT COUNT(username = ?) AS queriesRunningForUser, COUNT(qhash = ?) AS runningWithSameHash, " +
+                    "COUNT(sessions = ?) AS sessionsForUser " +
                     "FROM tblrunning order by id FOR UPDATE", username, queryHash);
         final long queriesRunningForUser = (Long) sqlResult.get("queriesRunningForUser");
+        final long sessionsForUser = (Long) sqlResult.get("sessionsForUser");
         final long runningWithSameHash = (Long) sqlResult.get("runningWithSameHash");
 
         if (queriesRunningForUser >= maxQueriesPerUser) {
+            return false;
+        }
+
+        if (sessionsForUser >= maxImhotepSessionsPerUser) {
             return false;
         }
 
@@ -65,8 +71,8 @@ public class IQLDB {
 
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
 
-        jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname) VALUES (?, ?, ?, ?, ?, ?)",
-                query.queryStringTruncatedForPrint, query.queryHash, query.username, query.client, new Timestamp(query.querySubmitTimestamp.getMillis()), queryExecutionStartTime, hostname);
+        jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                query.queryStringTruncatedForPrint, query.queryHash, query.username, query.client, new Timestamp(query.querySubmitTimestamp.getMillis()), queryExecutionStartTime, hostname, query.sessions);
         try {
             Long id = jdbcTemplate.queryForObject("SELECT last_insert_id()", Long.class);
             query.onStarting(id, new DateTime(queryExecutionStartTime));
@@ -78,20 +84,29 @@ public class IQLDB {
     }
 
     @Transactional
-    public List<SelectQuery> tryStartPendingQueries(List<SelectQuery> pendingQueries, int maxQueriesPerUser) {
+    public List<SelectQuery> tryStartPendingQueries(List<SelectQuery> pendingQueries, int maxQueriesPerUser,
+                                                    int maxImhotepSessionsPerUser) {
         final List<RunningQuery> alreadyRunningQueries = getRunningQueries(null, true);
         final List<SelectQuery> queriesThatCouldntStart = Lists.newArrayList();
         final List<SelectQuery> queriesStarting = Lists.newArrayList();
         final Set<String> qhashesRunning = Sets.newHashSet();
         final Map<String, Integer> usernamesToRunningCount = Maps.newHashMap();
+        final Map<String, Integer> usernamesToSessionsCount = Maps.newHashMap();
         for(RunningQuery runningQuery: alreadyRunningQueries) {
             qhashesRunning.add(runningQuery.qHash);
             final String username = runningQuery.username;
+
             Integer runningForUserSoFar = usernamesToRunningCount.get(username);
             if(runningForUserSoFar == null) {
                 runningForUserSoFar = 0;
             }
             usernamesToRunningCount.put(username, runningForUserSoFar + 1);
+
+            Integer sessionsForUserSoFar = usernamesToSessionsCount.get(username);
+            if(sessionsForUserSoFar == null) {
+                sessionsForUserSoFar = 0;
+            }
+            usernamesToSessionsCount.put(username, sessionsForUserSoFar + runningQuery.sessions);
         }
 //        final List<Object[]> insertArgs = Lists.newArrayList();
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
@@ -100,12 +115,18 @@ public class IQLDB {
             if(queriesRunningForUser == null) {
                 queriesRunningForUser = 0;
             }
-            if(queriesRunningForUser >= maxQueriesPerUser || qhashesRunning.contains(pendingQuery.queryHash)) {
+            Integer sessionsForUser = usernamesToSessionsCount.get(pendingQuery.username);
+            if(sessionsForUser == null) {
+                sessionsForUser = 0;
+            }
+            if(queriesRunningForUser >= maxQueriesPerUser || qhashesRunning.contains(pendingQuery.queryHash)
+                    || sessionsForUser > maxImhotepSessionsPerUser) {
                 queriesThatCouldntStart.add(pendingQuery);
             } else {
                 queriesStarting.add(pendingQuery);
                 usernamesToRunningCount.put(pendingQuery.username, queriesRunningForUser + 1);
                 qhashesRunning.add(pendingQuery.queryHash);
+                usernamesToSessionsCount.put(pendingQuery.username, sessionsForUser + pendingQuery.sessions);
             }
         }
 
@@ -117,11 +138,12 @@ public class IQLDB {
                     startingQuery.client,
                     new Timestamp(startingQuery.querySubmitTimestamp.getMillis()),
                     queryExecutionStartTime,
-                    hostname
+                    hostname,
+                    startingQuery.sessions
             };
 
-            jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)", args);
+            jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args);
             Long id = jdbcTemplate.queryForObject("SELECT last_insert_id()", Long.class);
             startingQuery.onStarting(id, new DateTime(queryExecutionStartTime));
 
@@ -169,7 +191,7 @@ public class IQLDB {
     }
 
     private List<RunningQuery> getRunningQueries(@Nullable String hostname, boolean selectForUpdate) {
-        String query = "SELECT id, query, qhash, username, client, submit_time, execution_start_time, hostname, killed FROM tblrunning";
+        String query = "SELECT id, query, qhash, username, client, submit_time, execution_start_time, hostname, sessions, killed FROM tblrunning";
         String[] args = new String[0];
         if(hostname != null) {
             query += " WHERE hostname = ?";

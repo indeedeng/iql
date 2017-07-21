@@ -39,6 +39,7 @@ public class SelectQuery implements Closeable {
     final String username;
     final String client;
     final DateTime querySubmitTimestamp;
+    final byte sessions = 1;    // imhotep sessions
     final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     final SelectStatement parsedStatement;
     IQLQuery iqlQuery;

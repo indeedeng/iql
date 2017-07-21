@@ -19,9 +19,10 @@ public class RunningQuery {
     public final DateTime submitTime;
     public final DateTime executionStartTime;
     public final String hostname;
+    public final byte sessions;
     public final boolean killed;
 
-    public RunningQuery(long id, String query, String qHash, String username, String client, DateTime submitTime, DateTime executionStartTime, String hostname, boolean killed) {
+    public RunningQuery(long id, String query, String qHash, String username, String client, DateTime submitTime, DateTime executionStartTime, String hostname, byte sessions, boolean killed) {
         this.id = id;
         this.query = query;
         this.qHash = qHash;
@@ -30,6 +31,7 @@ public class RunningQuery {
         this.submitTime = submitTime;
         this.executionStartTime = executionStartTime;
         this.hostname = hostname;
+        this.sessions = sessions;
         this.killed = killed;
     }
 
@@ -51,6 +53,7 @@ public class RunningQuery {
                 "\n submitTime=" + submitTime +
                 "\n executionStartTime=" + executionStartTime +
                 "\n hostname=" + hostname +
+                "\n sessions=" + sessions +
                 "\n killed=" + killed +
                 "\n query=" + query +
                 "\n}";
@@ -71,6 +74,7 @@ public class RunningQuery {
                     submitTime != null ? new DateTime(submitTime.getTime()) : null,
                     executionStartTime != null ? new DateTime(executionStartTime.getTime()) : null,
                     rs.getString("hostname"),
+                    rs.getByte("sessions"),
                     rs.getBoolean("killed"));
         }
     };

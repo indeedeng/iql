@@ -7,6 +7,7 @@ CREATE TABLE `tblrunning` (
   `submit_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Time the query execution was requested by the user',
   `execution_start_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Time the query execution actually started',
   `hostname` varchar(20) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL COMMENT 'Hostname of the IQL daemon executing the query',
+  `sessions` tinyint(4) NOT NULL DEFAULT '1' COMMENT 'Number of Imhotep sessions used by this query',
   `killed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '1 if query was requested to be stopped'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Queries currently running';
 
