@@ -13,9 +13,11 @@
  */
  package com.indeed.imhotep.web;
 
+import com.google.common.base.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
@@ -83,5 +85,17 @@ public class RunningController {
     @ResponseBody
     public RunningQueriesState handleAllRunning() {
         return new RunningQueriesState(iqldb.getRunningQueries());
+    }
+
+    @RequestMapping("/clearrunning")
+    @ResponseBody
+    public String handleClearRunning(@RequestParam(required = false) String hostname) {
+        if(!Strings.isNullOrEmpty(hostname)) {
+            int rowsDeleted = iqldb.clearRunningForHost(hostname);
+            return "Deleted all " + rowsDeleted + " queries for host " + hostname + " from tblrunning";
+        } else {
+            int rowsDeleted = iqldb.clearRunningForThisHost();
+            return "Deleted all " + rowsDeleted + " queries for this host from tblrunning";
+        }
     }
 }

@@ -10,6 +10,7 @@ import org.joda.time.DateTimeZone;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.sql.Timestamp;
@@ -174,8 +175,12 @@ public class IQLDB {
         }
     }
 
-    public void clearRunningForThisHost() {
-        jdbcTemplate.update("DELETE FROM tblrunning WHERE hostname = ?", hostname);
+    public int clearRunningForThisHost() {
+        return clearRunningForHost(hostname);
+    }
+
+    public int clearRunningForHost(@Nonnull String hostname) {
+        return jdbcTemplate.update("DELETE FROM tblrunning WHERE hostname = ?", hostname);
     }
 
     public List<RunningQuery> getRunningQueries() {
