@@ -121,4 +121,8 @@ public class RunningQueriesManager {
     public boolean isEnabled() {
         return iqldb != null;
     }
+
+    public List<SelectQuery> getQueriesWaiting() {
+        return queriesWaiting;
+    }
 }
