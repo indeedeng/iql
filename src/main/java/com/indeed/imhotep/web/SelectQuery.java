@@ -34,8 +34,10 @@ public class SelectQuery implements Closeable {
     private final RunningQueriesManager runningQueriesManager;
     final String queryString;
     final String queryHash; // this hash doesn't include the shards so is different from the caching hash
+    final String shortHash; // queryHash truncated
     final String queryStringTruncatedForPrint;
     final String username;
+    final String client;
     final DateTime querySubmitTimestamp;
     final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     final SelectStatement parsedStatement;
@@ -46,16 +48,20 @@ public class SelectQuery implements Closeable {
     final CountDownLatch waitLock = new CountDownLatch(1);
     private boolean asynchronousRelease = false;
     long id;
+    private boolean closed = false;
 
 
-    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, String username, DateTime querySubmitTimestamp, SelectStatement parsedStatement) {
+    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, String username, String client, DateTime querySubmitTimestamp, SelectStatement parsedStatement) {
         this.runningQueriesManager = runningQueriesManager;
         this.queryString = queryString;
         this.username = username;
+        this.client = client;
         this.querySubmitTimestamp = querySubmitTimestamp;
         this.parsedStatement = parsedStatement;
         this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(queryString).replaceAll("\\($1\\.\\.\\.\\)");
         this.queryHash = getQueryHash(queryString, null, false);
+        this.shortHash = this.queryHash.substring(0, 6);
+        log.debug("Query created with hash " + shortHash);
     }
 
     /**
@@ -105,6 +111,10 @@ public class SelectQuery implements Closeable {
         if (!runningQueriesManager.isEnabled()) {
             return;
         }
+        if(closed) {
+            return;
+        }
+        closed = true;
 
         if (locked) {
             try {
@@ -114,6 +124,8 @@ public class SelectQuery implements Closeable {
                 log.error("Failed to release the query tracking for " + queryStringTruncatedForPrint);
             }
 
+        } else {
+            runningQueriesManager.unregister(this);
         }
     }
 
@@ -126,9 +138,13 @@ public class SelectQuery implements Closeable {
         }
     }
 
-    public void onStarted(long id, DateTime startedTimestamp) {
+    public void onStarting(long id, DateTime startedTimestamp) {
         this.id = id;
-        this.queryStartTimestamp = startedTimestamp;
+        this.queryStartTimestamp = startedTimestamp;;
+    }
+
+    public void onStarted() {
+        log.debug("Started query " + shortHash + " as id " + id);
         this.locked = true;
         waitLock.countDown();
     }
@@ -149,6 +165,7 @@ public class SelectQuery implements Closeable {
                 ", queryHash='" + queryHash + '\'' +
                 ", queryStringTruncatedForPrint='" + queryStringTruncatedForPrint + '\'' +
                 ", username='" + username + '\'' +
+                ", client='" + client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
                 ", selectExecutionStats=" + selectExecutionStats +
                 ", parsedStatement=" + parsedStatement +

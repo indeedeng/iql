@@ -154,6 +154,7 @@ public class QueryServlet {
 
         final String httpUserName = getUserNameFromRequest(req);
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
+        final String client = Strings.nullToEmpty(req.getParameter("client"));
         long querySubmitTimestamp = System.currentTimeMillis();
 
         final boolean json = req.getParameter("json") != null;
@@ -161,7 +162,7 @@ public class QueryServlet {
         Throwable errorOccurred = null;
         SelectQuery selectQuery = null;
         try {
-            if(Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(userName)) {
+            if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
                 throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
             accessControl.checkAllowedAccess(userName);
@@ -170,14 +171,14 @@ public class QueryServlet {
             if(parsedQuery instanceof SelectStatement) {
                 logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
 
-                selectQuery = new SelectQuery(runningQueriesManager, query, userName, new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
+                selectQuery = new SelectQuery(runningQueriesManager, query, userName, client, new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
                 try {
                     selectQuery.lock(); // blocks and waits if necessary
 
                     querySubmitTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                     // actually process
-                    final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName);
+                    final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName, client);
 
                     handleSelectStatement(selectQuery, selectRequestArgs, resp);
                 } finally {
@@ -900,7 +901,7 @@ public class QueryServlet {
         public final String imhotepUserName;
         public final String requestURL;
 
-        public SelectRequestArgs(HttpServletRequest req, String userName) {
+        public SelectRequestArgs(HttpServletRequest req, String userName, String clientName) {
             asynchronous = req.getParameter("async") != null;
             avoidFileSave = req.getParameter("view") != null && !this.asynchronous;
             csv = req.getParameter("csv") != null;
@@ -912,7 +913,6 @@ public class QueryServlet {
             headOnly = "HEAD".equals(req.getMethod()) || req.getParameter("head") != null;
             progress = req.getParameter("progress") != null;
             getTotals = req.getParameter("totals") != null;
-            final String clientName = Strings.nullToEmpty(req.getParameter("client"));
             imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
         }

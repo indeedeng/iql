@@ -1,7 +1,9 @@
 package com.indeed.imhotep.web;
 
+import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
-import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
 
@@ -13,7 +15,12 @@ public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
     private final IQLDB iqldb;
 
+    private List<SelectQuery> queriesWaiting = Lists.newArrayList();
+
     public List<RunningQuery> lastDaemonRunningQueries;
+
+    @Value("${user.concurrent.query.limit}")
+    private int maxQueriesPerUser;
 
 
     public RunningQueriesManager(IQLDB iqldb) {
@@ -35,28 +42,60 @@ public class RunningQueriesManager {
         }
     }
 
+    @Scheduled(fixedDelay = 300)
+    private void tryStartingWaitingQueries() {
+        try {
+            synchronized (queriesWaiting) {
+                if (queriesWaiting.size() > 0) {
+                    log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
+
+                    final List<SelectQuery> queriesStarted =
+                            iqldb.tryStartPendingQueries(queriesWaiting, maxQueriesPerUser);
+
+                    for(SelectQuery startedQuery: queriesStarted) {
+                        startedQuery.onStarted();
+                    }
+                    queriesWaiting.removeAll(queriesStarted);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception while starting waiting queries", e);
+        }
+    }
+
 
     public void register(SelectQuery selectQuery) {
-        boolean started = false;
-        while(!started) {
-            try {
-                started = iqldb.tryStartRunningQuery(selectQuery);
-            } catch (DataAccessException e) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException ignored) {}
-                continue;
-            }
+        synchronized (queriesWaiting) {
+            queriesWaiting.add(selectQuery);
+        }
+//        boolean started = false;
+//        while(!started) {
+//            try {
+//                started = iqldb.tryStartRunningQuery(selectQuery);
+//            } catch (DataAccessException e) {
+//                try {
+//                    Thread.sleep(50);
+//                } catch (InterruptedException ignored) {}
+//                continue;
+//            }
+//
+//            if(!started) {
+//                try {
+//                    Thread.sleep(500);
+//                } catch (InterruptedException ignored) {}
+//            }
+//        }
+    }
 
-            if(!started) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ignored) {}
-            }
+    public void unregister(SelectQuery selectQuery) {
+        log.debug("Stopping to wait for locking of " + selectQuery.shortHash);
+        synchronized (queriesWaiting) {
+            queriesWaiting.remove(selectQuery);
         }
     }
 
     public void release(SelectQuery selectQuery) {
+        log.debug("Deleting query from DB " + selectQuery.shortHash + " " + selectQuery.id);
         if(selectQuery.id <= 0) {
             throw new IllegalArgumentException("Tried to release a query that hasn't been locked. Id " + selectQuery.id
                     + ". " + selectQuery.queryStringTruncatedForPrint);
