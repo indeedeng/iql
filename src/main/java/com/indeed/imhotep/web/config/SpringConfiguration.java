@@ -23,9 +23,12 @@ import com.indeed.imhotep.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.CORSInterceptor;
+import com.indeed.imhotep.web.DataSourceLoader;
+import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
 import com.indeed.imhotep.web.QueryServlet;
+import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
 import com.indeed.ims.server.SpringContextAware;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -36,7 +39,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -45,6 +50,7 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import javax.xml.bind.PropertyException;
 import java.io.File;
 import java.util.Collections;
@@ -57,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
+@EnableTransactionManagement
 @ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
@@ -183,6 +190,23 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
+    public IQLDB iqldb() {
+        return new IQLDB(iqlDbDataSource());
+    }
+
+    @Bean
+    public DataSource iqlDbDataSource() {
+        return DataSourceLoader.tryGetDataSource("iqldb", env);
+    }
+
+    @Bean
+    public RunningQueriesManager runningQueriesManager() {
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb());
+        runningQueriesManager.onStartup();
+        return runningQueriesManager;
+    }
+
+    @Bean
     public ImhotepClientPinger imhotepClientPinger() {
         return new ImhotepClientPinger(imhotepClient());
     }
@@ -223,6 +247,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/metadata").setViewName("redirect:/metadata/");
         registry.addViewController("/metadata/").setViewName("forward:/metadata/index.html");
+    }
+
+    @Bean
+    public DataSourceTransactionManager dataSourceTransactionManager() {
+        return new DataSourceTransactionManager(iqlDbDataSource());
     }
 
     // do we need this?

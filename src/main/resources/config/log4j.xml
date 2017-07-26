@@ -58,6 +58,10 @@
         <priority value="ERROR" />
     </category>
 
+    <category name="com.indeed.status.core.DependencyPinger">
+        <priority value="ERROR" />
+    </category>
+
     <category name="com.indeed.boxcar.support.client.BongoServerSource">
         <priority value="INFO" />
     </category>

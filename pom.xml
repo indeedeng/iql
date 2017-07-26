@@ -279,6 +279,11 @@
             <artifactId>spring-core</artifactId>
             <version>${spring.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.tomcat</groupId>
@@ -311,6 +316,12 @@
         </dependency>
 
         <dependency>
+            <groupId>commons-dbcp</groupId>
+            <artifactId>commons-dbcp</artifactId>
+            <version>${commons-dbcp.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
             <version>1.7.11</version>
@@ -340,6 +351,7 @@
         <jackson2.version>2.5.2</jackson2.version>
         <lucene.version>2.4.1</lucene.version>
         <hadoop.version>2.6.0-cdh5.8.2</hadoop.version>
+        <commons-dbcp.version>1.4</commons-dbcp.version>
     </properties>
 
 </project>

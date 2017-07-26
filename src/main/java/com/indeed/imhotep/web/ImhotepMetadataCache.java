@@ -31,11 +31,13 @@ import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.Query;
@@ -67,7 +69,10 @@ public class ImhotepMetadataCache {
     private LinkedHashMap<String, DatasetMetadata> datasets = Maps.newLinkedHashMap();
     private final ImhotepClient imhotepClient;
     private final List<Pattern> disabledFields = Lists.newArrayList();
+    @Nullable
     private ImsClientInterface metadataClient;
+    @Value("${ims.enabled:true}")
+    private boolean IMSEnabled;
 
 
     public ImhotepMetadataCache(ImhotepClient client, String disabledFields) {
@@ -84,7 +89,13 @@ public class ImhotepMetadataCache {
             }
             String url = "http://localhost:" + ports.get(0)+"/iql/";
  //            String url = "https://squall.ausprod.indeed.net/iql/";
-            metadataClient = ImsClient.build(url);
+            if(IMSEnabled) {
+                metadataClient = ImsClient.build(url);
+            } else {
+                metadataClient = null;
+                log.info("IMS disabled by the ims.enabled setting");
+            }
+
         } catch (URISyntaxException e) {
                 log.error("Failed to connect to the metadata service",e);
         }
@@ -146,51 +157,52 @@ public class ImhotepMetadataCache {
         }
         log.trace("Metadata loaded from Imhotep. Querying IMS");
 
-//       now load the metadata from the IMS
-        try {
-            DatasetYaml[] datasetYamls = metadataClient.getDatasets();
-            log.trace("Got metadata for " + datasetYamls.length + " datasets from IMS");
-            for (final DatasetYaml datasetYaml : datasetYamls) {
-                if (newDatasets.containsKey(datasetYaml.getName())) {
-                    DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
-                    newDataset.setDescription(datasetYaml.getDescription());
+        if(metadataClient != null) {
+            // now load the metadata from the IMS
+            try {
+                DatasetYaml[] datasetYamls = metadataClient.getDatasets();
+                log.trace("Got metadata for " + datasetYamls.length + " datasets from IMS");
+                for (final DatasetYaml datasetYaml : datasetYamls) {
+                    if (newDatasets.containsKey(datasetYaml.getName())) {
+                        DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
+                        newDataset.setDescription(datasetYaml.getDescription());
 
-                    FieldsYaml[] fieldsYamls = datasetYaml.getFields();
-                    for (FieldsYaml fieldYaml : fieldsYamls) {
-                        FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
-                        if (fieldMetadata != null) {
-                            fieldMetadata.setDescription(fieldYaml.getDescription());
-                            fieldMetadata.setHidden(fieldYaml.getHidden());
-                            fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
+                        FieldsYaml[] fieldsYamls = datasetYaml.getFields();
+                        for (FieldsYaml fieldYaml : fieldsYamls) {
+                            FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
+                            if (fieldMetadata != null) {
+                                fieldMetadata.setDescription(fieldYaml.getDescription());
+                                fieldMetadata.setHidden(fieldYaml.getHidden());
+                                fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
 
-                        }
-                    }
-                    MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
-                    Map<String, MetricMetadata> metrics = newDataset.getMetrics();
-                    for (MetricsYaml metricYaml : metricsYamls) {
-                        final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
-                        metrics.put(metricYaml.getName(), metricMetadata);
-                        // try to reuse the metric description on the field it describes
-                        final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
-                        if (relatedField != null) {
-                            if (Strings.isNullOrEmpty(metricMetadata.getExpression())) {
-                                // Having a metric defined with the same name is a marker we use
-                                // for fields that should be treated as Integer
-                                relatedField.setType(FieldType.Integer);
                             }
-                            if (Strings.isNullOrEmpty(metricMetadata.getExpression()) &&
-                                    !Strings.isNullOrEmpty(metricMetadata.getDescription()) &&
-                                    Strings.isNullOrEmpty(relatedField.getDescription())) {
+                        }
+                        MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
+                        Map<String, MetricMetadata> metrics = newDataset.getMetrics();
+                        for (MetricsYaml metricYaml : metricsYamls) {
+                            final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
+                            metrics.put(metricYaml.getName(), metricMetadata);
+                            // try to reuse the metric description on the field it describes
+                            final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
+                            if (relatedField != null) {
+                                if (Strings.isNullOrEmpty(metricMetadata.getExpression())) {
+                                    // Having a metric defined with the same name is a marker we use
+                                    // for fields that should be treated as Integer
+                                    relatedField.setType(FieldType.Integer);
+                                }
+                                if (Strings.isNullOrEmpty(metricMetadata.getExpression()) &&
+                                        !Strings.isNullOrEmpty(metricMetadata.getDescription()) &&
+                                        Strings.isNullOrEmpty(relatedField.getDescription())) {
 
-                                relatedField.setDescription(metricMetadata.getDescription());
+                                    relatedField.setDescription(metricMetadata.getDescription());
+                                }
                             }
                         }
                     }
                 }
+            } catch (Exception e) {
+                log.error("An error occurred when receiving metadata from IMS", e);
             }
-        }
-        catch (Exception e){
-            log.error("An error occurred when receiving metadata from IMS", e);
         }
 
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
