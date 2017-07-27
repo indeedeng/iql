@@ -355,6 +355,18 @@ public class PrettyPrint {
                 pp(groupByPredicate.docFilter);
                 return null;
             }
+
+            @Override
+            public Void visit(GroupBy.GroupByRandom groupByRandom) throws RuntimeException {
+                sb.append("random(")
+                        .append(getText(groupByRandom.field))
+                        .append(", ")
+                        .append(groupByRandom.k)
+                        .append(", \"")
+                        .append(groupByRandom.salt)
+                        .append('"');
+                return null;
+            }
         });
 
         appendCommentAfterText(groupBy, sb);
