@@ -80,6 +80,7 @@ EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
+RANDOM: 'RANDOM' ;
 M: 'M' ;
 Y : 'Y' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
@@ -121,7 +122,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT | BOOTSTRAP
+    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM
     | M | Y | TODAYS | TOMRROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN
@@ -400,6 +401,7 @@ groupByElement [boolean useLegacy]
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
+    | {!$ctx.useLegacy}? RANDOM '(' field=identifier ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupBy
     ;
 
 // TODO: Make TOPTERMS a valid identifier

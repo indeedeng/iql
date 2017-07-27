@@ -31,6 +31,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupBySessionName groupBySessionName) throws E;
         T visit(GroupByQuantiles groupByQuantiles) throws E;
         T visit(GroupByPredicate groupByPredicate) throws E;
+        T visit(GroupByRandom groupByRandom) throws E;
     }
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
@@ -795,6 +796,72 @@ public abstract class GroupBy extends AbstractPositional {
         public String toString() {
             return "GroupByPredicate{" +
                     "docFilter=" + docFilter +
+                    '}';
+        }
+    }
+
+    public static class GroupByRandom extends GroupBy {
+        public final Positioned<String> field;
+        public final int k;
+        public final String salt;
+
+        public GroupByRandom(Positioned<String> field, int k, String salt) {
+            this.field = field;
+            this.k = k;
+            this.salt = salt;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(Set<String> scope) {
+            return new ExecutionStep.ExplodeRandom(field.unwrap(), k, salt);
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupByRandom that = (GroupByRandom) o;
+            return k == that.k &&
+                    com.google.common.base.Objects.equal(field, that.field) &&
+                    com.google.common.base.Objects.equal(salt, that.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(field, k, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByRandom{" +
+                    "field=" + field +
+                    ", k=" + k +
+                    ", salt='" + salt + '\'' +
                     '}';
         }
     }

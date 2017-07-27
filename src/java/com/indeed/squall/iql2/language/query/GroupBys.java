@@ -284,6 +284,15 @@ public class GroupBys {
                 final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, null, warn, clock);
                 accept(new GroupBy.GroupByPredicate(filter));
             }
+
+            @Override
+            public void enterRandomGroupBy(JQLParser.RandomGroupByContext ctx) {
+                final Positioned<String> field = parseIdentifier(ctx.field);
+                final int k = Integer.parseInt(ctx.k.getText());
+                final String salt = ParserCommon.unquote(ctx.salt.getText());
+
+                accept(new GroupBy.GroupByRandom(field, k, salt));
+            }
         });
 
         if (ref[0] == null) {

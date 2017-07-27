@@ -698,4 +698,35 @@ public interface ExecutionStep {
                     '}';
         }
     }
+
+    class ExplodeRandom implements ExecutionStep {
+        private final String field;
+        private final int k;
+        private final String salt;
+
+        public ExplodeRandom(String field, int k, String salt) {
+            this.field = field;
+            this.k = k;
+            this.salt = salt;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.singletonList(new com.indeed.squall.iql2.language.commands.ExplodeRandom(field, k, salt));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeRandom{" +
+                    "field='" + field + '\'' +
+                    ", k=" + k +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
 }
