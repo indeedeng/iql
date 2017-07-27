@@ -22,6 +22,7 @@ import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodePerGroup;
+import com.indeed.squall.iql2.execution.commands.ExplodeRandom;
 import com.indeed.squall.iql2.execution.commands.ExplodeSessionNames;
 import com.indeed.squall.iql2.execution.commands.ExplodeTimeBuckets;
 import com.indeed.squall.iql2.execution.commands.FilterDocs;
@@ -352,6 +353,12 @@ public class Commands {
                     }
                     return new StringRegroupFieldIn(field, stringTerms, withDefault);
                 }
+            }
+            case "explodeRandom": {
+                final String field = command.get("field").textValue();
+                final int k = command.get("k").intValue();
+                final String salt = command.get("salt").textValue();
+                return new ExplodeRandom(field, k, salt);
             }
         }
         throw new RuntimeException("oops:" + command);
