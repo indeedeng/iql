@@ -136,7 +136,6 @@ public class DimensionTest extends BasicTest {
             testIQL1(dataset, ImmutableList.of(ImmutableList.of()), query, options);
             Assert.fail(reason);
         } catch (IllegalArgumentException ex) {
-            System.out.println(ex.getMessage());
         }
 
     }
@@ -146,7 +145,6 @@ public class DimensionTest extends BasicTest {
             testIQL2(dataset, ImmutableList.of(ImmutableList.of()), query, options);
             Assert.fail(reason);
         } catch (IllegalArgumentException ex) {
-            System.out.println(ex.getMessage());
         }
 
     }
