@@ -289,8 +289,12 @@ public class GroupBys {
             public void enterRandomGroupBy(JQLParser.RandomGroupByContext ctx) {
                 final Positioned<String> field = parseIdentifier(ctx.field);
                 final int k = Integer.parseInt(ctx.k.getText());
-                final String salt = ParserCommon.unquote(ctx.salt.getText());
-
+                final String salt;
+                if (ctx.salt == null) {
+                    salt = "DEFAULT SALT";
+                } else {
+                    salt = ParserCommon.unquote(ctx.salt.getText());
+                }
                 accept(new GroupBy.GroupByRandom(field, k, salt));
             }
         });
