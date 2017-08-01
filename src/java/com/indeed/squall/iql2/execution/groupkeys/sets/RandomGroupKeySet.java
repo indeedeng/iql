@@ -28,7 +28,7 @@ public class RandomGroupKeySet implements GroupKeySet {
         if (group == 1) {
             return DefaultGroupKey.create("No term");
         }
-        return new IntTermGroupKey(group);
+        return new IntTermGroupKey(group - 1);
     }
 
     @Override
