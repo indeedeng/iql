@@ -23,6 +23,9 @@ public class ExplodeRandom implements Command, JsonSerializable {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
+        for (final String dataset : validationHelper.datasets()) {
+            validationHelper.containsField(dataset, field);
+        }
     }
 
     @Override
