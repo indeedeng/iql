@@ -36,9 +36,9 @@ public class ExplodeRandom implements Command {
         for (int i = 0; i < k - 1; i++) {
             final double end = ((double)(i + 1)) / k;
             percentages[i] = end;
-            resultGroups[i] = i + 1;
+            resultGroups[i] = i + 2;
         }
-        resultGroups[k - 1] = k;
+        resultGroups[k - 1] = k + 1;
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
@@ -48,6 +48,6 @@ public class ExplodeRandom implements Command {
             }
         });
 
-        session.assumeDense(new RandomGroupKeySet(session.groupKeySet, k));
+        session.assumeDense(new RandomGroupKeySet(session.groupKeySet, k + 1));
     }
 }

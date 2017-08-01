@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.groupkeys.sets;
 
+import com.indeed.squall.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.IntTermGroupKey;
 
@@ -24,6 +25,9 @@ public class RandomGroupKeySet implements GroupKeySet {
 
     @Override
     public GroupKey groupKey(int group) {
+        if (group == 1) {
+            return DefaultGroupKey.create("No term");
+        }
         return new IntTermGroupKey(group);
     }
 
