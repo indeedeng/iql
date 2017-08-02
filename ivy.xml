@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="1.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
+
+    <info organisation="indeed" module="iql2-language" status="integration"/>
+
+    <configurations defaultconfmapping="master->default(master)">
+        <conf name="master"/>
+        <conf name="test" extends="master"/>
+        <conf name="compile" extends="master"/>
+        <conf name="default" extends="master"/>
+        <conf name="runtime" extends="master"/>
+        <conf name="webapp" extends="master"/>
+        <conf name="developer" extends="master"/>
+    </configurations>
+
+    <publications>
+        <artifact name="iql2-language" type="jar" conf="master"/>
+    </publications>
+
+    <dependencies>
+        <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
+        <dependency org="indeed" name="common-util" rev="${common-util.version}"/>
+        <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
+
+        <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="${jackson.version}"/>
+        <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="${jackson.version}"/>
+
+        <dependency org="apache" name="log4j" rev="${log4j.version}"/>
+        <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
+        <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
+        <dependency org="google" name="guava" rev="${google-guava.version}"/>
+
+        <dependency org="junit" name="junit" rev="${junit.version}" conf="test->default"/>
+
+        <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
+    </dependencies>
+</ivy-module>
+
