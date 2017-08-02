@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project xmlns:ivy="antlib:org.apache.ivy.ant" name="iql2-language" default="compile" basedir=".">
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="iql2-server" default="compile" basedir=".">
     <property environment="env"/>
     <!-- cross-platform hack to get the host name -->
     <property name="env.HOSTNAME" value="${env.COMPUTERNAME}" />

@@ -3,7 +3,7 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:noNamespaceSchemaLocation="http://incubator.apache.org/ivy/schemas/ivy.xsd">
 
-    <info organisation="indeed" module="iql2-language" status="integration"/>
+    <info organisation="indeed" module="iql2-server" status="integration"/>
 
     <configurations defaultconfmapping="master->default(master)">
         <conf name="master"/>
@@ -15,10 +15,6 @@
         <conf name="developer" extends="master"/>
     </configurations>
 
-    <publications>
-        <artifact name="iql2-language" type="jar" conf="master"/>
-    </publications>
-
     <dependencies>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="common-util" rev="${common-util.version}"/>
@@ -29,6 +25,7 @@
 
         <dependency org="apache" name="log4j" rev="${log4j.version}"/>
         <dependency org="apache" name="commons-codec" rev="${commons-codec.version}"/>
+        <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"/>
         <dependency org="lucene" name="lucene" rev="${lucene.version}"/>
         <dependency org="google" name="guava" rev="${google-guava.version}"/>
 
@@ -37,4 +34,3 @@
         <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
     </dependencies>
 </ivy-module>
-
