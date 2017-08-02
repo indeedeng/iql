@@ -1,9 +1,13 @@
 thirdparty-repo-opt-in=true
 protobuf.version=2.5.0
 
-coverage.line.minimum_pct=3
-coverage.method.minimum_pct=3
-coverage.block.minimum_pct=3
-coverage.class.minimum_pct=3
+indeed.current.version=4
+indeed.next.version=5
+spring.version=4.3.8.RELEASE
+
+coverage.line.minimum_pct=15
+coverage.method.minimum_pct=15
+coverage.block.minimum_pct=15
+coverage.class.minimum_pct=15
 
 use.gradle.resolver=true
