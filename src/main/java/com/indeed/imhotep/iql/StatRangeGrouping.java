@@ -17,6 +17,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
@@ -41,10 +42,13 @@ public final class StatRangeGrouping extends Grouping {
     private final boolean isTimeGrouping;
     private final long expectedBucketCount;
     private final DecimalFormat df = new DecimalFormat("###,###");
+    private final Limits limits;
 
 
     public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize,
-                             final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping) {
+                             final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping,
+                             final Limits limits) {
+        this.limits = limits;
         if(intervalSize <= 0) {
             throw new IllegalArgumentException("Bucket size has to be positive for stat: " + stat.toString());
         }
@@ -57,9 +61,9 @@ public final class StatRangeGrouping extends Grouping {
         this.isTimeGrouping = isTimeGrouping;
 
         expectedBucketCount = (maxValue - minValue) / intervalSize;
-        if(expectedBucketCount > EZImhotepSession.GROUP_LIMIT || expectedBucketCount < 0) {
+        if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
             throw new IllegalArgumentException("Requested bucket count for metric " + this.stat.toString() +
-                    " is " + df.format(expectedBucketCount) + " which is over the limit of " + df.format(EZImhotepSession.GROUP_LIMIT));
+                    " is " + df.format(expectedBucketCount) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit));
         }
     }
 
@@ -68,9 +72,9 @@ public final class StatRangeGrouping extends Grouping {
             return groupKeys;
         }
         final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
-        if(expectedNumberOfRows > EZImhotepSession.GROUP_LIMIT || expectedNumberOfRows < 0) {
+        if(!limits.satisfiesQueryInMemoryRowsLimit(expectedNumberOfRows) || expectedNumberOfRows < 0) {
             throw new IllegalArgumentException("Expected number of rows after bucketing by " + this.stat.toString() +
-                    " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(EZImhotepSession.GROUP_LIMIT) +
+                    " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit) +
                     " rows in memory. Please optimize the query.");
         }
 
