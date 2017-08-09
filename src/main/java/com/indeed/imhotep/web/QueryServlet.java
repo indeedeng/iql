@@ -19,12 +19,10 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
-import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.SelectExecutionStats;
@@ -60,6 +58,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -76,9 +75,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -116,9 +112,6 @@ public class QueryServlet {
     private final QueryCache queryCache;
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
-    private final long imhotepLocalTempFileSizeLimit;
-    private final long imhotepDaemonTempFileSizeLimit;
-    private final long docCountLimit;
     private final AccessControl accessControl;
 
     @Autowired
@@ -129,10 +122,6 @@ public class QueryServlet {
                         QueryCache queryCache,
                         RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
-                        Integer rowLimit,
-                        Long imhotepLocalTempFileSizeLimit,
-                        Long imhotepDaemonTempFileSizeLimit,
-                        Long docCountLimit,
                         AccessControl accessControl) {
         this.imhotepClient = imhotepClient;
         this.imhotepInteractiveClient = imhotepInteractiveClient;
@@ -141,11 +130,7 @@ public class QueryServlet {
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
         this.executorService = executorService;
-        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
-        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
-        this.docCountLimit = docCountLimit;
         this.accessControl = accessControl;
-        EZImhotepSession.GROUP_LIMIT = rowLimit;
     }
 
     @RequestMapping("/query")
@@ -163,15 +148,22 @@ public class QueryServlet {
         SelectQuery selectQuery = null;
         try {
             if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
-                throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
+                throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
+                        "'client' is the name (e.g. class name) of the tool sending the request. " +
+                        "'username' is the LDAP name of the user that requested the query to be performed " +
+                        "or in case of automated tools the Google group of the team responsible for the tool.");
             }
             accessControl.checkAllowedAccess(userName);
+            final ClientInfo clientInfo = new ClientInfo(userName, client, accessControl.isMultiuserClient(client));
 
             parsedQuery = StatementParser.parse(query, metadata);
             if(parsedQuery instanceof SelectStatement) {
                 logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
 
-                selectQuery = new SelectQuery(runningQueriesManager, query, userName, client, new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
+                final Limits limits = accessControl.getLimitsForIdentity(userName, client);
+
+                selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits,
+                        new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
                 try {
                     selectQuery.lock(); // blocks and waits if necessary
 
@@ -209,6 +201,17 @@ public class QueryServlet {
                 }
                 logQuery(req, query, userName, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, selectQuery);
             } catch (Throwable ignored) { }
+        }
+    }
+
+    @RequestMapping("/private/updateLimits")
+    @ResponseBody
+    protected String updateLimits() {
+        try {
+            accessControl.updateLimits();
+            return "Limits reloaded from the DB";
+        } catch (Exception e) {
+            return "Update failed: " + e.toString();
         }
     }
     
@@ -291,7 +294,7 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
-                args.imhotepUserName, metadata, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, docCountLimit);
+                args.imhotepUserName, metadata, selectQuery.limits);
 
         selectExecutionStats.shardCount = iqlQuery.getShardVersionList().size();
 

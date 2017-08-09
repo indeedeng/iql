@@ -19,6 +19,7 @@ import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import com.indeed.imhotep.web.Limits;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;
@@ -37,12 +38,15 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
     private final List<Object> allTerms = Lists.newArrayList();
     private final Int2ObjectMap<Map<Object, double[]>> groupToTermsStats = new Int2ObjectOpenHashMap<Map<Object, double[]>>();
     private final int termLimit;
+    private final Limits limits;
 
-    public GroupingFTGSCallback(int numStats, List<StatReference> statRefs, Int2ObjectMap<GroupKey> groupKeys) {
+    public GroupingFTGSCallback(int numStats, List<StatReference> statRefs, Int2ObjectMap<GroupKey> groupKeys, Limits limits) {
         super(numStats);
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;
-        termLimit = EZImhotepSession.GROUP_LIMIT / Math.max(groupKeys.size(), 1);
+        termLimit = limits.queryInMemoryRowsLimit != null ?
+                limits.queryInMemoryRowsLimit / Math.max(groupKeys.size(), 1) : Integer.MAX_VALUE;
+        this.limits = limits;
     }
 
     protected void intTermGroup(final String field, final long term, final int group) {
@@ -60,7 +64,7 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
             allTerms.add(term); // got a new term. relying on terms being passed in sorted order
             if(allTermsCount > termLimit) {
                 throw new GroupLimitExceededException("Number of groups exceeds the limit " +
-                        new DecimalFormat("###,###").format(EZImhotepSession.GROUP_LIMIT) +
+                        new DecimalFormat("###,###").format(limits.queryInMemoryRowsLimit) +
                         ". Please simplify the query. " +
                         "Try adding [] suffix to non-first groupings to disable addition of 0 rows. (e.g. 'group by country, lang[]')");
             }

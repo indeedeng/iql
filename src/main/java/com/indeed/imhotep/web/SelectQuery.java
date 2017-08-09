@@ -36,27 +36,26 @@ public class SelectQuery implements Closeable {
     final String queryHash; // this hash doesn't include the shards so is different from the caching hash
     final String shortHash; // queryHash truncated
     final String queryStringTruncatedForPrint;
-    final String username;
-    final String client;
+    final ClientInfo clientInfo;
+    final Limits limits;
     final DateTime querySubmitTimestamp;
     final byte sessions = 1;    // imhotep sessions
     final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     final SelectStatement parsedStatement;
     IQLQuery iqlQuery;
-    boolean locked = false;
-//    final ExecutionManager.QueryTracker queryTracker;
+    private boolean locked = false;
     DateTime queryStartTimestamp;
-    final CountDownLatch waitLock = new CountDownLatch(1);
+    private final CountDownLatch waitLock = new CountDownLatch(1);
     private boolean asynchronousRelease = false;
     long id;
     private boolean closed = false;
 
 
-    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, String username, String client, DateTime querySubmitTimestamp, SelectStatement parsedStatement) {
+    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement) {
         this.runningQueriesManager = runningQueriesManager;
         this.queryString = queryString;
-        this.username = username;
-        this.client = client;
+        this.clientInfo = clientInfo;
+        this.limits = limits;
         this.querySubmitTimestamp = querySubmitTimestamp;
         this.parsedStatement = parsedStatement;
         this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(queryString).replaceAll("\\($1\\.\\.\\.\\)");
@@ -165,8 +164,8 @@ public class SelectQuery implements Closeable {
                 ", queryString='" + queryString + '\'' +
                 ", queryHash='" + queryHash + '\'' +
                 ", queryStringTruncatedForPrint='" + queryStringTruncatedForPrint + '\'' +
-                ", username='" + username + '\'' +
-                ", client='" + client + '\'' +
+                ", username='" + clientInfo.username + '\'' +
+                ", client='" + clientInfo.client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
                 ", selectExecutionStats=" + selectExecutionStats +
                 ", parsedStatement=" + parsedStatement +

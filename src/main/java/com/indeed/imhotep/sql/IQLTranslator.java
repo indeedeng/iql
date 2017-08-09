@@ -22,6 +22,7 @@ import com.indeed.imhotep.iql.DiffGrouping;
 import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.sql.ast.BinaryExpression;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
@@ -89,8 +90,7 @@ public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
     public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
-                                     long imhotepLocalTempFileSizeLimit, long imhotepDaemonTempFileSizeLimit,
-                                     long docCountLimit) {
+                                     Limits limits) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -121,7 +121,7 @@ public final class IQLTranslator {
         }
 
         final List<Grouping> groupings = Lists.newArrayList();
-        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit);
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit, limits);
         if (parse.groupBy != null) {
             for (Expression groupBy : parse.groupBy.groupings) {
                 groupings.add(groupBy.match(groupByMatcher));
@@ -135,15 +135,14 @@ public final class IQLTranslator {
             groupings.add(percentileGrouping);
         }
 
-        handleMultitermIn(conditions, groupings);
+        handleMultitermIn(conditions, groupings, limits);
 
-        handleDiffGrouping(groupings, stats);
+        handleDiffGrouping(groupings, stats, limits);
 
-        optimizeGroupings(groupings);
+        optimizeGroupings(groupings, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata, imhotepLocalTempFileSizeLimit,
-                imhotepDaemonTempFileSizeLimit, docCountLimit);
+                conditions, groupings, parse.limit, username, metadata, limits);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
@@ -157,14 +156,14 @@ public final class IQLTranslator {
         }
     }
 
-    private static void optimizeGroupings(List<Grouping> groupings) {
+    private static void optimizeGroupings(List<Grouping> groupings, Limits limits) {
         // if we have only one grouping we can safely disable exploding which allows us to stream the result
         if(groupings.size() == 1 && groupings.get(0) instanceof FieldGrouping) {
             FieldGrouping fieldGrouping = (FieldGrouping) groupings.get(0);
             if(!fieldGrouping.isNoExplode()
                     && !fieldGrouping.isTopK()
                     && !fieldGrouping.isTermSubset()) {
-                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true, fieldGrouping.getRowLimit()));
+                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true, fieldGrouping.getRowLimit(), limits));
             }
         }
     }
@@ -175,7 +174,7 @@ public final class IQLTranslator {
      * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
      * Modifies the passed in lists.
      */
-    static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings) {
+    static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings, Limits limits) {
         for(int i = 0; i < conditions.size(); i++) {
             Condition condition = conditions.get(i);
             if(! (condition instanceof StringInCondition)) {
@@ -201,7 +200,7 @@ public final class IQLTranslator {
                 }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
                 FieldGrouping fieldInGrouping = new FieldGrouping(field, fieldGrouping.isNoExplode(),
-                        Lists.newArrayList(inCondition.getValues()));
+                        Lists.newArrayList(inCondition.getValues()), limits);
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
                 groupings.set(j, fieldInGrouping);
@@ -215,7 +214,7 @@ public final class IQLTranslator {
      * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
      * Modifies the passed in lists.
      */
-    private static void handleDiffGrouping(List<Grouping> groupings, List<Stat> stats) {
+    private static void handleDiffGrouping(List<Grouping> groupings, List<Stat> stats, Limits limits) {
         for(int i = 0; i < groupings.size(); i++) {
             final Grouping grouping = groupings.get(i);
             if(!(grouping instanceof DiffGrouping)) {
@@ -243,7 +242,7 @@ public final class IQLTranslator {
             } else {
                 stats.add(stat2);
             }
-            groupings.set(i, new FieldGrouping(diff.getField(), diff.getTopK(), diffStat, false));
+            groupings.set(i, new FieldGrouping(diff.getField(), diff.getTopK(), diffStat, false, limits));
         }
     }
 
@@ -921,17 +920,20 @@ public final class IQLTranslator {
         private final DatasetMetadata datasetMetadata;
         private final DateTime start;
         private final DateTime end;
+        private final Limits limits;
         private final int rowLimit;
 
         private final StatMatcher statMatcher;
 
 
-        private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end, final int rowLimit) {
+        private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end,
+                               final int rowLimit, final Limits limits) {
             statMatcher = new StatMatcher(datasetMetadata);
             this.rowLimit = rowLimit;
             this.datasetMetadata = datasetMetadata;
             this.start = start;
             this.end = end;
+            this.limits = limits;
             final ImmutableMap.Builder<String, Function<List<Expression>, Grouping>> builder = ImmutableMap.builder();
             builder.put("topterms", new Function<List<Expression>, Grouping>() {
                 public Grouping apply(final List<Expression> input) {
@@ -955,7 +957,7 @@ public final class IQLTranslator {
                     }
 
                     final Field field = getField(fieldName, datasetMetadata);
-                    return new FieldGrouping(field, topK, stat, bottom);
+                    return new FieldGrouping(field, topK, stat, bottom, limits);
                 }
             });
 
@@ -987,7 +989,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier(), false);
+                                    new LongStringifier(), false, limits);
                         } else if (input.size() == 8) {
                             // DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each
                             final Stat xStat = input.get(0).match(statMatcher);
@@ -998,7 +1000,7 @@ public final class IQLTranslator {
                             final long yMin = parseLong(input.get(5));
                             final long yMax = parseLong(input.get(6));
                             final long yInterval = parseTimeBucketInterval(getStr(input.get(7)), false, 0, 0);
-                            return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval);
+                            return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval, limits);
                         } else {
                             throw new IllegalArgumentException("buckets() takes 4 or 5 arguments: stat, min(long), max(long), bucket_size(long), [noGutters(boolean)]");
                         }
@@ -1050,7 +1052,7 @@ public final class IQLTranslator {
                 // TODO: time field inference?
                 stat = intField(datasetMetadata.getTimeFieldName());
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, limits);
         }
 
 
@@ -1162,7 +1164,7 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
-            return new FieldGrouping(field, true, rowLimit);
+            return new FieldGrouping(field, true, rowLimit, limits);
         }
 
         @Override
@@ -1197,7 +1199,7 @@ public final class IQLTranslator {
                         terms.add(getStr(expression));
                     }
                     final Field field = getField(name.name, datasetMetadata);
-                    return new FieldGrouping(field, true, terms);
+                    return new FieldGrouping(field, true, terms, limits);
                 }
                 default:
                     throw new UnsupportedOperationException();
@@ -1261,7 +1263,7 @@ public final class IQLTranslator {
             if(arg == null || arg.trim().isEmpty()) {
                 // treat as a request to get all terms but not explode
                 final Field field = getField(fieldName, datasetMetadata);
-                return new FieldGrouping(field, true, rowLimit);
+                return new FieldGrouping(field, true, rowLimit, limits);
             }
 
             Pattern topTermsPattern = Pattern.compile("\\s*(?:(top|bottom)\\s+)?(\\d+)\\s*(?:\\s*(?:by|,)\\s*(.+))?\\s*");
@@ -1288,7 +1290,7 @@ public final class IQLTranslator {
             final boolean bottom = "bottom".equals(matcher.group(1));
 
             final Field field = getField(fieldName, datasetMetadata);
-            return new FieldGrouping(field, topK, stat, bottom);
+            return new FieldGrouping(field, topK, stat, bottom, limits);
         }
     }
 

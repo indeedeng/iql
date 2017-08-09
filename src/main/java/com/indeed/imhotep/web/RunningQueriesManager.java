@@ -2,7 +2,6 @@ package com.indeed.imhotep.web;
 
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
@@ -18,12 +17,6 @@ public class RunningQueriesManager {
     private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
 
     public List<RunningQuery> lastDaemonRunningQueries;
-
-    @Value("${user.concurrent.query.limit}")
-    private int maxQueriesPerUser;
-    @Value("${user.concurrent.imhotep.sessions.limit}")
-    private byte maxSessionsPerUser;
-
 
     public RunningQueriesManager(IQLDB iqldb) {
         this.iqldb = iqldb;
@@ -52,7 +45,7 @@ public class RunningQueriesManager {
                     log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
                     final List<SelectQuery> queriesStarted =
-                            iqldb.tryStartPendingQueries(queriesWaiting, maxQueriesPerUser, maxSessionsPerUser);
+                            iqldb.tryStartPendingQueries(queriesWaiting);
 
                     for(SelectQuery startedQuery: queriesStarted) {
                         startedQuery.onStarted();

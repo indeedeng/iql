@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.HasSessionId;
@@ -78,24 +79,17 @@ public final class IQLQuery implements Closeable {
     private final List<Grouping> groupings;
     private final int rowLimit;
     private final ImhotepMetadataCache metadata;
-    private final long docCountLimit;
     private final List<ShardIdWithVersion> shardVersionList;
     private final List<Interval> timeIntervalsMissingShards;
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
+    private final Limits limits;
     // session used for the current execution
     private EZImhotepSession session;
 
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, ImhotepMetadataCache metadata) {
-        this(client, stats, dataset, start, end, conditions, groupings, rowLimit, username, metadata, -1, -1, 0);
-    }
-
-    public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
-                    final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, ImhotepMetadataCache metadata, final long imhotepLocalTempFileSizeLimit,
-                    final long imhotepDaemonTempFileSizeLimit, final long docCountLimit) {
+                    final String username, ImhotepMetadataCache metadata, final Limits limits) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -104,17 +98,25 @@ public final class IQLQuery implements Closeable {
         this.groupings = groupings;
         this.rowLimit = rowLimit;
         this.metadata = metadata;
-        this.docCountLimit = docCountLimit;
+        this.limits = limits;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
-                .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
-                .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit).username(username).clientName("IQL");
+                .localTempFileSizeLimit(mbToBytes(limits.queryFTGSIQLLimitMB))
+                .daemonTempFileSizeLimit(mbToBytes(limits.queryFTGSImhotepDaemonLimitMB)).username(username).clientName("IQL");
         shardVersionList = sessionBuilder.getChosenShards();
         shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
 
         timeIntervalsMissingShards = sessionBuilder.getTimeIntervalsMissingShards();
     }
+
+    private Long mbToBytes(Integer megabytes) {
+        if(megabytes == null) {
+            return 0L;
+        }
+        return megabytes <= 0 ? (long)megabytes : (long)megabytes * 1024 * 1024;
+    }
+
 
     /**
      * Not thread safe due to session reference caching for close().
@@ -127,13 +129,13 @@ public final class IQLQuery implements Closeable {
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
-        session = new EZImhotepSession(imhotepSession);
+        session = new EZImhotepSession(imhotepSession, limits);
 
         final long numDocs = imhotepSession.getNumDocs();
-        if (docCountLimit > 0 && numDocs > docCountLimit) {
+        if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
             DecimalFormat df = new DecimalFormat("###,###");
             throw new DocumentsLimitExceededException("The query on " + df.format(numDocs) +
-                    " documents exceeds the limit of " + df.format(docCountLimit) + ". Please reduce the time range.");
+                    " documents exceeds the limit of " + df.format(limits.queryDocumentCountLimitBillions * 1_000_000_000L) + ". Please reduce the time range.");
         }
         selectExecutionStats.numDocs = numDocs;
         final String imhotepSessionId;

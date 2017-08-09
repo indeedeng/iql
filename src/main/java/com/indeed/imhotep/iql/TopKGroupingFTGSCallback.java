@@ -14,9 +14,8 @@
  package com.indeed.imhotep.iql;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.indeed.imhotep.exceptions.GroupLimitExceededException;
-import com.indeed.util.core.Pair;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
@@ -26,7 +25,6 @@ import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -39,6 +37,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
 
     private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<GroupStats>>>();
     private final Comparator<ScoredObject> comparator;
+    private final Limits limits;
     private final int topK;
     private final boolean isBottom;
     private final StatReference countStat;
@@ -47,7 +46,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
     private int newGroupCount = 0;
 
     public TopKGroupingFTGSCallback(final int numStats, int topK, StatReference countStat, List<StatReference> statRefs,
-                                    Int2ObjectMap<GroupKey> groupKeys, boolean isBottom) {
+                                    Int2ObjectMap<GroupKey> groupKeys, boolean isBottom, Limits limits) {
         super(numStats);
         this.topK = topK;
         this.isBottom = isBottom;
@@ -56,6 +55,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.groupKeys = groupKeys;
 
         this.comparator = isBottom ? ScoredObject.BOTTOM_SCORE_COMPARATOR : ScoredObject.TOP_SCORE_COMPARATOR;
+        this.limits = limits;
     }
 
     protected void intTermGroup(final String field, final long term, final int group) {
@@ -76,9 +76,9 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         if (topTerms.size() < topK) {
             topTerms.add(getStats(count, group, term));
 
-            if(++newGroupCount > EZImhotepSession.GROUP_LIMIT) {
+            if(!limits.satisfiesQueryInMemoryRowsLimit(++newGroupCount)) {
                 throw new GroupLimitExceededException("Number of groups exceeds the limit " +
-                        new DecimalFormat("###,###").format(EZImhotepSession.GROUP_LIMIT) +
+                        new DecimalFormat("###,###").format(limits.queryInMemoryRowsLimit) +
                         ". Please simplify the query.");
             }
         } else {

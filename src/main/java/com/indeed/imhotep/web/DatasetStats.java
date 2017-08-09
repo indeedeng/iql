@@ -1,6 +1,8 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -9,6 +11,7 @@ import org.joda.time.format.DateTimeFormatter;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author vladimir
@@ -19,6 +22,8 @@ public class DatasetStats {
     public int numShards;
     public int numStrFields;
     public int numIntFields;
+    @JsonIgnore
+    public Set<String> typeConflictFields = Sets.newHashSet();
     public int numTypeConflictFields;
     public long numDocs;
     public long lastShardNumDocs;

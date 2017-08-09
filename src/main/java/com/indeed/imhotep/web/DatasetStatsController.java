@@ -1,5 +1,8 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author vladimir
@@ -33,6 +37,12 @@ public class DatasetStatsController {
     @RequestMapping(value = "/datasetstats", produces = "application/json")
     @ResponseBody
     public List<DatasetStats> doGet() {
+        updateDatasetStatsCache();
+
+        return cached;
+    }
+
+    private synchronized void updateDatasetStatsCache() {
         if(cached == null || DateTime.now().isAfter(lastCacheUpdate.plus(CACHE_EXPIRATION))) {
             long computationStartTime = System.currentTimeMillis();
             cached = DatasetStatsCollector.computeStats(imhotepClient);
@@ -40,7 +50,29 @@ public class DatasetStatsController {
             long timeTaken = System.currentTimeMillis() - computationStartTime;
             log.info("Computed Imhotep datasets stats in " + timeTaken + " ms. Cached for " + CACHE_EXPIRATION);
         }
+    }
 
-        return cached;
+    @RequestMapping(value = "/typeconflictfields", produces = "application/json")
+    @ResponseBody
+    public String getTypeConflictFields() throws JsonProcessingException {
+        updateDatasetStatsCache();
+        final List<DatasetTypeConflictFields> result = Lists.newArrayList();
+        for(DatasetStats stats : cached) {
+            if(stats.numTypeConflictFields > 0) {
+                result.add(new DatasetTypeConflictFields(stats.name, stats.typeConflictFields));
+            }
+        }
+        final ObjectMapper mapper = new ObjectMapper();
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
+    }
+
+    private static class DatasetTypeConflictFields {
+        public String dataset;
+        public Set<String> fields;
+
+        public DatasetTypeConflictFields(String dataset, Set<String> fields) {
+            this.dataset = dataset;
+            this.fields = fields;
+        }
     }
 }

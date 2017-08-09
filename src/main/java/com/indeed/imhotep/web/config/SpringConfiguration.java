@@ -27,6 +27,7 @@ import com.indeed.imhotep.web.DataSourceLoader;
 import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryServlet;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
@@ -170,7 +171,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public Long imhotepDaemonTempFileSizeLimit() {
-        return mbToBytes(env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Long.class, -1l));
+        return mbToBytes(env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Long.class, -1L));
     }
 
     private Long mbToBytes(Long megabytes) {
@@ -179,14 +180,30 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public Long docCountLimit() {
-        return env.getProperty("query.document.count.limit", Long.class, 0l);
+        return env.getProperty("query.document.count.limit", Long.class, 0L);
     }
 
     @Bean
     public AccessControl accessControl() {
         @SuppressWarnings("unchecked")
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
-        return new AccessControl(bannedUserList);
+        @SuppressWarnings("unchecked")
+        final List<String> multiuserClients = (List<String>)env.getProperty("multiuser.clients", List.class, Collections.emptyList());
+
+        return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits());
+    }
+
+    private Limits getDefaultLimits() {
+        final Long queryDocumentCountLimit = env.getProperty("query.document.count.limit", Long.class);
+        return new Limits(
+                queryDocumentCountLimit != null ? (int) (queryDocumentCountLimit / 1_000_000_000) : null,
+                env.getProperty("row.limit", Integer.class),
+                env.getProperty("imhotep.local.temp.file.size.mb.limit", Integer.class),
+                env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Integer.class),
+                env.getProperty("user.concurrent.query.limit", Integer.class),
+                env.getProperty("user.concurrent.imhotep.sessions.limit", Integer.class)
+
+        );
     }
 
     @Bean

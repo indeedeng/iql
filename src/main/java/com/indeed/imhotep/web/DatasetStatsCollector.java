@@ -34,8 +34,9 @@ public class DatasetStatsCollector {
             stats.name = datasetInfo.getDataset();
             stats.numIntFields = datasetInfo.getIntFields().size();
             stats.numStrFields = datasetInfo.getStringFields().size();
-            stats.numTypeConflictFields = Sets.intersection(new HashSet<>(datasetInfo.getIntFields()),
-                    new HashSet<>(datasetInfo.getStringFields())).size();
+            stats.typeConflictFields = Sets.intersection(new HashSet<>(datasetInfo.getIntFields()),
+                    new HashSet<>(datasetInfo.getStringFields()));
+            stats.numTypeConflictFields = stats.typeConflictFields.size();
             long lastShardTimestamp = 0;
             long firstShardTimestamp = Long.MAX_VALUE;
             long lastShardNumDocs = 0;

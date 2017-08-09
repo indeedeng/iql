@@ -17,9 +17,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
-import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.imhotep.web.Limits;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
@@ -46,7 +46,6 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
-import java.text.DecimalFormat;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,17 +79,18 @@ import static com.indeed.imhotep.ez.Stats.requireValid;
  */
 public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
-    public static int GROUP_LIMIT = 1000000;    // 1 mil
 
     private final ImhotepSession session;
     private final Deque<StatReference> statStack = new ArrayDeque<StatReference>();
     private final Map<String, DynamicMetric> dynamicMetrics = Maps.newHashMap();
+    private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
     private boolean closed = false;
 
-    public EZImhotepSession(ImhotepSession session) {
+    public EZImhotepSession(ImhotepSession session, Limits limits) {
         this.session = session;
+        this.limits = limits;
     }
 
     public StatReference pushStatGeneric(Stat stat) throws ImhotepOutOfMemoryException {
@@ -530,15 +530,7 @@ public class EZImhotepSession implements Closeable {
 
     private void checkGroupLimitWithFactor(int factor) {
         final double newNumGroups = (double)(numGroups-1) * factor;
-        checkGroupLimit(newNumGroups);
-    }
-
-    private static void checkGroupLimit(double newNumGroups) {
-        if(newNumGroups > GROUP_LIMIT) {
-            DecimalFormat df = new DecimalFormat("###,###");
-            throw new GroupLimitExceededException("Number of groups " + df.format(newNumGroups) + " exceeds the limit " + df.format(GROUP_LIMIT)+
-                    ". Please simplify the query.");
-        }
+        limits.assertQueryInMemoryRowsLimit(newNumGroups);
     }
 
     public @Nullable Int2ObjectMap<GroupKey> splitAll(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
@@ -604,7 +596,7 @@ public class EZImhotepSession implements Closeable {
         for (final Collection termsForGroup : groupToTerms.values()) {
             newNumGroups += termsForGroup.size();
         }
-        checkGroupLimit(newNumGroups);
+        limits.assertQueryInMemoryRowsLimit(newNumGroups);
         return newNumGroups;
     }
 
@@ -818,15 +810,17 @@ public class EZImhotepSession implements Closeable {
 
         final Int2ObjectMap<LongList> intTermListsMap = new Int2ObjectOpenHashMap<LongList>();
         final Int2ObjectMap<List<String>> stringTermListsMap = new Int2ObjectOpenHashMap<List<String>>();
+        private final Limits limits;
         private int rowCount = 0;
 
 
-        public GetGroupTermsCallback(final int numStats) {
+        public GetGroupTermsCallback(final int numStats, final Limits limits) {
             super(numStats);
+            this.limits = limits;
         }
 
         public void intTermGroup(final String field, final long term, int group) {
-            checkGroupLimit(rowCount++);
+            limits.assertQueryInMemoryRowsLimit(rowCount++);
             if (!intTermListsMap.containsKey(group)) {
                 intTermListsMap.put(group, new LongArrayList());
             }
@@ -834,7 +828,7 @@ public class EZImhotepSession implements Closeable {
         }
 
         public void stringTermGroup(final String field, final String term, int group) {
-            checkGroupLimit(rowCount++);
+            limits.assertQueryInMemoryRowsLimit(rowCount++);
             if (!stringTermListsMap.containsKey(group)) {
                 stringTermListsMap.put(group, Lists.<String>newArrayList());
             }
@@ -843,13 +837,13 @@ public class EZImhotepSession implements Closeable {
     }
 
     private Int2ObjectMap<List<String>> getStringGroupTerms(StringField field, int termLimit) {
-        final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth);
+        final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
         ftgsIterate(Arrays.asList((Field) field), callback, termLimit);
         return callback.stringTermListsMap;
     }
 
     private Int2ObjectMap<LongList> getIntGroupTerms(IntField field, int termLimit) {
-        final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth);
+        final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
         ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.intTermListsMap;
     }
@@ -928,10 +922,6 @@ public class EZImhotepSession implements Closeable {
         return callback.intTermListsMap;
     }
 
-    public static void filter(StringField field, String[] terms, ImhotepSession session) throws ImhotepOutOfMemoryException {
-        new EZImhotepSession(session).filter(field, terms);
-    }
-
     private static final class FieldTermsCallback extends FTGSCallback {
 
         final LongList intTerms = new LongArrayList();
@@ -974,13 +964,13 @@ public class EZImhotepSession implements Closeable {
     }
     public LongList intFieldTerms(IntField field, ImhotepSession session, @Nullable Predicate<Long> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
         final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, filterPredicate, null);
-        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
+        new EZImhotepSession(session, limits).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.intTerms;
     }
 
     public List<String> stringFieldTerms(StringField field, ImhotepSession session, @Nullable Predicate<String> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
         final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, null, filterPredicate);
-        new EZImhotepSession(session).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
+        new EZImhotepSession(session, limits).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
         return callback.stringTerms;
     }
 

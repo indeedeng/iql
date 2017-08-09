@@ -23,6 +23,7 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import com.indeed.imhotep.web.Limits;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
@@ -50,37 +51,22 @@ public final class FieldGrouping extends Grouping {
     private final boolean isBottom;
     private final boolean noExplode;
     private final ArrayList<String> termSubset;
+    private final Limits limits;
     private final int rowLimit;
 
-    public FieldGrouping(final Field field) {
-        this(field, 0);
+    public FieldGrouping(final Field field, final boolean noExplode, int rowLimit, Limits limits) {
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList(), rowLimit, limits);
     }
 
-    public FieldGrouping(final Field field, final boolean noExplode, int rowLimit) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList(), rowLimit);
+    public FieldGrouping(final Field field, boolean noExplode, List<String> termSubset, Limits limits) {
+        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset, 0, limits);
     }
 
-    public FieldGrouping(final Field field, boolean noExplode, List<String> termSubset) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset, 0);
+    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, Limits limits) {
+        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList(), 0, limits);
     }
 
-    public FieldGrouping(final Field field, int topK) {
-        this(field, topK, false);
-    }
-
-    public FieldGrouping(final Field field, int topK, boolean isBottom) {
-        this(field, topK, DEFAULT_SORT_STAT, isBottom);
-    }
-
-    public FieldGrouping(final Field field, int topK, Stat sortStat) {
-        this(field, topK, sortStat, false);
-    }
-
-    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom) {
-        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList(), 0);
-    }
-
-    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset, int rowLimit) {
+    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset, int rowLimit, Limits limits) {
         this.field = field;
         this.topK = topK;
         this.sortStat = sortStat;
@@ -89,11 +75,12 @@ public final class FieldGrouping extends Grouping {
         this.rowLimit = rowLimit;
         // remove duplicated terms as it makes Imhotep complain
         this.termSubset = Lists.newArrayList(Sets.newLinkedHashSet(termSubset));
+        this.limits = limits;
         // validation
-        if(topK > EZImhotepSession.GROUP_LIMIT) {
+        if(!limits.satisfiesQueryInMemoryRowsLimit(topK)) {
             DecimalFormat df = new DecimalFormat("###,###");
             throw new GroupLimitExceededException("Number of requested top terms (" + df.format(topK) + ") for field " +
-                    field.getFieldName() + " exceeds the limit (" + df.format(EZImhotepSession.GROUP_LIMIT) +
+                    field.getFieldName() + " exceeds the limit (" + df.format(limits.queryInMemoryRowsLimit) +
                     "). Please simplify the query.");
         }
     }
@@ -135,7 +122,7 @@ public final class FieldGrouping extends Grouping {
         if (topK > 0) {
             //TODO have some way of not potentially pushing counts() twice
             final StatReference countStat = session.pushStatGeneric(sortStat);
-            final TopKGroupingFTGSCallback callback = new TopKGroupingFTGSCallback(session.getStackDepth(), topK, countStat, statRefs, groupKeys, isBottom);
+            final TopKGroupingFTGSCallback callback = new TopKGroupingFTGSCallback(session.getStackDepth(), topK, countStat, statRefs, groupKeys, isBottom, limits);
             session.ftgsIterate(Arrays.asList(field), callback);
             return callback.getResults().iterator();
         } else if(noExplode) {
@@ -148,7 +135,7 @@ public final class FieldGrouping extends Grouping {
                 return session.ftgsGetSubsetIterator(fieldsToTermsSubsets, callback);
             }
         } else {
-            final GroupingFTGSCallback callback = new GroupingFTGSCallback(session.getStackDepth(), statRefs, groupKeys);
+            final GroupingFTGSCallback callback = new GroupingFTGSCallback(session.getStackDepth(), statRefs, groupKeys, limits);
             if(!isTermSubset()) {
                 session.ftgsIterate(Arrays.asList(field), callback);
             } else {
