@@ -71,11 +71,9 @@ public class ImhotepMetadataCache {
     private final List<Pattern> disabledFields = Lists.newArrayList();
     @Nullable
     private ImsClientInterface metadataClient;
-    @Value("${ims.enabled:true}")
-    private boolean IMSEnabled;
 
 
-    public ImhotepMetadataCache(ImhotepClient client, String disabledFields) {
+    public ImhotepMetadataCache(ImhotepClient client, String disabledFields, boolean imsEnabled) {
         imhotepClient = client;
         try {
             ///A way to get the port from tomcat without a request
@@ -89,7 +87,7 @@ public class ImhotepMetadataCache {
             }
             String url = "http://localhost:" + ports.get(0)+"/iql/";
  //            String url = "https://squall.ausprod.indeed.net/iql/";
-            if(IMSEnabled) {
+            if(imsEnabled) {
                 metadataClient = ImsClient.build(url);
             } else {
                 metadataClient = null;
