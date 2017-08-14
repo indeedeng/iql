@@ -1,5 +1,6 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.joda.time.DateTime;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -17,19 +18,21 @@ public class RunningQuery {
     public final String username;
     public final String client;
     public final DateTime submitTime;
-    public final DateTime executionStartTime;
+    public final DateTime startedTime;
     public final String hostname;
+    @JsonIgnore
     public final byte sessions;
+    @JsonIgnore
     public final boolean killed;
 
-    public RunningQuery(long id, String query, String qHash, String username, String client, DateTime submitTime, DateTime executionStartTime, String hostname, byte sessions, boolean killed) {
+    public RunningQuery(long id, String query, String qHash, String username, String client, DateTime submitTime, DateTime startedTime, String hostname, byte sessions, boolean killed) {
         this.id = id;
         this.query = query;
         this.qHash = qHash;
         this.username = username;
         this.client = client;
         this.submitTime = submitTime;
-        this.executionStartTime = executionStartTime;
+        this.startedTime = startedTime;
         this.hostname = hostname;
         this.sessions = sessions;
         this.killed = killed;
@@ -39,8 +42,8 @@ public class RunningQuery {
         return submitTime.toString();
     }
 
-    public String getExecutionStartTime() {
-        return executionStartTime.toString();
+    public String getStartedTime() {
+        return startedTime.toString();
     }
 
     @Override
@@ -51,7 +54,7 @@ public class RunningQuery {
                 "\n username=" + username +
                 "\n client=" + client +
                 "\n submitTime=" + submitTime +
-                "\n executionStartTime=" + executionStartTime +
+                "\n startedTime=" + startedTime +
                 "\n hostname=" + hostname +
                 "\n sessions=" + sessions +
                 "\n killed=" + killed +

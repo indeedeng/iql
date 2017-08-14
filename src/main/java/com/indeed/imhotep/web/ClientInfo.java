@@ -1,8 +1,11 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class ClientInfo {
     public final String username;
     public final String client;
+    @JsonIgnore
     public final boolean isMultiuserClient;
     // TODO: add more fields
 //    public final String author;

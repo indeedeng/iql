@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -74,13 +75,13 @@ public class IQLDB {
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
 
         jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                query.queryStringTruncatedForPrint.substring(0, 1000),
-                query.queryHash.substring(0, 30),
-                query.clientInfo.username.substring(0, 100),
-                query.clientInfo.client.substring(0, 100),
+                StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000),
+                StringUtils.abbreviate(query.queryHash, 30),
+                StringUtils.abbreviate(query.clientInfo.username, 100),
+                StringUtils.abbreviate(query.clientInfo.client, 100),
                 new Timestamp(query.querySubmitTimestamp.getMillis()),
                 queryExecutionStartTime,
-                hostname.substring(0, 20),
+                StringUtils.abbreviate(hostname, 20),
                 query.sessions);
         try {
             Long id = jdbcTemplate.queryForObject("SELECT last_insert_id()", Long.class);
@@ -143,13 +144,13 @@ public class IQLDB {
 
         for(SelectQuery startingQuery: queriesStarting) {
             Object[] args = new Object[] {
-                    startingQuery.queryStringTruncatedForPrint.substring(0, 1000),
-                    startingQuery.queryHash.substring(0, 30),
-                    startingQuery.clientInfo.username.substring(0, 100),
-                    startingQuery.clientInfo.client.substring(0, 100),
+                    StringUtils.abbreviate(startingQuery.queryStringTruncatedForPrint, 1000),
+                    StringUtils.abbreviate(startingQuery.queryHash, 30),
+                    StringUtils.abbreviate(startingQuery.clientInfo.username, 100),
+                    StringUtils.abbreviate(startingQuery.clientInfo.client, 100),
                     new Timestamp(startingQuery.querySubmitTimestamp.getMillis()),
                     queryExecutionStartTime,
-                    hostname.substring(0, 20),
+                    StringUtils.abbreviate(hostname, 20),
                     startingQuery.sessions
             };
 
