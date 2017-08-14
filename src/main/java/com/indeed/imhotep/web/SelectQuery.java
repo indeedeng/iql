@@ -1,5 +1,6 @@
 package com.indeed.imhotep.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.client.ShardIdWithVersion;
@@ -33,9 +34,9 @@ public class SelectQuery implements Closeable {
     private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,100}+)[^\\)]+\\)");
     private final RunningQueriesManager runningQueriesManager;
     final String queryString;
-    final String queryHash; // this hash doesn't include the shards so is different from the caching hash
+    public final String queryHash; // this hash doesn't include the shards so is different from the caching hash
     final String shortHash; // queryHash truncated
-    final String queryStringTruncatedForPrint;
+    public final String queryStringTruncatedForPrint;
     final ClientInfo clientInfo;
     final Limits limits;
     final DateTime querySubmitTimestamp;
@@ -153,8 +154,21 @@ public class SelectQuery implements Closeable {
         this.asynchronousRelease = true;
     }
 
+    @JsonIgnore
     public boolean isAsynchronousRelease() {
         return asynchronousRelease;
+    }
+
+    public String getUsername() {
+        return clientInfo.username;
+    }
+
+    public String getClient() {
+        return clientInfo.client;
+    }
+
+    public String getSubmitTime() {
+        return querySubmitTimestamp.toString();
     }
 
     @Override
@@ -177,4 +191,6 @@ public class SelectQuery implements Closeable {
                 ", id=" + id +
                 '}';
     }
+
+
 }
