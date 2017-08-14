@@ -74,7 +74,14 @@ public class IQLDB {
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
 
         jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                query.queryStringTruncatedForPrint, query.queryHash, query.clientInfo.username, query.clientInfo.client, new Timestamp(query.querySubmitTimestamp.getMillis()), queryExecutionStartTime, hostname, query.sessions);
+                query.queryStringTruncatedForPrint.substring(0, 1000),
+                query.queryHash.substring(0, 30),
+                query.clientInfo.username.substring(0, 100),
+                query.clientInfo.client.substring(0, 100),
+                new Timestamp(query.querySubmitTimestamp.getMillis()),
+                queryExecutionStartTime,
+                hostname.substring(0, 20),
+                query.sessions);
         try {
             Long id = jdbcTemplate.queryForObject("SELECT last_insert_id()", Long.class);
             query.onStarting(id, new DateTime(queryExecutionStartTime));
@@ -136,13 +143,13 @@ public class IQLDB {
 
         for(SelectQuery startingQuery: queriesStarting) {
             Object[] args = new Object[] {
-                    startingQuery.queryStringTruncatedForPrint,
-                    startingQuery.queryHash,
-                    startingQuery.clientInfo.username,
-                    startingQuery.clientInfo.client,
+                    startingQuery.queryStringTruncatedForPrint.substring(0, 1000),
+                    startingQuery.queryHash.substring(0, 30),
+                    startingQuery.clientInfo.username.substring(0, 100),
+                    startingQuery.clientInfo.client.substring(0, 100),
                     new Timestamp(startingQuery.querySubmitTimestamp.getMillis()),
                     queryExecutionStartTime,
-                    hostname,
+                    hostname.substring(0, 20),
                     startingQuery.sessions
             };
 
