@@ -16,12 +16,19 @@
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.PeekingIterator;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.util.core.io.Closeables2;
+import org.apache.log4j.Logger;
+
+import java.io.Closeable;
+import java.io.IOException;
 
 /**
  * Allows iterating over return values of the provided callback which is being run on each field/term/group tuple.
  * @author vladimir
  */
-public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements PeekingIterator<E> {
+public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements PeekingIterator<E>, Closeable {
+    private static final Logger log = Logger.getLogger(FTGSCallbackIterator.class);
+
     // current FTGS iteration state cache
     String field;
     boolean isIntField;
@@ -72,5 +79,10 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
             fieldOver = true;
         }
         return endOfData();
+    }
+
+    @Override
+    public void close() throws IOException {
+        Closeables2.closeQuietly(ftgsIterator, log);
     }
 }
