@@ -18,6 +18,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
 import com.indeed.imhotep.web.Limits;
@@ -84,6 +85,7 @@ public final class IQLQuery implements Closeable {
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
     private final Limits limits;
+    private final Closer closer = Closer.create();
     // session used for the current execution
     private EZImhotepSession session;
 
@@ -130,6 +132,7 @@ public final class IQLQuery implements Closeable {
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
         session = new EZImhotepSession(imhotepSession, limits);
+        closer.register(session);
 
         final long numDocs = imhotepSession.getNumDocs();
         if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
@@ -217,6 +220,9 @@ public final class IQLQuery implements Closeable {
                 // do FTGS on the last grouping
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
+                if(groupStatsIterator instanceof Closeable) {
+                    closer.register((Closeable) groupStatsIterator);
+                }
                 selectExecutionStats.maxImhotepGroups = Math.max(selectExecutionStats.maxImhotepGroups, session.getNumGroups());
                 final long ftgsMillis = timer.pop();
                 selectExecutionStats.setPhase("ftgsMillis", ftgsMillis);
@@ -638,8 +644,6 @@ public final class IQLQuery implements Closeable {
 
     @Override
     public void close() throws IOException {
-        if(session != null) {
-            Closeables2.closeQuietly(session, log);
-        }
+        Closeables2.closeQuietly(closer, log);
     }
 }
