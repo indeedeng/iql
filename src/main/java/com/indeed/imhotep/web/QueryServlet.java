@@ -139,7 +139,13 @@ public class QueryServlet {
 
         final String httpUserName = getUserNameFromRequest(req);
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
+        final String author = Strings.nullToEmpty(req.getParameter("author"));
         final String client = Strings.nullToEmpty(req.getParameter("client"));
+        final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
+        final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
+        final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
+        final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
+                clientExecutionId, accessControl.isMultiuserClient(client));
         long querySubmitTimestamp = System.currentTimeMillis();
 
         final boolean json = req.getParameter("json") != null;
@@ -154,7 +160,6 @@ public class QueryServlet {
                         "or in case of automated tools the Google group of the team responsible for the tool.");
             }
             accessControl.checkAllowedAccess(userName);
-            final ClientInfo clientInfo = new ClientInfo(userName, client, accessControl.isMultiuserClient(client));
 
             parsedQuery = StatementParser.parse(query, metadata);
             if(parsedQuery instanceof SelectStatement) {
@@ -199,7 +204,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, userName, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, selectQuery);
+                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -742,24 +747,35 @@ public class QueryServlet {
     private static final int LOGGED_FIELD_LENGTH_LIMIT = 8092;
 
     private static void logQuery(HttpServletRequest req,
-                          String query,
-                          String userName,
-                          long queryStartTimestamp,
-                          IQLStatement parsedQuery,
-                          Throwable errorOccurred,
-                          String remoteAddr,
-                          @Nullable SelectQuery selectQuery) {
+                                 String query,
+                                 ClientInfo clientInfo,
+                                 long queryStartTimestamp,
+                                 IQLStatement parsedQuery,
+                                 Throwable errorOccurred,
+                                 String remoteAddr,
+                                 @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
+        final String userName = clientInfo.username;
         if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
         }
 
-        final String client = Strings.nullToEmpty(req.getParameter("client"));
-
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
         logEntry.setProperty("username", userName);
-        logEntry.setProperty("client", client);
+        logEntry.setProperty("client", clientInfo.client);
+        if(!clientInfo.author.isEmpty()) {
+            logEntry.setProperty("author", clientInfo.author);
+        }
+        if(!clientInfo.clientProcessId.isEmpty()) {
+            logEntry.setProperty("clientProcessId", clientInfo.clientProcessId);
+        }
+        if(!clientInfo.clientProcessName.isEmpty()) {
+            logEntry.setProperty("clientProcessName", clientInfo.clientProcessName);
+        }
+        if(!clientInfo.clientExecutionId.isEmpty()) {
+            logEntry.setProperty("clientExecutionId", clientInfo.clientExecutionId);
+        }
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
         logEntry.setProperty("hostname", hostname);
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
