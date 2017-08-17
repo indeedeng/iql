@@ -81,4 +81,22 @@ public class RunningQuery {
                     rs.getBoolean("killed"));
         }
     };
+
+    public static RowMapper<RunningQuery> resultSetRowMapperForLocking = new RowMapper<RunningQuery>() {
+        @Override
+        public RunningQuery mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+            return new RunningQuery(
+                    rs.getLong("id"),
+                    null,
+                    rs.getString("qhash"),
+                    rs.getString("username"),
+                    rs.getString("client"),
+                    null,
+                    null,
+                    null,
+                    rs.getByte("sessions"),
+                    rs.getBoolean("killed"));
+        }
+    };
 }

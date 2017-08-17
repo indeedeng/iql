@@ -64,7 +64,6 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@EnableTransactionManagement
 @ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
@@ -265,11 +264,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/metadata").setViewName("redirect:/metadata/");
         registry.addViewController("/metadata/").setViewName("forward:/metadata/index.html");
-    }
-
-    @Bean
-    public DataSourceTransactionManager dataSourceTransactionManager() {
-        return new DataSourceTransactionManager(iqlDbDataSource());
     }
 
     // do we need this?

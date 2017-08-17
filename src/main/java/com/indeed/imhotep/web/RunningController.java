@@ -37,12 +37,6 @@ public class RunningController {
         this.iqldb = iqldb;
     }
 
-    @RequestMapping("/queue")
-    @ResponseBody
-    public WaitingQueriesState handleRunning() {
-        return new WaitingQueriesState(runningQueriesManager.getQueriesWaiting());
-    }
-
     public static class WaitingQueriesState {
         private List<SelectQuery> queries;
 

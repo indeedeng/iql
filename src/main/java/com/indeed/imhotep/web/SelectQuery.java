@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.SelectExecutionStats;
 import com.indeed.imhotep.sql.ast2.SelectStatement;
@@ -44,7 +45,7 @@ public class SelectQuery implements Closeable {
     final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     final SelectStatement parsedStatement;
     IQLQuery iqlQuery;
-    private boolean locked = false;
+    boolean cancelled = false;
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
     private boolean asynchronousRelease = false;
@@ -106,6 +107,13 @@ public class SelectQuery implements Closeable {
         }
         final long queryStartedTimestamp = System.currentTimeMillis();
         selectExecutionStats.setPhase("lockWaitMillis", queryStartedTimestamp-waitStartTime);
+        checkCancelled();
+    }
+
+    private void checkCancelled() {
+        if(cancelled) {
+            throw new QueryCancelledException("The query was cancelled during execution");
+        }
     }
 
     public void close() {
@@ -117,16 +125,10 @@ public class SelectQuery implements Closeable {
         }
         closed = true;
 
-        if (locked) {
-            try {
-                // delete from DB
-                runningQueriesManager.release(this);
-            } catch (Exception e) {
-                log.error("Failed to release the query tracking for " + queryStringTruncatedForPrint);
-            }
-
-        } else {
+        try {
             runningQueriesManager.unregister(this);
+        } catch (Exception e) {
+            log.error("Failed to release the query tracking for " + queryStringTruncatedForPrint, e);
         }
     }
 
@@ -139,14 +141,13 @@ public class SelectQuery implements Closeable {
         }
     }
 
-    public void onStarting(long id, DateTime startedTimestamp) {
+    public void onInserted(long id) {
         this.id = id;
-        this.queryStartTimestamp = startedTimestamp;;
     }
 
-    public void onStarted() {
+    public void onStarted(DateTime startedTimestamp) {
         log.debug("Started query " + shortHash + " as id " + id);
-        this.locked = true;
+        this.queryStartTimestamp = startedTimestamp;
         waitLock.countDown();
     }
 
@@ -184,7 +185,6 @@ public class SelectQuery implements Closeable {
                 ", selectExecutionStats=" + selectExecutionStats +
                 ", parsedStatement=" + parsedStatement +
                 ", iqlQuery=" + iqlQuery +
-                ", locked=" + locked +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +
                 ", asynchronousRelease=" + asynchronousRelease +
