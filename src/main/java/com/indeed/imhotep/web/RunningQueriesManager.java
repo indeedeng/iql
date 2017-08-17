@@ -50,25 +50,29 @@ public class RunningQueriesManager {
 
     @Scheduled(fixedDelay = 300)
     private void tryStartingWaitingQueries() {
+        final RunningQueriesUpdateResult result;
         try {
             synchronized (queriesWaiting) {
-                if (queriesWaiting.size() > 0) {
-                    log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
+                if (queriesWaiting.size() == 0) {
+                    return;
+                }
 
-                    final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb);
-                    final List<SelectQuery> queriesStarted = result.queriesStarting;
+                log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
-                    queriesWaiting.removeAll(queriesStarted);
-                    synchronized (queriesRunning) {
-                        queriesRunning.addAll(queriesStarted);
-                        if(result.cancelledQueries.size() > 0) {
-                            applyCancellations(result.cancelledQueries);
-                        }
-                    }
+                result = tryStartPendingQueries(queriesWaiting, iqldb);
+                final List<SelectQuery> queriesStarted = result.queriesStarting;
 
-                    for(SelectQuery startedQuery: queriesStarted) {
-                        startedQuery.onStarted(DateTime.now());
-                    }
+                queriesWaiting.removeAll(result.queriesStarting);
+
+                for(SelectQuery startedQuery: queriesStarted) {
+                    startedQuery.onStarted(DateTime.now());
+                }
+            }
+
+            synchronized (queriesRunning) {
+                queriesRunning.addAll(result.queriesStarting);
+                if(result.cancelledQueries.size() > 0) {
+                    applyCancellations(result.cancelledQueries);
                 }
             }
         } catch (Exception e) {
