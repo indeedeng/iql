@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author vladimir
@@ -43,7 +44,7 @@ public class RunningQuery {
     }
 
     public String getStartedTime() {
-        return startedTime.toString();
+        return startedTime != null ? startedTime.toString() : null;
     }
 
     @Override
@@ -66,7 +67,10 @@ public class RunningQuery {
         @Override
         public RunningQuery mapRow(ResultSet rs, int rowNum) throws SQLException {
             final Timestamp submitTime = rs.getTimestamp("submit_time");
-            final Timestamp executionStartTime = rs.getTimestamp("execution_start_time");
+            Timestamp executionStartTime = rs.getTimestamp("execution_start_time");
+            if(executionStartTime.getTime() < TimeUnit.DAYS.toMillis(2)) {
+                executionStartTime = null;  // Hack to workaround the column not allowing nulls
+            }
 
             return new RunningQuery(
                     rs.getLong("id"),

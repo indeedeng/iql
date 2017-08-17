@@ -41,7 +41,8 @@ public class IQLDB {
     }
 
     public void insertRunningQuery(SelectQuery query) {
-        final String queryExecutionStartTime = "0000-00-00 00:00:00";
+        // Hack to workaround the column not allowing nulls
+        final String queryExecutionStartTime = "1970-01-01 00:00:01";
 
         jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000),
@@ -103,8 +104,7 @@ public class IQLDB {
     }
 
     private List<RunningQuery> getRunningQueries(@Nullable String hostname) {
-        String query = "SELECT id, query, qhash, username, client, submit_time, " +
-                "CASE WHEN `execution_start_time`!='0000-00-00 00:00:00' THEN `execution_start_time` END execution_start_time, " +
+        String query = "SELECT id, query, qhash, username, client, submit_time, execution_start_time, " +
                 "hostname, sessions, killed FROM tblrunning";
         String[] args = new String[0];
         if(hostname != null) {
