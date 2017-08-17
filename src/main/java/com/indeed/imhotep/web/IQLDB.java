@@ -41,7 +41,7 @@ public class IQLDB {
     }
 
     public void insertRunningQuery(SelectQuery query) {
-        final Timestamp queryExecutionStartTime = null;
+        final String queryExecutionStartTime = "0000-00-00 00:00:00";
 
         jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000),
@@ -103,7 +103,9 @@ public class IQLDB {
     }
 
     private List<RunningQuery> getRunningQueries(@Nullable String hostname) {
-        String query = "SELECT id, query, qhash, username, client, submit_time, execution_start_time, hostname, sessions, killed FROM tblrunning";
+        String query = "SELECT id, query, qhash, username, client, submit_time, " +
+                "CASE WHEN `execution_start_time`!='0000-00-00 00:00:00' THEN `execution_start_time` END execution_start_time, " +
+                "hostname, sessions, killed FROM tblrunning";
         String[] args = new String[0];
         if(hostname != null) {
             query += " WHERE hostname = ?";
