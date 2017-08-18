@@ -64,15 +64,15 @@ public class RunningQueriesManager {
 
                 queriesWaiting.removeAll(result.queriesStarting);
 
+                synchronized (queriesRunning) {
+                    queriesRunning.addAll(result.queriesStarting);
+                    if(result.cancelledQueries.size() > 0) {
+                        applyCancellations(result.cancelledQueries);
+                    }
+                }
+
                 for(SelectQuery startedQuery: queriesStarted) {
                     startedQuery.onStarted(DateTime.now());
-                }
-            }
-
-            synchronized (queriesRunning) {
-                queriesRunning.addAll(result.queriesStarting);
-                if(result.cancelledQueries.size() > 0) {
-                    applyCancellations(result.cancelledQueries);
                 }
             }
         } catch (Exception e) {
