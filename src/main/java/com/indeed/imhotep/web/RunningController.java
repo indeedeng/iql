@@ -75,10 +75,22 @@ public class RunningController {
         return new RunningQueriesState(runningQueriesManager.lastDaemonRunningQueries);
     }
 
-    @RequestMapping("/running")
+    @RequestMapping("/allrunning")
     @ResponseBody
     public RunningQueriesState handleAllRunning() {
         return new RunningQueriesState(iqldb.getRunningQueries());
+    }
+
+    @RequestMapping("/running")
+    @ResponseBody
+    public RunningQueriesState handleRunning() {
+        return new RunningQueriesState(runningQueriesManager.getRunningReportForThisProcess());
+    }
+
+    @RequestMapping("/queue")
+    @ResponseBody
+    public RunningQueriesState handleQueue() {
+        return new RunningQueriesState(runningQueriesManager.getWaitingReportForThisProcess());
     }
 
     @RequestMapping("/clearrunning")

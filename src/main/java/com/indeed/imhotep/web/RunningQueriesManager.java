@@ -141,13 +141,14 @@ public class RunningQueriesManager {
                 }
             }
 
-            qhashesRunning.add(runningQuery.qHash);
-            final String username = runningQuery.username;
-            final String client = runningQuery.client;
-            usernameToRunningCount.add(username, 1);
-            clientToRunningCount.add(client, 1);
-            usernameToSessionsCount.add(username, runningQuery.sessions);
-            clientToSessionsCount.add(client, runningQuery.sessions);
+            if(qhashesRunning.add(runningQuery.qHash)) {
+                final String username = runningQuery.username;
+                final String client = runningQuery.client;
+                usernameToRunningCount.add(username, 1);
+                clientToRunningCount.add(client, 1);
+                usernameToSessionsCount.add(username, runningQuery.sessions);
+                clientToSessionsCount.add(client, runningQuery.sessions);
+            }
         }
 
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
@@ -209,5 +210,36 @@ public class RunningQueriesManager {
 
     public boolean isEnabled() {
         return iqldb != null;
+    }
+
+    public List<RunningQuery> getRunningReportForThisProcess() {
+        synchronized (queriesRunning) {
+            return convertSelectQueriesToRunningQueries(queriesRunning);
+        }
+    }
+
+    public List<RunningQuery> getWaitingReportForThisProcess() {
+        synchronized (queriesWaiting) {
+            return convertSelectQueriesToRunningQueries(queriesWaiting);
+        }
+    }
+
+    private List<RunningQuery> convertSelectQueriesToRunningQueries(List<SelectQuery> queries) {
+        final List<RunningQuery> runningQueries = Lists.newArrayList();
+        for(SelectQuery query : queries) {
+            runningQueries.add(new RunningQuery(
+                    query.id,
+                    query.queryStringTruncatedForPrint,
+                    query.queryHash,
+                    query.clientInfo.username,
+                    query.clientInfo.client,
+                    query.querySubmitTimestamp,
+                    query.queryStartTimestamp,
+                    IQLDB.hostname,
+                    query.sessions,
+                    query.cancelled
+            ));
+        }
+        return runningQueries;
     }
 }
