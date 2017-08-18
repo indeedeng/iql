@@ -5,10 +5,17 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -40,35 +47,31 @@ public class IQLDB {
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    public void insertRunningQuery(SelectQuery query) {
+    public void insertRunningQuery(final SelectQuery query) {
         // Hack to workaround the column not allowing nulls
         final String queryExecutionStartTime = "1970-01-01 00:00:01";
 
-        jdbcTemplate.update("INSERT INTO tblrunning (query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000),
-                StringUtils.abbreviate(query.queryHash, 30),
-                StringUtils.abbreviate(query.clientInfo.username, 100),
-                StringUtils.abbreviate(query.clientInfo.client, 100),
-                new Timestamp(query.querySubmitTimestamp.getMillis()),
-                queryExecutionStartTime,
-                StringUtils.abbreviate(hostname, 20),
-                query.sessions);
-
-
-        // now that the insert succeeded we must make sure this succeeds so that we can delete the row when cleaning up
-        while(true) {
-            try {
-                Long id = jdbcTemplate.queryForObject("SELECT last_insert_id()", Long.class);
-                query.onInserted(id);
-                break;
-            } catch (Exception e) {
-                log.error("Failed to get the inserted DB query id for " + query.shortHash +
-                        ". Going to retry.", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (Exception ignored) { }
+        final PreparedStatementCreator psc = new PreparedStatementCreator() {
+            @Override
+            public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+                final PreparedStatement ps = connection.prepareStatement("INSERT INTO tblrunning " +
+                                "(query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000));
+                ps.setString(2, StringUtils.abbreviate(query.queryHash, 30));
+                ps.setString(3, StringUtils.abbreviate(query.clientInfo.username, 100));
+                ps.setString(4, StringUtils.abbreviate(query.clientInfo.client, 100));
+                ps.setTimestamp(5, new Timestamp(query.querySubmitTimestamp.getMillis()));
+                ps.setString(6, queryExecutionStartTime);
+                ps.setString(7, StringUtils.abbreviate(hostname, 20));
+                ps.setByte(8, query.sessions);
+                return ps;
             }
-        }
+        };
+        final KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(psc, keyHolder);
+        query.onInserted(keyHolder.getKey().longValue());
     }
 
     public void setRunningQueryStartTime(Timestamp queryExecutionStartTime, long id) {
