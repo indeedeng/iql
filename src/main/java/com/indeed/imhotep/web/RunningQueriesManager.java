@@ -211,4 +211,35 @@ public class RunningQueriesManager {
     public boolean isEnabled() {
         return iqldb != null;
     }
+
+    public List<RunningQuery> getRunningReportForThisProcess() {
+        synchronized (queriesRunning) {
+            return convertSelectQueriesToRunningQueries(queriesRunning);
+        }
+    }
+
+    public List<RunningQuery> getWaitingReportForThisProcess() {
+        synchronized (queriesWaiting) {
+            return convertSelectQueriesToRunningQueries(queriesWaiting);
+        }
+    }
+
+    private List<RunningQuery> convertSelectQueriesToRunningQueries(List<SelectQuery> queries) {
+        final List<RunningQuery> runningQueries = Lists.newArrayList();
+        for(SelectQuery query : queries) {
+            runningQueries.add(new RunningQuery(
+                    query.id,
+                    query.queryStringTruncatedForPrint,
+                    query.queryHash,
+                    query.clientInfo.username,
+                    query.clientInfo.client,
+                    query.querySubmitTimestamp,
+                    query.queryStartTimestamp,
+                    IQLDB.hostname,
+                    query.sessions,
+                    query.cancelled
+            ));
+        }
+        return runningQueries;
+    }
 }
