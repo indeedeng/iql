@@ -29,6 +29,8 @@ public class RunningQueriesManager {
 
     public List<RunningQuery> lastDaemonRunningQueries;
 
+    private volatile long lastTriedStartingQueries = 0;
+
     public RunningQueriesManager(IQLDB iqldb) {
         this.iqldb = iqldb;
     }
@@ -50,16 +52,20 @@ public class RunningQueriesManager {
 
     @Scheduled(fixedDelay = 300)
     private void tryStartingWaitingQueries() {
-        final RunningQueriesUpdateResult result;
         try {
             synchronized (queriesWaiting) {
                 if (queriesWaiting.size() == 0) {
                     return;
                 }
+                // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
+                if(lastTriedStartingQueries > System.currentTimeMillis() - 300) {
+                    return;
+                }
+                lastTriedStartingQueries = System.currentTimeMillis();
 
                 log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
-                result = tryStartPendingQueries(queriesWaiting, iqldb);
+                final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb);
                 final List<SelectQuery> queriesStarted = result.queriesStarting;
 
                 queriesWaiting.removeAll(result.queriesStarting);
@@ -174,6 +180,8 @@ public class RunningQueriesManager {
         synchronized (queriesWaiting) {
             queriesWaiting.add(selectQuery);
         }
+        // Try to start the query immediately not waiting for the scheduled run of the DB updater
+        tryStartingWaitingQueries();
     }
 
     public void unregister(SelectQuery selectQuery) {
