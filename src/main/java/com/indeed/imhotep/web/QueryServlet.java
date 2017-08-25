@@ -418,7 +418,9 @@ public class QueryServlet {
                 // TODO: should we always get totals? opt out http param?
                 final DateTime execStartTime = DateTime.now();
                 executionResult = iqlQuery.execute(args.progress, outputStream, true, selectExecutionStats);
-                queryMetadata.addItem("IQL-Timings", executionResult.getTimings().replace('\n', '\t'), args.progress);
+                final String timings = (selectExecutionStats.getPhasesAsTimingReport() + executionResult.getTimings())
+                        .replace('\n', '\t');
+                queryMetadata.addItem("IQL-Timings", timings, args.progress);
                 queryMetadata.addItem("IQL-Imhotep-Temp-Bytes-Written", executionResult.getImhotepTempFilesBytesWritten(), args.progress);
                 queryMetadata.addItem("IQL-Doc-Count", selectExecutionStats.numDocs);
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
