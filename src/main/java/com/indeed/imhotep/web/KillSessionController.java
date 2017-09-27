@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -42,7 +41,7 @@ public class KillSessionController {
     @RequestMapping("/killsession")
     protected void doGet(@RequestParam("session") final String sessionId, @RequestParam("username") final String username, final HttpServletResponse resp) throws IOException {
         final PrintWriter output = new PrintWriter(resp.getOutputStream());
-        List<Host> hosts = new ArrayList<>(imhotepClient.getShardList().keySet());
+        List<Host> hosts = imhotepClient.getServerHosts();
 
         boolean success = killSession(sessionId, hosts, output);
         if (success) {
