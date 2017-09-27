@@ -197,13 +197,7 @@ public class Session {
     }
 
     public static Set<String> getDatasets(ImhotepClient client) {
-        final Set<String> result = new HashSet<>();
-        for (final Map.Entry<Host, List<DatasetInfo>> entry : client.getShardList().entrySet()) {
-            for (final DatasetInfo datasetInfo : entry.getValue()) {
-                result.add(datasetInfo.getDataset());
-            }
-        }
-        return result;
+        return new HashSet<>(client.getDatasetToDatasetInfo().keySet());
     }
 
     private static void createSubSessions(
@@ -244,7 +238,7 @@ public class Session {
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardInfo");
-            final DatasetInfo datasetInfo = client.getDatasetShardInfo(actualDataset);
+            final DatasetInfo datasetInfo = client.getDatasetInfo(actualDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
             final Set<String> sessionStringFields = new HashSet<>();
