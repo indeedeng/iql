@@ -28,6 +28,7 @@ public class DatasetStatsCollector {
 
     public static List<DatasetStats> computeStats(ImhotepClient client) {
         final List<DatasetStats> statsList = Lists.newArrayList();
+        // TODO: this API is going away!
         for (DatasetInfo datasetInfo : client.getDatasetToShardList().values()) {
             final DatasetStats stats = new DatasetStats();
             statsList.add(stats);

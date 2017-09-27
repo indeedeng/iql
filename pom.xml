@@ -36,19 +36,6 @@
     </repositories>
 
     <dependencies>
-
-        <dependency>
-            <groupId>com.indeed</groupId>
-            <artifactId>ims-rest-server</artifactId>
-            <version>${ims.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.indeed</groupId>
-            <artifactId>ims-rest-client</artifactId>
-            <version>${ims.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>com.indeed</groupId>
             <artifactId>imhotep-server</artifactId>
@@ -83,6 +70,18 @@
             <groupId>com.indeed</groupId>
             <artifactId>util-io</artifactId>
             <version>${indeed-util.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>ims-rest-server</artifactId>
+            <version>${ims.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>ims-rest-client</artifactId>
+            <version>${ims.version}</version>
         </dependency>
 
         <dependency>

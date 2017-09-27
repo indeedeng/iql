@@ -115,7 +115,7 @@ public class ImhotepMetadataCache {
     @Scheduled(fixedRate = 60000)
     public void updateDatasets() {
         log.trace("Started metadata update");
-        Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToShardList();
+        Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToDatasetInfo();
         log.trace("Loaded metadata for " + datasetToShardList.size() + " datasets from Imhotep");
         List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
         Collections.sort(datasetNames, String.CASE_INSENSITIVE_ORDER);
