@@ -42,7 +42,7 @@ public class KillSessionController {
     @RequestMapping("/killsession")
     protected void doGet(@RequestParam("session") final String sessionId, @RequestParam("username") final String username, final HttpServletResponse resp) throws IOException {
         final PrintWriter output = new PrintWriter(resp.getOutputStream());
-        List<Host> hosts = new ArrayList<>(imhotepClient.getShardList().keySet());
+        List<Host> hosts = imhotepClient.getServerHosts();
 
         boolean success = killSession(sessionId, hosts, output);
         if (success) {
