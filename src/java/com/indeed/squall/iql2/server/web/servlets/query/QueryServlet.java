@@ -7,7 +7,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.Host;

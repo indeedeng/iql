@@ -2,7 +2,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;

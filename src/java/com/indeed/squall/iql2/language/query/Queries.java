@@ -11,7 +11,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.AggregateMetrics;
