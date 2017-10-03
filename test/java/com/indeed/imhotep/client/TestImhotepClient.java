@@ -46,7 +46,7 @@ public class TestImhotepClient extends ImhotepClient {
                 datasetToStringFields.put(dataset, new HashSet<String>());
             }
             // TODO: Not hardcode version to 2015-01-01 00:00:00?
-            datasetToShardInfos.get(dataset).add(new ShardInfo(dataset, shard.shardId, Collections.<String>emptySet(), shard.flamdex.getNumDocs(), 20150101000000L));
+            datasetToShardInfos.get(dataset).add(new ShardInfo(shard.shardId, shard.flamdex.getNumDocs(), 20150101000000L));
             datasetToIntFields.get(dataset).addAll(shard.flamdex.getIntFields());
             datasetToStringFields.get(dataset).addAll(shard.flamdex.getStringFields());
         }
@@ -55,7 +55,7 @@ public class TestImhotepClient extends ImhotepClient {
         for (final Map.Entry<String, List<ShardInfo>> entry : datasetToShardInfos.entrySet()) {
             final String dataset = entry.getKey();
             final List<ShardInfo> shardInfos = entry.getValue();
-            datasetInfos.add(new DatasetInfo(dataset, shardInfos, datasetToIntFields.get(dataset), datasetToStringFields.get(dataset), Collections.<String>emptyList()));
+            datasetInfos.add(new DatasetInfo(dataset, shardInfos, datasetToIntFields.get(dataset), datasetToStringFields.get(dataset)));
         }
 
         final Map<Host, List<DatasetInfo>> hostToDatasetInfos = ImmutableMap.<Host, List<DatasetInfo>>of(new Host("", 1), datasetInfos);

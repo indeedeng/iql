@@ -212,7 +212,7 @@ public class QueryServlet {
             final boolean isJson = false;
             final boolean status500 = true;
             handleError(response, isJson, e, status500, isStream);
-            log.error("Error occurred", e);
+            log.info("Exception during query handling", e);
             errorOccurred = e;
         } finally {
             try {
@@ -269,14 +269,9 @@ public class QueryServlet {
         }
     }
 
+    // TODO: this should get data from the Metadata
     private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
-        final Map<Host, List<DatasetInfo>> shardListMap = imhotepClient.getShardList();
-        final Set<String> datasets = new TreeSet<>();
-        for (final List<DatasetInfo> datasetInfos : shardListMap.values()) {
-            for (final DatasetInfo datasetInfo : datasetInfos) {
-                datasets.add(datasetInfo.getDataset());
-            }
-        }
+        final Set<String> datasets = new TreeSet<>(imhotepClient.getDatasetToDatasetInfo().keySet());
         final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
         for (final String dataset : datasets) {
             datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
@@ -289,7 +284,7 @@ public class QueryServlet {
     }
 
     private void processDescribeField(HttpServletResponse response, String contentType, String dataset, String field) throws IOException {
-        final DatasetInfo datasetInfo = imhotepClient.getDatasetShardInfo(dataset);
+        final DatasetInfo datasetInfo = imhotepClient.getDatasetInfo(dataset);
 
         final String type;
         final String imhotepType;
@@ -310,6 +305,7 @@ public class QueryServlet {
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             final Map<String, Object> result = new HashMap<>();
             result.put("name", field);
+            // TODO: this should get data from the Metadata
             result.put("description", "");
             result.put("type", type);
             result.put("imhotepType", imhotepType);
