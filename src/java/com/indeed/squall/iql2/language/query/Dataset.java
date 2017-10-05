@@ -3,7 +3,7 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;

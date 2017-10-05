@@ -6,7 +6,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.indeed.common.util.time.StoppedClock;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.ims.client.ImsClientInterface;
@@ -18,6 +18,7 @@ import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
+import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
@@ -58,12 +59,13 @@ public class QueryServletTestUtils extends BasicTest {
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,
                 imhotepDaemonTempFileSizeLimit,
-                new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis()),
+                options.wallClock,
                 options.subQueryTermLimit
         );
     }
 
-    enum LanguageVersion {
+    @SuppressWarnings("WeakerAccess")
+    public enum LanguageVersion {
         IQL1, IQL2
     }
 
@@ -76,7 +78,8 @@ public class QueryServletTestUtils extends BasicTest {
         return run(shards, query, version, true, options).header;
     }
 
-    static QueryReuslt run(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
+    @SuppressWarnings("WeakerAccess")
+    public static QueryResult run(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
         final QueryServlet queryServlet = create(shards, options);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
@@ -136,14 +139,16 @@ public class QueryServletTestUtils extends BasicTest {
                 throw new IllegalArgumentException("Error encountered when running query: " + response.getContentAsString());
             }
         }
-        return new QueryReuslt(header, output);
+        return new QueryResult(header, output);
     }
 
-    static class Options {
-        public Long subQueryTermLimit = -1L;
-        public QueryCache queryCache = new NoOpQueryCache();
-        public ImsClientInterface imsClient;
-        public boolean skipTestDimension = false;
+    @SuppressWarnings("WeakerAccess")
+    public static class Options {
+        private Long subQueryTermLimit = -1L;
+        private QueryCache queryCache = new NoOpQueryCache();
+        private ImsClientInterface imsClient;
+        private boolean skipTestDimension = false;
+        private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
         Options() {
         }
@@ -168,21 +173,18 @@ public class QueryServletTestUtils extends BasicTest {
             return this;
         }
 
-        public Long getSubQueryTermLimit() {
-            return subQueryTermLimit;
-        }
-
         public Options setSubQueryTermLimit(Long subQueryTermLimit) {
             this.subQueryTermLimit = subQueryTermLimit;
             return this;
         }
 
-        public QueryCache getQueryCache() {
-            return queryCache;
-        }
-
         public Options setQueryCache(QueryCache queryCache) {
             this.queryCache = queryCache;
+            return this;
+        }
+
+        public Options setWallClock(final WallClock wallClock) {
+            this.wallClock = wallClock;
             return this;
         }
     }
@@ -314,11 +316,12 @@ public class QueryServletTestUtils extends BasicTest {
         return output;
     }
 
-    private static class QueryReuslt {
+    @SuppressWarnings("WeakerAccess")
+    public static class QueryResult {
         public JsonNode header;
         public List<List<String>> data;
 
-        public QueryReuslt(final JsonNode header, final List<List<String>> data) {
+        public QueryResult(final JsonNode header, final List<List<String>> data) {
             this.header = header;
             this.data = data;
         }

@@ -2,7 +2,7 @@ package com.indeed.squall.iql2.server.web.config;
 
 import com.google.common.base.Strings;
 import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.ims.client.ImsClient;

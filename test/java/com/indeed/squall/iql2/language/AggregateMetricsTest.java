@@ -2,7 +2,7 @@ package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
 import com.indeed.common.util.time.StoppedClock;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.DocMetric.Field;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.Queries;

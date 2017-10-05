@@ -1,6 +1,6 @@
 package com.indeed.squall.iql2.language;
 
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.Token;

@@ -3,7 +3,7 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.common.util.time.StoppedClock;
-import com.indeed.common.util.time.WallClock;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.GroupBys;

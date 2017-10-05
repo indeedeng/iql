@@ -20,4 +20,6 @@
 
     <target name="generate-transient-java" depends="common.generate-transient-java, generate-antlr-java">
     </target>
+
+    <property name="publish.test.jar" value="true"/>
 </project>
