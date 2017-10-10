@@ -35,6 +35,8 @@ public class AggregateFilters {
         switch (node.get("type").textValue()) {
             case "termEquals":
                 return new AggregateFilter.TermEquals(Term.fromJson(node.get("value")));
+            case "termEqualsRegex":
+                return new AggregateFilter.TermEqualsRegex(Term.fromJson(node.get("value")));
             case "not":
                 return new AggregateFilter.Not(fromJson(node.get("value"), namedMetricLookup, groupKeySet));
             case "regex":

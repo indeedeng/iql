@@ -18,6 +18,7 @@ import java.util.Set;
 public abstract class AggregateFilter extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(TermIs termIs) throws E;
+        T visit(TermRegex termIsRegex) throws E;
         T visit(MetricIs metricIs) throws E;
         T visit(MetricIsnt metricIsnt) throws E;
         T visit(Gt gt) throws E;
@@ -100,6 +101,68 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public String toString() {
             return "TermIs{" +
+                    "term=" + term +
+                    '}';
+        }
+    }
+
+    public static class TermRegex extends AggregateFilter implements JsonSerializable {
+        public final Term term;
+
+        public TermRegex(Term term) {
+            this.term = term;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
+            return h.apply(this);
+        }
+
+        @Override
+        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return false;
+        }
+
+        @Override
+        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeObject(ImmutableMap.of("type", "termEqualsRegex", "value", term));
+        }
+
+        @Override
+        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            this.serialize(gen, serializers);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TermRegex termRegex = (TermRegex) o;
+            return Objects.equals(term, termRegex.term);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(term);
+        }
+
+        @Override
+        public String toString() {
+            return "TermRegex{" +
                     "term=" + term +
                     '}';
         }
