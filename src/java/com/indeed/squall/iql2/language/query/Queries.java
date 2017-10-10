@@ -337,7 +337,7 @@ public class Queries {
             final String expression, final boolean useLegacy,
             final DatasetsMetadata datasetsMetadata, final Consumer<String> warn) {
         final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(expression, parser -> parser.aggregateMetric(useLegacy));
-        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, datasetsMetadata, warn, new DefaultWallClock());
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, Collections.emptyList(), datasetsMetadata, warn, new DefaultWallClock());
     }
 
     public static JQLParser parserForString(String q) {

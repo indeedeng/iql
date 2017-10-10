@@ -50,17 +50,17 @@ public class Dataset extends AbstractPositional {
         return alias.or(dataset);
     }
 
-    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(JQLParser.FromContentsContext fromContentsContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final List<Pair<Dataset, Optional<DocFilter>>> result = new ArrayList<>();
-        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), datasetsMetadata, warn, clock);
+        final Pair<Dataset, Optional<DocFilter>> ds1 = parseDataset(fromContentsContext.dataset(), options, datasetsMetadata, warn, clock);
         result.add(ds1);
         for (final JQLParser.DatasetOptTimeContext dataset : fromContentsContext.datasetOptTime()) {
-            result.add(parsePartialDataset(ds1.getFirst().startInclusive.unwrap(), ds1.getFirst().endExclusive.unwrap(), dataset, datasetsMetadata, warn, clock));
+            result.add(parsePartialDataset(ds1.getFirst().startInclusive.unwrap(), ds1.getFirst().endExclusive.unwrap(), dataset, options, datasetsMetadata, warn, clock));
         }
         return result;
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static Pair<Dataset, Optional<DocFilter>> parseDataset(JQLParser.DatasetContext datasetContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final Positioned<String> dataset = parseIdentifier(datasetContext.index);
         final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, clock);
         final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, clock);
@@ -75,7 +75,7 @@ public class Dataset extends AbstractPositional {
         if (datasetContext.whereContents() != null) {
             final List<DocFilter> filters = new ArrayList<>();
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
-                filters.add(DocFilters.parseDocFilter(ctx, datasetsMetadata, null, warn, clock));
+                filters.add(DocFilters.parseDocFilter(ctx, options, datasetsMetadata, null, warn, clock));
             }
             initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
         } else {
@@ -86,7 +86,7 @@ public class Dataset extends AbstractPositional {
         return Pair.of(dataset1, initializerFilter);
     }
 
-    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(final DateTime defaultStart, final DateTime defaultEnd, JQLParser.DatasetOptTimeContext datasetOptTimeContext, List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
         final Object[] ref = new Object[1];
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -98,7 +98,7 @@ public class Dataset extends AbstractPositional {
             }
 
             public void enterFullDataset(JQLParser.FullDatasetContext ctx) {
-                accept(parseDataset(ctx.dataset(), datasetsMetadata, warn, clock));
+                accept(parseDataset(ctx.dataset(), options, datasetsMetadata, warn, clock));
             }
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
@@ -116,7 +116,7 @@ public class Dataset extends AbstractPositional {
                 if (ctx.whereContents() != null) {
                     final List<DocFilter> filters = new ArrayList<>();
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
-                        filters.add(DocFilters.parseDocFilter(filterCtx, datasetsMetadata, null, warn, clock));
+                        filters.add(DocFilters.parseDocFilter(filterCtx, options, datasetsMetadata, null, warn, clock));
                     }
                     initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
                 } else {

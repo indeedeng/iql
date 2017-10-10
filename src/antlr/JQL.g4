@@ -81,6 +81,8 @@ RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
+OPTIONS: 'OPTIONS' ;
+
 M: 'M' ;
 Y : 'Y' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
@@ -122,7 +124,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM
+    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMRROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN
@@ -498,7 +500,9 @@ query [boolean useLegacy]
       (WHERE whereContents[$ctx.useLegacy])?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
+      (OPTIONS '[' (options+=STRING_LITERAL (',' options+=STRING_LITERAL)*)? ']')?
       (LIMIT limit=NAT)?
+      (OPTIONS '[' (options+=STRING_LITERAL (',' options+=STRING_LITERAL)*)? ']')?
       EOF
     ;
 

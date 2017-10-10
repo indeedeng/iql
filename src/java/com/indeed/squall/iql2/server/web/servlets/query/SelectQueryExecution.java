@@ -430,8 +430,10 @@ public class SelectQueryExecution {
 
             Consumer<String> out = externalOutput;
 
+            final boolean skipCache = query.options.contains("nocache");
+
             try (final Closer closer = Closer.create()) {
-                if (queryCache.isEnabled()) {
+                if (queryCache.isEnabled() && !skipCache) {
                     timer.push("cache check");
                     final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
                     timer.pop();
@@ -512,6 +514,7 @@ public class SelectQueryExecution {
                 final Map<String, Object> request = new HashMap<>();
                 request.put("datasets", Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields()));
                 request.put("commands", commands);
+                request.put("options", query.options);
 
                 request.put("groupLimit", groupLimit);
 
@@ -550,7 +553,7 @@ public class SelectQueryExecution {
                 return (integer == null) ? integer : integer + 1;
             }
         });
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, newRowLimit, query.useLegacy);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {

@@ -29,17 +29,19 @@ public class MetadataCacheTest {
     public void testParseMetric() {
         final MetadataCache metadataCache = new MetadataCache(null, null);
 
+        final List<String> options = Collections.emptyList();
+
         final MetricsYaml countsMetric = new MetricsYaml();
         countsMetric.setName("counts");
         countsMetric.setExpr("count()");
         Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()),
-                metadataCache.parseMetric(countsMetric.getName(), countsMetric.getExpr()));
+                metadataCache.parseMetric(countsMetric.getName(), countsMetric.getExpr(), options));
 
         final MetricsYaml sameMetric = new MetricsYaml();
         sameMetric.setName("same");
         sameMetric.setExpr("same");
         Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Field("SAME")),
-                metadataCache.parseMetric(sameMetric.getName(), sameMetric.getExpr()));
+                metadataCache.parseMetric(sameMetric.getName(), sameMetric.getExpr(), options));
 
         final MetricsYaml calcMetric = new MetricsYaml();
         calcMetric.setName("complex");
@@ -47,7 +49,7 @@ public class MetadataCacheTest {
         Assert.assertEquals(
                 new AggregateMetric.ImplicitDocStats(
                         new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10))),
-                metadataCache.parseMetric(calcMetric.getName(), calcMetric.getExpr()));
+                metadataCache.parseMetric(calcMetric.getName(), calcMetric.getExpr(), options));
 
         final MetricsYaml aggregateMetric1 = new MetricsYaml();
         aggregateMetric1.setName("agg1");
@@ -56,7 +58,7 @@ public class MetadataCacheTest {
                 new AggregateMetric.Divide(
                         new AggregateMetric.DocStats(new DocMetric.Field("OJI")),
                         new AggregateMetric.DocStats(new DocMetric.Field("OJC"))),
-                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr()));
+                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr(), options));
 
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
         aggregateMetric2.setName("agg2");
@@ -65,7 +67,7 @@ public class MetadataCacheTest {
                 new AggregateMetric.Divide(
                         new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
                         new AggregateMetric.Constant(4)),
-                metadataCache.parseMetric(aggregateMetric2.getName(), aggregateMetric2.getExpr()));
+                metadataCache.parseMetric(aggregateMetric2.getName(), aggregateMetric2.getExpr(), options));
 
         final MetricsYaml overideMetric = new MetricsYaml();
         overideMetric.setName("o1");
@@ -73,7 +75,7 @@ public class MetadataCacheTest {
         Assert.assertEquals(
                 new AggregateMetric.ImplicitDocStats(
                         new DocMetric.Add(new DocMetric.Field("O1"), new DocMetric.Field("O2"))),
-                metadataCache.parseMetric(overideMetric.getName(), overideMetric.getExpr()));
+                metadataCache.parseMetric(overideMetric.getName(), overideMetric.getExpr(), options));
 
         // won't do recursive expansion
         final MetricsYaml combinedMetric = new MetricsYaml();
@@ -81,13 +83,13 @@ public class MetadataCacheTest {
         combinedMetric.setExpr("same+complex");
         Assert.assertEquals(
                 new AggregateMetric.ImplicitDocStats(new DocMetric.Add(new DocMetric.Field("SAME"), new DocMetric.Field("COMPLEX"))),
-                metadataCache.parseMetric(combinedMetric.getName(), combinedMetric.getExpr()));
+                metadataCache.parseMetric(combinedMetric.getName(), combinedMetric.getExpr(), options));
 
         final MetricsYaml requireFTGSMetric = new MetricsYaml();
         requireFTGSMetric.setName("ftgsFunc");
         requireFTGSMetric.setExpr("PERCENTILE(oji, 95)");
         try {
-            metadataCache.parseMetric(requireFTGSMetric.getName(), requireFTGSMetric.getExpr());
+            metadataCache.parseMetric(requireFTGSMetric.getName(), requireFTGSMetric.getExpr(), options);
             Assert.fail("require FTGS func is not supported");
         } catch (UnsupportedOperationException ex) {
         }

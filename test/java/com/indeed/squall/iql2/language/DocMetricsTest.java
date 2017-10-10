@@ -14,6 +14,8 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 
+import java.util.Collections;
+
 import static com.indeed.squall.iql2.language.DocMetric.Add;
 import static com.indeed.squall.iql2.language.DocMetric.Divide;
 import static com.indeed.squall.iql2.language.DocMetric.Field;
@@ -30,7 +32,7 @@ public class DocMetricsTest {
                     return input.docMetric(true);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
+            return DocMetrics.parseDocMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
@@ -46,7 +48,7 @@ public class DocMetricsTest {
                     return input.docMetric(false);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
+            return DocMetrics.parseDocMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);

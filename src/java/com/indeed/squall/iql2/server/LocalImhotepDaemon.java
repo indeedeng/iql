@@ -32,7 +32,8 @@ public class LocalImhotepDaemon {
                     null,
                     null,
                     "localhost",
-                    imhotepPort
+                    imhotepPort,
+                    null
             );
             new Thread(new Runnable() {
                 @Override
