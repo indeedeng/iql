@@ -17,7 +17,6 @@
 
     <publications>
         <artifact name="iql2-server" type="jar" conf="master"/>
-        <artifact name="iql2-server" type="war" conf="master"/>
         <artifact name="iql2-server-tests" type="jar" conf="test"/>
     </publications>
 

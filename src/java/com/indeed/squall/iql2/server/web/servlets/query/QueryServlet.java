@@ -212,7 +212,7 @@ public class QueryServlet {
             final boolean isJson = false;
             final boolean status500 = true;
             handleError(response, isJson, e, status500, isStream);
-            log.error("Error occurred", e);
+            log.info("Exception during query handling", e);
             errorOccurred = e;
         } finally {
             try {
