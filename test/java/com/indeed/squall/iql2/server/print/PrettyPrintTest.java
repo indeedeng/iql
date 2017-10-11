@@ -22,7 +22,7 @@ public class PrettyPrintTest {
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (ctk=~\".*\")\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where ctk=~\".*\" select count()", true));
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (escaped=\"stuff\\\"\")\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where escaped='stuff\"' select count()", true));
         Assert.assertEquals("FROM jobsearch 2d 1d\nWHERE (not(country=\"us\")) (not(country=\"us\"))\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d WHERE -country:us and -country=us", true));
-        //iql2 querys, contains having clause
+        //iql2 queries, contain having clause
         Assert.assertEquals("FROM jobsearch yesterday today\nGROUP BY country HAVING term()=\"us\"\nSELECT [count()]", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=\"us\" select count()", false));
         Assert.assertEquals("FROM jobsearch yesterday today\nGROUP BY country HAVING term()=~\"u.*\"\nSELECT [count()]", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=~\"u.*\" select count()", false));
     }

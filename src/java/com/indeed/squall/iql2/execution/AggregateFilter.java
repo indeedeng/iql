@@ -2,9 +2,9 @@ package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.automaton.Automaton;
-import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +26,7 @@ public interface AggregateFilter extends Pushable{
 
         public TermEqualsRegex(Term value) {
             this.value = value;
-            this.automaton = new RegExp(value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm).toAutomaton();
+            this.automaton = ValidationUtil.compileRegex(value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm);
         }
 
         @Override
@@ -464,7 +464,7 @@ public interface AggregateFilter extends Pushable{
         private final Automaton automaton;
 
         public RegexFilter(String regex) {
-            this.automaton = new RegExp(regex).toAutomaton();
+            this.automaton = ValidationUtil.compileRegex(regex);
         }
 
         @Override
