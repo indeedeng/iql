@@ -7,6 +7,7 @@ import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import java.util.List;
 
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
+import static com.indeed.squall.iql2.language.Term.term;
 
 public class AggregateFilters {
     public static AggregateFilter aggregateInHelper(List<JQLParser.TermValContext> terms, boolean negate) {
@@ -60,7 +61,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateTermRegex(JQLParser.AggregateTermRegexContext ctx) {
-                accept(new AggregateFilter.TermRegex(Term.parseJqlTerm(ctx.jqlTermVal())));
+                accept(new AggregateFilter.TermRegex(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
