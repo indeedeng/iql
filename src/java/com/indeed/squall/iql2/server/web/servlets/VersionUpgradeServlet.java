@@ -25,7 +25,7 @@ public class VersionUpgradeServlet {
         response.setHeader("Content-Type", "application/json");
 
         try {
-            return ImmutableMap.of("upgraded", PrettyPrint.prettyPrint(q));
+            return ImmutableMap.of("upgraded", PrettyPrint.prettyPrint(q, true));
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("clause", "where");
