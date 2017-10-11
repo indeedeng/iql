@@ -59,7 +59,7 @@ public class AggregateFilters {
                 accept(new AggregateFilter.TermIs(Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
-            public void enterAggregateTermRegex(JQLParser.AggregateTermIsContext ctx) {
+            public void enterAggregateTermRegex(JQLParser.AggregateTermRegexContext ctx) {
                 accept(new AggregateFilter.TermRegex(Term.parseJqlTerm(ctx.jqlTermVal())));
             }
 
