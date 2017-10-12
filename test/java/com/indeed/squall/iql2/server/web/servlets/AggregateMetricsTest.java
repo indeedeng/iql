@@ -62,7 +62,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("d", "151", "141"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
                 "from organic yesterday today group by tk select parent(count()), count()", true);
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), QueryServletTestUtils.addConstantColumn(1, "1", expected),
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), QueryServletTestUtils.addConstantColumn(1, "[1, 2)", expected),
                 "from organic yesterday today group by tk, (true) having count() > 0 select parent(parent(count())), count()", true);
     }
 

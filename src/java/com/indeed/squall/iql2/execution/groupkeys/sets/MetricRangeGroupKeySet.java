@@ -5,7 +5,6 @@ import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.LowGutterGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.RangeGroupKey;
-import com.indeed.squall.iql2.execution.groupkeys.SingleValueGroupKey;
 
 import java.util.Objects;
 
@@ -46,13 +45,9 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
         } else if (withDefaultBucket && innerGroup == numBuckets - 1) {
             return DefaultGroupKey.DEFAULT_INSTANCE;
         } else {
-            if (interval == 1) {
-                return new SingleValueGroupKey(min + innerGroup);
-            } else {
-                final long minInclusive = min + innerGroup * interval;
-                final long maxExclusive = min + (innerGroup + 1) * interval;
-                return new RangeGroupKey(minInclusive, maxExclusive);
-            }
+            final long minInclusive = min + innerGroup * interval;
+            final long maxExclusive = min + (innerGroup + 1) * interval;
+            return new RangeGroupKey(minInclusive, maxExclusive);
         }
     }
 

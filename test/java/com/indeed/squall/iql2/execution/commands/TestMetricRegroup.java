@@ -51,13 +51,13 @@ public class TestMetricRegroup {
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4",
-                    "[-∞, 0)\t0",
-                    "[5, ∞)\t" + (9 * 10 / 2 - 4 * 5 / 2)
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4",
+                    "< 0\t0",
+                    ">= 5\t" + (9 * 10 / 2 - 4 * 5 / 2)
             );
 
             Assert.assertEquals(expected, output);
@@ -76,11 +76,11 @@ public class TestMetricRegroup {
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4"
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4"
             );
 
             Assert.assertEquals(expected, output);
@@ -99,11 +99,11 @@ public class TestMetricRegroup {
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4",
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4",
                     "DEFAULT\t" + (9 * 10 / 2 - 4 * 5 / 2)
             );
 

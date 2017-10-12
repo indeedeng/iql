@@ -1,7 +1,5 @@
 package com.indeed.squall.iql2.execution.groupkeys;
 
-import com.indeed.squall.iql2.execution.Session;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -14,7 +12,7 @@ public class HighGutterGroupKey extends GroupKey {
 
     @Override
     public void addToList(List<String> list) {
-        list.add("[" + start + ", " + Session.INFINITY_SYMBOL + ")");
+        list.add(">= " + start);
     }
 
     @Override
