@@ -76,6 +76,7 @@ WINDOW_SUM : 'WINDOW_SUM' ;
 MIN : 'MIN' ;
 MAX : 'MAX' ;
 PRINTF : 'PRINTF' ;
+ROUNDING: 'ROUNDING' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
@@ -84,7 +85,7 @@ RANDOM: 'RANDOM' ;
 M: 'M' ;
 Y : 'Y' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
-TOMRROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
+TOMORROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
 YESTERDAYS : Y | 'YE' | 'YES' | 'YEST' | 'YESTE' | 'YESTER' | 'YESTERD' | 'YESTERDA' | 'YESTERDAY' ;
 TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 TIME_PERIOD_ATOM : ([0-9]* (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
@@ -123,7 +124,7 @@ identifier
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | BOOTSTRAP | RANDOM
-    | M | Y | TODAYS | TOMRROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
+    | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN
     ;
@@ -139,7 +140,6 @@ LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 integer : neg='-'? NAT ;
 
 number : (neg='-'? NAT) | DOUBLE ;
-
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
 fragment SINGLE_QUOTED_CONTENTS : ( ESCAPED_SINGLE_QUOTE | ~('\n'|'\r') )*? ;
@@ -454,7 +454,7 @@ dateTime
     | NAT // This is for unix timestamps.
     | timePeriod
     | TODAYS
-    | TOMRROWS
+    | TOMORROWS
     | YESTERDAYS
     | AGO
     ;
@@ -485,7 +485,7 @@ groupByContents [boolean useLegacy]
     ;
 
 formattedAggregateMetric [boolean useLegacy]
-    : aggregateMetric[$ctx.useLegacy]
+    : aggregateMetric[$ctx.useLegacy] (ROUNDING NAT)?
     | PRINTF '(' STRING_LITERAL ',' aggregateMetric[$ctx.useLegacy] ')'
     ;
 
