@@ -46,13 +46,13 @@ public class PrettyPrint {
     };
 
     public static void main(String[] args) {
-        final String pretty = prettyPrint("from jobsearch /* index name! */ 2d 1d as blah, mobsearch where foo:\"3\" /* hi */ country:us (oji + ojc) = 10 group by something select somethingElse /* after */, /* before */ distinct(thing) /*eof*/");
+        final String pretty = prettyPrint("from jobsearch /* index name! */ 2d 1d as blah, mobsearch where foo:\"3\" /* hi */ country:us (oji + ojc) = 10 group by something select somethingElse /* after */, /* before */ distinct(thing) /*eof*/", true);
         System.out.println("pretty = " + pretty);
     }
 
     @Nonnull
-    public static String prettyPrint(String q) {
-        final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, true);
+    public static String prettyPrint(String q, boolean useLegacy) {
+        final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
         final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), new Consumer<String>() {
             @Override
             public void accept(String s) {
@@ -394,7 +394,14 @@ public class PrettyPrint {
             public Void visit(AggregateFilter.TermIs termIs) {
                 sb.append("term()=");
                 pp(termIs.term);
-                throw new UnsupportedOperationException("You need to implement this");
+                return null;
+            }
+
+            @Override
+            public Void visit(AggregateFilter.TermRegex termRegex) {
+                sb.append("term()=~");
+                pp(termRegex.term);
+                return null;
             }
 
             private Void binop(AggregateMetric m1, String op, AggregateMetric m2) {

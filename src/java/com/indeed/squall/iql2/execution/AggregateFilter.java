@@ -2,15 +2,14 @@ package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.automaton.Automaton;
-import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * @author jwolfe
@@ -20,6 +19,40 @@ public interface AggregateFilter extends Pushable{
 
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
+
+    class TermEqualsRegex implements AggregateFilter {
+        private final Term value;
+        private final Automaton automaton;
+
+        public TermEqualsRegex(Term value) {
+            this.value = value;
+            this.automaton = ValidationUtil.compileRegex(value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm);
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        }
+
+        @Override
+        public boolean[] getGroupStats(long[][] stats, int numGroups) {
+            throw new IllegalArgumentException("Cannot use TermEqualsRegex in a getGroupStats");
+        }
+
+        @Override
+        public boolean allow(String term, long[] stats, int group) {
+            return automaton.run(term);
+        }
+
+        @Override
+        public boolean allow(long term, long[] stats, int group) {
+            return automaton.run(String.valueOf(term));
+        }
+    }
 
     class TermEquals implements AggregateFilter {
         private final Term value;
@@ -431,7 +464,7 @@ public interface AggregateFilter extends Pushable{
         private final Automaton automaton;
 
         public RegexFilter(String regex) {
-            this.automaton = new RegExp(regex).toAutomaton();
+            this.automaton = ValidationUtil.compileRegex(regex);
         }
 
         @Override

@@ -4,6 +4,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.indeed.common.util.StringUtils;
 import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.automaton.Automaton;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.squall.iql2.language.Validator;
@@ -137,9 +138,9 @@ public class ValidationUtil {
         INT, STR, NULL
     }
 
-    public static void compileRegex(String regex) {
+    public static Automaton compileRegex(String regex) {
         try {
-            new RegExp(regex).toAutomaton();
+            return new RegExp(regex).toAutomaton();
         } catch (Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
             throw new IllegalArgumentException(

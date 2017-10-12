@@ -231,6 +231,7 @@ jqlAggregateFilter
     : field=identifier '=~' STRING_LITERAL # AggregateRegex
     | field=identifier '!=~' STRING_LITERAL # AggregateNotRegex
     | 'TERM()' '=' jqlTermVal # AggregateTermIs
+    | 'TERM()' '=~' STRING_LITERAL # AggregateTermRegex
     | jqlAggregateMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlAggregateMetric # AggregateMetricInequality
     | '!' jqlAggregateFilter # AggregateNot
     | NOT '(' jqlAggregateFilter ')' # AggregateNot
