@@ -7,10 +7,8 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.language.DatasetDescriptor;
@@ -26,6 +24,7 @@ import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.core.time.WallClock;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
@@ -132,7 +132,8 @@ public class QueryServlet {
         final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
 
         final int version = ServletUtil.getVersion(request);
-        final String contentType = request.getHeader("Accept");
+        final String contentType = Optional.ofNullable(request.getHeader("Accept")).orElse("text/plain;charset=utf-8");
+
         final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
         final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
         final TreeTimer timer = new TreeTimer() {
