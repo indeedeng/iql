@@ -42,6 +42,7 @@ import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
+import com.indeed.squall.iql2.execution.commands.ZeroOneRegroup;
 import com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -188,6 +189,21 @@ public class Commands {
                         excludeGutters,
                         command.get("withDefault").booleanValue()
                 );
+            }
+            case "zeroOneRegroup": {
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = command.get("perDatasetMetric");
+                final Iterator<String> metricNameIterator = metrics.fieldNames();
+                while (metricNameIterator.hasNext()) {
+                    final String metricName = metricNameIterator.next();
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode metricList = metrics.get(metricName);
+                    for (int i = 0; i < metricList.size(); i++) {
+                        pushes.add(metricList.get(i).textValue());
+                    }
+                    perDatasetMetric.put(metricName, pushes);
+                }
+                return new ZeroOneRegroup(perDatasetMetric);
             }
             case "getNumGroups": {
                 return new GetNumGroups();

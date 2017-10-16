@@ -766,7 +766,7 @@ public abstract class GroupBy extends AbstractPositional {
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, docFilter.asZeroOneMetric(dataset));
             }
-            return new ExecutionStep.ExplodeMetric(perDatasetMetric, 0, 2, 1, scope, true, false);
+            return new ExecutionStep.ExplodeZeroOneMetric(perDatasetMetric, scope, true, false);
         }
 
         @Override
