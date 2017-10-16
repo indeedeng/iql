@@ -271,7 +271,7 @@ public class QueryServlet {
 
     // TODO: this should get data from the Metadata
     private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
-        final Set<String> datasets = new TreeSet<>(imhotepClient.getDatasetToDatasetInfo().keySet());
+        final List<String> datasets = imhotepClient.getDatasetNames();
         final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
         for (final String dataset : datasets) {
             datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
