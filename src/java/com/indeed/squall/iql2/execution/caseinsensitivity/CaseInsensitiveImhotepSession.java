@@ -19,6 +19,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.api.RawFTGSIterator;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
@@ -554,5 +555,15 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     @Override
     public GroupStatsIterator getGroupStatsIterator(final int i) {
         return wrapped.getGroupStatsIterator(i);
+    }
+
+    @Override
+    public PerformanceStats getPerformanceStats(boolean reset) {
+        return wrapped.getPerformanceStats(reset);
+    }
+
+    @Override
+    public PerformanceStats closeAndGetPerformanceStats() {
+        return wrapped.closeAndGetPerformanceStats();
     }
 }

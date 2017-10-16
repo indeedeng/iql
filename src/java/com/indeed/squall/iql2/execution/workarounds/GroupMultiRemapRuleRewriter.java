@@ -14,6 +14,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.api.RawFTGSIterator;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -379,6 +380,17 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
     @Override
     public GroupStatsIterator getGroupStatsIterator(final int stat) {
         return wrapped.getGroupStatsIterator(stat);
+    }
+
+
+    @Override
+    public PerformanceStats getPerformanceStats(boolean reset) {
+        return wrapped.getPerformanceStats(reset);
+    }
+
+    @Override
+    public PerformanceStats closeAndGetPerformanceStats() {
+        return wrapped.closeAndGetPerformanceStats();
     }
 }
 

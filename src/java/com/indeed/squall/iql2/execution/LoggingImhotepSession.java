@@ -12,6 +12,7 @@ import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.api.RawFTGSIterator;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import org.apache.log4j.Logger;
@@ -336,5 +337,18 @@ public class LoggingImhotepSession implements ImhotepSession {
     public GroupStatsIterator getGroupStatsIterator(final int stat) {
         log.info("LoggingImhotepSession.getGroupStatsIterator: " + "stat = [" + stat + "]");
         return wrapped.getGroupStatsIterator(stat);
+    }
+
+
+    @Override
+    public PerformanceStats getPerformanceStats(boolean reset) {
+        log.info("LoggingImhotepSession.getPerformanceStats: " + "reset = [" + reset + "]");
+        return wrapped.getPerformanceStats(reset);
+    }
+
+    @Override
+    public PerformanceStats closeAndGetPerformanceStats() {
+        log.info("LoggingImhotepSession.closeAndGetPerformanceStats: " + "");
+        return wrapped.closeAndGetPerformanceStats();
     }
 }
