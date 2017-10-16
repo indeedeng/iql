@@ -84,7 +84,7 @@ public class TopTermsCache {
         final DateTime startTime = DateTime.now().minusDays(DAYS_DELAY).withTimeAtStartOfDay().plusHours(12);
         final DateTime endTime = startTime.plusHours(1);
 
-        final Set<String> datasets = Session.getDatasets(client);
+        final List<String> datasets = client.getDatasetNames();
 
         for(final String dataset : datasets) {
             long started = System.currentTimeMillis();

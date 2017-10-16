@@ -196,10 +196,6 @@ public class Session {
         }
     }
 
-    public static Set<String> getDatasets(ImhotepClient client) {
-        return new HashSet<>(client.getDatasetToDatasetInfo().keySet());
-    }
-
     private static void createSubSessions(
             final ImhotepClient client,
             final JsonNode sessionRequest,
@@ -213,7 +209,7 @@ public class Session {
             final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, String> upperCaseToActualDataset = new HashMap<>();
-        for (final String dataset : Session.getDatasets(client)) {
+        for (final String dataset : client.getDatasetNames()) {
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
         }
 

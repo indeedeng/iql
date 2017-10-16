@@ -283,7 +283,7 @@ public class SelectQueryExecution {
             queryInfo.statementType = "select";
 
             final Map<String, String> upperCaseToActualDataset = new HashMap<>();
-            for (final String dataset : Session.getDatasets(imhotepClient)) {
+            for (final String dataset : imhotepClient.getDatasetNames()) {
                 upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
             }
 
@@ -555,7 +555,7 @@ public class SelectQueryExecution {
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
         timer.push("compute dataset normalization");
-        final Set<String> datasets = Session.getDatasets(imhotepClient);
+        final List<String> datasets = imhotepClient.getDatasetNames();
         final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
         for (final String dataset : datasets) {
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
