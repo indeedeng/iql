@@ -32,7 +32,6 @@ import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
@@ -60,6 +59,7 @@ import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -476,16 +476,7 @@ public class Session {
                             }
                         }
                         final double[] stats = result.stats;
-                        for (int i = 0; i < stats.length; i++) {
-                            final double stat = stats[i];
-                            if (i < formatStrings.length && formatStrings[i] != null) {
-                                sb.append(String.format(formatStrings[i], stat)).append('\t');
-                            } else if (DoubleMath.isMathematicalInteger(stat)) {
-                                sb.append(String.format("%.0f", stat)).append('\t');
-                            } else {
-                                sb.append(stat).append('\t');
-                            }
-                        }
+                        writeDoubleStatsWithFormatString(stats, formatStrings, sb);
                         if (keyColumns.size() + result.stats.length > 0) {
                             sb.setLength(sb.length() - 1);
                         }
@@ -500,6 +491,20 @@ public class Session {
             }
         } finally {
             timer.pop();
+        }
+    }
+
+    public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
+        final DecimalFormat format = new DecimalFormat("#.#######");
+        for (int i = 0; i < stats.length; i++) {
+            final double stat = stats[i];
+            if (DoubleMath.isMathematicalInteger(stat)) {
+                sb.append(String.format("%.0f", stat)).append('\t');
+            } else if (i < formatStrings.length && formatStrings[i] != null) {
+                sb.append(String.format(formatStrings[i], stat)).append('\t');
+            } else {
+                sb.append(Double.isNaN(stat) ? "NaN" : format.format(stat)).append('\t');
+            }
         }
     }
 

@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
@@ -249,16 +248,7 @@ public class SimpleIterate implements Command {
         }
         Session.appendGroupString(term, sb);
         sb.append('\t');
-        for (int i = 0; i < selectBuffer.length; i++) {
-            final double stat = selectBuffer[i];
-            if (formatStrings[i] != null) {
-                sb.append(String.format(formatStrings[i], stat)).append('\t');
-            } else if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append((long) stat).append('\t');
-            } else {
-                sb.append(stat).append('\t');
-            }
-        }
+        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
         if (keyColumns.size() + selectBuffer.length > 0) {
             sb.setLength(sb.length() - 1);
         }
@@ -274,16 +264,7 @@ public class SimpleIterate implements Command {
             sb.append('\t');
         }
         sb.append(term).append('\t');
-        for (int i = 0; i < selectBuffer.length; i++) {
-            final double stat = selectBuffer[i];
-            if (i < formatStrings.length && formatStrings[i] != null) {
-                sb.append(String.format(formatStrings[i], stat)).append('\t');
-            } else if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append((long) stat).append('\t');
-            } else {
-                sb.append(stat).append('\t');
-            }
-        }
+        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
         if (keyColumns.size() + selectBuffer.length > 0) {
             sb.setLength(sb.length() - 1);
         }
