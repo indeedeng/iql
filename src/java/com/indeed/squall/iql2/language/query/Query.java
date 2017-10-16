@@ -94,15 +94,17 @@ public class Query extends AbstractPositional {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
             final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(selectSet.formattedAggregateMetric().size());
             formatStrings = new ArrayList<>();
-            Optional<String> lastPriorFormatString = Optional.absent();
+            Optional<String> formatString;
             for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
                 metrics.add(formattedMetric.aggregateMetric());
                 if (formattedMetric.STRING_LITERAL() != null) {
-                    lastPriorFormatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
-                } else if (formattedMetric.NAT() != null) {
-                    lastPriorFormatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, formattedMetric.NAT().getText()));
+                    formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
+                } else if (selectSet.ROUNDING() != null) {
+                    formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.NAT().getText()));
+                } else  {
+                    formatString = Optional.absent();
                 }
-                formatStrings.add(lastPriorFormatString);
+                formatStrings.add(formatString);
             }
             selectedMetrics = new ArrayList<>();
             for (final JQLParser.AggregateMetricContext metric : metrics) {

@@ -26,12 +26,12 @@ public class RoundingFormatTest extends BasicTest {
     @Test
     public void testMultipleSelectRounding() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("cn", "1.00", "1"));
-        expected.add(ImmutableList.of("gb", "2.00", "2"));
-        expected.add(ImmutableList.of("jp", "2.00", "2"));
-        expected.add(ImmutableList.of("uk", "2.00", "2"));
-        expected.add(ImmutableList.of("us", "3.00", "3"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count() rounding 2, count() rounding 0");
+        expected.add(ImmutableList.of("cn", "1.00", "0.50"));
+        expected.add(ImmutableList.of("gb", "2.00", "1.00"));
+        expected.add(ImmutableList.of("jp", "2.00", "1.00"));
+        expected.add(ImmutableList.of("uk", "2.00", "1.00"));
+        expected.add(ImmutableList.of("us", "3.00", "1.50"));
+        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count(), count() / 2 rounding 2");
     }
 
     @Test
@@ -46,24 +46,23 @@ public class RoundingFormatTest extends BasicTest {
     }
 
     @Test
-    public void testMultipleSelectRoundingAffectingLatterPart() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("cn", "1", "1.00", "0.50"));
-        expected.add(ImmutableList.of("gb", "2", "2.00", "1.00"));
-        expected.add(ImmutableList.of("jp", "2", "2.00", "1.00"));
-        expected.add(ImmutableList.of("uk", "2", "2.00", "1.00"));
-        expected.add(ImmutableList.of("us", "3", "3.00", "1.50"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count(), count() ROUNding 2, count() / 2");
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count(), printf(\"%.2f\", count()), count() / 2");
-    }
-
-    @Test
     public void testSelectRoundingMissingN() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         try {
-            QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count() rounDing, printf(\"%.2f\", count()), count() / 2");
+            QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count() rounDing");
         } catch (final Exception e){
             //expected
         }
+    }
+
+    @Test
+    public void testSelectPrintfNoRounding() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("cn", "1.00", "1"));
+        expected.add(ImmutableList.of("gb", "2.00", "2"));
+        expected.add(ImmutableList.of("jp", "2.00", "2"));
+        expected.add(ImmutableList.of("uk", "2.00", "2"));
+        expected.add(ImmutableList.of("us", "3.00", "3"));
+        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select printf(\"%.2f\", count()), count()");
     }
 }

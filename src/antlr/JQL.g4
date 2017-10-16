@@ -485,12 +485,12 @@ groupByContents [boolean useLegacy]
     ;
 
 formattedAggregateMetric [boolean useLegacy]
-    : aggregateMetric[$ctx.useLegacy] (ROUNDING NAT)?
+    : aggregateMetric[$ctx.useLegacy]
     | PRINTF '(' STRING_LITERAL ',' aggregateMetric[$ctx.useLegacy] ')'
     ;
 
 selectContents [boolean useLegacy]
-    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)?
+    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)? (ROUNDING NAT)?
     ;
 
 query [boolean useLegacy]
