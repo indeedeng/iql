@@ -20,6 +20,7 @@ import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.common.util.time.WallClock;
+import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
@@ -705,16 +706,22 @@ public class SelectQueryExecution {
         }
 
         public long newestShard() {
-            long newest = -1;
+            long newestStatic = -1;
+            long newestDynamicTimestamp = -1;
             for (final List<ShardIdWithVersion> shardset : shards.values()) {
                 for (final ShardIdWithVersion shard : shardset) {
-                    newest = Math.max(newest, shard.getVersion());
+                    if (DynamicIndexSubshardDirnameUtil.isValidShardId(shard.getShardId())) {
+                        newestDynamicTimestamp = Math.max(newestDynamicTimestamp, shard.getEnd().getMillis());
+                    } else {
+                        newestStatic = Math.max(newestStatic, shard.getVersion());
+                    }
                 }
             }
-            if (newest == -1) {
+            if ((newestStatic == -1) && (newestDynamicTimestamp == -1)) {
                 throw new IllegalArgumentException("No shards!");
             }
-            return DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newest));
+            final long newestStaticTimestamp = (newestStatic == -1) ? -1 : DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic));
+            return Math.max(newestStaticTimestamp, newestDynamicTimestamp);
         }
     }
 

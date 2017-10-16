@@ -89,7 +89,7 @@ public class OrganicDataset {
 
         for (int d = 1; d <= 31; d++) {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2014, 1, d, 0, 0, 0, timeZone), 1, 1, "d"));
+            flamdex.addDocument(makeDocument(new DateTime(2014, 12, d, 0, 0, 0, timeZone), 1, 1, "d"));
             result.add(new Dataset.DatasetShard("organic", String.format("index201412%02d", d), flamdex));
         }
 
