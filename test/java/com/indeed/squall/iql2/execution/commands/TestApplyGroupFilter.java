@@ -47,7 +47,7 @@ public class TestApplyGroupFilter {
         try (final Closer closer = Closer.create()) {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
-            final MetricRegroup metricRegroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 10, 1, true, false);
+            final MetricRegroup metricRegroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 10, 1, true, false, false);
             metricRegroup.execute(session, new Consumer.NoOpConsumer<String>());
 
             final ApplyGroupFilter applyGroupFilter = new ApplyGroupFilter(new AggregateFilter.GreaterThan(new DocumentLevelMetric(SESSION, Arrays.asList(FIELD, "4", ">")), new Constant(0)));

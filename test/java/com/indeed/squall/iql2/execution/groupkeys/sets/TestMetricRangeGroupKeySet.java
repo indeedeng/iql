@@ -16,7 +16,7 @@ import java.util.Arrays;
 public class TestMetricRangeGroupKeySet {
     private static MetricRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.create(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new MetricRangeGroupKeySet(previous, 7, false, 0, 2, false);
+        return new MetricRangeGroupKeySet(previous, 7, false, 0, 2, false, false);
     }
 
     @Test

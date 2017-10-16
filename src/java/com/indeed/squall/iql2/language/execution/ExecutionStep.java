@@ -21,7 +21,6 @@ import com.indeed.squall.iql2.language.commands.RegroupFieldIn;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.squall.iql2.language.commands.TopK;
-import com.indeed.squall.iql2.language.commands.ZeroOneRegroup;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -253,34 +252,6 @@ public interface ExecutionStep {
         }
     }
 
-    class ExplodeZeroOneMetric implements ExecutionStep {
-        private final Map<String, DocMetric> perDatasetMetric;
-        private final Set<String> scope;
-        private final boolean excludeGutters;
-        private final boolean withDefault;
-
-        public ExplodeZeroOneMetric(final Map<String, DocMetric> perDatasetMetric, final Set<String> scope, final boolean excludeGutters, final boolean withDefault) {
-            this.perDatasetMetric = perDatasetMetric;
-            this.scope = scope;
-            this.excludeGutters = excludeGutters;
-            this.withDefault = withDefault;
-        }
-
-        @Override
-        public List<Command> commands() {
-            final Map<String, List<String>> datasetToPushes = new HashMap<>();
-            for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
-            }
-            return Collections.<Command>singletonList(new ZeroOneRegroup(datasetToPushes, excludeGutters, withDefault));
-        }
-
-        @Override
-        public ExecutionStep traverse1(final Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-    }
-
     class ExplodeMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final long lowerBound;
@@ -289,8 +260,9 @@ public interface ExecutionStep {
         private final Set<String> scope;
         private final boolean excludeGutters;
         private final boolean withDefault;
+        private final boolean fromPredict;
 
-        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault) {
+        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault, boolean fromPredict) {
             this.perDatasetMetric = perDatasetMetric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
@@ -298,6 +270,7 @@ public interface ExecutionStep {
             this.scope = scope;
             this.excludeGutters = excludeGutters;
             this.withDefault = withDefault;
+            this.fromPredict = fromPredict;
         }
 
         @Override
@@ -306,7 +279,7 @@ public interface ExecutionStep {
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
             }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault));
+            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredict));
         }
 
         @Override
@@ -324,6 +297,7 @@ public interface ExecutionStep {
                     ", scope=" + scope +
                     ", excludeGutters=" + excludeGutters +
                     ", withDefault=" + withDefault +
+                    ", fromPredict=" + fromPredict +
                     '}';
         }
     }

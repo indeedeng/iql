@@ -89,7 +89,7 @@ public abstract class GroupBy extends AbstractPositional {
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, metric);
             }
-            return new ExecutionStep.ExplodeMetric(perDatasetMetric, min, max, interval, scope, excludeGutters, withDefault);
+            return new ExecutionStep.ExplodeMetric(perDatasetMetric, min, max, interval, scope, excludeGutters, withDefault, false);
         }
 
         @Override
@@ -766,7 +766,7 @@ public abstract class GroupBy extends AbstractPositional {
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, docFilter.asZeroOneMetric(dataset));
             }
-            return new ExecutionStep.ExplodeZeroOneMetric(perDatasetMetric, scope, true, false);
+            return new ExecutionStep.ExplodeMetric(perDatasetMetric, 0, 2, 1, scope, true, false, true);
         }
 
         @Override
