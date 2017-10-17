@@ -12,7 +12,7 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.w
 
 public class DynamicIndexTest extends BasicTest {
     @Test
-    public void testUngrouped() throws Exception {
+    public void testUngroupedUsingDynamicIndex() throws Exception {
         final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
         testAll(DynamicDataset.create(), expected, "from organic yesterday today select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
