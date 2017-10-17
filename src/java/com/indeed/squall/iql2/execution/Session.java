@@ -104,6 +104,7 @@ public class Session {
     }
 
     public static final String INFINITY_SYMBOL = "∞";
+    public static final DecimalFormat DEFAULT_FORMAT = new DecimalFormat("#.#######");
 
     public Session(Map<String, ImhotepSessionInfo> sessions, TreeTimer timer, ProgressCallback progressCallback, @Nullable Integer groupLimit) {
         this.sessions = sessions;
@@ -495,15 +496,14 @@ public class Session {
     }
 
     public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
-        final DecimalFormat format = new DecimalFormat("#.#######");
         for (int i = 0; i < stats.length; i++) {
             final double stat = stats[i];
-            if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append(String.format("%.0f", stat)).append('\t');
-            } else if (i < formatStrings.length && formatStrings[i] != null) {
+            if (i < formatStrings.length && formatStrings[i] != null) {
                 sb.append(String.format(formatStrings[i], stat)).append('\t');
+            } else if (DoubleMath.isMathematicalInteger(stat)) {
+                sb.append(String.format("%.0f", stat)).append('\t');
             } else {
-                sb.append(Double.isNaN(stat) ? "NaN" : format.format(stat)).append('\t');
+                sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_FORMAT.format(stat)).append('\t');
             }
         }
     }

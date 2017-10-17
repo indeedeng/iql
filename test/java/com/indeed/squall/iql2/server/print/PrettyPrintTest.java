@@ -3,9 +3,6 @@ package com.indeed.squall.iql2.server.print;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- *
- */
 public class PrettyPrintTest {
     @Test
     public void prettyPrint() throws Exception {
