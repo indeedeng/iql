@@ -8,12 +8,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OrganicDataset {
+    public static Dataset create() {
+        return create(false);
+    }
+
+    public static Dataset createWithDynamicShardNaming() {
+        return create(true);
+    }
+
     // Overall:
     // count = 151
     // oji = 2653
     // ojc = 306
     // distinct(tk) = { "a", "b", "c", "d" }, || = 4
-    public static Dataset create() {
+    private static Dataset create(final boolean useDynamicShardNaming) {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
 
         final List<Dataset.DatasetShard> result = new ArrayList<>();
@@ -29,17 +37,18 @@ public class OrganicDataset {
         // count(tk="c") = 4
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, timeZone), 10, 0, "a"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30, timeZone), 10, 1, "a"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15, timeZone), 10, 5, "a"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0, timeZone), 10, 2, "b"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 15, 0, timeZone), 10, 1, "a"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 20, 0, timeZone), 100, 15, "b"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 25, 0, timeZone), 1000, 1, "c"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 30, 30, timeZone), 10, 10, "c"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 45, 30, timeZone), 10, 10, "c"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 59, 59, 999, timeZone), 10, 0, "c"));
-            result.add(new Dataset.DatasetShard("organic", "index20150101.00", flamdex));
+            final DateTime start = new DateTime(2015, 1, 1, 0, 0, 0, timeZone);
+            flamdex.addDocument(makeDocument(start.plusMillis(0), 10, 0, "a"));
+            flamdex.addDocument(makeDocument(start.plusSeconds(30), 10, 1, "a"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(1).plusSeconds(15), 10, 5, "a"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(10), 10, 2, "b"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(15), 10, 1, "a"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(20), 100, 15, "b"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(25), 1000, 1, "c"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(30).plusSeconds(30), 10, 10, "c"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(45).plusSeconds(30), 10, 10, "c"));
+            flamdex.addDocument(makeDocument(start.plusMinutes(59).plusSeconds(59).plusMillis(999), 10, 0, "c"));
+            result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, true), flamdex));
         }
 
         // 2015-01-01 01:00:00 - 2015-01-01 02:00:00
@@ -51,10 +60,11 @@ public class OrganicDataset {
         // count(tk="d") = 60
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
+            final DateTime start = new DateTime(2015, 1, 1, 1, 0, 0, timeZone);
             for (int i = 0; i < 60; i++) {
-                flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, i, 0, timeZone), 10, 1, "d"));
+                flamdex.addDocument(makeDocument(start.plusMinutes(i), 10, 1, "d"));
             }
-            result.add(new Dataset.DatasetShard("organic", "index20150101.01", flamdex));
+            result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, true), flamdex));
         }
 
         // 2015-01-01 02:00:00 - 03:00:00
@@ -66,10 +76,11 @@ public class OrganicDataset {
         // count(tk="d") = 60
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
+            final DateTime start = new DateTime(2015, 1, 1, 2, 0, 0, timeZone);
             for (int i = 0; i < 60; i++) {
-                flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, i, 0, timeZone), 10, 3, "d"));
+                flamdex.addDocument(makeDocument(start.plusMinutes(i), 10, 3, "d"));
             }
-            result.add(new Dataset.DatasetShard("organic", "index20150101.02", flamdex));
+            result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, true), flamdex));
         }
 
         // 1 document per hour from 2015-01-01 03:00:00 to 2015-01-02 00:00:00
@@ -81,22 +92,57 @@ public class OrganicDataset {
         // total ojc = 21
         // distinct(tk) = { "d" }, || = 1
         // total count(tk="d") = 21
+
         for (int h = 3; h < 24; h++) {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, h, 0, 0, timeZone), h, 1, "d"));
-            result.add(new Dataset.DatasetShard("organic", String.format("index20150101.%02d", h), flamdex));
+            final DateTime start = new DateTime(2015, 1, 1, h, 0, 0, timeZone);
+            flamdex.addDocument(makeDocument(start, h, 1, "d"));
+            result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, true), flamdex));
         }
 
         for (int d = 1; d <= 31; d++) {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2014, 12, d, 0, 0, 0, timeZone), 1, 1, "d"));
-            result.add(new Dataset.DatasetShard("organic", String.format("index201412%02d", d), flamdex));
+            final DateTime start = new DateTime(2014, 12, d, 0, 0, 0, timeZone);
+            flamdex.addDocument(makeDocument(start, 1, 1, "d"));
+            result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, false), flamdex));
         }
 
         return new Dataset(result);
     }
 
-    private static FlamdexDocument makeDocument(DateTime timestamp, int oji, int ojc, String tk) {
+    private static String getShardId(final boolean useDynamicShardNaming, final DateTime start, final boolean isHourly) {
+        if (useDynamicShardNaming) {
+            final DateTime end = isHourly ? start.plusHours(1) : start.plusDays(1);
+            return String.format(
+                    "dindex%04d%02d%02d.%02d-%04d%02d%02d.%02d.0.1",
+                    start.getYear(),
+                    start.getMonthOfYear(),
+                    start.getDayOfMonth(),
+                    start.getHourOfDay(),
+                    end.getYear(),
+                    end.getMonthOfYear(),
+                    end.getDayOfMonth(),
+                    end.getHourOfDay()
+            );
+        } else if (isHourly) {
+            return String.format(
+                    "index%04d%02d%02d.%02d",
+                    start.getYear(),
+                    start.getMonthOfYear(),
+                    start.getDayOfMonth(),
+                    start.getHourOfDay()
+            );
+        } else {
+            return String.format(
+                    "index%04d%02d%02d",
+                    start.getYear(),
+                    start.getMonthOfYear(),
+                    start.getDayOfMonth()
+            );
+        }
+    }
+
+    private static FlamdexDocument makeDocument(final DateTime timestamp, final int oji, final int ojc, final String tk) {
         if (!timestamp.getZone().equals(DateTimeZone.forOffsetHours(-6))) {
             throw new IllegalArgumentException("Bad timestamp timezone: " + timestamp.getZone());
         }
