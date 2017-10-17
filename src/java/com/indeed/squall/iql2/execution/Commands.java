@@ -187,7 +187,7 @@ public class Commands {
                         command.get("interval").longValue(),
                         excludeGutters,
                         command.get("withDefault").booleanValue(),
-                        command.get("fromPredict").booleanValue()
+                        command.get("fromPredicate").booleanValue()
                 );
             }
             case "getNumGroups": {

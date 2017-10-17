@@ -260,9 +260,9 @@ public interface ExecutionStep {
         private final Set<String> scope;
         private final boolean excludeGutters;
         private final boolean withDefault;
-        private final boolean fromPredict;
+        private final boolean fromPredicate;
 
-        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault, boolean fromPredict) {
+        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
             this.perDatasetMetric = perDatasetMetric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
@@ -270,7 +270,7 @@ public interface ExecutionStep {
             this.scope = scope;
             this.excludeGutters = excludeGutters;
             this.withDefault = withDefault;
-            this.fromPredict = fromPredict;
+            this.fromPredicate = fromPredicate;
         }
 
         @Override
@@ -279,7 +279,7 @@ public interface ExecutionStep {
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
             }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredict));
+            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -297,7 +297,7 @@ public interface ExecutionStep {
                     ", scope=" + scope +
                     ", excludeGutters=" + excludeGutters +
                     ", withDefault=" + withDefault +
-                    ", fromPredict=" + fromPredict +
+                    ", fromPredicate=" + fromPredicate +
                     '}';
         }
     }

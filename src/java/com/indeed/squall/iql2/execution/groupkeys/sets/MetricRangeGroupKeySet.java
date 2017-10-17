@@ -16,16 +16,16 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final long min;
     private final long interval;
     private final boolean withDefaultBucket;
-    private final boolean fromPredict;
+    private final boolean fromPredicate;
 
-    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredict) {
+    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredicate) {
         this.previous = previous;
         this.numBuckets = numBuckets;
         this.excludeGutters = excludeGutters;
         this.min = min;
         this.interval = interval;
         this.withDefaultBucket = withDefaultBucket;
-        this.fromPredict = fromPredict;
+        this.fromPredicate = fromPredicate;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
             return new LowGutterGroupKey(min);
         } else if (withDefaultBucket && innerGroup == numBuckets - 1) {
             return DefaultGroupKey.DEFAULT_INSTANCE;
-        } else if (fromPredict) {
+        } else if (fromPredicate) {
             return new IntTermGroupKey(innerGroup);
         } else {
             final long minInclusive = min + innerGroup * interval;
@@ -76,12 +76,12 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
                 min == that.min &&
                 interval == that.interval &&
                 withDefaultBucket == that.withDefaultBucket &&
-                fromPredict == this.fromPredict &&
+                fromPredicate == this.fromPredicate &&
                 Objects.equals(previous, that.previous);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(previous, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredict);
+        return Objects.hash(previous, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate);
     }
 }
