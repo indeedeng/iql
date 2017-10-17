@@ -2,6 +2,8 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.print.PrettyPrint;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,7 +27,14 @@ public class VersionUpgradeServlet {
         response.setHeader("Content-Type", "application/json");
 
         try {
-            return ImmutableMap.of("upgraded", PrettyPrint.prettyPrint(q, true));
+            String iql2QueryString;
+            try {
+                final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, false);
+                iql2QueryString = q;
+            } catch (final IllegalArgumentException e) {
+                iql2QueryString = PrettyPrint.prettyPrint(q, true);
+            }
+            return ImmutableMap.of("upgraded", iql2QueryString);
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("clause", "where");
