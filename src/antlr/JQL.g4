@@ -139,7 +139,6 @@ LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 
 integer : neg='-'? NAT ;
 number : (neg='-'? NAT) | DOUBLE ;
-precision : NAT ;
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
 fragment SINGLE_QUOTED_CONTENTS : ( ESCAPED_SINGLE_QUOTE | ~('\n'|'\r') )*? ;
@@ -490,7 +489,7 @@ formattedAggregateMetric [boolean useLegacy]
     ;
 
 selectContents [boolean useLegacy]
-    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)? (ROUNDING precision)?
+    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)? (ROUNDING precision=NAT)?
     ;
 
 query [boolean useLegacy]

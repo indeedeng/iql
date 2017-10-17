@@ -99,8 +99,8 @@ public class Query extends AbstractPositional {
                 metrics.add(formattedMetric.aggregateMetric());
                 if (formattedMetric.STRING_LITERAL() != null) {
                     formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
-                } else if (selectSet.precision() != null) {
-                    formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision().getText()));
+                } else if (selectSet.precision != null) {
+                    formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
                 } else  {
                     formatString = Optional.absent();
                 }
