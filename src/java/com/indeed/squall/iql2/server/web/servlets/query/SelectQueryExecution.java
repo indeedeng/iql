@@ -710,7 +710,7 @@ public class SelectQueryExecution {
             long newestDynamicTimestamp = -1;
             for (final List<ShardIdWithVersion> shardset : shards.values()) {
                 for (final ShardIdWithVersion shard : shardset) {
-                    if (DynamicIndexSubshardDirnameUtil.isValidShardId(shard.getShardId())) {
+                    if (DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
                         newestDynamicTimestamp = Math.max(newestDynamicTimestamp, shard.getEnd().getMillis());
                     } else {
                         newestStatic = Math.max(newestStatic, shard.getVersion());
