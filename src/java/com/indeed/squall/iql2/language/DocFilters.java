@@ -31,9 +31,9 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, DatasetsMetadata datasetsMetadata, JQLParser.FromContentsContext fromContents, Consumer<String> warn, WallClock clock) {
+    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, List<String> options, DatasetsMetadata datasetsMetadata, JQLParser.FromContentsContext fromContents, Consumer<String> warn, WallClock clock) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), datasetsMetadata, fromContents, warn, clock);
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock);
         }
         if (docFilterContext.legacyDocFilter() != null) {
             return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetsMetadata);
@@ -204,10 +204,11 @@ public class DocFilters {
     }
 
     public static DocFilter parseJQLDocFilter(
-            JQLParser.JqlDocFilterContext docFilterContext,
-            final DatasetsMetadata datasetsMetadata,
+            final JQLParser.JqlDocFilterContext docFilterContext,
+            final List<String> options, final DatasetsMetadata datasetsMetadata,
             final JQLParser.FromContentsContext fromContents,
-            final Consumer<String> warn, final WallClock clock
+            final Consumer<String> warn,
+            final WallClock clock
     ) {
         final DocFilter[] ref = new DocFilter[1];
 
@@ -251,6 +252,7 @@ public class DocFilters {
                         Optional.fromNullable(queryCtx.whereContents()),
                         Optional.of(queryCtx.groupByContents()),
                         Collections.<JQLParser.SelectContentsContext>emptyList(),
+                        options,
                         null,
                         datasetsMetadata,
                         warn,
@@ -288,7 +290,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock)));
             }
 
             @Override
@@ -321,7 +323,7 @@ public class DocFilters {
 
             @Override
             public void enterDocOr(JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), options, datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), options, datasetsMetadata, fromContents, warn, clock)));
             }
 
             @Override
@@ -332,8 +334,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), datasetsMetadata, warn, clock);
-                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), datasetsMetadata, warn, clock);
+                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), options, datasetsMetadata, warn, clock);
+                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), options, datasetsMetadata, warn, clock);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -368,7 +370,7 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), options, datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), options, datasetsMetadata, fromContents, warn, clock)));
             }
 
             @Override
@@ -384,7 +386,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, fromContents, warn, clock));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock));
             }
 
             @Override

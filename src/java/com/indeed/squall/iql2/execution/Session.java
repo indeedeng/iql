@@ -32,7 +32,6 @@ import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
@@ -143,6 +142,13 @@ public class Session {
             groupLimit = null;
         }
 
+        final Set<String> optionsSet = new HashSet<>();
+        for (final JsonNode option : sessionRequest.get("options")) {
+            optionsSet.add(option.textValue());
+        }
+
+        final boolean requestRust = optionsSet.contains("rust");
+
         if (sessionRequest.has("commands")) {
             treeTimer.push("readCommands");
             final JsonNode commands = sessionRequest.get("commands");
@@ -150,7 +156,7 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            createSubSessions(client, sessionRequest.get("datasets"), datasetToChosenShards,
+            createSubSessions(client, requestRust, sessionRequest.get("datasets"), datasetToChosenShards,
                     closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
@@ -189,7 +195,7 @@ public class Session {
             return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            createSubSessions(client, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+            createSubSessions(client, requestRust, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
             return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
@@ -198,6 +204,7 @@ public class Session {
 
     private static void createSubSessions(
             final ImhotepClient client,
+            final boolean requestRust,
             final JsonNode sessionRequest,
             final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
             final Closer closer,
@@ -269,12 +276,13 @@ public class Session {
             treeTimer.push("build session");
             treeTimer.push("create session builder");
             final List<ShardIdWithVersion> chosenShards = datasetToChosenShards.get(name);
-            final ImhotepClient.SessionBuilder sessionBuilder =
-                    client.sessionBuilder(actualDataset, startDateTime, endDateTime)
-                          .username("IQL2:" + username)
-                          .shardsOverride(ShardIdWithVersion.keepShardIds(chosenShards))
-                          .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
-                          .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit);
+            final ImhotepClient.SessionBuilder sessionBuilder = client
+                .sessionBuilder(actualDataset, startDateTime, endDateTime)
+                .username("IQL2:" + username)
+                .shardsOverride(ShardIdWithVersion.keepShardIds(chosenShards))
+                .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
+                .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
+                .allowSessionForwarding(requestRust);
             treeTimer.pop();
             treeTimer.push("build session builder");
             final ImhotepSession build = closer.register(sessionBuilder.build());

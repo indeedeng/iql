@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Query extends AbstractPositional {
     public final List<com.indeed.squall.iql2.language.query.Dataset> datasets;
@@ -36,15 +37,17 @@ public class Query extends AbstractPositional {
     public final List<GroupByMaybeHaving> groupBys;
     public final List<AggregateMetric> selects;
     public final List<Optional<String>> formatStrings;
+    public final List<String> options;
     public final Optional<Integer> rowLimit;
     public final boolean useLegacy;
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, Optional<Integer> rowLimit, boolean useLegacy) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
         this.selects = selects;
         this.formatStrings = formatStrings;
+        this.options = options;
         this.rowLimit = rowLimit;
         this.useLegacy = useLegacy;
     }
@@ -54,13 +57,14 @@ public class Query extends AbstractPositional {
             Optional<JQLParser.WhereContentsContext> whereContents,
             Optional<JQLParser.GroupByContentsContext> groupByContents,
             List<JQLParser.SelectContentsContext> selects,
+            List<String> options,
             Token limit,
             DatasetsMetadata datasetsMetadata,
             Consumer<String> warn,
             WallClock clock,
             boolean useLegacy
     ) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, datasetsMetadata, warn, clock);
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();
@@ -72,13 +76,13 @@ public class Query extends AbstractPositional {
         }
         if (whereContents.isPresent()) {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
-                allFilters.add(DocFilters.parseDocFilter(ctx, datasetsMetadata, fromContents, warn, clock));
+                allFilters.add(DocFilters.parseDocFilter(ctx, options, datasetsMetadata, fromContents, warn, clock));
             }
         }
 
         final List<GroupByMaybeHaving> groupBys;
         if (groupByContents.isPresent()) {
-            groupBys = GroupBys.parseGroupBys(groupByContents.get(), datasetsMetadata, warn, clock);
+            groupBys = GroupBys.parseGroupBys(groupByContents.get(), options, datasetsMetadata, warn, clock);
         } else {
             groupBys = Collections.emptyList();
         }
@@ -102,7 +106,7 @@ public class Query extends AbstractPositional {
             }
             selectedMetrics = new ArrayList<>();
             for (final JQLParser.AggregateMetricContext metric : metrics) {
-                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, datasetsMetadata, warn, clock));
+                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, options, datasetsMetadata, warn, clock));
             }
         } else {
             throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + selects.size());
@@ -124,15 +128,17 @@ public class Query extends AbstractPositional {
         } else {
             whereFilter = Optional.of(DocFilters.and(allFilters));
         }
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, rowLimit, useLegacy);
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, options, rowLimit, useLegacy);
     }
 
     public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+        final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
         final Query query = parseQuery(
                 queryContext.fromContents(),
                 Optional.fromNullable(queryContext.whereContents()),
                 Optional.fromNullable(queryContext.groupByContents()),
                 queryContext.selects,
+                options,
                 queryContext.limit,
                 datasetsMetadata,
                 warn,
@@ -164,7 +170,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
@@ -176,7 +182,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.traverse1(f));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
     }
 
     public Set<String> extractDatasetNames() {

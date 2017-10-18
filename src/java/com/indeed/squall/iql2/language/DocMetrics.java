@@ -10,9 +10,9 @@ import java.util.List;
 import static com.indeed.squall.iql2.language.Identifiers.parseIdentifier;
 
 public class DocMetrics {
-    public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static DocMetric parseDocMetric(JQLParser.DocMetricContext metricContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         if (metricContext.jqlDocMetric() != null) {
-            return parseJQLDocMetric(metricContext.jqlDocMetric(), datasetsMetadata, warn, clock);
+            return parseJQLDocMetric(metricContext.jqlDocMetric(), options, datasetsMetadata, warn, clock);
         }
         if (metricContext.legacyDocMetric() != null) {
             return parseLegacyDocMetric(metricContext.legacyDocMetric(), datasetsMetadata);
@@ -241,7 +241,7 @@ public class DocMetrics {
         return ref[0];
     }
 
-    public static DocMetric parseJQLDocMetric(JQLParser.JqlDocMetricContext metricContext, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static DocMetric parseJQLDocMetric(final JQLParser.JqlDocMetricContext metricContext, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
         final DocMetric[] ref = new DocMetric[1];
 
         metricContext.enterRule(new JQLBaseListener() {
@@ -257,13 +257,13 @@ public class DocMetrics {
             }
 
             public void enterDocSignum(JQLParser.DocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock)));
+                accept(new DocMetric.Signum(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
             }
 
             @Override
             public void enterDocPlusOrMinus(JQLParser.DocPlusOrMinusContext ctx) {
-                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), datasetsMetadata, warn, clock);
-                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), datasetsMetadata, warn, clock);
+                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), options, datasetsMetadata, warn, clock);
+                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), options, datasetsMetadata, warn, clock);
                 if (ctx.plus != null) {
                     accept(new DocMetric.Add(left, right));
                 } else if (ctx.minus != null) {
@@ -273,8 +273,8 @@ public class DocMetrics {
 
             @Override
             public void enterDocMultOrDivideOrModulus(JQLParser.DocMultOrDivideOrModulusContext ctx) {
-                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), datasetsMetadata, warn, clock);
-                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), datasetsMetadata, warn, clock);
+                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), options, datasetsMetadata, warn, clock);
+                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), options, datasetsMetadata, warn, clock);
                 if (ctx.multiply != null) {
                     accept(new DocMetric.Multiply(left, right));
                 } else if (ctx.divide != null) {
@@ -286,8 +286,8 @@ public class DocMetrics {
 
             @Override
             public void enterDocInequality(JQLParser.DocInequalityContext ctx) {
-                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), datasetsMetadata, warn, clock);
-                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), datasetsMetadata, warn, clock);
+                final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), options, datasetsMetadata, warn, clock);
+                final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), options, datasetsMetadata, warn, clock);
                 if (ctx.gte != null) {
                     accept(new DocMetric.MetricGte(left, right));
                 } else if (ctx.gt != null) {
@@ -304,21 +304,21 @@ public class DocMetrics {
             }
 
             public void enterDocMetricParens(JQLParser.DocMetricParensContext ctx) {
-                accept(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock));
+                accept(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock));
             }
 
             public void enterDocAbs(JQLParser.DocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock)));
+                accept(new DocMetric.Abs(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
             }
 
             public void enterDocNegate(JQLParser.DocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock)));
+                accept(new DocMetric.Negate(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
             }
 
             public void enterDocIfThenElse(JQLParser.DocIfThenElseContext ctx) {
-                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, null, warn, clock);
-                final DocMetric trueCase = parseJQLDocMetric(ctx.trueCase, datasetsMetadata, warn, clock);
-                final DocMetric falseCase = parseJQLDocMetric(ctx.falseCase, datasetsMetadata, warn, clock);
+                final DocFilter condition = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, null, warn, clock);
+                final DocMetric trueCase = parseJQLDocMetric(ctx.trueCase, options, datasetsMetadata, warn, clock);
+                final DocMetric falseCase = parseJQLDocMetric(ctx.falseCase, options, datasetsMetadata, warn, clock);
                 accept(new DocMetric.IfThenElse(condition, trueCase, falseCase));
             }
 
@@ -329,31 +329,31 @@ public class DocMetrics {
             @Override
             public void enterDocLog(JQLParser.DocLogContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Log(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock), scaleFactor));
+                accept(new DocMetric.Log(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock), scaleFactor));
             }
 
             @Override
             public void enterDocExp(JQLParser.DocExpContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Exponentiate(parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock), scaleFactor));
+                accept(new DocMetric.Exponentiate(parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock), scaleFactor));
             }
 
             @Override
             public void enterDocMin(JQLParser.DocMinContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), datasetsMetadata, warn, clock);
+                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), options, datasetsMetadata, warn, clock);
                 List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
                 for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Min(resultMetric, parseJQLDocMetric(metrics.get(i), datasetsMetadata, warn, clock));
+                    resultMetric = new DocMetric.Min(resultMetric, parseJQLDocMetric(metrics.get(i), options, datasetsMetadata, warn, clock));
                 }
                 accept(resultMetric);
             }
 
             @Override
             public void enterDocMax(JQLParser.DocMaxContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), datasetsMetadata, warn, clock);
+                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), options, datasetsMetadata, warn, clock);
                 List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
                 for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Max(resultMetric, parseJQLDocMetric(metrics.get(i), datasetsMetadata, warn, clock));
+                    resultMetric = new DocMetric.Max(resultMetric, parseJQLDocMetric(metrics.get(i), options, datasetsMetadata, warn, clock));
                 }
                 accept(resultMetric);
             }
@@ -365,7 +365,7 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricFilter(JQLParser.DocMetricFilterContext ctx) {
-                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), datasetsMetadata, null, warn, clock);
+                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, null, warn, clock);
                 accept(new DocMetric.IfThenElse(filter, new DocMetric.Constant(1), new DocMetric.Constant(0)));
             }
         });

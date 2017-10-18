@@ -14,6 +14,8 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
+import java.util.Collections;
+
 public class GroupByTest {
     public static final Consumer<String> WARN = new Consumer<String>() {
         @Override
@@ -27,14 +29,14 @@ public class GroupByTest {
     public static final Function<JQLParser, GroupByMaybeHaving> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByMaybeHaving>() {
         @Override
         public GroupByMaybeHaving apply(JQLParser input) {
-            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(true), DatasetsMetadata.empty(), WARN, CLOCK);
+            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(true), Collections.emptyList(), DatasetsMetadata.empty(), WARN, CLOCK);
         }
     };
 
     public static final Function<JQLParser, GroupByMaybeHaving> PARSE_IQL2_GROUP_BY = new Function<JQLParser, GroupByMaybeHaving>() {
         @Override
         public GroupByMaybeHaving apply(JQLParser input) {
-            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(false), DatasetsMetadata.empty(), WARN, CLOCK);
+            return GroupBys.parseGroupByMaybeHaving(input.groupByElementWithHaving(false), Collections.emptyList(), DatasetsMetadata.empty(), WARN, CLOCK);
         }
     };
 

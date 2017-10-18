@@ -13,6 +13,8 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 
+import java.util.Collections;
+
 import static com.indeed.squall.iql2.language.AggregateMetric.Add;
 import static com.indeed.squall.iql2.language.AggregateMetric.Divide;
 import static com.indeed.squall.iql2.language.AggregateMetric.DocStats;
@@ -30,7 +32,7 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(false);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
+            return AggregateMetrics.parseAggregateMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);
@@ -45,7 +47,7 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(true);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, DatasetsMetadata.empty(), new Consumer<String>() {
+            return AggregateMetrics.parseAggregateMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     System.out.println("PARSE WARNING: " + s);

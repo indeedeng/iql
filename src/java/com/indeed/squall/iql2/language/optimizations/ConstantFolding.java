@@ -282,21 +282,6 @@ public class ConstantFolding {
         }
     };
 
-    public static void main(String[] args) {
-        final JQLParser parser = Queries.parserForString("sortingTime!=-1");
-        final JQLParser.DocFilterContext ctx = parser.docFilter(true);
-        final DocFilter filter = DocFilters.parseDocFilter(ctx, DatasetsMetadata.empty(), null, new Consumer<String>() {
-            @Override
-            public void accept(String s) {
-                System.out.println("WARNING: " + s);
-            }
-        }, new DefaultWallClock());
-        System.out.println("filter = " + filter);
-        final DocMetric metric = filter.asZeroOneMetric("recommendedjobsservice");
-        System.out.println("metric = " + metric);
-        System.out.println("new DocMetric.PushableDocMetric(metric).getPushes() = " + new DocMetric.PushableDocMetric(metric).getPushes("organic"));
-    }
-
     public static DocMetric apply(final DocMetric metric) {
         return metric.transform(METRIC_OPTIMIZER, FILTER_OPTIMIZER);
     }
