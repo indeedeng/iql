@@ -218,7 +218,7 @@ public class SelectQueryExecution {
                 headerMap.put("IQL-Cached", execInfo.allCached());
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
                 headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
+                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(0L)));
                 headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
                 headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
                 headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
@@ -705,23 +705,20 @@ public class SelectQueryExecution {
             });
         }
 
-        public long newestShard() {
+        private Optional<Long> newestStaticShard() {
             long newestStatic = -1;
-            long newestDynamicTimestamp = -1;
             for (final List<ShardIdWithVersion> shardset : shards.values()) {
                 for (final ShardIdWithVersion shard : shardset) {
-                    if (DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
-                        newestDynamicTimestamp = Math.max(newestDynamicTimestamp, shard.getEnd().getMillis());
-                    } else {
+                    if (!DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
                         newestStatic = Math.max(newestStatic, shard.getVersion());
                     }
                 }
             }
-            if ((newestStatic == -1) && (newestDynamicTimestamp == -1)) {
-                throw new IllegalArgumentException("No shards!");
+            if (newestStatic == -1) {
+                return Optional.absent();
+            } else {
+                return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
             }
-            final long newestStaticTimestamp = (newestStatic == -1) ? -1 : DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic));
-            return Math.max(newestStaticTimestamp, newestDynamicTimestamp);
         }
     }
 
