@@ -22,8 +22,9 @@ public class MetricRegroup implements Command {
     public final long interval;
     public final boolean excludeGutters;
     public final boolean withDefault;
+    public final boolean fromPredicate;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
+    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
         for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
@@ -34,6 +35,7 @@ public class MetricRegroup implements Command {
         this.interval = interval;
         this.excludeGutters = excludeGutters;
         this.withDefault = withDefault;
+        this.fromPredicate = fromPredicate;
     }
 
     @Override
@@ -96,7 +98,7 @@ public class MetricRegroup implements Command {
             }
         });
 
-        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket));
+        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate));
 
         out.accept("success");
     }

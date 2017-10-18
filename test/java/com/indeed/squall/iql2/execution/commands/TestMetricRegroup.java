@@ -44,20 +44,20 @@ public class TestMetricRegroup {
         try (final Closer closer = Closer.create()) {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
-            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, false, false);
+            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, false, false, false);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4",
-                    "[-∞, 0)\t0",
-                    "[5, ∞)\t" + (9 * 10 / 2 - 4 * 5 / 2)
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4",
+                    "< 0\t0",
+                    ">= 5\t" + (9 * 10 / 2 - 4 * 5 / 2)
             );
 
             Assert.assertEquals(expected, output);
@@ -69,18 +69,18 @@ public class TestMetricRegroup {
         try (final Closer closer = Closer.create()) {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
-            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, false);
+            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, false, false);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4"
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4"
             );
 
             Assert.assertEquals(expected, output);
@@ -92,18 +92,18 @@ public class TestMetricRegroup {
         try (final Closer closer = Closer.create()) {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
-            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, true);
+            final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, true, false);
             regroup.execute(session, new Consumer.NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "0\t0",
-                    "1\t1",
-                    "2\t2",
-                    "3\t3",
-                    "4\t4",
+                    "[0, 1)\t0",
+                    "[1, 2)\t1",
+                    "[2, 3)\t2",
+                    "[3, 4)\t3",
+                    "[4, 5)\t4",
                     "DEFAULT\t" + (9 * 10 / 2 - 4 * 5 / 2)
             );
 

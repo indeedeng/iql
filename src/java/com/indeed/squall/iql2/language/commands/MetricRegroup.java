@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.Validator;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class MetricRegroup implements Command, JsonSerializable {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
@@ -22,8 +22,9 @@ public class MetricRegroup implements Command, JsonSerializable {
     public final long interval;
     public final boolean excludeGutters;
     public final boolean withDefault;
+    public final boolean fromPredicate;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
+    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
         for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
@@ -34,6 +35,7 @@ public class MetricRegroup implements Command, JsonSerializable {
         this.interval = interval;
         this.excludeGutters = excludeGutters;
         this.withDefault = withDefault;
+        this.fromPredicate = fromPredicate;
     }
 
     @Override
@@ -50,6 +52,7 @@ public class MetricRegroup implements Command, JsonSerializable {
             gen.writeObjectField("opts", Collections.emptyList());
         }
         gen.writeBooleanField("withDefault", withDefault);
+        gen.writeBooleanField("fromPredicate", fromPredicate);
         gen.writeEndObject();
     }
 
@@ -64,21 +67,26 @@ public class MetricRegroup implements Command, JsonSerializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MetricRegroup that = (MetricRegroup) o;
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof MetricRegroup)) {
+            return false;
+        }
+        final MetricRegroup that = (MetricRegroup) o;
         return min == that.min &&
                 max == that.max &&
                 interval == that.interval &&
                 excludeGutters == that.excludeGutters &&
                 withDefault == that.withDefault &&
-                Objects.equals(perDatasetMetric, that.perDatasetMetric);
+                fromPredicate == that.fromPredicate &&
+                Objects.equal(perDatasetMetric, that.perDatasetMetric);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(perDatasetMetric, min, max, interval, excludeGutters, withDefault);
+        return Objects.hashCode(perDatasetMetric, min, max, interval, excludeGutters, withDefault, fromPredicate);
     }
 
     @Override
@@ -90,6 +98,7 @@ public class MetricRegroup implements Command, JsonSerializable {
                 ", interval=" + interval +
                 ", excludeGutters=" + excludeGutters +
                 ", withDefault=" + withDefault +
+                ", fromPredicate=" + fromPredicate +
                 '}';
     }
 }

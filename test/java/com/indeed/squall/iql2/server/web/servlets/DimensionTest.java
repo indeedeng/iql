@@ -83,8 +83,8 @@ public class DimensionTest extends BasicTest {
             expected.add(ImmutableList.of("[0, 2)", "1"));
             expected.add(ImmutableList.of("[2, 4)", "1"));
             expected.add(ImmutableList.of("[4, 6)", "0"));
-            expected.add(ImmutableList.of("[-∞, 0)", "0"));
-            expected.add(ImmutableList.of("[6, ∞)", "3"));
+            expected.add(ImmutableList.of("< 0", "0"));
+            expected.add(ImmutableList.of(">= 6", "3"));
             testIQL2(dataset, expected, "from dimension yesterday today GROUP BY bucket(plus, 0, 5, 2)", options);
         }
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("1", "1")), "from dimension yesterday today GROUP BY i2 HAVING i1divi2 > 1", options);

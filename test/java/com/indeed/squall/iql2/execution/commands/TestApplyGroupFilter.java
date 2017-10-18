@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.AggregateFilter;
@@ -48,7 +47,7 @@ public class TestApplyGroupFilter {
         try (final Closer closer = Closer.create()) {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
-            final MetricRegroup metricRegroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 10, 1, true, false);
+            final MetricRegroup metricRegroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 10, 1, true, false, false);
             metricRegroup.execute(session, new Consumer.NoOpConsumer<String>());
 
             final ApplyGroupFilter applyGroupFilter = new ApplyGroupFilter(new AggregateFilter.GreaterThan(new DocumentLevelMetric(SESSION, Arrays.asList(FIELD, "4", ">")), new Constant(0)));
@@ -58,11 +57,11 @@ public class TestApplyGroupFilter {
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
 
             final List<String> expected = Lists.newArrayList(
-                    "5\t10",
-                    "6\t12",
-                    "7\t14",
-                    "8\t16",
-                    "9\t18"
+                    "[5, 6)\t10",
+                    "[6, 7)\t12",
+                    "[7, 8)\t14",
+                    "[8, 9)\t16",
+                    "[9, 10)\t18"
             );
 
             Assert.assertEquals(expected, output);
