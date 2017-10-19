@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Query extends AbstractPositional {
-    public final List<com.indeed.squall.iql2.language.query.Dataset> datasets;
+    public final List<Dataset> datasets;
     public final Optional<DocFilter> filter;
     public final List<GroupByMaybeHaving> groupBys;
     public final List<AggregateMetric> selects;
@@ -64,7 +64,7 @@ public class Query extends AbstractPositional {
             WallClock clock,
             boolean useLegacy
     ) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();

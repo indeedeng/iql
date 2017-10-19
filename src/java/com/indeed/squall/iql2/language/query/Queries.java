@@ -11,12 +11,14 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
+import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.AggregateMetrics;
 import com.indeed.squall.iql2.language.DocFilter;
+import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.DocMetrics;
 import com.indeed.squall.iql2.language.GroupByMaybeHaving;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLLexer;
@@ -39,6 +41,7 @@ import com.indeed.squall.iql2.language.passes.RemoveNames;
 import com.indeed.squall.iql2.language.passes.SubstituteDimension;
 import com.indeed.squall.iql2.language.passes.SubstituteNamed;
 import com.indeed.squall.iql2.language.util.ParserUtil;
+import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
@@ -88,6 +91,50 @@ public class Queries {
             result.add(m);
         }
         return result;
+    }
+
+    public static GroupBy parseGroupBy(String rawGroupBy, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+        final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
+            @Nullable
+            @Override
+            public JQLParser.GroupByElementContext apply(@Nullable final JQLParser input) {
+                return input.groupByElement(useLegacy);
+            }
+        });
+        return GroupBys.parseGroupBy(groupByElementContext, datasetsMetadata, warn, clock);
+    }
+
+    public static AggregateFilter parseAggregateFilter(String rawAggregateFilter, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+        final JQLParser.AggregateFilterContext aggregateFilterContext = runParser(rawAggregateFilter, new Function<JQLParser, JQLParser.AggregateFilterContext>() {
+            @Nullable
+            @Override
+            public JQLParser.AggregateFilterContext apply(@Nullable final JQLParser input) {
+                return input.aggregateFilter(useLegacy);
+            }
+        });
+        return AggregateFilters.parseAggregateFilter(aggregateFilterContext, datasetsMetadata, warn, clock);
+    }
+
+    public static DocFilter parseDocFilter(String rawDocFilter, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock, final JQLParser.FromContentsContext fromContents) {
+        final JQLParser.DocFilterContext docFilterContext = runParser(rawDocFilter, new Function<JQLParser, JQLParser.DocFilterContext>() {
+            @Nullable
+            @Override
+            public JQLParser.DocFilterContext apply(@Nullable final JQLParser input) {
+                return input.docFilter(useLegacy);
+            }
+        });
+        return DocFilters.parseDocFilter(docFilterContext, datasetsMetadata, fromContents, warn, clock);
+    }
+
+    public static DocMetric parseDocMetrix(final String rawDocMetric, boolean useLegacy, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+        final JQLParser.DocMetricContext docMetricContext = runParser(rawDocMetric, new Function<JQLParser, JQLParser.DocMetricContext>() {
+            @Nullable
+            @Override
+            public JQLParser.DocMetricContext apply(@Nullable final JQLParser input) {
+                return input.docMetric(useLegacy);
+            }
+        });
+        return DocMetrics.parseDocMetric(docMetricContext, datasetsMetadata, warn, clock);
     }
 
     public static class ParseResult {
