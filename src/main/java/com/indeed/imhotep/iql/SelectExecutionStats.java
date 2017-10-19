@@ -1,9 +1,11 @@
 package com.indeed.imhotep.iql;
 
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.api.PerformanceStats;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 
+import javax.annotation.Nullable;
 import java.util.Set;
 
 public class SelectExecutionStats {
@@ -18,6 +20,8 @@ public class SelectExecutionStats {
     public int maxImhotepGroups;
     public Object2LongMap<String> phases = new Object2LongArrayMap<String>();
     public long numDocs;
+    @Nullable
+    public PerformanceStats imhotepPerformanceStats;
 
     private final Set<String> phasesToReport = Sets.newHashSet("lockWaitMillis", "cacheCheckMillis", "shardsSelectionMillis");
 

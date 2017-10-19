@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.util.core.TreeTimer;
@@ -42,6 +43,7 @@ import org.joda.time.Period;
 import org.joda.time.format.PeriodFormat;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -643,7 +645,17 @@ public final class IQLQuery implements Closeable {
     public DateTime getEnd() { return end; }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         Closeables2.closeQuietly(closer, log);
+    }
+
+    @Nullable
+    public PerformanceStats closeAndGetPerformanceStats() {
+        PerformanceStats performanceStats = null;
+        if(session != null) {
+            performanceStats = session.closeAndGetPerformanceStats();
+        }
+        close();
+        return performanceStats;
     }
 }
