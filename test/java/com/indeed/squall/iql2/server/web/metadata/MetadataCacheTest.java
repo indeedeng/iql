@@ -56,16 +56,16 @@ public class MetadataCacheTest {
         aggregateMetric1.setExpr("oji/ojc");
         Assert.assertEquals(
                 new AggregateMetric.Divide(
-                        new AggregateMetric.DocStats(new DocMetric.Field("OJI")),
-                        new AggregateMetric.DocStats(new DocMetric.Field("OJC"))),
-                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr(), options));
+                        new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJI")),
+                        new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJC"))),
+                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr()));
 
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
         aggregateMetric2.setName("agg2");
         aggregateMetric2.setExpr("(score-100)/4");
         Assert.assertEquals(
                 new AggregateMetric.Divide(
-                        new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
+                        new AggregateMetric.ImplicitDocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
                         new AggregateMetric.Constant(4)),
                 metadataCache.parseMetric(aggregateMetric2.getName(), aggregateMetric2.getExpr(), options));
 

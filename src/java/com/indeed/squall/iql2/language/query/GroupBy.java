@@ -479,7 +479,7 @@ public abstract class GroupBy extends AbstractPositional {
             this.filter = filter;
             this.limit = limit;
             this.forceNonStreaming = forceNonStreaming;
-            this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
+            this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()))) : metric;
             this.withDefault = withDefault;
         }
 

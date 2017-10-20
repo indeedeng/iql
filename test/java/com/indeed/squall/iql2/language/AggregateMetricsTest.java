@@ -17,7 +17,6 @@ import java.util.Collections;
 
 import static com.indeed.squall.iql2.language.AggregateMetric.Add;
 import static com.indeed.squall.iql2.language.AggregateMetric.Divide;
-import static com.indeed.squall.iql2.language.AggregateMetric.DocStats;
 import static com.indeed.squall.iql2.language.AggregateMetric.ImplicitDocStats;
 import static com.indeed.squall.iql2.language.AggregateMetric.Multiply;
 import static com.indeed.squall.iql2.language.AggregateMetric.Subtract;
@@ -103,8 +102,8 @@ public class AggregateMetricsTest {
                 new ImplicitDocStats(new DocMetric.Add(new DocMetric.Multiply(new Field("A"), new Field("B")), new DocMetric.Multiply(new Field("C"), new Field("D")))),
                 // "A * B / C * D + (A * B - C * D + E)"
                 new Divide(
-                        new DocStats(new DocMetric.Multiply(new Field("A"), new Field("B"))),
-                        new DocStats(
+                        new ImplicitDocStats(new DocMetric.Multiply(new Field("A"), new Field("B"))),
+                        new ImplicitDocStats(
                                 new DocMetric.Add(
                                         new DocMetric.Multiply(new Field("C"), new Field("D")),
                                         new DocMetric.Add(

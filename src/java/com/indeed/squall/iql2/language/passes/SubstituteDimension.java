@@ -43,7 +43,6 @@ public class SubstituteDimension {
             @Override
             public AggregateMetric apply(final AggregateMetric input) {
                 Preconditions.checkArgument(!(input instanceof AggregateMetric.ImplicitDocStats), "ImplicitDocStats should be handled by ExtractPrecomputed already");
-                Preconditions.checkArgument(!(input instanceof AggregateMetric.DocStats), "DocStats should be handled by ExtractPrecomputed already");
                 if (input instanceof AggregateMetric.DocStatsPushes) {
                     final AggregateMetric.DocStatsPushes pushStats = (AggregateMetric.DocStatsPushes) input;
                     final String dataset = datasetAliasToOrigin.get(pushStats.dataset);
@@ -146,15 +145,10 @@ public class SubstituteDimension {
             @Nullable
             @Override
             public AggregateMetric apply(@Nullable final AggregateMetric input) {
-                if ((input instanceof AggregateMetric.DocStats) || (input instanceof AggregateMetric.ImplicitDocStats)) {
+                if (input instanceof AggregateMetric.ImplicitDocStats) {
                     final DocMetric docMetric;
-                    if (input instanceof AggregateMetric.DocStats) {
-                        final AggregateMetric.DocStats stats = (AggregateMetric.DocStats) input;
-                        docMetric = stats.metric;
-                    } else {
-                        final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                        docMetric = implicitDocStats.docMetric;
-                    }
+                    final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
+                    docMetric = implicitDocStats.docMetric;
                     return new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
                 }
                 return input;

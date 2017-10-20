@@ -254,11 +254,17 @@ public class PrettyPrint {
     }
 
     private void pp(final GroupBy groupBy) {
-        final String rawGroupBy = getText(groupBy);
-        final GroupBy groupByIQL2 = Queries.parseGroupBy(rawGroupBy, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-        if (groupByIQL2.equals(groupBy)) {
-            sb.append(rawGroupBy);
-            return ;
+        try {
+            final String rawGroupBy = getText(groupBy);
+            final GroupBy groupByIQL2 = Queries.parseGroupBy(rawGroupBy, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            if (groupByIQL2.equals(groupBy)) {
+                appendCommentBeforeText(groupBy, sb);
+                sb.append(rawGroupBy);
+                appendCommentAfterText(groupBy, sb);
+                return ;
+            }
+        } catch (Exception e) {
+            //can't parse with IQL2, do the modification
         }
 
         appendCommentBeforeText(groupBy, sb);
@@ -411,11 +417,17 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateFilter aggregateFilter) {
-        final String rawAggregateFilter = getText(aggregateFilter);
-        final AggregateFilter aggregateFilterIQL2 = Queries.parseAggregateFilter(rawAggregateFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-        if (aggregateFilterIQL2.equals(aggregateFilter)) {
-            sb.append(rawAggregateFilter);
-            return ;
+        try {
+            final String rawAggregateFilter = getText(aggregateFilter);
+            final AggregateFilter aggregateFilterIQL2 = Queries.parseAggregateFilter(rawAggregateFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            if (aggregateFilterIQL2.equals(aggregateFilter)) {
+                appendCommentBeforeText(aggregateFilter, sb);
+                sb.append(rawAggregateFilter);
+                appendCommentAfterText(aggregateFilter, sb);
+                return ;
+            }
+        } catch (Exception e) {
+            //can't parse with IQL2, do the modification
         }
         appendCommentBeforeText(aggregateFilter, sb);
 
@@ -539,15 +551,17 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateMetric aggregateMetric) {
-        if (aggregateMetric instanceof AggregateMetric.ImplicitDocStats) {
-            sb.append("count()");
-            return ;
-        }
-        final String rawAggregateMetric = getText(aggregateMetric);
-        final AggregateMetric aggregateMetricIQL2 = Queries.parseAggregateMetricFromString(rawAggregateMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get());
-        if (aggregateMetricIQL2.equals(aggregateMetric)) {
-            sb.append(rawAggregateMetric);
-            return ;
+        try{
+            final String rawAggregateMetric = getText(aggregateMetric);
+            final AggregateMetric aggregateMetricIQL2 = Queries.parseAggregateMetric(rawAggregateMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get());
+            if (aggregateMetricIQL2.equals(aggregateMetric)) {
+                appendCommentBeforeText(aggregateMetric, sb);
+                sb.append(rawAggregateMetric);
+                appendCommentAfterText(aggregateMetric, sb);
+                return ;
+            }
+        } catch (Exception e) {
+            //can't parse with IQL2, do the modification
         }
         appendCommentBeforeText(aggregateMetric, sb);
 
@@ -667,16 +681,10 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateMetric.DocStats docStats) {
-                sb.append('[');
-                pp(docStats.metric);
-                sb.append(']');
-                return null;
-            }
-
-            @Override
             public Void visit(AggregateMetric.ImplicitDocStats implicitDocStats) {
+                sb.append('[');
                 pp(implicitDocStats.docMetric);
+                sb.append(']');
                 return null;
             }
 
@@ -811,11 +819,17 @@ public class PrettyPrint {
     }
 
     private void pp(DocFilter docFilter) {
-        final String rawDocFilter = getText(docFilter);
-        final DocFilter docFilterIQL2 = Queries.parseDocFilter(rawDocFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get(), null);
-        if (docFilterIQL2.equals(docFilter)) {
-            sb.append(rawDocFilter);
-            return ;
+        try {
+            final String rawDocFilter = getText(docFilter);
+            final DocFilter docFilterIQL2 = Queries.parseDocFilter(rawDocFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get(), null);
+            if (docFilterIQL2.equals(docFilter)) {
+                appendCommentBeforeText(docFilter, sb);
+                sb.append(rawDocFilter);
+                appendCommentAfterText(docFilter, sb);
+                return ;
+            }
+        } catch (Exception e) {
+            //can't parse with IQL2, do the modification
         }
         appendCommentBeforeText(docFilter, sb);
 
@@ -1035,11 +1049,17 @@ public class PrettyPrint {
     }
 
     private void pp(DocMetric docMetric) {
-        final String rawDocMetric = getText(docMetric);
-        final DocMetric docMetricIQL2 = Queries.parseDocMetrix(rawDocMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-        if (docMetricIQL2.equals(docMetric)) {
-            sb.append(rawDocMetric);
-            return ;
+        try {
+            final String rawDocMetric = getText(docMetric);
+            final DocMetric docMetricIQL2 = Queries.parseDocMetrix(rawDocMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            if (docMetricIQL2.equals(docMetric)) {
+                appendCommentBeforeText(docMetric, sb);
+                sb.append(rawDocMetric);
+                appendCommentAfterText(docMetric, sb);
+                return ;
+            }
+        } catch (Exception e)  {
+            //can't parse with IQL2, do the modification
         }
 
         appendCommentBeforeText(docMetric, sb);

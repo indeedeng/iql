@@ -380,11 +380,17 @@ public class Queries {
         });
     }
 
-    public static AggregateMetric parseAggregateMetricFromString(
-            final String expression, final boolean useLegacy,
+    public static AggregateMetric parseAggregateMetric(
+            final String q, final boolean useLegacy,
             final DatasetsMetadata datasetsMetadata, final Consumer<String> warn) {
-        final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(expression, parser -> parser.aggregateMetric(useLegacy));
-        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, Collections.emptyList(), datasetsMetadata, warn, new DefaultWallClock());
+        final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(q, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
+            @Nullable
+            @Override
+            public JQLParser.AggregateMetricContext apply(@Nullable final JQLParser input) {
+                return input.aggregateMetric(useLegacy);
+            }
+        });
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, datasetsMetadata, warn, new DefaultWallClock());
     }
 
     public static JQLParser parserForString(String q) {
