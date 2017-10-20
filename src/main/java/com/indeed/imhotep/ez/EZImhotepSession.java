@@ -17,6 +17,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.imhotep.web.Limits;
@@ -1017,6 +1018,16 @@ public class EZImhotepSession implements Closeable {
         protected void intTermGroup(final String field, final long term, int group) {}
 
         protected void stringTermGroup(final String field, final String term, int group) {}
+    }
+
+    @Nullable
+    public PerformanceStats closeAndGetPerformanceStats() {
+        if (closed) {
+            return null;
+        }
+        final PerformanceStats performanceStats = session.closeAndGetPerformanceStats();
+        closed = true;
+        return performanceStats;
     }
 
     @Override

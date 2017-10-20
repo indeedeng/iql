@@ -20,6 +20,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
@@ -475,7 +476,11 @@ public class QueryServlet {
             } catch (ImhotepOutOfMemoryException e) {
                 throw Throwables.propagate(e);
             } finally {
-                Closeables2.closeQuietly(iqlQuery, log);
+                try {
+                    selectExecutionStats.imhotepPerformanceStats = iqlQuery.closeAndGetPerformanceStats();
+                } catch (Exception e) {
+                    log.error("Exception while closing IQLQuery object", e);
+                }
             }
             outputStream.close();
             selectExecutionStats.rowsWritten = writeResults.rowsWritten;
@@ -885,6 +890,13 @@ public class QueryServlet {
         logEntry.setProperty("maxgroups", selectQuery.selectExecutionStats.maxImhotepGroups);
         // convert bytes to megabytes
         logEntry.setProperty("ftgsmb", selectQuery.selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
+        final PerformanceStats performanceStats = selectQuery.selectExecutionStats.imhotepPerformanceStats;
+        if(performanceStats != null) {
+//            logEntry.setProperty("imhotepCpuTime", performanceStats.cpuTime);
+            logEntry.setProperty("imhoteprammb", performanceStats.maxMemoryUsage / 1024 / 1024);
+            logEntry.setProperty("imhotepftgsmb", performanceStats.ftgsTempFileSize / 1024 / 1024);
+
+        }
     }
 
     private static void logQueryToLog4J(String query, String identification, long timeTaken) {
