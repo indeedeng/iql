@@ -209,15 +209,10 @@ public class ExtractPrecomputed {
                 final AggregateMetric result = apply(qualified.metric);
                 setScope(oldScope);
                 return result;
-            } else if (input instanceof AggregateMetric.DocStats || input instanceof AggregateMetric.ImplicitDocStats) {
+            } else if (input instanceof AggregateMetric.ImplicitDocStats) {
                 final DocMetric docMetric;
-                if (input instanceof AggregateMetric.DocStats) {
-                    final AggregateMetric.DocStats stats = (AggregateMetric.DocStats) input;
-                    docMetric = stats.metric;
-                } else {
-                    final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                    docMetric = implicitDocStats.docMetric;
-                }
+                final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
+                docMetric = implicitDocStats.docMetric;
                 if (startDepth == depth) {
                     AggregateMetric aggregateMetric = null;
                     final Set<String> pushScope;
