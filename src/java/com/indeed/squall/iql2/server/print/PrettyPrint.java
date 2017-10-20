@@ -27,7 +27,7 @@ import com.indeed.squall.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nonnull;
@@ -256,7 +256,7 @@ public class PrettyPrint {
     private void pp(final GroupBy groupBy) {
         try {
             final String rawGroupBy = getText(groupBy);
-            final GroupBy groupByIQL2 = Queries.parseGroupBy(rawGroupBy, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            final GroupBy groupByIQL2 = Queries.parseGroupBy(rawGroupBy, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
             if (groupByIQL2.equals(groupBy)) {
                 appendCommentBeforeText(groupBy, sb);
                 sb.append(rawGroupBy);
@@ -419,7 +419,7 @@ public class PrettyPrint {
     private void pp(AggregateFilter aggregateFilter) {
         try {
             final String rawAggregateFilter = getText(aggregateFilter);
-            final AggregateFilter aggregateFilterIQL2 = Queries.parseAggregateFilter(rawAggregateFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            final AggregateFilter aggregateFilterIQL2 = Queries.parseAggregateFilter(rawAggregateFilter, null,false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
             if (aggregateFilterIQL2.equals(aggregateFilter)) {
                 appendCommentBeforeText(aggregateFilter, sb);
                 sb.append(rawAggregateFilter);
@@ -553,7 +553,7 @@ public class PrettyPrint {
     private void pp(AggregateMetric aggregateMetric) {
         try{
             final String rawAggregateMetric = getText(aggregateMetric);
-            final AggregateMetric aggregateMetricIQL2 = Queries.parseAggregateMetric(rawAggregateMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get());
+            final AggregateMetric aggregateMetricIQL2 = Queries.parseAggregateMetric(rawAggregateMetric, false, null, datasetsMetadata, DEFAULT_CONSUMER.get());
             if (aggregateMetricIQL2.equals(aggregateMetric)) {
                 appendCommentBeforeText(aggregateMetric, sb);
                 sb.append(rawAggregateMetric);
@@ -821,7 +821,7 @@ public class PrettyPrint {
     private void pp(DocFilter docFilter) {
         try {
             final String rawDocFilter = getText(docFilter);
-            final DocFilter docFilterIQL2 = Queries.parseDocFilter(rawDocFilter, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get(), null);
+            final DocFilter docFilterIQL2 = Queries.parseDocFilter(rawDocFilter, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get(), null);
             if (docFilterIQL2.equals(docFilter)) {
                 appendCommentBeforeText(docFilter, sb);
                 sb.append(rawDocFilter);
@@ -1051,7 +1051,7 @@ public class PrettyPrint {
     private void pp(DocMetric docMetric) {
         try {
             final String rawDocMetric = getText(docMetric);
-            final DocMetric docMetricIQL2 = Queries.parseDocMetrix(rawDocMetric, false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+            final DocMetric docMetricIQL2 = Queries.parseDocMetrix(rawDocMetric, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
             if (docMetricIQL2.equals(docMetric)) {
                 appendCommentBeforeText(docMetric, sb);
                 sb.append(rawDocMetric);

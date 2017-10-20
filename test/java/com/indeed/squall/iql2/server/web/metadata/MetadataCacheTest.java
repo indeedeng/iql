@@ -58,7 +58,7 @@ public class MetadataCacheTest {
                 new AggregateMetric.Divide(
                         new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJI")),
                         new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJC"))),
-                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr()));
+                metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr(), null));
 
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
         aggregateMetric2.setName("agg2");

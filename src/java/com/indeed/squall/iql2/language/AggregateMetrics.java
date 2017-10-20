@@ -335,7 +335,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), datasetsMetadata, warn, clock)));
+                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
             }
 
             @Override
