@@ -244,7 +244,7 @@ public class PrettyPrint {
 
     boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
         if (positional instanceof AggregateMetric.DocStats) {
-            if (((AggregateMetric.DocStats) positional).docMetric.toString().equals("Count{}") && positional.getStart() == null) {
+            if (((AggregateMetric.DocStats) positional).docMetric instanceof DocMetric.Count && positional.getStart() == null) {
                 appendCommentBeforeText(positional, sb);
                 sb.append("count()");
                 appendCommentAfterText(positional, sb);
