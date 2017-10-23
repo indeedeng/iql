@@ -284,6 +284,16 @@ public class PrettyPrint {
                 return true;
             }
             return false;
+        } catch (NullPointerException e) {
+            //special check: implicit metric count()
+            //implicit count() will causing getText() to throw NPE, fall into this
+            if (positional instanceof AggregateMetric.DocStats) {
+                appendCommentAfterText(positional, sb);
+                sb.append("count()");
+                appendCommentAfterText(positional, sb);
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             //can't parse with IQL2
             return false;
