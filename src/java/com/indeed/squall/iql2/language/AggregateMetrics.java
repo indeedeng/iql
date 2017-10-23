@@ -53,10 +53,10 @@ public class AggregateMetrics {
                     final DocMetric.Constant constant = (DocMetric.Constant) divisor;
                     aggDivisor = new AggregateMetric.Constant(constant.value);
                 } else {
-                    aggDivisor = new AggregateMetric.ImplicitDocStats(divisor);
+                    aggDivisor = new AggregateMetric.DocStats(divisor);
                 }
                 accept(new AggregateMetric.Divide(
-                        new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetsMetadata)),
+                        new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), datasetsMetadata)),
                         aggDivisor
                 ));
             }
@@ -68,7 +68,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyImplicitSum(JQLParser.LegacyImplicitSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetsMetadata)));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetsMetadata)));
             }
 
             @Override
@@ -103,12 +103,12 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateCounts(JQLParser.AggregateCountsContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()));
+                accept(new AggregateMetric.DocStats(new DocMetric.Count()));
             }
 
             @Override
             public void enterAggregateDocMetricAtom2(JQLParser.AggregateDocMetricAtom2Context ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom())));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom())));
             }
         });
 
@@ -335,7 +335,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock)));
             }
 
             @Override
@@ -466,7 +466,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom(JQLParser.AggregateDocMetricAtomContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetsMetadata)));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetsMetadata)));
             }
 
             @Override
@@ -492,9 +492,9 @@ public class AggregateMetrics {
 
     public static AggregateMetric variance(DocMetric docMetric) {
         // [m * m] / count()
-        final AggregateMetric firstHalf = new AggregateMetric.DivideByCount(new AggregateMetric.ImplicitDocStats(new DocMetric.Multiply(docMetric, docMetric)));
+        final AggregateMetric firstHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(new DocMetric.Multiply(docMetric, docMetric)));
         // [m] / count()
-        final AggregateMetric halfOfSecondHalf = new AggregateMetric.DivideByCount(new AggregateMetric.ImplicitDocStats(docMetric));
+        final AggregateMetric halfOfSecondHalf = new AggregateMetric.DivideByCount(new AggregateMetric.DocStats(docMetric));
         // ([m] / count()) ^ 2
         final AggregateMetric secondHalf = new AggregateMetric.Multiply(halfOfSecondHalf, halfOfSecondHalf);
         // E(m^2) - E(m)^2

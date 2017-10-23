@@ -7,6 +7,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.common.util.time.StoppedClock;
+import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -24,7 +25,6 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ParserUtil;
-import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang.StringEscapeUtils;
@@ -52,28 +52,14 @@ public class PrettyPrint {
         System.out.println("pretty = " + pretty);
     }
 
-    public static final ThreadLocal<Consumer<String>> DEFAULT_CONSUMER = new ThreadLocal<Consumer<String>>()  {
-        @Override
-        protected Consumer<String> initialValue() {
-            return new Consumer<String>() {
-                @Override
-                public void accept(final String s) {
-                }
-            };
-        }
-    };
-
-    public static final ThreadLocal<WallClock> DEFAULT_CLOCK = new ThreadLocal<WallClock> () {
-        @Override
-        protected WallClock initialValue() {
-            return new StoppedClock();
-        }
-    };
-
     @Nonnull
     public static String prettyPrint(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata) {
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
-        final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
+        final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), new Consumer<String>() {
+            @Override
+            public void accept(final String s) {
+            }
+        }, new StoppedClock());
         return prettyPrint(queryContext, query, datasetsMetadata);
     }
 
@@ -253,18 +239,60 @@ public class PrettyPrint {
         }
     }
 
-    private void pp(final GroupBy groupBy) {
+    boolean isIQL2Consistent(AbstractPositional positional) {
         try {
-            final String rawGroupBy = getText(groupBy);
-            final GroupBy groupByIQL2 = Queries.parseGroupBy(rawGroupBy, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-            if (groupByIQL2.equals(groupBy)) {
-                appendCommentBeforeText(groupBy, sb);
-                sb.append(rawGroupBy);
-                appendCommentAfterText(groupBy, sb);
-                return ;
+            final String rawString = getText(positional);
+            final AbstractPositional positionalIQL2;
+            if (positional instanceof GroupBy) {
+                positionalIQL2 = (GroupBy) Queries.parseGroupBy(rawString, false, null, datasetsMetadata, new Consumer<String>() {
+                    @Override
+                    public void accept(final String s) {
+                    }
+                }, new StoppedClock());
+            } else if (positional instanceof AggregateFilter) {
+                positionalIQL2 = (AggregateFilter) Queries.parseAggregateFilter(rawString, false, null, datasetsMetadata, new Consumer<String>() {
+                    @Override
+                    public void accept(final String s) {
+                    }
+                }, new StoppedClock());
+            } else if (positional instanceof AggregateMetric) {
+                positionalIQL2 = (AggregateMetric) Queries.parseAggregateMetric(rawString, false, null, datasetsMetadata, new Consumer<String>() {
+                    @Override
+                    public void accept(final String s) {
+                    }
+                }, new StoppedClock());
+            } else if (positional instanceof DocFilter) {
+                positionalIQL2 = (DocFilter) Queries.parseDocFilter(rawString, false, null, datasetsMetadata, new Consumer<String>() {
+                    @Override
+                    public void accept(final String s) {
+                    }
+                }, new StoppedClock(), null);
+            } else if (positional instanceof DocMetric) {
+                positionalIQL2 = (DocMetric) Queries.parseDocMetric(rawString, false, null, datasetsMetadata, new Consumer<String>() {
+                    @Override
+                    public void accept(final String s) {
+                    }
+                }, new StoppedClock());
+            } else {
+                throw new IllegalArgumentException("unrecognized type");
             }
+            if (positionalIQL2.equals(positional)) {
+                appendCommentBeforeText(positional, sb);
+                //preserve as much as possible
+                sb.append(rawString);
+                appendCommentAfterText(positional, sb);
+                return true;
+            }
+            return false;
         } catch (Exception e) {
-            //can't parse with IQL2, do the modification
+            //can't parse with IQL2
+            return false;
+        }
+    }
+
+    private void pp(GroupBy groupBy) {
+        if (isIQL2Consistent(groupBy)) {
+            return ;
         }
 
         appendCommentBeforeText(groupBy, sb);
@@ -417,17 +445,8 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateFilter aggregateFilter) {
-        try {
-            final String rawAggregateFilter = getText(aggregateFilter);
-            final AggregateFilter aggregateFilterIQL2 = Queries.parseAggregateFilter(rawAggregateFilter, null,false, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-            if (aggregateFilterIQL2.equals(aggregateFilter)) {
-                appendCommentBeforeText(aggregateFilter, sb);
-                sb.append(rawAggregateFilter);
-                appendCommentAfterText(aggregateFilter, sb);
-                return ;
-            }
-        } catch (Exception e) {
-            //can't parse with IQL2, do the modification
+        if (isIQL2Consistent(aggregateFilter)) {
+            return ;
         }
         appendCommentBeforeText(aggregateFilter, sb);
 
@@ -551,17 +570,8 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateMetric aggregateMetric) {
-        try{
-            final String rawAggregateMetric = getText(aggregateMetric);
-            final AggregateMetric aggregateMetricIQL2 = Queries.parseAggregateMetric(rawAggregateMetric, false, null, datasetsMetadata, DEFAULT_CONSUMER.get());
-            if (aggregateMetricIQL2.equals(aggregateMetric)) {
-                appendCommentBeforeText(aggregateMetric, sb);
-                sb.append(rawAggregateMetric);
-                appendCommentAfterText(aggregateMetric, sb);
-                return ;
-            }
-        } catch (Exception e) {
-            //can't parse with IQL2, do the modification
+        if (isIQL2Consistent(aggregateMetric)) {
+            return ;
         }
         appendCommentBeforeText(aggregateMetric, sb);
 
@@ -681,9 +691,9 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateMetric.ImplicitDocStats implicitDocStats) {
+            public Void visit(AggregateMetric.DocStats docStats) {
                 sb.append('[');
-                pp(implicitDocStats.docMetric);
+                pp(docStats.docMetric);
                 sb.append(']');
                 return null;
             }
@@ -819,17 +829,8 @@ public class PrettyPrint {
     }
 
     private void pp(DocFilter docFilter) {
-        try {
-            final String rawDocFilter = getText(docFilter);
-            final DocFilter docFilterIQL2 = Queries.parseDocFilter(rawDocFilter, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get(), null);
-            if (docFilterIQL2.equals(docFilter)) {
-                appendCommentBeforeText(docFilter, sb);
-                sb.append(rawDocFilter);
-                appendCommentAfterText(docFilter, sb);
-                return ;
-            }
-        } catch (Exception e) {
-            //can't parse with IQL2, do the modification
+        if (isIQL2Consistent(docFilter)) {
+            return ;
         }
         appendCommentBeforeText(docFilter, sb);
 
@@ -1049,17 +1050,8 @@ public class PrettyPrint {
     }
 
     private void pp(DocMetric docMetric) {
-        try {
-            final String rawDocMetric = getText(docMetric);
-            final DocMetric docMetricIQL2 = Queries.parseDocMetrix(rawDocMetric, false, null, datasetsMetadata, DEFAULT_CONSUMER.get(), DEFAULT_CLOCK.get());
-            if (docMetricIQL2.equals(docMetric)) {
-                appendCommentBeforeText(docMetric, sb);
-                sb.append(rawDocMetric);
-                appendCommentAfterText(docMetric, sb);
-                return ;
-            }
-        } catch (Exception e)  {
-            //can't parse with IQL2, do the modification
+        if (isIQL2Consistent(docMetric)) {
+            return ;
         }
 
         appendCommentBeforeText(docMetric, sb);

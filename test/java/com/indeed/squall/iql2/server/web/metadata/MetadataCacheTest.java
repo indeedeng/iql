@@ -34,20 +34,20 @@ public class MetadataCacheTest {
         final MetricsYaml countsMetric = new MetricsYaml();
         countsMetric.setName("counts");
         countsMetric.setExpr("count()");
-        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()),
+        Assert.assertEquals(new AggregateMetric.DocStats(new DocMetric.Count()),
                 metadataCache.parseMetric(countsMetric.getName(), countsMetric.getExpr(), options));
 
         final MetricsYaml sameMetric = new MetricsYaml();
         sameMetric.setName("same");
         sameMetric.setExpr("same");
-        Assert.assertEquals(new AggregateMetric.ImplicitDocStats(new DocMetric.Field("SAME")),
+        Assert.assertEquals(new AggregateMetric.DocStats(new DocMetric.Field("SAME")),
                 metadataCache.parseMetric(sameMetric.getName(), sameMetric.getExpr(), options));
 
         final MetricsYaml calcMetric = new MetricsYaml();
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
         Assert.assertEquals(
-                new AggregateMetric.ImplicitDocStats(
+                new AggregateMetric.DocStats(
                         new DocMetric.Multiply(new DocMetric.Add(new DocMetric.Field("A1"), new DocMetric.Field("A2")), new DocMetric.Constant(10))),
                 metadataCache.parseMetric(calcMetric.getName(), calcMetric.getExpr(), options));
 
@@ -56,8 +56,8 @@ public class MetadataCacheTest {
         aggregateMetric1.setExpr("oji/ojc");
         Assert.assertEquals(
                 new AggregateMetric.Divide(
-                        new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJI")),
-                        new AggregateMetric.ImplicitDocStats(new DocMetric.Field("OJC"))),
+                        new AggregateMetric.DocStats(new DocMetric.Field("OJI")),
+                        new AggregateMetric.DocStats(new DocMetric.Field("OJC"))),
                 metadataCache.parseMetric(aggregateMetric1.getName(), aggregateMetric1.getExpr(), null));
 
         final MetricsYaml aggregateMetric2 = new MetricsYaml();
@@ -65,7 +65,7 @@ public class MetadataCacheTest {
         aggregateMetric2.setExpr("(score-100)/4");
         Assert.assertEquals(
                 new AggregateMetric.Divide(
-                        new AggregateMetric.ImplicitDocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
+                        new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Field("SCORE"), new DocMetric.Constant(100))),
                         new AggregateMetric.Constant(4)),
                 metadataCache.parseMetric(aggregateMetric2.getName(), aggregateMetric2.getExpr(), options));
 
@@ -73,7 +73,7 @@ public class MetadataCacheTest {
         overideMetric.setName("o1");
         overideMetric.setExpr("o1+o2");
         Assert.assertEquals(
-                new AggregateMetric.ImplicitDocStats(
+                new AggregateMetric.DocStats(
                         new DocMetric.Add(new DocMetric.Field("O1"), new DocMetric.Field("O2"))),
                 metadataCache.parseMetric(overideMetric.getName(), overideMetric.getExpr(), options));
 
@@ -82,7 +82,7 @@ public class MetadataCacheTest {
         combinedMetric.setName("combined");
         combinedMetric.setExpr("same+complex");
         Assert.assertEquals(
-                new AggregateMetric.ImplicitDocStats(new DocMetric.Add(new DocMetric.Field("SAME"), new DocMetric.Field("COMPLEX"))),
+                new AggregateMetric.DocStats(new DocMetric.Add(new DocMetric.Field("SAME"), new DocMetric.Field("COMPLEX"))),
                 metadataCache.parseMetric(combinedMetric.getName(), combinedMetric.getExpr(), options));
 
         final MetricsYaml requireFTGSMetric = new MetricsYaml();

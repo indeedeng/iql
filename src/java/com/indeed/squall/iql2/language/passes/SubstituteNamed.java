@@ -31,10 +31,10 @@ public class SubstituteNamed {
             @Nullable
             @Override
             public AggregateMetric apply(AggregateMetric input) {
-                if (input instanceof AggregateMetric.ImplicitDocStats) {
-                    final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                    if (implicitDocStats.docMetric instanceof DocMetric.Field) {
-                        final DocMetric.Field docMetric = (DocMetric.Field) implicitDocStats.docMetric;
+                if (input instanceof AggregateMetric.DocStats) {
+                    final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
+                    if (docStats.docMetric instanceof DocMetric.Field) {
+                        final DocMetric.Field docMetric = (DocMetric.Field) docStats.docMetric;
                         if (namedMetrics.containsKey(docMetric.field)) {
                             if (substitutionStack.contains(docMetric.field)) {
                                 substitutionStack.push(docMetric.field);

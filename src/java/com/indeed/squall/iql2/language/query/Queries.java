@@ -10,7 +10,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.indeed.common.util.time.DefaultWallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -93,7 +92,7 @@ public class Queries {
         return result;
     }
 
-    public static GroupBy parseGroupBy(String rawGroupBy, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static GroupBy parseGroupBy(String rawGroupBy, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
             @Nullable
             @Override
@@ -104,7 +103,7 @@ public class Queries {
         return GroupBys.parseGroupBy(groupByElementContext, options, datasetsMetadata, warn, clock);
     }
 
-    public static AggregateFilter parseAggregateFilter(String rawAggregateFilter, final List<String> options, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateFilter parseAggregateFilter(String rawAggregateFilter, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final JQLParser.AggregateFilterContext aggregateFilterContext = runParser(rawAggregateFilter, new Function<JQLParser, JQLParser.AggregateFilterContext>() {
             @Nullable
             @Override
@@ -126,7 +125,7 @@ public class Queries {
         return DocFilters.parseDocFilter(docFilterContext, options, datasetsMetadata, fromContents, warn, clock);
     }
 
-    public static DocMetric parseDocMetrix(final String rawDocMetric, boolean useLegacy, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static DocMetric parseDocMetric(final String rawDocMetric, boolean useLegacy, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
         final JQLParser.DocMetricContext docMetricContext = runParser(rawDocMetric, new Function<JQLParser, JQLParser.DocMetricContext>() {
             @Nullable
             @Override
@@ -380,9 +379,7 @@ public class Queries {
         });
     }
 
-    public static AggregateMetric parseAggregateMetric(
-            final String q, final boolean useLegacy, final List<String> options,
-            final DatasetsMetadata datasetsMetadata, final Consumer<String> warn) {
+    public static AggregateMetric parseAggregateMetric(String q, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
         final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(q, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
             @Nullable
             @Override
@@ -390,7 +387,7 @@ public class Queries {
                 return input.aggregateMetric(useLegacy);
             }
         });
-        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, options, datasetsMetadata, warn, new DefaultWallClock());
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, options, datasetsMetadata, warn, clock);
     }
 
     public static JQLParser parserForString(String q) {

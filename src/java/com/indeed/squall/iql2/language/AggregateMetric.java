@@ -36,7 +36,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Window window) throws E;
         T visit(Qualified qualified) throws E;
         T visit(DocStatsPushes docStatsPushes) throws E;
-        T visit(ImplicitDocStats implicitDocStats) throws E;
+        T visit(DocStats docStats) throws E;
         T visit(Constant constant) throws E;
         T visit(Percentile percentile) throws E;
         T visit(Running running) throws E;
@@ -854,10 +854,10 @@ public abstract class AggregateMetric extends AbstractPositional {
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
-    public static class ImplicitDocStats extends AggregateMetric implements JsonSerializable {
+    public static class DocStats extends AggregateMetric implements JsonSerializable {
         public final DocMetric docMetric;
 
-        public ImplicitDocStats(DocMetric docMetric) {
+        public DocStats(DocMetric docMetric) {
             this.docMetric = docMetric;
         }
 
@@ -868,7 +868,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new ImplicitDocStats(g.apply(docMetric)));
+            return f.apply(new DocStats(g.apply(docMetric)));
         }
 
         @Override
@@ -890,7 +890,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw ImplicitDocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
+            throw new UnsupportedOperationException("Cannot / should not serialize raw DocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
         }
 
         @Override
@@ -902,7 +902,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ImplicitDocStats that = (ImplicitDocStats) o;
+            DocStats that = (DocStats) o;
             return Objects.equals(docMetric, that.docMetric);
         }
 
@@ -913,7 +913,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public String toString() {
-            return "ImplicitDocStats{" +
+            return "DocStats{" +
                     "docMetric=" + docMetric +
                     '}';
         }

@@ -26,9 +26,9 @@ public class Dimension {
     }
 
     public Optional<String> getAliasActualField() {
-        if ((metric instanceof AggregateMetric.ImplicitDocStats)
-                && (((AggregateMetric.ImplicitDocStats) metric).docMetric instanceof DocMetric.Field)) {
-            return Optional.of(((DocMetric.Field) ((AggregateMetric.ImplicitDocStats) metric).docMetric).field);
+        if ((metric instanceof AggregateMetric.DocStats)
+                && (((AggregateMetric.DocStats) metric).docMetric instanceof DocMetric.Field)) {
+            return Optional.of(((DocMetric.Field) ((AggregateMetric.DocStats) metric).docMetric).field);
         } else {
             return Optional.absent();
         }
