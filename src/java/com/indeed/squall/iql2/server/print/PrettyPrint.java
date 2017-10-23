@@ -25,6 +25,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ParserUtil;
+import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang.StringEscapeUtils;
@@ -54,18 +55,20 @@ public class PrettyPrint {
 
     @Nonnull
     public static String prettyPrint(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata) {
-        final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
-        final Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), new Consumer<String>() {
+        JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
+        Consumer<String> consumer = new Consumer<String>() {
             @Override
-            public void accept(final String s) {
+            public void accept(String s) {
             }
-        }, new StoppedClock());
-        return prettyPrint(queryContext, query, datasetsMetadata);
+        };
+        WallClock clock = new StoppedClock();
+        Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), consumer, clock);
+        return prettyPrint(queryContext, query, datasetsMetadata, consumer, clock);
     }
 
-    private static String prettyPrint(JQLParser.QueryContext queryContext, Query query, final DatasetsMetadata datasetsMetadata) {
+    private static String prettyPrint(JQLParser.QueryContext queryContext, Query query, DatasetsMetadata datasetsMetadata, Consumer<String> consumer, WallClock clock) {
         final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata);
-        prettyPrint.pp(query);
+        prettyPrint.pp(query, consumer, clock);
         while (prettyPrint.sb.charAt(prettyPrint.sb.length() - 1) == '\n') {
             prettyPrint.sb.setLength(prettyPrint.sb.length() - 1);
         }
@@ -129,7 +132,7 @@ public class PrettyPrint {
         sb.append(comment).append(' ');
     }
 
-    private void pp(Query query) {
+    private void pp(Query query, Consumer<String> consumer, WallClock clock) {
         sb.append("FROM ");
         final boolean multiDataSets = query.datasets.size() > 1;
 
@@ -183,7 +186,7 @@ public class PrettyPrint {
                 if (i > 0) {
                     sb.append(' ');
                 }
-                pp(filters.get(i));
+                pp(filters.get(i), consumer, clock);
             }
             sb.append('\n');
         }
@@ -199,7 +202,7 @@ public class PrettyPrint {
                     sb.append("\n  , ");
                 }
                 isFirst = false;
-                pp(groupBy);
+                pp(groupBy, consumer, clock);
             }
             sb.append('\n');
         }
@@ -215,7 +218,7 @@ public class PrettyPrint {
                     sb.append("\n  , ");
                 }
                 isFirst = false;
-                pp(select);
+                pp(select, consumer, clock);
             }
             sb.append('\n');
         }
@@ -231,48 +234,28 @@ public class PrettyPrint {
     }
 
     // TODO: prettyprint comments
-    private void pp(GroupByMaybeHaving groupBy) {
-        pp(groupBy.groupBy);
+    private void pp(GroupByMaybeHaving groupBy, Consumer<String> consumer, WallClock clock) {
+        pp(groupBy.groupBy, consumer, clock);
         if (groupBy.filter.isPresent()) {
             sb.append(" HAVING ");
-            pp(groupBy.filter.get());
+            pp(groupBy.filter.get(), consumer, clock);
         }
     }
 
-    boolean isIQL2Consistent(AbstractPositional positional) {
+    boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
             if (positional instanceof GroupBy) {
-                positionalIQL2 = (GroupBy) Queries.parseGroupBy(rawString, false, null, datasetsMetadata, new Consumer<String>() {
-                    @Override
-                    public void accept(final String s) {
-                    }
-                }, new StoppedClock());
+                positionalIQL2 = Queries.parseGroupBy(rawString, false, null, datasetsMetadata, consumer, clock);
             } else if (positional instanceof AggregateFilter) {
-                positionalIQL2 = (AggregateFilter) Queries.parseAggregateFilter(rawString, false, null, datasetsMetadata, new Consumer<String>() {
-                    @Override
-                    public void accept(final String s) {
-                    }
-                }, new StoppedClock());
+                positionalIQL2 = Queries.parseAggregateFilter(rawString, false, null, datasetsMetadata, consumer, clock);
             } else if (positional instanceof AggregateMetric) {
-                positionalIQL2 = (AggregateMetric) Queries.parseAggregateMetric(rawString, false, null, datasetsMetadata, new Consumer<String>() {
-                    @Override
-                    public void accept(final String s) {
-                    }
-                }, new StoppedClock());
+                positionalIQL2 = Queries.parseAggregateMetric(rawString, false, null, datasetsMetadata, consumer, clock);
             } else if (positional instanceof DocFilter) {
-                positionalIQL2 = (DocFilter) Queries.parseDocFilter(rawString, false, null, datasetsMetadata, new Consumer<String>() {
-                    @Override
-                    public void accept(final String s) {
-                    }
-                }, new StoppedClock(), null);
+                positionalIQL2 = Queries.parseDocFilter(rawString, false, null, datasetsMetadata, consumer, clock, null);
             } else if (positional instanceof DocMetric) {
-                positionalIQL2 = (DocMetric) Queries.parseDocMetric(rawString, false, null, datasetsMetadata, new Consumer<String>() {
-                    @Override
-                    public void accept(final String s) {
-                    }
-                }, new StoppedClock());
+                positionalIQL2 = Queries.parseDocMetric(rawString, false, null, datasetsMetadata, consumer, clock);
             } else {
                 throw new IllegalArgumentException("unrecognized type");
             }
@@ -300,8 +283,8 @@ public class PrettyPrint {
         }
     }
 
-    private void pp(GroupBy groupBy) {
-        if (isIQL2Consistent(groupBy)) {
+    private void pp(GroupBy groupBy, Consumer<String> consumer, WallClock clock) {
+        if (isIQL2Consistent(groupBy, consumer, clock)) {
             return ;
         }
 
@@ -311,7 +294,7 @@ public class PrettyPrint {
             @Override
             public Void visit(GroupBy.GroupByMetric groupByMetric) {
                 sb.append("bucket(");
-                pp(groupByMetric.metric);
+                pp(groupByMetric.metric, consumer, clock);
                 sb.append(", ").append(groupByMetric.min);
                 sb.append(", ").append(groupByMetric.max);
                 sb.append(", ").append(groupByMetric.interval);
@@ -384,11 +367,11 @@ public class PrettyPrint {
                     }
                     if (groupByField.metric.isPresent()) {
                         sb.append(" BY ");
-                        pp(groupByField.metric.get());
+                        pp(groupByField.metric.get(), consumer, clock);
                     }
                     if (groupByField.filter.isPresent()) {
                         sb.append(" HAVING ");
-                        pp(groupByField.filter.get());
+                        pp(groupByField.filter.get(), consumer, clock);
                     }
                     sb.append(']');
                 }
@@ -420,7 +403,7 @@ public class PrettyPrint {
 
             @Override
             public Void visit(GroupBy.GroupByPredicate groupByPredicate) {
-                pp(groupByPredicate.docFilter);
+                pp(groupByPredicate.docFilter, consumer, clock);
                 return null;
             }
 
@@ -454,8 +437,8 @@ public class PrettyPrint {
         }
     }
 
-    private void pp(AggregateFilter aggregateFilter) {
-        if (isIQL2Consistent(aggregateFilter)) {
+    private void pp(AggregateFilter aggregateFilter, Consumer<String> consumer, WallClock clock) {
+        if (isIQL2Consistent(aggregateFilter, consumer, clock)) {
             return ;
         }
         appendCommentBeforeText(aggregateFilter, sb);
@@ -477,11 +460,11 @@ public class PrettyPrint {
 
             private Void binop(AggregateMetric m1, String op, AggregateMetric m2) {
                 sb.append('(');
-                pp(m1);
+                pp(m1, consumer, clock);
                 sb.append(')');
                 sb.append(op);
                 sb.append('(');
-                pp(m2);
+                pp(m2, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -519,11 +502,11 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateFilter.And and) {
                 sb.append('(');
-                pp(and.f1);
+                pp(and.f1, consumer, clock);
                 sb.append(')');
                 sb.append(" and ");
                 sb.append('(');
-                pp(and.f2);
+                pp(and.f2, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -531,11 +514,11 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateFilter.Or or) {
                 sb.append('(');
-                pp(or.f1);
+                pp(or.f1, consumer, clock);
                 sb.append(')');
                 sb.append(" or ");
                 sb.append('(');
-                pp(or.f2);
+                pp(or.f2, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -543,7 +526,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateFilter.Not not) {
                 sb.append("not(");
-                pp(not.filter);
+                pp(not.filter, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -579,8 +562,8 @@ public class PrettyPrint {
         appendCommentAfterText(aggregateFilter, sb);
     }
 
-    private void pp(AggregateMetric aggregateMetric) {
-        if (isIQL2Consistent(aggregateMetric)) {
+    private void pp(AggregateMetric aggregateMetric, Consumer<String> consumer, WallClock clock) {
+        if (isIQL2Consistent(aggregateMetric, consumer, clock)) {
             return ;
         }
         appendCommentBeforeText(aggregateMetric, sb);
@@ -588,11 +571,11 @@ public class PrettyPrint {
         aggregateMetric.visit(new AggregateMetric.Visitor<Void, RuntimeException>() {
             private Void binop(AggregateMetric.Binop binop, String op) {
                 sb.append('(');
-                pp(binop.m1);
+                pp(binop.m1, consumer, clock);
                 sb.append(')');
                 sb.append(op);
                 sb.append('(');
-                pp(binop.m2);
+                pp(binop.m2, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -605,7 +588,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Log log) {
                 sb.append("log(");
-                pp(log.m1);
+                pp(log.m1, consumer, clock);
                 sb.append(")");
                 return null;
             }
@@ -614,7 +597,7 @@ public class PrettyPrint {
             public Void visit(AggregateMetric.Negate negate) {
                 sb.append('-');
                 sb.append('(');
-                pp(negate.m1);
+                pp(negate.m1, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -622,7 +605,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Abs abs) {
                 sb.append("abs(");
-                pp(abs.m1);
+                pp(abs.m1, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -655,7 +638,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Parent parent) {
                 sb.append("parent(");
-                pp(parent.metric);
+                pp(parent.metric, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -665,7 +648,7 @@ public class PrettyPrint {
                 sb.append("lag(");
                 sb.append(lag.lag);
                 sb.append(", ");
-                pp(lag.metric);
+                pp(lag.metric, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -685,7 +668,7 @@ public class PrettyPrint {
                 sb.append("window(");
                 sb.append(window.window);
                 sb.append(", ");
-                pp(window.metric);
+                pp(window.metric, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -703,7 +686,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.DocStats docStats) {
                 sb.append('[');
-                pp(docStats.docMetric);
+                pp(docStats.docMetric, consumer, clock);
                 sb.append(']');
                 return null;
             }
@@ -727,7 +710,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Running running) {
                 sb.append("running(");
-                pp(running.metric);
+                pp(running.metric, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -738,7 +721,7 @@ public class PrettyPrint {
                 sb.append(getText(distinct.field));
                 if (distinct.filter.isPresent()) {
                     sb.append(" HAVING ");
-                    pp(distinct.filter.get());
+                    pp(distinct.filter.get(), consumer, clock);
                 }
                 sb.append(')');
                 return null;
@@ -747,7 +730,7 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Named named) {
                 sb.append('(');
-                pp(named.metric);
+                pp(named.metric, consumer, clock);
                 sb.append(')');
                 sb.append(" as ");
                 sb.append(getText(named.name));
@@ -767,9 +750,9 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.SumAcross sumAcross) {
                 sb.append("sum_over(");
-                pp(sumAcross.groupBy);
+                pp(sumAcross.groupBy, consumer, clock);
                 sb.append(", ");
-                pp(sumAcross.metric);
+                pp(sumAcross.metric, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -777,11 +760,11 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.IfThenElse ifThenElse) {
                 sb.append("if ");
-                pp(ifThenElse.condition);
+                pp(ifThenElse.condition, consumer, clock);
                 sb.append(" then ");
-                pp(ifThenElse.trueCase);
+                pp(ifThenElse.trueCase, consumer, clock);
                 sb.append(" else ");
-                pp(ifThenElse.falseCase);
+                pp(ifThenElse.falseCase, consumer, clock);
                 return null;
             }
 
@@ -807,7 +790,7 @@ public class PrettyPrint {
                 Joiner.on(", ").appendTo(sb, Iterables.transform(min.metrics, new Function<AggregateMetric, String>() {
                     public String apply(AggregateMetric aggregateMetric) {
                         final StringBuilder sb = new StringBuilder();
-                        pp(aggregateMetric);
+                        pp(aggregateMetric, consumer, clock);
                         return sb.toString();
                     }
                 }));
@@ -821,7 +804,7 @@ public class PrettyPrint {
                 Joiner.on(", ").appendTo(sb, Iterables.transform(max.metrics, new Function<AggregateMetric, String>() {
                     public String apply(AggregateMetric aggregateMetric) {
                         final StringBuilder sb = new StringBuilder();
-                        pp(aggregateMetric);
+                        pp(aggregateMetric, consumer, clock);
                         return sb.toString();
                     }
                 }));
@@ -838,8 +821,8 @@ public class PrettyPrint {
         appendCommentAfterText(aggregateMetric, sb);
     }
 
-    private void pp(DocFilter docFilter) {
-        if (isIQL2Consistent(docFilter)) {
+    private void pp(DocFilter docFilter, Consumer<String> consumer, WallClock clock) {
+        if (isIQL2Consistent(docFilter, consumer, clock)) {
             return ;
         }
         appendCommentBeforeText(docFilter, sb);
@@ -879,14 +862,14 @@ public class PrettyPrint {
                 pp(new DocFilter.And(
                         new DocFilter.MetricGte(new DocMetric.Constant(between.lowerBound), new DocMetric.Field(between.field)),
                         new DocFilter.MetricLt(new DocMetric.Field(between.field), new DocMetric.Constant(between.upperBound))
-                ));
+                ), consumer, clock);
                 return null;
             }
 
             private Void inequality(DocFilter.MetricBinop binop, String cmpOp) {
-                pp(binop.m1);
+                pp(binop.m1, consumer, clock);
                 sb.append(cmpOp);
-                pp(binop.m2);
+                pp(binop.m2, consumer, clock);
                 return null;
             }
 
@@ -922,24 +905,24 @@ public class PrettyPrint {
 
             @Override
             public Void visit(DocFilter.And and) {
-                pp(and.f1);
+                pp(and.f1, consumer, clock);
                 sb.append(" and ");
-                pp(and.f2);
+                pp(and.f2, consumer, clock);
                 return null;
             }
 
             @Override
             public Void visit(DocFilter.Or or) {
-                pp(or.f1);
+                pp(or.f1, consumer, clock);
                 sb.append(" or ");
-                pp(or.f2);
+                pp(or.f2, consumer, clock);
                 return null;
             }
 
             @Override
             public Void visit(DocFilter.Ors ors) {
                 if (ors.filters.isEmpty()) {
-                    pp(new DocFilter.Never());
+                    pp(new DocFilter.Never(), consumer, clock);
                 } else {
                     boolean first = true;
                     for (final DocFilter filter : ors.filters) {
@@ -947,7 +930,7 @@ public class PrettyPrint {
                             sb.append(" OR ");
                         }
                         first = false;
-                        pp(filter);
+                        pp(filter, consumer, clock);
                     }
                 }
                 return null;
@@ -956,7 +939,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocFilter.Not not) {
                 sb.append("not");
-                pp(not.filter);
+                pp(not.filter, consumer, clock);
                 return null;
             }
 
@@ -1059,8 +1042,8 @@ public class PrettyPrint {
         appendCommentAfterText(docFilter, sb);
     }
 
-    private void pp(DocMetric docMetric) {
-        if (isIQL2Consistent(docMetric)) {
+    private void pp(DocMetric docMetric, Consumer<String> consumer, WallClock clock) {
+        if (isIQL2Consistent(docMetric, consumer, clock)) {
             return ;
         }
 
@@ -1070,7 +1053,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Log log) {
                 sb.append("log(");
-                pp(log.metric);
+                pp(log.metric, consumer, clock);
                 sb.append(", ").append(log.scaleFactor);
                 sb.append(')');
                 return null;
@@ -1101,7 +1084,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Exponentiate exponentiate) {
                 sb.append("exp(");
-                pp(exponentiate.metric);
+                pp(exponentiate.metric, consumer, clock);
                 sb.append(", ").append(exponentiate.scaleFactor);
                 sb.append(')');
                 return null;
@@ -1111,7 +1094,7 @@ public class PrettyPrint {
             public Void visit(DocMetric.Negate negate) {
                 sb.append('-');
                 sb.append('(');
-                pp(negate.m1);
+                pp(negate.m1, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -1119,7 +1102,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Abs abs) {
                 sb.append("abs(");
-                pp(abs.m1);
+                pp(abs.m1, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -1127,16 +1110,16 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Signum signum) {
                 sb.append("signum(");
-                pp(signum.m1);
+                pp(signum.m1, consumer, clock);
                 sb.append(')');
                 return null;
             }
 
             private Void binop(DocMetric.Binop binop, String op) {
                 sb.append('(');
-                pp(binop.m1);
+                pp(binop.m1, consumer, clock);
                 sb.append(' ').append(op).append(' ');
-                pp(binop.m2);
+                pp(binop.m2, consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -1169,9 +1152,9 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Min min) {
                 sb.append("min(");
-                pp(min.m1);
+                pp(min.m1, consumer, clock);
                 sb.append(", ");
-                pp(min.m2);
+                pp(min.m2, consumer, clock);
                 sb.append(")");
                 return null;
             }
@@ -1179,9 +1162,9 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Max max) {
                 sb.append("max(");
-                pp(max.m1);
+                pp(max.m1, consumer, clock);
                 sb.append(", ");
-                pp(max.m2);
+                pp(max.m2, consumer, clock);
                 sb.append(")");
                 return null;
             }
@@ -1278,11 +1261,11 @@ public class PrettyPrint {
             public Void visit(DocMetric.IfThenElse ifThenElse) {
                 sb.append('(');
                 sb.append("if ");
-                pp(ifThenElse.condition);
+                pp(ifThenElse.condition, consumer, clock);
                 sb.append(" then ");
-                pp(ifThenElse.trueCase);
+                pp(ifThenElse.trueCase, consumer, clock);
                 sb.append(" else ");
-                pp(ifThenElse.falseCase);
+                pp(ifThenElse.falseCase, consumer, clock);
                 sb.append(')');
                 return null;
             }

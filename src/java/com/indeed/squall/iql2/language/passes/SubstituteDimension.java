@@ -146,9 +146,8 @@ public class SubstituteDimension {
             @Override
             public AggregateMetric apply(@Nullable final AggregateMetric input) {
                 if (input instanceof AggregateMetric.DocStats) {
-                    final DocMetric docMetric;
                     final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
-                    docMetric = docStats.docMetric;
+                    final DocMetric docMetric = docStats.docMetric;
                     return new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
                 }
                 return input;

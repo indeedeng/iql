@@ -210,9 +210,8 @@ public class ExtractPrecomputed {
                 setScope(oldScope);
                 return result;
             } else if (input instanceof AggregateMetric.DocStats) {
-                final DocMetric docMetric;
                 final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
-                docMetric = docStats.docMetric;
+                final DocMetric docMetric = docStats.docMetric;
                 if (startDepth == depth) {
                     AggregateMetric aggregateMetric = null;
                     final Set<String> pushScope;
