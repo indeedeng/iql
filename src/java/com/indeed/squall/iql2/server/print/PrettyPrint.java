@@ -243,6 +243,14 @@ public class PrettyPrint {
     }
 
     boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
+        if (positional instanceof AggregateMetric.DocStats) {
+            if (((AggregateMetric.DocStats) positional).docMetric.toString().equals("Count{}") && positional.getStart() == null) {
+                appendCommentBeforeText(positional, sb);
+                sb.append("count()");
+                appendCommentAfterText(positional, sb);
+                return true;
+            }
+        }
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
@@ -263,16 +271,6 @@ public class PrettyPrint {
                 appendCommentBeforeText(positional, sb);
                 //preserve as much as possible
                 sb.append(rawString);
-                appendCommentAfterText(positional, sb);
-                return true;
-            }
-            return false;
-        } catch (NullPointerException e) {
-            //special check: implicit metric count()
-            //implicit count() will causing getText() to throw NPE, fall into this
-            if (positional instanceof AggregateMetric.DocStats) {
-                appendCommentAfterText(positional, sb);
-                sb.append("count()");
                 appendCommentAfterText(positional, sb);
                 return true;
             }
