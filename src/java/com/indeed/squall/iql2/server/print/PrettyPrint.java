@@ -243,14 +243,6 @@ public class PrettyPrint {
     }
 
     boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
-        if (positional instanceof AggregateMetric.DocStats) {
-            if (((AggregateMetric.DocStats) positional).docMetric instanceof DocMetric.Count && positional.getStart() == null) {
-                appendCommentBeforeText(positional, sb);
-                sb.append("count()");
-                appendCommentAfterText(positional, sb);
-                return true;
-            }
-        }
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
@@ -561,6 +553,14 @@ public class PrettyPrint {
     }
 
     private void pp(AggregateMetric aggregateMetric, Consumer<String> consumer, WallClock clock) {
+        if (aggregateMetric instanceof AggregateMetric.DocStats) {
+            if (aggregateMetric.getStart() == null && ((AggregateMetric.DocStats) aggregateMetric).docMetric instanceof DocMetric.Count) {
+                appendCommentBeforeText(aggregateMetric, sb);
+                sb.append("count()");
+                appendCommentAfterText(aggregateMetric, sb);
+                return ;
+            }
+        }
         if (isIQL2Consistent(aggregateMetric, consumer, clock)) {
             return ;
         }
