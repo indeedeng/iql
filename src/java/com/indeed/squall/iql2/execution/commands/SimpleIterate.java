@@ -200,6 +200,7 @@ public class SimpleIterate implements Command {
         } else {
             session.timer.push("convert results");
             final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
+            int newGroupNumber = 0;
             for (int group = 1; group <= session.numGroups; group++) {
                 final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
                 final Queue<TermSelects> pq = pqs.get(group);
@@ -213,6 +214,8 @@ public class SimpleIterate implements Command {
                 } else {
                     groupTermSelects.add(listTermSelects);
                 }
+                newGroupNumber += listTermSelects.size();
+                session.checkGroupLimit(newGroupNumber);
                 allTermSelects.add(groupTermSelects);
             }
             session.timer.pop();
