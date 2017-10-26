@@ -4,12 +4,15 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.AbstractImhotepMultiSession;
 import com.indeed.imhotep.DatasetInfo;
+import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.ImhotepRemoteSession;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepJavaLocalSession;
 import com.indeed.imhotep.local.ImhotepLocalSession;
+import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import org.joda.time.DateTime;
 import org.junit.Ignore;
@@ -19,6 +22,7 @@ import java.lang.reflect.Modifier;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,6 +124,12 @@ public class TestImhotepClient extends ImhotepClient {
                     @Override
                     protected ImhotepRemoteSession createImhotepRemoteSession(InetSocketAddress address, String sessionId, AtomicLong tempFileSizeBytesLeft) {
                         throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+                        final GroupMultiRemapRule[] rules = ImhotepDaemonMarshaller.marshalGroupMultiRemapMessageList(Arrays.asList(rawRuleMessages));
+                        return regroup(rules, errorOnCollisions);
                     }
                 };
             }

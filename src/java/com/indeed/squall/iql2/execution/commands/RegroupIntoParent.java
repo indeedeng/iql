@@ -1,13 +1,15 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.Maps;
-import com.indeed.imhotep.GroupMultiRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
+import java.util.Arrays;
 import java.util.Map;
 
 public class RegroupIntoParent implements Command {
@@ -63,14 +65,26 @@ public class RegroupIntoParent implements Command {
         session.timer.pop();
 
         session.timer.push("create rules");
-        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
-        final RegroupCondition[] fakeConditions = new RegroupCondition[]{new RegroupCondition("fakeField", true, 1, null, false)};
+        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
+        final RegroupConditionMessage[] fakeConditions = new RegroupConditionMessage[] {
+                RegroupConditionMessage.newBuilder()
+                .setField("fakeField")
+                .setIntType(true)
+                .setIntTerm(1)
+                .setInequality(false)
+                .build()
+        };
         for (int group = 1; group <= session.numGroups; group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
-            rules[group - 1] = new GroupMultiRemapRule(group, newGroup, new int[]{newGroup}, fakeConditions);
+            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(group)
+                    .setNegativeGroup(newGroup)
+                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                    .addAllCondition(Arrays.asList(fakeConditions))
+                    .build();
         }
         session.timer.pop();
-        session.regroup(rules, false);
+        session.regroupWithProtos(messages, false);
         session.currentDepth -= 1;
         session.numGroups = maxIndex;
         session.groupKeySet = session.groupKeySet.previous();

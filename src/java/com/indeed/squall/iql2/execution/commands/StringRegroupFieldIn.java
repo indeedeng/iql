@@ -1,8 +1,9 @@
 package com.indeed.squall.iql2.execution.commands;
 
-import com.indeed.imhotep.GroupMultiRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DefaultGroupKey;
@@ -29,11 +30,17 @@ public class StringRegroupFieldIn implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
-        final GroupMultiRemapRule[] remapRules = new GroupMultiRemapRule[session.numGroups];
+        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
         final int numTerms = terms.size();
-        final RegroupCondition[] conditions = new RegroupCondition[numTerms];
+        final RegroupConditionMessage[] conditions = new RegroupConditionMessage[numTerms];
         for (int i = 0; i < conditions.length; i++) {
-            conditions[i] = new RegroupCondition(field, false, 0, terms.get(i), false);
+            conditions[i] = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(false)
+                    .setIntTerm(0L)
+                    .setStringTerm(terms.get(i))
+                    .setInequality(false)
+                    .build();
         }
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];
@@ -42,11 +49,16 @@ public class StringRegroupFieldIn implements Command {
                 positiveGroups[i] = baseGroup + i;
             }
             final int negativeGroup = withDefault ? (baseGroup + numTerms) : 0;
-            remapRules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
+            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(group)
+                    .setNegativeGroup(negativeGroup)
+                    .addAllPositiveGroup(Ints.asList(positiveGroups))
+                    .addAllCondition(Arrays.asList(conditions))
+                    .build();
         }
         session.timer.pop();
 
-        session.regroup(remapRules, true);
+        session.regroupWithProtos(messages, true);
 
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
     }

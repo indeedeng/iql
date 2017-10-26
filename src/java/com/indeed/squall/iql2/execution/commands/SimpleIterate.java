@@ -214,6 +214,7 @@ public class SimpleIterate implements Command {
                 } else {
                     groupTermSelects.add(listTermSelects);
                 }
+                //A rough check for the group number, we don't care about +1 offset of the default group
                 newGroupNumber += listTermSelects.size();
                 session.checkGroupLimit(newGroupNumber);
                 allTermSelects.add(groupTermSelects);

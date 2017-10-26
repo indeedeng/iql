@@ -1,9 +1,10 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.GroupMultiRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -21,6 +22,7 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +69,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
             }, session.timer);
-            final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
+            final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
                 final Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
@@ -88,14 +90,19 @@ public class ExplodeByAggregatePercentile implements Command {
                     arraySize += terms.size();
                 }
                 final int[] positiveGroups = new int[arraySize];
-                final RegroupCondition[] conditions = new RegroupCondition[arraySize];
+                final RegroupConditionMessage[] conditions = new RegroupConditionMessage[arraySize];
                 int arrayIndex = 0;
                 for (int i = 0; i < numBuckets; i++) {
                     final LongArrayList terms = groupOffsetToTerms.get(i);
                     if (terms != null) {
                         for (final long term : terms) {
                             positiveGroups[arrayIndex] = groupBase + i;
-                            conditions[arrayIndex] = new RegroupCondition(field, true, term, null, false);
+                            conditions[arrayIndex] = RegroupConditionMessage.newBuilder()
+                                    .setField(field)
+                                    .setIntType(true)
+                                    .setIntTerm(term)
+                                    .setInequality(false)
+                                    .build();
                             arrayIndex++;
                         }
                     }
@@ -104,10 +111,15 @@ public class ExplodeByAggregatePercentile implements Command {
                     nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
-                rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
+                rules.add(GroupMultiRemapMessage.newBuilder()
+                        .setTargetGroup(group)
+                        .setNegativeGroup(0)
+                        .addAllPositiveGroup(Ints.asList(positiveGroups))
+                        .addAllCondition(Arrays.asList(conditions))
+                        .build());
             }
-            final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.regroup(rulesArr, true);
+            final GroupMultiRemapMessage[] rulesArr = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
+            session.regroupWithProtos(rulesArr, true);
         } else if (session.isStringField(field)) {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.StringIterateCallback() {
@@ -121,7 +133,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
             }, session.timer);
-            final List<GroupMultiRemapRule> rules = Lists.newArrayListWithCapacity(session.numGroups);
+            final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
                 final Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);
@@ -142,14 +154,21 @@ public class ExplodeByAggregatePercentile implements Command {
                     arraySize += terms.size();
                 }
                 final int[] positiveGroups = new int[arraySize];
-                final RegroupCondition[] conditions = new RegroupCondition[arraySize];
+                final RegroupConditionMessage[] conditions = new RegroupConditionMessage[arraySize];
                 int arrayIndex = 0;
                 for (int i = 0; i < numBuckets; i++) {
                     final ArrayList<String> terms = groupOffsetToTerms.get(i);
                     if (terms != null) {
                         for (final String term : terms) {
                             positiveGroups[arrayIndex] = groupBase + i;
-                            conditions[arrayIndex] = new RegroupCondition(field, false, 0, term, false);
+                            conditions[arrayIndex] = RegroupConditionMessage.newBuilder()
+                                    .setField(field)
+                                    .setIntType(false)
+                                    .setIntTerm(0L)
+                                    .setStringTerm(term)
+                                    .setInequality(false)
+                                    .build();
+                            arrayIndex++;
                             arrayIndex++;
                         }
                     }
@@ -158,10 +177,15 @@ public class ExplodeByAggregatePercentile implements Command {
                     nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
-                rules.add(new GroupMultiRemapRule(group, 0, positiveGroups, conditions));
+                rules.add(GroupMultiRemapMessage.newBuilder()
+                        .setTargetGroup(group)
+                        .setNegativeGroup(0)
+                        .addAllPositiveGroup(Ints.asList(positiveGroups))
+                        .addAllCondition(Arrays.asList(conditions))
+                        .build());
             }
-            final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.regroup(rulesArr, true);
+            final GroupMultiRemapMessage[] rulesArr = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
+            session.regroupWithProtos(rulesArr, true);
         } else {
             throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
         }

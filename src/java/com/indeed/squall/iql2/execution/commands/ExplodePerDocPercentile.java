@@ -2,10 +2,10 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.indeed.imhotep.GroupMultiRemapRule;
-import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -77,14 +77,14 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         session.timer.push("compute bucket remaps");
-        final List<GroupMultiRemapRule> rules = Lists.newArrayList();
+        final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
         final List<GroupKey> nextGroupKeys = Lists.newArrayList();
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
         groupParents.add(-1);
         for (int group = 1; group <= session.numGroups; group++) {
             final IntArrayList positiveGroups = new IntArrayList();
-            final List<RegroupCondition> conditions = Lists.newArrayList();
+            final List<RegroupConditionMessage> conditions = Lists.newArrayList();
             for (int bucket = 0; bucket < numBuckets; bucket++) {
                 if (bucket > 0 && cutoffs[group][bucket] == cutoffs[group][bucket - 1]) {
                     continue;
@@ -96,21 +96,29 @@ public class ExplodePerDocPercentile implements Command {
                 nextGroupKeys.add(new StringGroupKey(keyTerm));
                 groupParents.add(group);
                 positiveGroups.add(newGroup);
-                conditions.add(new RegroupCondition(field, true, cutoffs[group][bucket], null, true));
+                conditions.add(RegroupConditionMessage.newBuilder()
+                        .setField(field)
+                        .setIntType(true)
+                        .setIntTerm(cutoffs[group][bucket])
+                        .setInequality(true)
+                        .build());
             }
-            final int[] positiveGroupsArr = positiveGroups.toIntArray(new int[positiveGroups.size()]);
-            final RegroupCondition[] conditionsArr = conditions.toArray(new RegroupCondition[conditions.size()]);
-            rules.add(new GroupMultiRemapRule(group, 0, positiveGroupsArr, conditionsArr));
+            rules.add(GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(group)
+                    .setNegativeGroup(0)
+                    .addAllPositiveGroup(positiveGroups)
+                    .addAllCondition(conditions)
+                    .build());
         }
 
-        final GroupMultiRemapRule[] rulesArr = rules.toArray(new GroupMultiRemapRule[rules.size()]);
+        final GroupMultiRemapMessage[] messages = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
         session.timer.pop();
 
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
                 timer.push("regroup");
-                session.regroup(rulesArr, true);
+                session.regroupWithProtos(messages, true);
                 timer.pop();
 
                 timer.push("popStat");

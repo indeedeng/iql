@@ -34,6 +34,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -802,6 +803,17 @@ public class Session {
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
             sessionInfo.session.regroup(rules, errorOnCollisions);
+            timer.pop();
+        }
+        timer.pop();
+    }
+
+    public void regroupWithProtos(GroupMultiRemapMessage[] messages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regroup");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            timer.push("session:" + sessionInfo.displayName);
+            sessionInfo.session.regroupWithProtos(messages, errorOnCollisions);
             timer.pop();
         }
         timer.pop();
