@@ -13,9 +13,6 @@ import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.t
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testIQL1;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
-/**
- *
- */
 public class DimensionTest extends BasicTest {
     private ImsClientInterface imsClient = new DimensionUtils.ImsClient();
     private final Dataset dataset = DimensionUtils.createDataset();

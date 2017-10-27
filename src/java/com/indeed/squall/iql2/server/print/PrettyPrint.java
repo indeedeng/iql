@@ -26,7 +26,7 @@ import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ParserUtil;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nonnull;

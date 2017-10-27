@@ -76,6 +76,7 @@ WINDOW_SUM : 'WINDOW_SUM' ;
 MIN : 'MIN' ;
 MAX : 'MAX' ;
 PRINTF : 'PRINTF' ;
+ROUNDING: 'ROUNDING' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
@@ -86,7 +87,7 @@ OPTIONS: 'OPTIONS' ;
 M: 'M' ;
 Y : 'Y' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
-TOMRROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
+TOMORROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
 YESTERDAYS : Y | 'YE' | 'YES' | 'YEST' | 'YESTE' | 'YESTER' | 'YESTERD' | 'YESTERDA' | 'YESTERDAY' ;
 TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
 TIME_PERIOD_ATOM : ([0-9]* (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
@@ -139,9 +140,7 @@ COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 LINE_COMMENT : '--' .*? ~[\r\n]* -> channel(HIDDEN) ;
 
 integer : neg='-'? NAT ;
-
 number : (neg='-'? NAT) | DOUBLE ;
-
 
 fragment ESCAPED_SINGLE_QUOTE : '\\\'';
 fragment SINGLE_QUOTED_CONTENTS : ( ESCAPED_SINGLE_QUOTE | ~('\n'|'\r') )*? ;
@@ -456,7 +455,7 @@ dateTime
     | NAT // This is for unix timestamps.
     | timePeriod
     | TODAYS
-    | TOMRROWS
+    | TOMORROWS
     | YESTERDAYS
     | AGO
     ;
@@ -492,7 +491,7 @@ formattedAggregateMetric [boolean useLegacy]
     ;
 
 selectContents [boolean useLegacy]
-    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)?
+    : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)? (ROUNDING precision=NAT)?
     ;
 
 query [boolean useLegacy]

@@ -3,7 +3,6 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -18,6 +17,7 @@ import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
+import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.antlr.v4.runtime.Token;
@@ -40,6 +40,8 @@ public class Query extends AbstractPositional {
     public final List<String> options;
     public final Optional<Integer> rowLimit;
     public final boolean useLegacy;
+
+    private static final String FORMAT_STRING_TEMPLATE = "%%.%sf";
 
     public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
         this.datasets = datasets;
@@ -96,13 +98,17 @@ public class Query extends AbstractPositional {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
             final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(selectSet.formattedAggregateMetric().size());
             formatStrings = new ArrayList<>();
+            Optional<String> formatString;
             for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
                 metrics.add(formattedMetric.aggregateMetric());
                 if (formattedMetric.STRING_LITERAL() != null) {
-                    formatStrings.add(Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText())));
-                } else {
-                    formatStrings.add(Optional.<String>absent());
+                    formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
+                } else if (selectSet.precision != null) {
+                    formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
+                } else  {
+                    formatString = Optional.absent();
                 }
+                formatStrings.add(formatString);
             }
             selectedMetrics = new ArrayList<>();
             for (final JQLParser.AggregateMetricContext metric : metrics) {

@@ -11,7 +11,8 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testLog() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", String.valueOf(Math.log(100)), String.valueOf(Math.log(151))));
+        //log(100), log(151)
+        expected.add(ImmutableList.of("", String.valueOf(4.6051702), String.valueOf(5.0172798)));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select log(100), log(count())");
     }
 
@@ -32,7 +33,7 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testPower() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "9", "27", String.valueOf(Math.pow(2, 0.5)), String.valueOf(151 * 151), String.valueOf(Math.pow(151, 0.5))));
+        expected.add(ImmutableList.of("", "9", "27", String.valueOf(1.4142136), String.valueOf(151 * 151), String.valueOf(12.2882057)));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select 3 ^ 2, 3 ^ 3, 2 ^ 0.5, count() ^ 2, count() ^ 0.5");
     }
 
