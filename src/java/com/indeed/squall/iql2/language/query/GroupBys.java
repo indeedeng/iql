@@ -250,9 +250,9 @@ public class GroupBys {
                 if (ctx2.metric != null) {
                     AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, options, datasetsMetadata, warn, clock);
                     if (reverseOrder) {
-                        if (theMetric instanceof AggregateMetric.ImplicitDocStats) {
-                            theMetric = new AggregateMetric.ImplicitDocStats(
-                                    new DocMetric.Negate(((AggregateMetric.ImplicitDocStats) theMetric).docMetric));
+                        if (theMetric instanceof AggregateMetric.DocStats) {
+                            theMetric = new AggregateMetric.DocStats(
+                                    new DocMetric.Negate(((AggregateMetric.DocStats) theMetric).docMetric));
                         } else {
                             theMetric = new AggregateMetric.Negate(theMetric);
                         }
@@ -260,7 +260,7 @@ public class GroupBys {
                     metric = Optional.of(theMetric);
                 } else {
                     if (reverseOrder) {
-                        metric = Optional.<AggregateMetric>of(new AggregateMetric.ImplicitDocStats(new DocMetric.Negate(new DocMetric.Count())));
+                        metric = Optional.<AggregateMetric>of(new AggregateMetric.DocStats(new DocMetric.Negate(new DocMetric.Count())));
                     } else {
                         metric = Optional.absent();
                     }

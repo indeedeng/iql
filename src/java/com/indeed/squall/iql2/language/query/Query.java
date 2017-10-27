@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Query extends AbstractPositional {
-    public final List<com.indeed.squall.iql2.language.query.Dataset> datasets;
+    public final List<Dataset> datasets;
     public final Optional<DocFilter> filter;
     public final List<GroupByMaybeHaving> groupBys;
     public final List<AggregateMetric> selects;
@@ -66,7 +66,7 @@ public class Query extends AbstractPositional {
             WallClock clock,
             boolean useLegacy
     ) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = com.indeed.squall.iql2.language.query.Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();
@@ -92,7 +92,7 @@ public class Query extends AbstractPositional {
         final List<AggregateMetric> selectedMetrics;
         final List<Optional<String>> formatStrings;
         if (selects.isEmpty()) {
-            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.ImplicitDocStats(new DocMetric.Count()));
+            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
             formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);

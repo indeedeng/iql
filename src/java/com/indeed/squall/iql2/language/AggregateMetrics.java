@@ -68,7 +68,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyImplicitSum(JQLParser.LegacyImplicitSumContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetsMetadata)));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(), datasetsMetadata)));
             }
 
             @Override
@@ -108,7 +108,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom2(JQLParser.AggregateDocMetricAtom2Context ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom())));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom())));
             }
         });
 
@@ -466,7 +466,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom(JQLParser.AggregateDocMetricAtomContext ctx) {
-                accept(new AggregateMetric.ImplicitDocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetsMetadata)));
+                accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), datasetsMetadata)));
             }
 
             @Override

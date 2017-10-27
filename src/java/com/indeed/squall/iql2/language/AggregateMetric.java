@@ -37,7 +37,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Qualified qualified) throws E;
         T visit(DocStatsPushes docStatsPushes) throws E;
         T visit(DocStats docStats) throws E;
-        T visit(ImplicitDocStats implicitDocStats) throws E;
         T visit(Constant constant) throws E;
         T visit(Percentile percentile) throws E;
         T visit(Running running) throws E;
@@ -852,11 +851,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    /**
+     * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
+     */
     public static class DocStats extends AggregateMetric implements JsonSerializable {
-        public final DocMetric metric;
+        public final DocMetric docMetric;
 
-        public DocStats(DocMetric metric) {
-            this.metric = metric;
+        public DocStats(DocMetric docMetric) {
+            this.docMetric = docMetric;
         }
 
         @Override
@@ -866,7 +868,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new DocStats(metric.transform(g, i)));
+            return f.apply(new DocStats(g.apply(docMetric)));
         }
 
         @Override
@@ -877,7 +879,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
             for (final String dataset : scope) {
-                metric.validate(dataset, validationHelper, validator);
+                docMetric.validate(dataset, validationHelper, validator);
             }
         }
 
@@ -900,75 +902,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            DocStats docStats = (DocStats) o;
-            return Objects.equals(metric, docStats.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric);
-        }
-
-        @Override
-        public String toString() {
-            return "DocStats{" +
-                    "metric=" + metric +
-                    '}';
-        }
-    }
-
-    /**
-     * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
-     */
-    public static class ImplicitDocStats extends AggregateMetric implements JsonSerializable {
-        public final DocMetric docMetric;
-
-        public ImplicitDocStats(DocMetric docMetric) {
-            this.docMetric = docMetric;
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new ImplicitDocStats(g.apply(docMetric)));
-        }
-
-        @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            for (final String dataset : scope) {
-                docMetric.validate(dataset, validationHelper, validator);
-            }
-        }
-
-        @Override
-        public boolean isOrdered() {
-            return false;
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw ImplicitDocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ImplicitDocStats that = (ImplicitDocStats) o;
+            DocStats that = (DocStats) o;
             return Objects.equals(docMetric, that.docMetric);
         }
 
@@ -979,7 +913,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public String toString() {
-            return "ImplicitDocStats{" +
+            return "DocStats{" +
                     "docMetric=" + docMetric +
                     '}';
         }

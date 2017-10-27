@@ -42,7 +42,6 @@ public class SubstituteDimension {
         return new Function<AggregateMetric, AggregateMetric>() {
             @Override
             public AggregateMetric apply(final AggregateMetric input) {
-                Preconditions.checkArgument(!(input instanceof AggregateMetric.ImplicitDocStats), "ImplicitDocStats should be handled by ExtractPrecomputed already");
                 Preconditions.checkArgument(!(input instanceof AggregateMetric.DocStats), "DocStats should be handled by ExtractPrecomputed already");
                 if (input instanceof AggregateMetric.DocStatsPushes) {
                     final AggregateMetric.DocStatsPushes pushStats = (AggregateMetric.DocStatsPushes) input;
@@ -146,15 +145,9 @@ public class SubstituteDimension {
             @Nullable
             @Override
             public AggregateMetric apply(@Nullable final AggregateMetric input) {
-                if ((input instanceof AggregateMetric.DocStats) || (input instanceof AggregateMetric.ImplicitDocStats)) {
-                    final DocMetric docMetric;
-                    if (input instanceof AggregateMetric.DocStats) {
-                        final AggregateMetric.DocStats stats = (AggregateMetric.DocStats) input;
-                        docMetric = stats.metric;
-                    } else {
-                        final AggregateMetric.ImplicitDocStats implicitDocStats = (AggregateMetric.ImplicitDocStats) input;
-                        docMetric = implicitDocStats.docMetric;
-                    }
+                if (input instanceof AggregateMetric.DocStats) {
+                    final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
+                    final DocMetric docMetric = docStats.docMetric;
                     return new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
                 }
                 return input;
@@ -196,12 +189,12 @@ public class SubstituteDimension {
     }
 
     private static DocMetric getDocMetricOrThrow(final Dimension dimension) {
-        if (!(dimension.metric instanceof AggregateMetric.ImplicitDocStats)) {
+        if (!(dimension.metric instanceof AggregateMetric.DocStats)) {
             throw new IllegalArgumentException(
                     String.format("Cannot use compound metrics in per-document context, metric [ %s: %s ]",
                             dimension.name, dimension.expression));
         } else {
-            return ((AggregateMetric.ImplicitDocStats) dimension.metric).docMetric;
+            return ((AggregateMetric.DocStats) dimension.metric).docMetric;
         }
     }
 }

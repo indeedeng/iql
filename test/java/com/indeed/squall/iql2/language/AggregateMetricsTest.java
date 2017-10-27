@@ -18,7 +18,6 @@ import java.util.Collections;
 import static com.indeed.squall.iql2.language.AggregateMetric.Add;
 import static com.indeed.squall.iql2.language.AggregateMetric.Divide;
 import static com.indeed.squall.iql2.language.AggregateMetric.DocStats;
-import static com.indeed.squall.iql2.language.AggregateMetric.ImplicitDocStats;
 import static com.indeed.squall.iql2.language.AggregateMetric.Multiply;
 import static com.indeed.squall.iql2.language.AggregateMetric.Subtract;
 
@@ -57,7 +56,7 @@ public class AggregateMetricsTest {
     };
 
     private static AggregateMetric field(String field) {
-        return new ImplicitDocStats(new Field(field));
+        return new AggregateMetric.DocStats(new Field(field));
     }
 
     @Test
@@ -88,10 +87,10 @@ public class AggregateMetricsTest {
     public void testV1AdditivePrecedence() throws Exception {
         CommonArithmetic.testAdditivePrecedence(
                 PARSE_LEGACY_AGGREGATE_METRIC,
-                new ImplicitDocStats(new DocMetric.Add(new Field("X"), new Field("Y"))),
-                new ImplicitDocStats(new DocMetric.Subtract(new Field("X"), new Field("Y"))),
-                new ImplicitDocStats(new DocMetric.Subtract(new DocMetric.Add(new Field("X"), new Field("Y")), new Field("Z"))),
-                new ImplicitDocStats(new DocMetric.Add(new DocMetric.Subtract(new Field("X"), new Field("Y")), new Field("Z")))
+                new AggregateMetric.DocStats(new DocMetric.Add(new Field("X"), new Field("Y"))),
+                new AggregateMetric.DocStats(new DocMetric.Subtract(new Field("X"), new Field("Y"))),
+                new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Add(new Field("X"), new Field("Y")), new Field("Z"))),
+                new DocStats(new DocMetric.Add(new DocMetric.Subtract(new Field("X"), new Field("Y")), new Field("Z")))
         );
     }
 
@@ -100,11 +99,11 @@ public class AggregateMetricsTest {
     public void testV1LotsOfArithmetic() throws Exception {
         CommonArithmetic.testLotsOfArithmetic(
                 PARSE_LEGACY_AGGREGATE_METRIC,
-                new ImplicitDocStats(new DocMetric.Add(new DocMetric.Multiply(new Field("A"), new Field("B")), new DocMetric.Multiply(new Field("C"), new Field("D")))),
+                new AggregateMetric.DocStats(new DocMetric.Add(new DocMetric.Multiply(new Field("A"), new Field("B")), new DocMetric.Multiply(new Field("C"), new Field("D")))),
                 // "A * B / C * D + (A * B - C * D + E)"
                 new Divide(
-                        new DocStats(new DocMetric.Multiply(new Field("A"), new Field("B"))),
-                        new DocStats(
+                        new AggregateMetric.DocStats(new DocMetric.Multiply(new Field("A"), new Field("B"))),
+                        new AggregateMetric.DocStats(
                                 new DocMetric.Add(
                                         new DocMetric.Multiply(new Field("C"), new Field("D")),
                                         new DocMetric.Add(
