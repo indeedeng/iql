@@ -25,7 +25,6 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
@@ -792,17 +791,6 @@ public class Session {
             for (int i = 0; i < numStats; i++) {
                 session.popStat();
             }
-            timer.pop();
-        }
-        timer.pop();
-    }
-
-    public void regroup(GroupMultiRemapRule[] rules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        // TODO: Parallelize
-        timer.push("regroup");
-        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
-            sessionInfo.session.regroup(rules, errorOnCollisions);
             timer.pop();
         }
         timer.pop();

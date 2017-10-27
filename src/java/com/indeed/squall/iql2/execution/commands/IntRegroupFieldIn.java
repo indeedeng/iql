@@ -33,13 +33,12 @@ public class IntRegroupFieldIn implements Command {
         final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
         final int numTerms = intTerms.size();
         final RegroupConditionMessage[] conditions = new RegroupConditionMessage[numTerms];
+        final RegroupConditionMessage.Builder builder = RegroupConditionMessage.newBuilder()
+                .setField(field)
+                .setIntType(true)
+                .setInequality(false);
         for (int i = 0; i < conditions.length; i++) {
-            conditions[i] = RegroupConditionMessage.newBuilder()
-                            .setField(field)
-                            .setIntType(true)
-                            .setIntTerm(intTerms.getLong(i))
-                            .setInequality(false)
-                            .build();
+            conditions[i] = builder.setIntTerm(intTerms.getLong(i)).build();
         }
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];
@@ -57,7 +56,7 @@ public class IntRegroupFieldIn implements Command {
         }
         session.timer.pop();
 
-        session.regroupWithProtos(messages, false);
+        session.regroupWithProtos(messages, true);
 
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms, withDefault));
     }

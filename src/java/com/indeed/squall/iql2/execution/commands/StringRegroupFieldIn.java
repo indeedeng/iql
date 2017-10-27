@@ -33,14 +33,13 @@ public class StringRegroupFieldIn implements Command {
         final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
         final int numTerms = terms.size();
         final RegroupConditionMessage[] conditions = new RegroupConditionMessage[numTerms];
+        final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
+                .setField(field)
+                .setIntType(false)
+                .setIntTerm(0L)
+                .setInequality(false);
         for (int i = 0; i < conditions.length; i++) {
-            conditions[i] = RegroupConditionMessage.newBuilder()
-                    .setField(field)
-                    .setIntType(false)
-                    .setIntTerm(0L)
-                    .setStringTerm(terms.get(i))
-                    .setInequality(false)
-                    .build();
+            conditions[i] = conditionBuilder.setStringTerm(terms.get(i)).build();
         }
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];

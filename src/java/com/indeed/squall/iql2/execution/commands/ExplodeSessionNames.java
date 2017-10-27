@@ -16,6 +16,14 @@ import java.util.List;
 import java.util.Map;
 
 public class ExplodeSessionNames implements Command {
+    private final RegroupConditionMessage FAKE_CONDITOIN = RegroupConditionMessage.newBuilder()
+            .setField("fakeField")
+            .setIntType(true)
+            .setIntTerm(0L)
+            .setInequality(false)
+            .build();
+    private final RegroupConditionMessage[] CONDITIONS = new RegroupConditionMessage[]{FAKE_CONDITOIN};
+
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final int numSessions = session.sessions.size();
@@ -32,18 +40,11 @@ public class ExplodeSessionNames implements Command {
             for (int i = 0; i < messages.length; i++) {
                 final int target = i + 1;
                 final int newGroup = (target - 1) * numSessions + (index + 1);
-                final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                        .setField("fakeField")
-                        .setIntType(true)
-                        .setIntTerm(0L)
-                        .setInequality(false)
-                        .build();
-                final RegroupConditionMessage[] conditions = new RegroupConditionMessage[]{fakeCondition};
                 messages[i] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(target)
                         .setNegativeGroup(newGroup)
                         .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                        .addAllCondition(Arrays.asList(conditions))
+                        .addAllCondition(Arrays.asList(CONDITIONS))
                         .build();
             }
             session.timer.pop();

@@ -126,6 +126,7 @@ public class TestImhotepClient extends ImhotepClient {
                         throw new UnsupportedOperationException();
                     }
 
+                    //Workaround for regroupWithProtos to work in local (unit tests)
                     @Override
                     public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
                         final GroupMultiRemapRule[] rules = ImhotepDaemonMarshaller.marshalGroupMultiRemapMessageList(Arrays.asList(rawRuleMessages));

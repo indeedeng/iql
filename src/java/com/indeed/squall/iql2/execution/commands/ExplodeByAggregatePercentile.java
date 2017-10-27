@@ -70,6 +70,11 @@ public class ExplodeByAggregatePercentile implements Command {
                 }
             }, session.timer);
             final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
+
+            final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(true)
+                    .setInequality(false);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
                 final Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
@@ -97,12 +102,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     if (terms != null) {
                         for (final long term : terms) {
                             positiveGroups[arrayIndex] = groupBase + i;
-                            conditions[arrayIndex] = RegroupConditionMessage.newBuilder()
-                                    .setField(field)
-                                    .setIntType(true)
-                                    .setIntTerm(term)
-                                    .setInequality(false)
-                                    .build();
+                            conditions[arrayIndex] = conditionBuilder.setIntTerm(term).build();
                             arrayIndex++;
                         }
                     }
@@ -134,6 +134,11 @@ public class ExplodeByAggregatePercentile implements Command {
                 }
             }, session.timer);
             final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
+            final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(false)
+                    .setIntTerm(0L)
+                    .setInequality(false);
             for (int group = 1; group <= session.numGroups; group++) {
                 final int groupBase = 1 + (group - 1) * numBuckets;
                 final Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);
@@ -161,14 +166,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     if (terms != null) {
                         for (final String term : terms) {
                             positiveGroups[arrayIndex] = groupBase + i;
-                            conditions[arrayIndex] = RegroupConditionMessage.newBuilder()
-                                    .setField(field)
-                                    .setIntType(false)
-                                    .setIntTerm(0L)
-                                    .setStringTerm(term)
-                                    .setInequality(false)
-                                    .build();
-                            arrayIndex++;
+                            conditions[arrayIndex] = conditionBuilder.setStringTerm(term).build();
                             arrayIndex++;
                         }
                     }

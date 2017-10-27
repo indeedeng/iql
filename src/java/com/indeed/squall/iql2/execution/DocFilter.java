@@ -245,6 +245,15 @@ public interface DocFilter {
                 }
             }
             final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+            final RegroupConditionMessage.Builder stringConditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(false)
+                    .setIntTerm(0)
+                    .setInequality(false);
+            final RegroupConditionMessage.Builder intConditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(true)
+                    .setInequality(false);
             for (int group = 1; group <= numGroups; group++) {
                 if (stringGroupTerms.containsKey(group)) {
                     final List<String> terms = stringGroupTerms.get(group);
@@ -253,13 +262,7 @@ public interface DocFilter {
                     final RegroupConditionMessage[] conditions = new RegroupConditionMessage[terms.size()];
                     for (int i = 0; i < terms.size(); i++) {
                         final String term = terms.get(i);
-                        conditions[i] = RegroupConditionMessage.newBuilder()
-                                .setField(field)
-                                .setIntType(false)
-                                .setIntTerm(0)
-                                .setStringTerm(term)
-                                .setInequality(false)
-                                .build();
+                        conditions[i] = stringConditionBuilder.setStringTerm(term).build();
                     }
                     rules.add(GroupMultiRemapMessage.newBuilder()
                             .setTargetGroup(group)
@@ -275,12 +278,7 @@ public interface DocFilter {
                     final RegroupConditionMessage[] conditions = new RegroupConditionMessage[terms.size()];
                     for (int i = 0; i < terms.size(); i++) {
                         final long term = terms.get(i);
-                        conditions[i] = RegroupConditionMessage.newBuilder()
-                                .setField(field)
-                                .setIntType(true)
-                                .setIntTerm(term)
-                                .setInequality(false)
-                                .build();
+                        conditions[i] = intConditionBuilder.setIntTerm(term).build();
                     }
                     rules.add(GroupMultiRemapMessage.newBuilder()
                             .setTargetGroup(group)

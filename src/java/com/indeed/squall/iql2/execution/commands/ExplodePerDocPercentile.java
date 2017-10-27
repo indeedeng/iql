@@ -82,6 +82,10 @@ public class ExplodePerDocPercentile implements Command {
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
         groupParents.add(-1);
+        final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
+                .setField(field)
+                .setIntType(true)
+                .setInequality(true);
         for (int group = 1; group <= session.numGroups; group++) {
             final IntArrayList positiveGroups = new IntArrayList();
             final List<RegroupConditionMessage> conditions = Lists.newArrayList();
@@ -96,12 +100,7 @@ public class ExplodePerDocPercentile implements Command {
                 nextGroupKeys.add(new StringGroupKey(keyTerm));
                 groupParents.add(group);
                 positiveGroups.add(newGroup);
-                conditions.add(RegroupConditionMessage.newBuilder()
-                        .setField(field)
-                        .setIntType(true)
-                        .setIntTerm(cutoffs[group][bucket])
-                        .setInequality(true)
-                        .build());
+                conditions.add(conditionBuilder.setIntTerm(cutoffs[group][bucket]).build());
             }
             rules.add(GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
