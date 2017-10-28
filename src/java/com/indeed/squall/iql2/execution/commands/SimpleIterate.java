@@ -61,13 +61,13 @@ public class SimpleIterate implements Command {
 
     @Override
     public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<List<TermSelects>>> result = this.evaluate(session, out);
+        final List<List<List<TermSelects>>> result = this.evaluate(session, out, false);
         final StringBuilder sb = new StringBuilder();
         Session.writeTermSelectsJson(session.groupKeySet, result, sb);
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
     }
 
-    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out, boolean checkGroupLimit) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("push and register metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
@@ -177,7 +177,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer);
+            session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, checkGroupLimit);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -187,7 +187,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer);
+            session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, checkGroupLimit);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
@@ -200,7 +200,6 @@ public class SimpleIterate implements Command {
         } else {
             session.timer.push("convert results");
             final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
-            int newGroupNumber = 0;
             for (int group = 1; group <= session.numGroups; group++) {
                 final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
                 final Queue<TermSelects> pq = pqs.get(group);
@@ -214,9 +213,6 @@ public class SimpleIterate implements Command {
                 } else {
                     groupTermSelects.add(listTermSelects);
                 }
-                //A rough check for the group number, we don't care about +1 offset of the default group
-                newGroupNumber += listTermSelects.size();
-                session.checkGroupLimit(newGroupNumber);
                 allTermSelects.add(groupTermSelects);
             }
             session.timer.pop();

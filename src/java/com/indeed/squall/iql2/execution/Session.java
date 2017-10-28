@@ -83,6 +83,8 @@ public class Session {
     }
 
     private static final Logger log = Logger.getLogger(Session.class);
+    //check every 1 << 14 = 16384, get rid of flooding log and use & instead of /
+    private static final int CHECK_FREQUENCY = (1 << 14) - 1;
 
     public GroupKeySet groupKeySet = DumbGroupKeySet.create();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
@@ -433,7 +435,7 @@ public class Session {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
-                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
+                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out, false);
                     //noinspection StatementWithEmptyBody
                     if (simpleIterate.streamResult) {
                         // result already sent
@@ -945,15 +947,14 @@ public class Session {
         void term(long term, long[] stats, int group);
     }
 
-    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer);
+    public void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, checkGroupLimit);
     }
 
-    public static void iterateMultiInt(
+    public void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
-            Optional<long[]> termSubset,
-            IntIterateCallback callback, TreeTimer timer) throws IOException
+            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException
     {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
@@ -990,10 +991,15 @@ public class Session {
             timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
+            int groupNum = 0;
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
                 Arrays.fill(realBuffer, 0);
                 final SessionIntIterationState state1 = pq.poll();
+                ++groupNum;
+                if (checkGroupLimit && (groupNum & CHECK_FREQUENCY) == 0) {
+                    checkGroupLimit(groupNum);
+                }
                 final long term = state1.nextTerm;
                 final int group = state1.nextGroup;
                 copyStats(state1, realBuffer);
@@ -1079,13 +1085,13 @@ public class Session {
         void term(String term, long[] stats, int group);
     }
 
-    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer);
+    public void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, checkGroupLimit);
     }
 
-    public static void iterateMultiString(
+    public void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1117,10 +1123,15 @@ public class Session {
             timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();
+            int groupNum = 0;
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
                 Arrays.fill(realBuffer, 0);
                 final SessionStringIterationState state1 = pq.poll();
+                ++groupNum;
+                if (checkGroupLimit && (groupNum & CHECK_FREQUENCY) == 0) {
+                    checkGroupLimit(groupNum);
+                }
                 final String term = state1.nextTerm;
                 final int group = state1.nextGroup;
                 copyStats(state1, realBuffer);

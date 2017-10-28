@@ -57,7 +57,7 @@ public class ExplodePerDocPercentile implements Command {
             metricIndexes.put(k, new IntArrayList(new int[]{0}));
         }
         session.timer.push("compute cutoffs (iterateMultiInt)");
-        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
+        session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
                 runningCounts[group] += stats[0];
@@ -67,7 +67,7 @@ public class ExplodePerDocPercentile implements Command {
                     soFar[group] = i;
                 }
             }
-        }, session.timer);
+        }, session.timer, true);
         session.timer.pop();
 
         for (int group = 1; group <= session.numGroups; group++) {
