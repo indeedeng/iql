@@ -3,7 +3,7 @@ package com.indeed.imhotep.web;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
-import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.LocatedShardInfo;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.SelectExecutionStats;
@@ -69,7 +69,7 @@ public class SelectQuery implements Closeable {
     /**
      * Produces a Base64 encoded SHA-1 hash of the query and the list of shard names/versions which has to be sorted.
      */
-    public static String getQueryHash(String query, @Nullable Collection<ShardIdWithVersion> shards, boolean csv) {
+    public static String getQueryHash(String query, @Nullable Collection<LocatedShardInfo> shards, boolean csv) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -81,7 +81,7 @@ public class SelectQuery implements Closeable {
         final String standardizedQuery = query.trim().replace('"', '\'').replaceAll("\\s+", " ");
         sha1.update(standardizedQuery.getBytes(UTF8_CHARSET));
         if(shards != null) {
-            for(ShardIdWithVersion shard : shards) {
+            for(LocatedShardInfo shard : shards) {
                 sha1.update(shard.getShardId().getBytes(UTF8_CHARSET));
                 sha1.update(Longs.toByteArray(shard.getVersion()));
                 sha1.update(csv ? (byte)1 : 0);

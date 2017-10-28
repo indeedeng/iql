@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.indeed.imhotep.LocatedShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
 import com.indeed.imhotep.web.Limits;
@@ -29,7 +30,6 @@ import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
@@ -82,7 +82,7 @@ public final class IQLQuery implements Closeable {
     private final List<Grouping> groupings;
     private final int rowLimit;
     private final ImhotepMetadataCache metadata;
-    private final List<ShardIdWithVersion> shardVersionList;
+    private final List<LocatedShardInfo> shardVersionList;
     private final List<Interval> timeIntervalsMissingShards;
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
@@ -338,10 +338,10 @@ public final class IQLQuery implements Closeable {
     /**
      * Returns minimum and maximum milliseconds covered by the list of shards
      */
-    private static LongRange getShardsMinMax(final List<ShardIdWithVersion> shardVersionList) {
+    private static LongRange getShardsMinMax(final List<LocatedShardInfo> shardVersionList) {
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
-        for (ShardIdWithVersion shard : shardVersionList) {
+        for (LocatedShardInfo shard : shardVersionList) {
             final ShardInfo.DateTimeRange interval = shard.getRange();
             if (interval.start.getMillis() < min) {
                 min = interval.start.getMillis();
@@ -628,7 +628,7 @@ public final class IQLQuery implements Closeable {
         return rowsProcessed;
     }
 
-    public List<ShardIdWithVersion> getShardVersionList() {
+    public List<LocatedShardInfo> getShardVersionList() {
         return shardVersionList;
     }
 

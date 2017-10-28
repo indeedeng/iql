@@ -19,10 +19,10 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.LocatedShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
@@ -540,12 +540,12 @@ public class QueryServlet {
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 
     @Nullable
-    private static DateTime getLatestShardVersion(List<ShardIdWithVersion> shardVersionList) {
+    private static DateTime getLatestShardVersion(List<LocatedShardInfo> shardVersionList) {
         long maxVersion = 0;
         if(shardVersionList == null || shardVersionList.size() == 0) {
             return null;
         }
-        for(ShardIdWithVersion shard : shardVersionList) {
+        for(LocatedShardInfo shard : shardVersionList) {
             if(shard.getVersion() > maxVersion) {
                 maxVersion = shard.getVersion();
             }
@@ -556,13 +556,13 @@ public class QueryServlet {
         return yyyymmddhhmmss.parseDateTime(String.valueOf(maxVersion));
     }
 
-    private static String shardListToString(List<ShardIdWithVersion> shardVersionList) {
+    private static String shardListToString(List<LocatedShardInfo> shardVersionList) {
         if(shardVersionList == null) {
             return "";
         }
 
         final StringBuilder sb = new StringBuilder();
-        for(ShardIdWithVersion shard : shardVersionList) {
+        for(LocatedShardInfo shard : shardVersionList) {
             if(sb.length() != 0) {
                 sb.append(",");
             }
