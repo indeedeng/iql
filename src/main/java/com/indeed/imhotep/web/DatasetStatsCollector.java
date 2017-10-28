@@ -3,6 +3,7 @@ package com.indeed.imhotep.web;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
+import com.indeed.imhotep.LocatedShardInfo;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author vladimir
@@ -28,8 +30,9 @@ public class DatasetStatsCollector {
 
     public static List<DatasetStats> computeStats(ImhotepClient client) {
         final List<DatasetStats> statsList = Lists.newArrayList();
-        // TODO: this API is going away!
-        for (DatasetInfo datasetInfo : client.getDatasetToShardList().values()) {
+        Map<String, DatasetInfo> datasetToDatasetInfo = client.getDatasetToDatasetInfo();
+        Map<String, List<LocatedShardInfo>> datasetToShardList = client.queryDatasetToFullShardList();
+        for (DatasetInfo datasetInfo : datasetToDatasetInfo.values()) {
             final DatasetStats stats = new DatasetStats();
             statsList.add(stats);
             stats.name = datasetInfo.getDataset();
@@ -44,7 +47,8 @@ public class DatasetStatsCollector {
             long firstDataTime = Long.MAX_VALUE;
             long lastDataTime = 0;
             final IntOpenHashSet shardSizes = new IntOpenHashSet();
-            for (ShardInfo shard : datasetInfo.getShardList()) {
+            final List<LocatedShardInfo> shardList = datasetToShardList.get(datasetInfo.getDataset());
+            for (ShardInfo shard : shardList) {
                 stats.numDocs += shard.getNumDocs();
                 stats.numShards++;
                 if (shard.version > lastShardTimestamp) {
@@ -90,7 +94,7 @@ public class DatasetStatsCollector {
                 stats.lastShardNumDocs = lastShardNumDocs;
                 final long lastWeekCutoff = stats.lastDataTime.minusDays(7).getMillis();
                 // reiterate through the shards to find the last week
-                for(ShardInfo shard : datasetInfo.getShardList()) {
+                for(ShardInfo shard : shardList) {
                     final DateTime start = shard.getStart();
                     // TODO: don't recount the rebuilt shards
                     if (start != null && start.getMillis() >= lastWeekCutoff) {
