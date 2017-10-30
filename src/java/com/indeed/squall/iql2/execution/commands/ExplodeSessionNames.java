@@ -11,18 +11,16 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.SessionNameGroupKeySet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class ExplodeSessionNames implements Command {
-    private final RegroupConditionMessage FAKE_CONDITOIN = RegroupConditionMessage.newBuilder()
+    private final RegroupConditionMessage FAKE_CONDITION = RegroupConditionMessage.newBuilder()
             .setField("fakeField")
             .setIntType(true)
             .setIntTerm(0L)
             .setInequality(false)
             .build();
-    private final RegroupConditionMessage[] CONDITIONS = new RegroupConditionMessage[]{FAKE_CONDITOIN};
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
@@ -44,7 +42,7 @@ public class ExplodeSessionNames implements Command {
                         .setTargetGroup(target)
                         .setNegativeGroup(newGroup)
                         .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                        .addAllCondition(Arrays.asList(CONDITIONS))
+                        .addCondition(FAKE_CONDITION)
                         .build();
             }
             session.timer.pop();
