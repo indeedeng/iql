@@ -26,6 +26,7 @@ import java.util.Map;
 public class DatasetStatsCollector {
     private static final Logger log = Logger.getLogger(DatasetStatsCollector.class);
     public static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
+    public static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
     public static List<DatasetStats> computeStats(ImhotepClient client) {
@@ -77,11 +78,19 @@ public class DatasetStatsCollector {
                     }
                 }
             }
-            if (lastShardTimestamp > 0) {
-                stats.lastShardBuildTimestamp = SHARD_VERSION_FORMATTER.parseDateTime(String.valueOf(lastShardTimestamp));
+            if (lastShardTimestamp > LOWEST_LEGAL_TIMESTAMP_DATE) {
+                try {
+                    stats.lastShardBuildTimestamp = SHARD_VERSION_FORMATTER.parseDateTime(String.valueOf(lastShardTimestamp));
+                } catch (Exception e) {
+                    log.warn("Failed to parse datetime from version " + lastShardTimestamp + " for dataset " + datasetInfo.getDataset());
+                }
             }
-            if (firstShardTimestamp != Long.MAX_VALUE) {
-                stats.firstShardBuildTimestamp = SHARD_VERSION_FORMATTER.parseDateTime(String.valueOf(firstShardTimestamp));
+            if (firstShardTimestamp != Long.MAX_VALUE && firstShardTimestamp > LOWEST_LEGAL_TIMESTAMP_DATE) {
+                try {
+                    stats.firstShardBuildTimestamp = SHARD_VERSION_FORMATTER.parseDateTime(String.valueOf(firstShardTimestamp));
+                } catch (Exception e) {
+                    log.warn("Failed to parse datetime from version " + firstShardTimestamp + " for dataset " + datasetInfo.getDataset());
+                }
             }
 
             if (firstDataTime != Long.MAX_VALUE && firstDataTime != 0) {
