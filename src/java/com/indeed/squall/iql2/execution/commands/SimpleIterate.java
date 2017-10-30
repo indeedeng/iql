@@ -47,6 +47,10 @@ public class SimpleIterate implements Command {
     @Nullable
     public final Set<String> scope;
 
+    //check every 1 << 14 = 16384, get rid of flooding log and use & instead of /
+    private static final int CHECK_FREQUENCY = (1 << 14) - 1;
+    private int createdTermCount = 0;
+
     public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
         this.field = field;
         this.opts = opts;
@@ -335,6 +339,10 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
+                ++createdTermCount;
+                if (((session.numGroups + createdTermCount) & CHECK_FREQUENCY) == 0) {
+                    session.checkGroupLimit(session.numGroups + createdTermCount);
+                }
                 pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, group));
             }
         };
@@ -373,6 +381,10 @@ public class SimpleIterate implements Command {
                 }
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
+                }
+                ++createdTermCount;
+                if (((session.numGroups + createdTermCount) & CHECK_FREQUENCY) == 0) {
+                    session.checkGroupLimit(session.numGroups + createdTermCount);
                 }
                 pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
             }

@@ -83,8 +83,6 @@ public class Session {
     }
 
     private static final Logger log = Logger.getLogger(Session.class);
-    //check every 1 << 14 = 16384, get rid of flooding log and use & instead of /
-    private static final int CHECK_FREQUENCY = (1 << 14) - 1;
 
     public GroupKeySet groupKeySet = DumbGroupKeySet.create();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
@@ -991,15 +989,10 @@ public class Session {
             timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionIntIterationState> toEnqueue = Lists.newArrayList();
-            int groupNum = 0;
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
                 Arrays.fill(realBuffer, 0);
                 final SessionIntIterationState state1 = pq.poll();
-                ++groupNum;
-                if (checkGroupLimit && (groupNum & CHECK_FREQUENCY) == 0) {
-                    checkGroupLimit(groupNum);
-                }
                 final long term = state1.nextTerm;
                 final int group = state1.nextGroup;
                 copyStats(state1, realBuffer);
@@ -1123,15 +1116,10 @@ public class Session {
             timer.push("consume FTGS iterator");
             final long[] realBuffer = new long[numMetrics + presenceIndexes.size()];
             final List<SessionStringIterationState> toEnqueue = Lists.newArrayList();
-            int groupNum = 0;
             while (!pq.isEmpty()) {
                 toEnqueue.clear();
                 Arrays.fill(realBuffer, 0);
                 final SessionStringIterationState state1 = pq.poll();
-                ++groupNum;
-                if (checkGroupLimit && (groupNum & CHECK_FREQUENCY) == 0) {
-                    checkGroupLimit(groupNum);
-                }
                 final String term = state1.nextTerm;
                 final int group = state1.nextGroup;
                 copyStats(state1, realBuffer);
