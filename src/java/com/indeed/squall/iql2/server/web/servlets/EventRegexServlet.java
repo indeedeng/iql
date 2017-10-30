@@ -124,12 +124,12 @@ public class EventRegexServlet {
 
             if (session.isIntField(JOIN_FIELD)) {
                 final IntCallback callback = new IntCallback(automaton, indexToChar);
-                session.iterateMultiInt(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback, timer, false);
+                session.iterateMultiInt(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback, timer);
                 sequenceToCounts = callback.sequenceToCounts;
                 representative = callback.representative;
             } else if (session.isStringField(JOIN_FIELD)) {
                 final StringCallback callback = new StringCallback(automaton, indexToChar);
-                session.iterateMultiString(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback, timer, false);
+                session.iterateMultiString(session.getSessionsMapRaw(), Collections.<String, IntList>emptyMap(), presenceIndexes, JOIN_FIELD, callback, timer);
                 sequenceToCounts = callback.sequenceToCounts;
                 representative = callback.representative;
             } else {

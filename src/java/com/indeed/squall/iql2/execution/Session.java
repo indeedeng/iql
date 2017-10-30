@@ -433,7 +433,7 @@ public class Session {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
-                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out, false);
+                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
                     //noinspection StatementWithEmptyBody
                     if (simpleIterate.streamResult) {
                         // result already sent
@@ -774,6 +774,12 @@ public class Session {
         }
     }
 
+    public void checkGroupLimitWithoutLog(int numGroups) {
+        if (groupLimit > 0 && numGroups > groupLimit) {
+            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+        }
+    }
+
     public void checkGroupLimit(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
             throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
@@ -945,14 +951,14 @@ public class Session {
         void term(long term, long[] stats, int group);
     }
 
-    public void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, checkGroupLimit);
+    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer) throws IOException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer);
     }
 
-    public void iterateMultiInt(
+    public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
-            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException
+            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer) throws IOException
     {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
@@ -1078,13 +1084,13 @@ public class Session {
         void term(String term, long[] stats, int group);
     }
 
-    public void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, checkGroupLimit);
+    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer) throws IOException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer);
     }
 
-    public void iterateMultiString(
+    public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer, boolean checkGroupLimit) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer) throws IOException {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();

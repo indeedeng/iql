@@ -47,9 +47,7 @@ public class SimpleIterate implements Command {
     @Nullable
     public final Set<String> scope;
 
-    //check every 1 << 14 = 16384, get rid of flooding log and use & instead of /
-    private static final int CHECK_FREQUENCY = (1 << 14) - 1;
-    private int createdTermCount = 0;
+    private int createdGroupCount = 0;
 
     public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
         this.field = field;
@@ -65,13 +63,13 @@ public class SimpleIterate implements Command {
 
     @Override
     public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<List<TermSelects>>> result = this.evaluate(session, out, false);
+        final List<List<List<TermSelects>>> result = this.evaluate(session, out);
         final StringBuilder sb = new StringBuilder();
         Session.writeTermSelectsJson(session.groupKeySet, result, sb);
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
     }
 
-    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out, boolean checkGroupLimit) throws ImhotepOutOfMemoryException, IOException {
+    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("push and register metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
@@ -181,7 +179,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiInt");
-            session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, checkGroupLimit);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback;
@@ -191,7 +189,7 @@ public class SimpleIterate implements Command {
                 callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
             }
             session.timer.push("iterateMultiString");
-            session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, checkGroupLimit);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
@@ -339,11 +337,17 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                ++createdTermCount;
-                if (((session.numGroups + createdTermCount) & CHECK_FREQUENCY) == 0) {
-                    session.checkGroupLimit(session.numGroups + createdTermCount);
+                final Queue<TermSelects> pq = pqs.get(group);
+                if (pq instanceof BoundedPriorityQueue)  {
+                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        return ;
+                    }
                 }
-                pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, group));
+                if (!pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group))) {
+                    return ;
+                }
+                ++createdGroupCount;
+                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
         };
     }
@@ -382,11 +386,17 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                ++createdTermCount;
-                if (((session.numGroups + createdTermCount) & CHECK_FREQUENCY) == 0) {
-                    session.checkGroupLimit(session.numGroups + createdTermCount);
+                final Queue<TermSelects> pq = pqs.get(group);
+                if (pq instanceof BoundedPriorityQueue)  {
+                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        return ;
+                    }
                 }
-                pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
+                if (!pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group))) {
+                    return ;
+                }
+                ++createdGroupCount;
+                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
         };
     }
