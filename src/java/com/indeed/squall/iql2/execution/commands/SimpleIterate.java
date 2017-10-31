@@ -340,6 +340,7 @@ public class SimpleIterate implements Command {
                 final Queue<TermSelects> pq = pqs.get(group);
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group));
                         return ;
                     }
                 }
@@ -389,6 +390,7 @@ public class SimpleIterate implements Command {
                 final Queue<TermSelects> pq = pqs.get(group);
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
                         return ;
                     }
                 }
