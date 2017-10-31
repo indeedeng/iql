@@ -1,11 +1,13 @@
 package com.indeed.squall.iql2.execution;
 
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.GroupMultiRemapRule;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.metrics.document.DocMetric;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
@@ -242,33 +244,52 @@ public interface DocFilter {
                     }
                 }
             }
-            final List<GroupMultiRemapRule> rules = Lists.newArrayList();
+            final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+            final RegroupConditionMessage.Builder stringConditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(false)
+                    .setIntTerm(0)
+                    .setInequality(false);
+            final RegroupConditionMessage.Builder intConditionBuilder = RegroupConditionMessage.newBuilder()
+                    .setField(field)
+                    .setIntType(true)
+                    .setInequality(false);
             for (int group = 1; group <= numGroups; group++) {
                 if (stringGroupTerms.containsKey(group)) {
                     final List<String> terms = stringGroupTerms.get(group);
                     final int[] positives = new int[terms.size()];
                     Arrays.fill(positives, group);
-                    final RegroupCondition[] conditions = new RegroupCondition[terms.size()];
+                    final RegroupConditionMessage[] conditions = new RegroupConditionMessage[terms.size()];
                     for (int i = 0; i < terms.size(); i++) {
                         final String term = terms.get(i);
-                        conditions[i] = new RegroupCondition(field, false, 0, term, false);
+                        conditions[i] = stringConditionBuilder.setStringTerm(term).build();
                     }
-                    rules.add(new GroupMultiRemapRule(group, 0, positives, conditions));
+                    rules.add(GroupMultiRemapMessage.newBuilder()
+                            .setTargetGroup(group)
+                            .setNegativeGroup(0)
+                            .addAllPositiveGroup(Ints.asList(positives))
+                            .addAllCondition(Arrays.asList(conditions))
+                            .build());
                 }
                 if (intGroupTerms.containsKey(group)) {
                     final List<Long> terms = intGroupTerms.get(group);
                     final int[] positives = new int[terms.size()];
                     Arrays.fill(positives, group);
-                    final RegroupCondition[] conditions = new RegroupCondition[terms.size()];
+                    final RegroupConditionMessage[] conditions = new RegroupConditionMessage[terms.size()];
                     for (int i = 0; i < terms.size(); i++) {
                         final long term = terms.get(i);
-                        conditions[i] = new RegroupCondition(field, true, term, null, false);
+                        conditions[i] = intConditionBuilder.setIntTerm(term).build();
                     }
-                    rules.add(new GroupMultiRemapRule(group, 0, positives, conditions));
+                    rules.add(GroupMultiRemapMessage.newBuilder()
+                            .setTargetGroup(group)
+                            .setNegativeGroup(0)
+                            .addAllPositiveGroup(Ints.asList(positives))
+                            .addAllCondition(Arrays.asList(conditions))
+                            .build());
                 }
             }
-            final GroupMultiRemapRule[] rulesArray = rules.toArray(new GroupMultiRemapRule[rules.size()]);
-            session.session.regroup(rulesArray);
+            final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
+            session.session.regroupWithProtos(rulesArray, false);
         }
     }
 

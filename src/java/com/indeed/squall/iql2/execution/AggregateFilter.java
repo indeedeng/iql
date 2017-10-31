@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * @author jwolfe
  */
-public interface AggregateFilter extends Pushable{
+public interface AggregateFilter extends Pushable {
     boolean[] getGroupStats(long[][] stats, int numGroups);
 
     boolean allow(String term, long[] stats, int group);

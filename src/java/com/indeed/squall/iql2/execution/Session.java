@@ -25,7 +25,6 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
@@ -34,6 +33,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.ShardIdWithVersion;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -786,6 +786,12 @@ public class Session {
         }
     }
 
+    public void checkGroupLimitWithoutLog(int numGroups) {
+        if (groupLimit > 0 && numGroups > groupLimit) {
+            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+        }
+    }
+
     public void checkGroupLimit(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
             throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
@@ -808,12 +814,12 @@ public class Session {
         timer.pop();
     }
 
-    public void regroup(GroupMultiRemapRule[] rules, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+    public void regroupWithProtos(GroupMultiRemapMessage[] messages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
         timer.push("regroup");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
-            sessionInfo.session.regroup(rules, errorOnCollisions);
+            sessionInfo.session.regroupWithProtos(messages, errorOnCollisions);
             timer.pop();
         }
         timer.pop();
@@ -964,8 +970,7 @@ public class Session {
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
-            Optional<long[]> termSubset,
-            IntIterateCallback callback, TreeTimer timer) throws IOException
+            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer) throws IOException
     {
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {

@@ -46,6 +46,8 @@ public class SimpleIterate implements Command {
     @Nullable
     public final Set<String> scope;
 
+    private int createdGroupCount = 0;
+
     public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
         this.field = field;
         this.opts = opts;
@@ -316,7 +318,18 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                pqs.get(group).offer(new TermSelects(field, false, term, 0, selectBuffer, value, group));
+                final Queue<TermSelects> pq = pqs.get(group);
+                if (pq instanceof BoundedPriorityQueue)  {
+                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group));
+                        return ;
+                    }
+                }
+                if (!pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group))) {
+                    return ;
+                }
+                ++createdGroupCount;
+                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
         };
     }
@@ -355,7 +368,18 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                pqs.get(group).offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
+                final Queue<TermSelects> pq = pqs.get(group);
+                if (pq instanceof BoundedPriorityQueue)  {
+                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
+                        pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
+                        return ;
+                    }
+                }
+                if (!pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group))) {
+                    return ;
+                }
+                ++createdGroupCount;
+                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
         };
     }

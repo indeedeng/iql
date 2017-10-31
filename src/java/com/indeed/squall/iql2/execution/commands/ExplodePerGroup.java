@@ -1,10 +1,11 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 import com.indeed.flamdex.query.Term;
-import com.indeed.imhotep.GroupMultiRemapRule;
-import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Commands;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -32,7 +33,7 @@ public class ExplodePerGroup implements Command {
         checkNumGroups(session);
 
         session.timer.push("form rules");
-        final GroupMultiRemapRule[] rules = new GroupMultiRemapRule[session.numGroups];
+        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
         int nextGroup = 1;
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final IntList nextGroupParents = new IntArrayList();
@@ -45,21 +46,43 @@ public class ExplodePerGroup implements Command {
         for (int group = 1; group <= session.numGroups; group++) {
             final Commands.TermsWithExplodeOpts termsWithExplodeOpts = this.termsWithExplodeOpts.get(group);
 
-            final List<RegroupCondition> regroupConditionsList = Lists.newArrayList();
+            final List<RegroupConditionMessage> regroupConditionsList = Lists.newArrayList();
 
             final List<Term> terms = termsWithExplodeOpts.terms;
             if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
-                rules[group - 1] = new GroupMultiRemapRule(group, 0, new int[]{0}, new RegroupCondition[]{new RegroupCondition("fakeField", true, 152, null, false)});
+                RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
+                        .setField("fakeField")
+                        .setIntType(true)
+                        .setIntTerm(152L)
+                        .setInequality(false)
+                        .build();
+                messages[group - 1] = GroupMultiRemapMessage.newBuilder()
+                        .setTargetGroup(group)
+                        .setNegativeGroup(0)
+                        .addAllPositiveGroup(Ints.asList(new int[]{0}))
+                        .addCondition(fakeCondition)
+                        .build();
                 continue;
             }
 
             for (final Term term : terms) {
                 if (term.isIntField()) {
-                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), true, term.getTermIntVal(), null, false));
+                    regroupConditionsList.add(RegroupConditionMessage.newBuilder()
+                            .setField(term.getFieldName())
+                            .setIntType(true)
+                            .setIntTerm(term.getTermIntVal())
+                            .setInequality(false)
+                            .build());
                     nextGroupKeys.add(new IntTermGroupKey(term.getTermIntVal()));
                     nextGroupParents.add(group);
                 } else {
-                    regroupConditionsList.add(new RegroupCondition(term.getFieldName(), false, 0, term.getTermStringVal(), false));
+                    regroupConditionsList.add(RegroupConditionMessage.newBuilder()
+                            .setField(term.getFieldName())
+                            .setIntType(false)
+                            .setIntTerm(0)
+                            .setStringTerm(term.getTermStringVal())
+                            .setInequality(false)
+                            .build());
                     if (!stringTermGroupKeys.containsKey(term.getTermStringVal())) {
                         stringTermGroupKeys.put(term.getTermStringVal(), new StringGroupKey(term.getTermStringVal()));
                     }
@@ -72,7 +95,6 @@ public class ExplodePerGroup implements Command {
             for (int j = 0; j < regroupConditionsList.size(); j++) {
                 positiveGroups[j] = nextGroup++;
             }
-            final RegroupCondition[] conditions = regroupConditionsList.toArray(new RegroupCondition[regroupConditionsList.size()]);
             final int negativeGroup;
             if (termsWithExplodeOpts.defaultName.isPresent()) {
                 negativeGroup = nextGroup++;
@@ -85,11 +107,16 @@ public class ExplodePerGroup implements Command {
             } else {
                 negativeGroup = 0;
             }
-            rules[group - 1] = new GroupMultiRemapRule(group, negativeGroup, positiveGroups, conditions);
+            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(group)
+                    .setNegativeGroup(negativeGroup)
+                    .addAllPositiveGroup(Ints.asList(positiveGroups))
+                    .addAllCondition(regroupConditionsList)
+                    .build();
         }
         session.timer.pop();
 
-        session.regroup(rules, true);
+        session.regroupWithProtos(messages, true);
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
 
