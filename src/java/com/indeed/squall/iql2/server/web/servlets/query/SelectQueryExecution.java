@@ -19,11 +19,11 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.Shard;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
@@ -241,11 +241,11 @@ public class SelectQueryExecution {
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
         int shardCount = 0;
         Duration totalShardPeriod = Duration.ZERO;
-        for (final List<String> shardList : execInfo.perDatasetShardIds().values()) {
+        for (final List<Shard> shardList : execInfo.shards.values()) {
             shardCount += shardList.size();
-            for (final String shardID : shardList) {
-                final ShardInfo.DateTimeRange shardInfo = ShardInfo.parseDateTime(shardID);
-                totalShardPeriod = totalShardPeriod.plus(new Duration(shardInfo.start, shardInfo.end));
+            for (final Shard shardInfo : shardList) {
+                ShardInfo.DateTimeRange range = shardInfo.getRange();
+                totalShardPeriod = totalShardPeriod.plus(new Duration(range.start, range.end));
             }
         }
         queryInfo.numShards = shardCount;
@@ -327,7 +327,7 @@ public class SelectQueryExecution {
         private SelectExecutionInformation executeParsedQuery() throws IOException {
             final int[] totalBytesWritten = {0};
             final Set<String> cacheKeys = new HashSet<>();
-            final ListMultimap<String, List<ShardIdWithVersion>> allShardsUsed = ArrayListMultimap.create();
+            final ListMultimap<String, List<Shard>> allShardsUsed = ArrayListMultimap.create();
 
             final Query query = originalQuery.transform(
                     Functions.<GroupBy>identity(),
@@ -421,7 +421,7 @@ public class SelectQueryExecution {
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
-            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
+            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
 
             final AtomicBoolean errorOccurred = new AtomicBoolean(false);
@@ -568,14 +568,14 @@ public class SelectQueryExecution {
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
-        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = Maps.newHashMap();
+        final Map<String, List<Shard>> datasetToChosenShards = Maps.newHashMap();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
             final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
             final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
-            final List<ShardIdWithVersion> chosenShards = imhotepClient.sessionBuilder(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()).getChosenShards();
+            final List<Shard> chosenShards = imhotepClient.findShardsForTimeRange(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap());
             timer.pop();
-            for (final ShardIdWithVersion chosenShard : chosenShards) {
+            for (final Shard chosenShard : chosenShards) {
                 // This needs to be associated with the session name, not just the actualDataset.
                 shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
             }
@@ -584,7 +584,7 @@ public class SelectQueryExecution {
                 fieldAliases.add(new FieldAlias(e.getValue().unwrap(), e.getKey().unwrap()));
             }
             datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.unwrap().getMillis(), dataset.endExclusive.unwrap().getMillis(), fieldAliases));
-            final List<ShardIdWithVersion> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
+            final List<Shard> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
             if (oldShards != null) {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
@@ -666,7 +666,7 @@ public class SelectQueryExecution {
     }
 
     private static class SelectExecutionInformation {
-        public final Multimap<String, List<ShardIdWithVersion>> shards;
+        public final Multimap<String, List<Shard>> shards;
         public final Map<Query, Boolean> queryCached;
         public final long imhotepTempBytesWritten;
         public final Set<String> cacheKeys;
@@ -677,7 +677,7 @@ public class SelectQueryExecution {
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
-        private SelectExecutionInformation(Multimap<String, List<ShardIdWithVersion>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds,
+        private SelectExecutionInformation(Multimap<String, List<Shard>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds,
                                            long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, final boolean hasMoreRows) {
             this.shards = shards;
             this.queryCached = queryCached;
@@ -700,17 +700,17 @@ public class SelectQueryExecution {
         }
 
         public Multimap<String, List<String>> perDatasetShardIds() {
-            return Multimaps.transformValues(shards, new Function<List<ShardIdWithVersion>, List<String>>() {
-                public List<String> apply(List<ShardIdWithVersion> shardIdWithVersions) {
-                    return ShardIdWithVersion.keepShardIds(shardIdWithVersions);
+            return Multimaps.transformValues(shards, new Function<List<Shard>, List<String>>() {
+                public List<String> apply(List<Shard> shardsForDataset) {
+                    return Shard.keepShardIds(shardsForDataset);
                 }
             });
         }
 
         public long newestShard() {
             long newest = -1;
-            for (final List<ShardIdWithVersion> shardset : shards.values()) {
-                for (final ShardIdWithVersion shard : shardset) {
+            for (final List<Shard> shardset : shards.values()) {
+                for (final Shard shard : shardset) {
                     newest = Math.max(newest, shard.getVersion());
                 }
             }
@@ -766,11 +766,11 @@ public class SelectQueryExecution {
     }
 
     public static class ComputeCacheKey {
-        public final Map<String, List<ShardIdWithVersion>> datasetToChosenShards;
+        public final Map<String, List<Shard>> datasetToChosenShards;
         public final String rawHash;
         public final String cacheFileName;
 
-        private ComputeCacheKey(Map<String, List<ShardIdWithVersion>> datasetToChosenShards, String rawHash, String cacheFileName) {
+        private ComputeCacheKey(Map<String, List<Shard>> datasetToChosenShards, String rawHash, String cacheFileName) {
             this.datasetToChosenShards = datasetToChosenShards;
             this.rawHash = rawHash;
             this.cacheFileName = cacheFileName;

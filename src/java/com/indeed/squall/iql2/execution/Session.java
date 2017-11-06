@@ -28,11 +28,11 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
@@ -131,7 +131,7 @@ public class Session {
 
     public static CreateSessionResult createSession(
             final ImhotepClient client,
-            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
+            final Map<String, List<Shard>> datasetToChosenShards,
             final JsonNode sessionRequest,
             final Closer closer,
             final Consumer<String> out,
@@ -214,7 +214,7 @@ public class Session {
             final ImhotepClient client,
             final boolean requestRust,
             final JsonNode sessionRequest,
-            final Map<String, List<ShardIdWithVersion>> datasetToChosenShards,
+            final Map<String, List<Shard>> datasetToChosenShards,
             final Closer closer,
             final Map<String, ImhotepSessionInfo> sessions,
             final TreeTimer treeTimer,
@@ -283,11 +283,11 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
-            final List<ShardIdWithVersion> chosenShards = datasetToChosenShards.get(name);
+            final List<Shard> chosenShards = datasetToChosenShards.get(name);
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(actualDataset, startDateTime, endDateTime)
                 .username("IQL2:" + username)
-                .shardsOverride(ShardIdWithVersion.keepShardIds(chosenShards))
+                .shardsOverride(chosenShards)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
                 .allowSessionForwarding(requestRust);
@@ -301,13 +301,13 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("determine time range");
-            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(chosenShards, new Function<ShardIdWithVersion, DateTime>() {
-                public DateTime apply(ShardIdWithVersion input) {
+            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(chosenShards, new Function<Shard, DateTime>() {
+                public DateTime apply(Shard input) {
                     return input.getStart();
                 }
             }));
-            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(chosenShards, new Function<ShardIdWithVersion, DateTime>() {
-                public DateTime apply(@Nullable ShardIdWithVersion input) {
+            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(chosenShards, new Function<Shard, DateTime>() {
+                public DateTime apply(@Nullable Shard input) {
                     return input.getEnd();
                 }
             }));
