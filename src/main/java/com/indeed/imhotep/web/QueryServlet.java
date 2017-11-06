@@ -19,7 +19,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.indeed.imhotep.LocatedShardInfo;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
@@ -302,10 +302,10 @@ public class QueryServlet {
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
                 args.imhotepUserName, metadata, selectQuery.limits);
 
-        selectExecutionStats.shardCount = iqlQuery.getShardVersionList().size();
+        selectExecutionStats.shardCount = iqlQuery.getShards().size();
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
-        final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShardVersionList(), args.csv);
+        final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
         selectExecutionStats.hashForCaching = queryHash;
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         long beginTimeMillis = System.currentTimeMillis();
@@ -320,10 +320,10 @@ public class QueryServlet {
         final DateTime startTime = iqlQuery.getStart();
         final DateTime endTime = iqlQuery.getEnd();
 
-        final DateTime newestShard = getLatestShardVersion(iqlQuery.getShardVersionList());
+        final DateTime newestShard = getLatestShardVersion(iqlQuery.getShards());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
-        final String shardList = shardListToString(iqlQuery.getShardVersionList());
+        final String shardList = shardListToString(iqlQuery.getShards());
         queryMetadata.addItem("IQL-Shard-List", shardList, args.returnShardlist);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
@@ -540,12 +540,12 @@ public class QueryServlet {
     private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
 
     @Nullable
-    private static DateTime getLatestShardVersion(List<LocatedShardInfo> shardVersionList) {
+    private static DateTime getLatestShardVersion(List<Shard> shardVersionList) {
         long maxVersion = 0;
         if(shardVersionList == null || shardVersionList.size() == 0) {
             return null;
         }
-        for(LocatedShardInfo shard : shardVersionList) {
+        for(Shard shard : shardVersionList) {
             if(shard.getVersion() > maxVersion) {
                 maxVersion = shard.getVersion();
             }
@@ -556,13 +556,13 @@ public class QueryServlet {
         return yyyymmddhhmmss.parseDateTime(String.valueOf(maxVersion));
     }
 
-    private static String shardListToString(List<LocatedShardInfo> shardVersionList) {
+    private static String shardListToString(List<Shard> shardVersionList) {
         if(shardVersionList == null) {
             return "";
         }
 
         final StringBuilder sb = new StringBuilder();
-        for(LocatedShardInfo shard : shardVersionList) {
+        for(Shard shard : shardVersionList) {
             if(sb.length() != 0) {
                 sb.append(",");
             }

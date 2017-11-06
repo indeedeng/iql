@@ -3,7 +3,7 @@ package com.indeed.imhotep.web;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.LocatedShardInfo;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -32,7 +32,7 @@ public class DatasetStatsCollector {
     public static List<DatasetStats> computeStats(ImhotepClient client) {
         final List<DatasetStats> statsList = Lists.newArrayList();
         Map<String, DatasetInfo> datasetToDatasetInfo = client.getDatasetToDatasetInfo();
-        Map<String, List<LocatedShardInfo>> datasetToShardList = client.queryDatasetToFullShardList();
+        Map<String, List<Shard>> datasetToShardList = client.queryDatasetToFullShardList();
         for (DatasetInfo datasetInfo : datasetToDatasetInfo.values()) {
             final DatasetStats stats = new DatasetStats();
             statsList.add(stats);
@@ -48,7 +48,7 @@ public class DatasetStatsCollector {
             long firstDataTime = Long.MAX_VALUE;
             long lastDataTime = 0;
             final IntOpenHashSet shardSizes = new IntOpenHashSet();
-            final List<LocatedShardInfo> shardList = datasetToShardList.get(datasetInfo.getDataset());
+            final List<Shard> shardList = datasetToShardList.get(datasetInfo.getDataset());
             for (ShardInfo shard : shardList) {
                 stats.numDocs += shard.getNumDocs();
                 stats.numShards++;
@@ -92,6 +92,8 @@ public class DatasetStatsCollector {
                     log.warn("Failed to parse datetime from version " + firstShardTimestamp + " for dataset " + datasetInfo.getDataset());
                 }
             }
+
+
 
             if (firstDataTime != Long.MAX_VALUE && firstDataTime != 0) {
                 stats.firstDataTime = new DateTime(firstDataTime, DateTimeZone.forOffsetHours(-6));
