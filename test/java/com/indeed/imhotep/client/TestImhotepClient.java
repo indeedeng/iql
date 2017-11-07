@@ -1,7 +1,7 @@
 package com.indeed.imhotep.client;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.indeed.imhotep.AbstractImhotepMultiSession;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
@@ -15,6 +15,7 @@ import com.indeed.imhotep.local.ImhotepLocalSession;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import org.joda.time.DateTime;
+import org.joda.time.Interval;
 import org.junit.Ignore;
 
 import java.lang.reflect.Field;
@@ -26,10 +27,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Ignore
@@ -40,37 +39,19 @@ public class TestImhotepClient extends ImhotepClient {
         super(new DummyHostsReloader(Collections.<Host>emptyList()));
         this.shards = shards;
 
-        // TODO: somehow patch ImhotepClient.getAllShardsForTimeRange() to return the right shards?
-        final Map<String, List<ShardInfo>> datasetToShardInfos = new HashMap<>();
-        final Map<String, Set<String>> datasetToIntFields = new HashMap<>();
-        final Map<String, Set<String>> datasetToStringFields = new HashMap<>();
         final Map<String, DatasetInfo> datasetToDatasetInfo = new HashMap<>();
         for (final com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard : shards) {
             final String dataset = shard.dataset;
-            if (!datasetToShardInfos.containsKey(dataset)) {
-                datasetToShardInfos.put(dataset, new ArrayList<ShardInfo>());
-                datasetToIntFields.put(dataset, new HashSet<String>());
-                datasetToStringFields.put(dataset, new HashSet<String>());
+
+            DatasetInfo datasetInfo = datasetToDatasetInfo.get(dataset);
+            if(datasetInfo == null) {
+                datasetInfo = new DatasetInfo(dataset, ((Collection<ShardInfo>)null),
+                        Sets.newHashSet(), Sets.newHashSet(), 0L);
+                datasetToDatasetInfo.put(dataset, datasetInfo);
             }
-            if(!datasetToDatasetInfo.containsKey(dataset)) {
-                datasetToDatasetInfo.put(dataset, new DatasetInfo(dataset, ((Collection<ShardInfo>)null),
-                        datasetToIntFields.get(dataset), datasetToStringFields.get(dataset), 0L));
-            }
-            // TODO: Not hardcode version to 2015-01-01 00:00:00?
-            datasetToShardInfos.get(dataset).add(new ShardInfo(shard.shardId, shard.flamdex.getNumDocs(), 20150101000000L));
-            datasetToIntFields.get(dataset).addAll(shard.flamdex.getIntFields());
-            datasetToStringFields.get(dataset).addAll(shard.flamdex.getStringFields());
+            datasetInfo.getIntFields().addAll(shard.flamdex.getIntFields());
+            datasetInfo.getStringFields().addAll(shard.flamdex.getStringFields());
         }
-
-//        final ArrayList<DatasetInfo> datasetInfos = new ArrayList<>();
-//        for (final Map.Entry<String, List<ShardInfo>> entry : datasetToShardInfos.entrySet()) {
-//            final String dataset = entry.getKey();
-//            final List<ShardInfo> shardInfos = entry.getValue();
-//            datasetInfos.add(new DatasetInfo(dataset, shardInfos, datasetToIntFields.get(dataset), datasetToStringFields.get(dataset), 0));
-//        }
-//
-//        final Map<Host, List<DatasetInfo>> hostToDatasetInfos = ImmutableMap.<Host, List<DatasetInfo>>of(new Host("", 1), datasetInfos);
-
 
         final Field datasetMetadataReloader;
         try {
@@ -88,13 +69,33 @@ public class TestImhotepClient extends ImhotepClient {
     }
 
     @Override
+    protected List<Shard> getAllShardsForTimeRange(String dataset, DateTime start, DateTime end) {
+        final List<Shard> result = new ArrayList<>();
+        for(com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard: shards) {
+            if(!shard.dataset.equals(dataset)) {
+                continue;
+            }
+
+            final Interval shardInterval = ShardTimeUtils.parseInterval(shard.shardId);
+            if(shardInterval.overlaps(new Interval(start, end))) {
+                // TODO: Not hardcode version to 2015-01-01 00:00:00?
+                final Shard locatedShard = new Shard(shard.shardId, shard.flamdex.getNumDocs(), 20150101000000L);
+                locatedShard.getServers().add(new Host("", 1));
+                result.add(locatedShard);
+            }
+        }
+        return result;
+    }
+
+
+        @Override
     public SessionBuilder sessionBuilder(final String dataset, DateTime start, DateTime end) {
         return new SessionBuilder(dataset, start, end) {
-            private List<String> readShardsOverride() {
+            private List<Shard> readShardsOverride() {
                 try {
                     final Field shardsOverrideField = SessionBuilder.class.getDeclaredField("shardsOverride");
                     shardsOverrideField.setAccessible(true);
-                    return (List<String>) shardsOverrideField.get(this);
+                    return (List<Shard>) shardsOverrideField.get(this);
                 } catch (NoSuchFieldException | IllegalAccessException e) {
                     throw Throwables.propagate(e);
                 }
@@ -102,8 +103,8 @@ public class TestImhotepClient extends ImhotepClient {
 
             @Override
             public ImhotepSession build() {
-                final List<String> shardsOverride = readShardsOverride();
-                final List<String> shardIds = shardsOverride != null ? shardsOverride : Shard.keepShardIds(this.getChosenShards());
+                final List<Shard> shardsOverride = readShardsOverride();
+                final List<String> shardIds = Shard.keepShardIds(shardsOverride != null ? shardsOverride : this.getChosenShards());
 
                 final List<ImhotepLocalSession> sessions = new ArrayList<>();
 
