@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.execution.caseinsensitivity;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -33,6 +34,7 @@ import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -266,12 +268,9 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
         return builder.build();
     }
 
-    private GroupMultiRemapMessage[] rewriteProtos(GroupMultiRemapMessage[] rawRuleMessages) {
-        final GroupMultiRemapMessage[] result = new GroupMultiRemapMessage[rawRuleMessages.length];
-        for (int i = 0; i < rawRuleMessages.length; i++) {
-            result[i] = rewriteProto(rawRuleMessages[i]);
-        }
-        return result;
+    private List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rawRuleMessages) {
+        rawRuleMessages.replaceAll(message -> rewriteProto(message));
+        return rawRuleMessages;
     }
 
     // Delegation with rewriting
@@ -362,7 +361,11 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
 
     @Override
     public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return wrapped.regroupWithProtos(rewriteProtos(rawRuleMessages), errorOnCollisions);
+        return regroupWithProtos(Arrays.asList(rawRuleMessages), errorOnCollisions);
+    }
+
+    public int regroupWithProtos(List<GroupMultiRemapMessage> rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(Iterables.toArray(rewriteProtos(rawRuleMessages), GroupMultiRemapMessage.class), errorOnCollisions);
     }
 
     @Override

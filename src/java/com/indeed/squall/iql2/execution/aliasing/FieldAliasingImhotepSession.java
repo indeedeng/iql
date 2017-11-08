@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.execution.aliasing;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.query.Query;
@@ -27,6 +28,7 @@ import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -196,12 +198,9 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
         return builder.build();
     }
 
-    private GroupMultiRemapMessage[] rewriteProto(GroupMultiRemapMessage[] rawRules) {
-        final GroupMultiRemapMessage[] result = new GroupMultiRemapMessage[rawRules.length];
-        for (int i = 0; i < rawRules.length; i++) {
-            result[i] = rewriteProto(rawRules[i]);
-        }
-        return result;
+    private List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rawRuleMessages) {
+        rawRuleMessages.replaceAll(message -> rewriteProto(message));
+        return rawRuleMessages;
     }
 
     private GroupMultiRemapRule[] rewriteMulti(GroupMultiRemapRule[] rawRules) {
@@ -326,7 +325,11 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
 
     @Override
     public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return wrapped.regroupWithProtos(rewriteProto(rawRuleMessages), errorOnCollisions);
+        return regroupWithProtos(Arrays.asList(rawRuleMessages), errorOnCollisions);
+    }
+
+    public int regroupWithProtos(List<GroupMultiRemapMessage> rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(Iterables.toArray(rewriteProtos(rawRuleMessages), GroupMultiRemapMessage.class), errorOnCollisions);
     }
 
     @Override

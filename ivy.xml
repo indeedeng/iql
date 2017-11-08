@@ -21,6 +21,7 @@
     </publications>
 
     <dependencies>
+        <dependency org="com.indeed" name="imhotep-archive" rev="${imhotep-archive.version}"/>
         <dependency org="indeed" name="imhotep" rev="${imhotep.version}"/>
         <dependency org="indeed" name="squall-common-web" rev="${squall-common-web.version}"/>
         <dependency org="com.indeed" name="util-core" rev="${indeed-util-core.version}"/>
