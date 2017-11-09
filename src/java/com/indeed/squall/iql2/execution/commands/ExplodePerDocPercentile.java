@@ -77,7 +77,7 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         session.timer.push("compute bucket remaps");
-        final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        List<GroupMultiRemapMessage> rules = Lists.newArrayList();
         final List<GroupKey> nextGroupKeys = Lists.newArrayList();
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
@@ -110,7 +110,8 @@ public class ExplodePerDocPercentile implements Command {
                     .build());
         }
 
-        final GroupMultiRemapMessage[] messages = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
+        final GroupMultiRemapMessage[] messages = rules.toArray(new GroupMultiRemapMessage[0]);
+        rules = null;
         session.timer.pop();
 
         session.process(new SessionCallback() {

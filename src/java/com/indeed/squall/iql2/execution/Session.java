@@ -60,6 +60,7 @@ import org.joda.time.DateTimeZone;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -601,10 +602,11 @@ public class Session {
         int numStats = 0;
         for (final QualifiedPush push : allPushes) {
             final int index = numStats++;
+            List<String> pushes = new ArrayList<>(push.pushes);
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
             if (!dryRun) {
-                sessions.get(sessionName).session.pushStats(push.pushes);
+                sessions.get(sessionName).session.pushStats(pushes);
             }
             // TODO: Terrible variable names.
             IntList sessionMetricIndex = sessionMetricIndexes.get(sessionName);

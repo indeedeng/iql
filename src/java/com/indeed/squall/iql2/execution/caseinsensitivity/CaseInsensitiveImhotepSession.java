@@ -211,19 +211,15 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     // Mapping real logic over structures
 
     private String[] rewriteArray(String[] fields) {
-        final String[] result = new String[fields.length];
         for (int i = 0; i < fields.length; i++) {
-            result[i] = rewrite(fields[i]);
+            fields[i] = rewrite(fields[i]);
         }
-        return result;
+        return fields;
     }
 
     private List<String> rewriteList(List<String> fields) {
-        final List<String> result = Lists.newArrayListWithCapacity(fields.size());
-        for (final String field : fields) {
-            result.add(rewrite(field));
-        }
-        return result;
+        fields.replaceAll(field -> rewrite(field));
+        return fields;
     }
 
     private <V> Map<String, V> rewriteMap(Map<String, V> map) {
@@ -231,31 +227,28 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
         for (final Map.Entry<String, V> entry : map.entrySet()) {
             result.put(rewrite(entry.getKey()), entry.getValue());
         }
-        return result;
+        return map = result;
     }
 
     private RegroupCondition[] rewriteCondition(RegroupCondition[] conditions) {
-        final RegroupCondition[] result = new RegroupCondition[conditions.length];
         for (int i = 0; i < conditions.length; i++) {
-            result[i] = rewriteCondition(conditions[i]);
+            conditions[i] = rewriteCondition(conditions[i]);
         }
-        return result;
+        return conditions;
     }
 
     private GroupMultiRemapRule[] rewriteMulti(GroupMultiRemapRule[] rawRules) {
-        final GroupMultiRemapRule[] result = new GroupMultiRemapRule[rawRules.length];
         for (int i = 0; i < rawRules.length; i++) {
-            result[i] = rewriteMulti(rawRules[i]);
+            rawRules[i] = rewriteMulti(rawRules[i]);
         }
-        return result;
+        return rawRules;
     }
 
     private GroupRemapRule[] rewriteSingle(GroupRemapRule[] rawRules) {
-        final GroupRemapRule[] result = new GroupRemapRule[rawRules.length];
         for (int i = 0; i < rawRules.length; i++) {
-            result[i] = rewriteSingle(rawRules[i]);
+            rawRules[i] = rewriteSingle(rawRules[i]);
         }
-        return result;
+        return rawRules;
     }
 
 

@@ -45,7 +45,7 @@ public class ExplodeDayOfWeek implements Command {
             final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
             rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
         session.timer.pop();
         session.timer.push("shuffle regroup");
         session.regroup(rulesArray);
