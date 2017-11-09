@@ -53,7 +53,7 @@ public class ExplodePerGroup implements Command {
                 RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                         .setField("fakeField")
                         .setIntType(true)
-                        .setIntTerm(152L)
+                        .setIntTerm(0L)
                         .setInequality(false)
                         .build();
                 messages[group - 1] = GroupMultiRemapMessage.newBuilder()
