@@ -178,7 +178,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
         for (final Map.Entry<String, T> entry : fieldToT.entrySet()) {
             result.put(rewrite(entry.getKey()), entry.getValue());
         }
-        return fieldToT = result;
+        return result;
     }
 
     private RegroupConditionMessage rewriteConditionProto(RegroupConditionMessage condition) {

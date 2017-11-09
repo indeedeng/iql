@@ -227,7 +227,7 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
         for (final Map.Entry<String, V> entry : map.entrySet()) {
             result.put(rewrite(entry.getKey()), entry.getValue());
         }
-        return map = result;
+        return result;
     }
 
     private RegroupCondition[] rewriteCondition(RegroupCondition[] conditions) {
