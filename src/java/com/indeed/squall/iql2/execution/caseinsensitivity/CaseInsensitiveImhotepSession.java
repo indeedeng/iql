@@ -218,7 +218,7 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     }
 
     private List<String> rewriteList(List<String> fields) {
-        fields.replaceAll(field -> rewrite(field));
+        fields.replaceAll(this::rewrite);
         return fields;
     }
 
@@ -262,7 +262,7 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     }
 
     private List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rawRuleMessages) {
-        rawRuleMessages.replaceAll(message -> rewriteProto(message));
+        rawRuleMessages.replaceAll(this::rewriteProto);
         return rawRuleMessages;
     }
 

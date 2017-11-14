@@ -118,7 +118,7 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
 
     private static List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rules) {
         if (requiresRewrite(rules)) {
-            rules.replaceAll(message -> rewriteProto(message));
+            rules.replaceAll(GroupMultiRemapRuleRewriter::rewriteProto);
         }
         return rules;
     }

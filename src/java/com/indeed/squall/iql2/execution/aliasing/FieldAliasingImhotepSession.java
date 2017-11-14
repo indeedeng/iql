@@ -162,7 +162,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private List<String> rewriteFields(List<String> fields) {
-        fields.replaceAll(field -> rewrite(field));
+        fields.replaceAll(this::rewrite);
         return fields;
     }
 
@@ -194,7 +194,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rawRuleMessages) {
-        rawRuleMessages.replaceAll(message -> rewriteProto(message));
+        rawRuleMessages.replaceAll(this::rewriteProto);
         return rawRuleMessages;
     }
 
@@ -229,7 +229,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private List<String> rewriteStats(List<String> statNames) {
-        statNames.replaceAll(statName -> rewriteStat(statName));
+        statNames.replaceAll(this::rewriteStat);
         return statNames;
     }
 
