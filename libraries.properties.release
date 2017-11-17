@@ -26,6 +26,6 @@ servlet-api7.version=7.0.8
 sourceservice.version=4.1.4
 spring.version=4.3.8.RELEASE
 squall-common-web.version=4.1.6
-squall-devconfig.version=4.1.0
+squall-devconfig.version=4.1.1
 squall-webrunner.version=4.1.4
 webapp-common.version=4.1.81
