@@ -8,8 +8,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.common.util.time.DefaultWallClock;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.ShardIdWithVersion;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.actions.Actions;
 import com.indeed.squall.iql2.execution.commands.ApplyFilterActions;
@@ -277,7 +277,7 @@ public class EventRegexServlet {
 
     private CreateSessionResult createSession(@RequestParam("startDate") String startDate, @RequestParam("endDate") String endDate, Closer closer, TreeTimer timer, Consumer<String> out, List<EventDescription> eventDescriptions) throws com.indeed.imhotep.api.ImhotepOutOfMemoryException, IOException {
         final List<Map<String, String>> datasets = new ArrayList<>();
-        final Map<String, List<ShardIdWithVersion>> datasetToChosenShards = new HashMap<>();
+        final Map<String, List<Shard>> datasetToChosenShards = new HashMap<>();
         final DateTime start = DateTime.parse(startDate);
         final DateTime end = DateTime.parse(endDate);
         for (final EventDescription description : eventDescriptions) {
@@ -288,7 +288,7 @@ public class EventRegexServlet {
                     "fieldAliases", "{\"THEONETRUEJOINFIELD\": \"" + description.joinField.toUpperCase() + "\"}",
                     "name", description.name()
             ));
-            datasetToChosenShards.put(description.name(), imhotepClient.sessionBuilder(description.index, start, end).getChosenShards());
+            datasetToChosenShards.put(description.name(), imhotepClient.findShardsForTimeRange(description.index, start, end));
         }
 
         final String json = OBJECT_MAPPER.writeValueAsString(datasets);
@@ -306,7 +306,7 @@ public class EventRegexServlet {
         );
 
         int numShards = 0;
-        for (final List<ShardIdWithVersion> shards : datasetToChosenShards.values()) {
+        for (final List<Shard> shards : datasetToChosenShards.values()) {
             numShards += shards.size();
         }
 
