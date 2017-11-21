@@ -47,7 +47,7 @@ public class CommandValidator {
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
-            final DatasetMetadata datasetMetada = datasetsMetadata.getMetadata(actualDataset).or(new DatasetMetadata(actualDataset));
+            final DatasetMetadata datasetMetada = datasetsMetadata.getMetadata(actualDataset).or(new DatasetMetadata(actualDataset, actualDataset));
             relevantDatasetToMetadata.put(aliasDataset, datasetMetada);
 
             final Set<String> aliasIntField = new HashSet<>();
