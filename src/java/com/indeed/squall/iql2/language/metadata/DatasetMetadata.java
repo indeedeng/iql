@@ -15,8 +15,8 @@ import java.util.TreeSet;
 public class DatasetMetadata {
     public final String datasetName;
     public final String description;
-    public final Set<ImmutableFieldMetadata> intFields;
-    public final Set<ImmutableFieldMetadata> stringFields;
+    public final Set<FieldMetadata> intFields;
+    public final Set<FieldMetadata> stringFields;
     public final Map<String, Dimension> fieldToDimension;
 
     public DatasetMetadata(String datasetName, String description) {
@@ -27,7 +27,7 @@ public class DatasetMetadata {
         this.description = description;
     }
 
-    public DatasetMetadata(final String datasetName, final String description, final Set<ImmutableFieldMetadata> intFields, final Set<ImmutableFieldMetadata> stringFields,
+    public DatasetMetadata(final String datasetName, final String description, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, Dimension> fieldToDimension) {
         this.datasetName = datasetName;
         this.intFields = toCaseInsensitive(intFields);
@@ -39,8 +39,8 @@ public class DatasetMetadata {
         this.description = description;
     }
 
-    private Set<ImmutableFieldMetadata> toCaseInsensitive(final Set<ImmutableFieldMetadata> set) {
-        final TreeSet<ImmutableFieldMetadata> caseInsensitiveSet = new TreeSet<>(FieldMetadata.CASE_INSENSITIVE_ORDER);
+    private Set<FieldMetadata> toCaseInsensitive(final Set<FieldMetadata> set) {
+        final TreeSet<FieldMetadata> caseInsensitiveSet = new TreeSet<>(FieldMetadata.CASE_INSENSITIVE_ORDER);
         caseInsensitiveSet.addAll(set);
         return caseInsensitiveSet;
     }
