@@ -16,6 +16,7 @@ import org.apache.lucene.queryParser.QueryParser;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +40,8 @@ public class ParserUtil {
         if (!metadata.isPresent()) {
             return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
         } else {
-            final Set<String> intFields = metadata.get().intFields.stream().map(field -> field.getName()).collect(Collectors.toSet());
+            final Set<String> intFields = metadata.get().intFields.stream().map(field -> field.getName()).collect(
+                    Collectors.toCollection(()->new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
             return LuceneQueryTranslator.rewrite(parsed, intFields);
         }
     }

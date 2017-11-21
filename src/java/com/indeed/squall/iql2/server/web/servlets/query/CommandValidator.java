@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.metadata.FieldMetadata;
+import com.indeed.squall.iql2.language.metadata.ImmutableFieldMetadata;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
@@ -54,9 +56,10 @@ public class CommandValidator {
             final Set<String> aliasStringField = new HashSet<>();
             for (final Map.Entry<Positioned<String>, Positioned<String>> aliasToFieldEntry : relevantDataset.fieldAliases.entrySet()) {
                 final String aliasField = aliasToFieldEntry.getKey().unwrap();
-                final String actualField = aliasToFieldEntry.getValue().unwrap();
-                if (datasetMetada.fieldToDimension.containsKey(actualField)) {
-                    if (!datasetMetada.fieldToDimension.get(actualField).isAlias) {
+                final String actualFieldString = aliasToFieldEntry.getValue().unwrap();
+                final FieldMetadata actualField = ImmutableFieldMetadata.builder().setName(actualFieldString).build();
+                if (datasetMetada.fieldToDimension.containsKey(actualFieldString)) {
+                    if (!datasetMetada.fieldToDimension.get(actualFieldString).isAlias) {
                         throw new IllegalArgumentException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));
                     } else {
                         aliasIntField.add(aliasField);
