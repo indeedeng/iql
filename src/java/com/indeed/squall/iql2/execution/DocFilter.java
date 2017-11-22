@@ -288,7 +288,7 @@ public interface DocFilter {
                             .build());
                 }
             }
-            final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
+            final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[0]);
             session.session.regroupWithProtos(rulesArray, false);
         }
     }

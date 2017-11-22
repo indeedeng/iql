@@ -103,13 +103,8 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final int parent = session.groupKeySet.parentGroup(group);
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset <= session.groupKeySet.numGroups() && session.groupKeySet.parentGroup(group + offset) == parent) {
-                            groupSeen.set(group + offset);
-                        }
-                    }
+                    updateGroups(group, groupSeen);
                 }
                 if (groupSeen.get(group)) {
                     groupCounts[group - 1]++;
@@ -138,16 +133,27 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 currentTerm = term;
                 started = true;
                 lastGroup = group;
-                final int parent = session.groupKeySet.parentGroup(group);
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    for (int offset = 0; offset < windowSize; offset++) {
-                        if (group + offset <= session.groupKeySet.numGroups() && session.groupKeySet.parentGroup(group + offset) == parent) {
-                            groupSeen.set(group + offset);
-                        }
-                    }
+                    updateGroups(group, groupSeen);
                 }
                 if (groupSeen.get(group)) {
                     groupCounts[group - 1]++;
+                }
+            }
+        }
+
+        private void updateGroups(final int group, final BitSet groupSeen) {
+            if (windowSize == 1) {
+                // DISTINCT(...) == DISTINCT_WINDOW(1,...)
+                groupSeen.set(group);
+            } else {
+                // DISTINCT_WINDOW
+                final int parent = session.groupKeySet.parentGroup(group);
+                final int numGroups = session.groupKeySet.numGroups();
+                for (int offset = 0; offset < windowSize; offset++) {
+                    if (group + offset <= numGroups && session.groupKeySet.parentGroup(group + offset) == parent) {
+                        groupSeen.set(group + offset);
+                    }
                 }
             }
         }

@@ -47,14 +47,14 @@ public class ExplodeMonthOfYear implements Command {
                 startMonth,
                 endMonthExclusive
         ).getMonths();
-
         session.checkGroupLimit(numMonths * session.numGroups);
 
-        session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent(), false);
+        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent(), false);
+        session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");
         final List<GroupRemapRule> rules = Lists.newArrayList();
-        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
+        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
                 final long start = realStart + innerGroup * unitSize;
@@ -66,7 +66,7 @@ public class ExplodeMonthOfYear implements Command {
                 rules.add(new GroupRemapRule(base, fakeCondition, newGroup, newGroup));
             }
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
         session.timer.pop();
 
         session.regroup(rulesArray);

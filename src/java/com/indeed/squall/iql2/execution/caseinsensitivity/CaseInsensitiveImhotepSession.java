@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.execution.caseinsensitivity;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -33,6 +34,7 @@ import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -209,19 +211,15 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     // Mapping real logic over structures
 
     private String[] rewriteArray(String[] fields) {
-        final String[] result = new String[fields.length];
         for (int i = 0; i < fields.length; i++) {
-            result[i] = rewrite(fields[i]);
+            fields[i] = rewrite(fields[i]);
         }
-        return result;
+        return fields;
     }
 
     private List<String> rewriteList(List<String> fields) {
-        final List<String> result = Lists.newArrayListWithCapacity(fields.size());
-        for (final String field : fields) {
-            result.add(rewrite(field));
-        }
-        return result;
+        fields.replaceAll(this::rewrite);
+        return fields;
     }
 
     private <V> Map<String, V> rewriteMap(Map<String, V> map) {
@@ -233,27 +231,24 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     }
 
     private RegroupCondition[] rewriteCondition(RegroupCondition[] conditions) {
-        final RegroupCondition[] result = new RegroupCondition[conditions.length];
         for (int i = 0; i < conditions.length; i++) {
-            result[i] = rewriteCondition(conditions[i]);
+            conditions[i] = rewriteCondition(conditions[i]);
         }
-        return result;
+        return conditions;
     }
 
     private GroupMultiRemapRule[] rewriteMulti(GroupMultiRemapRule[] rawRules) {
-        final GroupMultiRemapRule[] result = new GroupMultiRemapRule[rawRules.length];
         for (int i = 0; i < rawRules.length; i++) {
-            result[i] = rewriteMulti(rawRules[i]);
+            rawRules[i] = rewriteMulti(rawRules[i]);
         }
-        return result;
+        return rawRules;
     }
 
     private GroupRemapRule[] rewriteSingle(GroupRemapRule[] rawRules) {
-        final GroupRemapRule[] result = new GroupRemapRule[rawRules.length];
         for (int i = 0; i < rawRules.length; i++) {
-            result[i] = rewriteSingle(rawRules[i]);
+            rawRules[i] = rewriteSingle(rawRules[i]);
         }
-        return result;
+        return rawRules;
     }
 
 
@@ -266,12 +261,9 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
         return builder.build();
     }
 
-    private GroupMultiRemapMessage[] rewriteProtos(GroupMultiRemapMessage[] rawRuleMessages) {
-        final GroupMultiRemapMessage[] result = new GroupMultiRemapMessage[rawRuleMessages.length];
-        for (int i = 0; i < rawRuleMessages.length; i++) {
-            result[i] = rewriteProto(rawRuleMessages[i]);
-        }
-        return result;
+    private List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rawRuleMessages) {
+        rawRuleMessages.replaceAll(this::rewriteProto);
+        return rawRuleMessages;
     }
 
     // Delegation with rewriting
@@ -362,7 +354,11 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
 
     @Override
     public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return wrapped.regroupWithProtos(rewriteProtos(rawRuleMessages), errorOnCollisions);
+        return regroupWithProtos(Arrays.asList(rawRuleMessages), errorOnCollisions);
+    }
+
+    public int regroupWithProtos(List<GroupMultiRemapMessage> rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(Iterables.toArray(rewriteProtos(rawRuleMessages), GroupMultiRemapMessage.class), errorOnCollisions);
     }
 
     @Override

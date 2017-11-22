@@ -12,6 +12,7 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.sets.MetricRangeGroupKeySet;
 import com.indeed.util.core.TreeTimer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +59,7 @@ public class MetricRegroup implements Command {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }
-                final List<String> pushes = perDatasetMetrics.get(name);
+                final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
 
                 timer.push("pushStats");
                 final int numStats = session.pushStats(pushes);

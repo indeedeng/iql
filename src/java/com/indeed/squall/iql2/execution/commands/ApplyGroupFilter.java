@@ -58,7 +58,7 @@ public class ApplyGroupFilter implements Command {
             }
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
-        final List<GroupRemapRule> rules = new ArrayList<>();
+        List<GroupRemapRule> rules = new ArrayList<>();
         final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
@@ -72,7 +72,8 @@ public class ApplyGroupFilter implements Command {
                 newGroupParents.add(session.groupKeySet.parentGroup(i));
             }
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
+        rules = null;
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {

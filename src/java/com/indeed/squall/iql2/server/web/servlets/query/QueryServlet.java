@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.common.util.StringUtils;
 import com.indeed.common.util.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -49,7 +50,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.TreeSet;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -357,6 +357,15 @@ public class QueryServlet {
 
     private static final int QUERY_LENGTH_LIMIT = 55000; // trying to not cause the logentry to overflow from being larger than 2^16
 
+    private void setIfNotEmpty(QueryLogEntry logEntry, String propName, String propValue) {
+        if (propValue == null || propName == null || logEntry == null) {
+            return ;
+        }
+        if (!StringUtils.isEmpty(propValue)) {
+            logEntry.setProperty(propName, propValue);
+        }
+    }
+
     private void logQuery(HttpServletRequest req,
                           String query,
                           String userName,
@@ -370,6 +379,11 @@ public class QueryServlet {
         }
 
         final String client = Strings.nullToEmpty(req.getParameter("client"));
+        final String author = Strings.nullToEmpty(req.getParameter("author"));
+        final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
+        final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
+        final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
+
 
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
@@ -378,6 +392,10 @@ public class QueryServlet {
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
         logEntry.setProperty("tottime", (int) timeTaken);
+        setIfNotEmpty(logEntry, "author", author);
+        setIfNotEmpty(logEntry, "clientProcessId", clientProcessId);
+        setIfNotEmpty(logEntry, "clientProcessName", clientProcessName);
+        setIfNotEmpty(logEntry, "clientExecutionId", clientExecutionId);
 
         logString(logEntry, "statement", queryInfo.statementType);
 

@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.execution.workarounds;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.GroupMultiRemapRule;
@@ -22,6 +23,7 @@ import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +71,15 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
         return false;
     }
 
+    private static boolean requiresRewrite(Iterable<GroupMultiRemapMessage> rules) {
+        for (final GroupMultiRemapMessage rule : rules) {
+            if (requiresRewrite(rule)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static GroupMultiRemapRule makeRule(int targetGroup, int negativeGroup) {
         return new GroupMultiRemapRule(targetGroup, negativeGroup, new int[]{negativeGroup}, THE_CONDITIONS);
     }
@@ -97,7 +108,7 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
         }
     }
 
-    private static GroupMultiRemapMessage rewrite(GroupMultiRemapMessage rule) {
+    private static GroupMultiRemapMessage rewriteProto(GroupMultiRemapMessage rule) {
         if (requiresRewrite(rule)) {
             return makeProtoRule(rule.getTargetGroup(), rule.getNegativeGroup());
         } else {
@@ -105,16 +116,11 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
         }
     }
 
-    private static GroupMultiRemapMessage[] rewrite(GroupMultiRemapMessage[] rules) {
+    private static List<GroupMultiRemapMessage> rewriteProtos(List<GroupMultiRemapMessage> rules) {
         if (requiresRewrite(rules)) {
-            final GroupMultiRemapMessage[] rewritten = new GroupMultiRemapMessage[rules.length];
-            for (int i = 0; i < rules.length; i++) {
-                rewritten[i] = rewrite(rules[i]);
-            }
-            return rewritten;
-        } else {
-            return rules;
+            rules.replaceAll(GroupMultiRemapRuleRewriter::rewriteProto);
         }
+        return rules;
     }
 
     private Iterator<GroupMultiRemapRule> rewrite(Iterator<GroupMultiRemapRule> iterator) {
@@ -142,7 +148,11 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
 
     @Override
     public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return wrapped.regroupWithProtos(rewrite(rawRuleMessages), errorOnCollisions);
+        return regroupWithProtos(Arrays.asList(rawRuleMessages), errorOnCollisions);
+    }
+
+    public int regroupWithProtos(List<GroupMultiRemapMessage> rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return wrapped.regroupWithProtos(Iterables.toArray(rewriteProtos(rawRuleMessages), GroupMultiRemapMessage.class), errorOnCollisions);
     }
 
     @Override

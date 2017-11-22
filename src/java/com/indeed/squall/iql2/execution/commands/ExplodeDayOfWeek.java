@@ -32,12 +32,13 @@ public class ExplodeDayOfWeek implements Command {
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
         session.timer.push("daily regroup");
         final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.<String>absent(), false);
+        session.checkGroupLimit(numGroups);
         session.timer.pop();
 
         session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
         final List<GroupRemapRule> rules = Lists.newArrayList();
-        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 100, null, false);
+        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
         for (int group = 1; group <= numGroups; group++) {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
@@ -45,7 +46,7 @@ public class ExplodeDayOfWeek implements Command {
             final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
             rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[rules.size()]);
+        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
         session.timer.pop();
         session.timer.push("shuffle regroup");
         session.regroup(rulesArray);
