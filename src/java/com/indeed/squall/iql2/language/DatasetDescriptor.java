@@ -38,7 +38,7 @@ public class DatasetDescriptor {
             fields.add(field);
         }
 
-        return new DatasetDescriptor(dataset, "", fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
+        return new DatasetDescriptor(dataset, datasetMetadata.description, fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
     }
 
     public String getName() {
