@@ -1,8 +1,8 @@
 package com.indeed.squall.iql2.language.metadata;
 
-import jline.internal.Nullable;
 import org.immutables.value.Value;
 
+import javax.annotation.Nullable;
 import java.util.Comparator;
 
 /**
@@ -14,7 +14,7 @@ import java.util.Comparator;
 public abstract class FieldMetadata {
     public abstract String getName();
     @Nullable public abstract String getDescription();
-    @Nullable public abstract FieldType getFieldType();
+    public abstract FieldType getFieldType();
 
     public enum FieldType {
         String,

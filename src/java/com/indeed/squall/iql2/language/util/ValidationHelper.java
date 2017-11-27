@@ -39,13 +39,13 @@ public class ValidationHelper {
 
 
     public boolean containsStringField(String dataset, String field) {
-        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).build();
+        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).setFieldType(FieldMetadata.FieldType.String).build();
         return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(fieldMetadata)) ||
                 (datasetAliasStringFields.containsKey(dataset) && datasetAliasStringFields.get(dataset).contains(field));
     }
 
     public boolean containsIntField(String dataset, String field) {
-        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).build();
+        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).setFieldType(FieldMetadata.FieldType.Integer).build();
         return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(fieldMetadata)) ||
                 (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
     }

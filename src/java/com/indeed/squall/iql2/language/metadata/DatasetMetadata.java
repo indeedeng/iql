@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * all fields are case insensitive
@@ -43,5 +44,15 @@ public class DatasetMetadata {
         final TreeSet<FieldMetadata> caseInsensitiveSet = new TreeSet<>(FieldMetadata.CASE_INSENSITIVE_ORDER);
         caseInsensitiveSet.addAll(set);
         return caseInsensitiveSet;
+    }
+
+    public Set<String> getIntFieldsStringFromMetadata() {
+        return intFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
+                Collectors.toCollection(()->new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
+    }
+
+    public Set<String> getStrFieldsStringFromMetadata() {
+        return stringFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
+                Collectors.toCollection(()->new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
     }
 }
