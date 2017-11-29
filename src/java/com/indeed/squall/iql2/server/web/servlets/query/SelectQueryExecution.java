@@ -23,6 +23,8 @@ import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.util.core.time.WallClock;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
@@ -47,6 +49,7 @@ import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
@@ -79,6 +82,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -445,7 +452,20 @@ public class SelectQueryExecution {
             try (final Closer closer = Closer.create()) {
                 if (queryCache.isEnabled() && !skipCache) {
                     timer.push("cache check");
-                    final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
+                    boolean isCached;
+                    try {
+                        ExecutorService executor = Executors.newSingleThreadExecutor();
+                        SimpleTimeLimiter timeout = new SimpleTimeLimiter(executor);
+                        isCached = timeout.callWithTimeout(new Callable<Boolean>() {
+                            @Override
+                            public Boolean call() throws Exception {
+                                return queryCache.isFileCached(computeCacheKey.cacheFileName);
+                            }
+                        }, 500, TimeUnit.MILLISECONDS, true);
+                    } catch (Exception e) {
+                        log.debug("Cache check takes more than 500ms, gave up :(");
+                        isCached = false;
+                    }
                     timer.pop();
 
                     queryCached.put(query, isCached);
