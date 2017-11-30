@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
-import com.indeed.imhotep.LocatedShardInfo;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
 import com.indeed.imhotep.web.Limits;
@@ -82,7 +82,7 @@ public final class IQLQuery implements Closeable {
     private final List<Grouping> groupings;
     private final int rowLimit;
     private final ImhotepMetadataCache metadata;
-    private final List<LocatedShardInfo> shardVersionList;
+    private final List<Shard> shards;
     private final List<Interval> timeIntervalsMissingShards;
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
@@ -108,7 +108,7 @@ public final class IQLQuery implements Closeable {
         sessionBuilder = client.sessionBuilder(dataset, start, end)
                 .localTempFileSizeLimit(mbToBytes(limits.queryFTGSIQLLimitMB))
                 .daemonTempFileSizeLimit(mbToBytes(limits.queryFTGSImhotepDaemonLimitMB)).username(username).clientName("IQL");
-        shardVersionList = sessionBuilder.getChosenShards();
+        shards = sessionBuilder.getChosenShards();
         shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
 
         timeIntervalsMissingShards = sessionBuilder.getTimeIntervalsMissingShards();
@@ -298,7 +298,7 @@ public final class IQLQuery implements Closeable {
     }
 
     private void timeFilter(EZImhotepSession session) throws ImhotepOutOfMemoryException {
-        final LongRange shardsMinMax = getShardsMinMax(shardVersionList);
+        final LongRange shardsMinMax = getShardsMinMax(shards);
         final long min = shardsMinMax.getMin();
         final long max = shardsMinMax.getMax();
         if (min < start.getMillis() || max > end.getMillis()) {
@@ -338,10 +338,10 @@ public final class IQLQuery implements Closeable {
     /**
      * Returns minimum and maximum milliseconds covered by the list of shards
      */
-    private static LongRange getShardsMinMax(final List<LocatedShardInfo> shardVersionList) {
+    private static LongRange getShardsMinMax(final List<Shard> shards) {
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
-        for (LocatedShardInfo shard : shardVersionList) {
+        for (Shard shard : shards) {
             final ShardInfo.DateTimeRange interval = shard.getRange();
             if (interval.start.getMillis() < min) {
                 min = interval.start.getMillis();
@@ -628,8 +628,8 @@ public final class IQLQuery implements Closeable {
         return rowsProcessed;
     }
 
-    public List<LocatedShardInfo> getShardVersionList() {
-        return shardVersionList;
+    public List<Shard> getShards() {
+        return shards;
     }
 
     public List<Interval> getTimeIntervalsMissingShards() {
