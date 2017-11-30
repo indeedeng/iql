@@ -2,6 +2,7 @@ package com.indeed.squall.iql2.server.web.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -15,17 +16,12 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
-/**
- * @author yuanlei
- */
-
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
     private final IQLDB iqldb;
 
-    private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
-
-    private final List<SelectQuery> queriesRunning = Lists.newArrayList();
+    private final List<SelectQueryExecution> queriesWaiting = Lists.newArrayList();
+    private final List<SelectQueryExecution> queriesRunning = Lists.newArrayList();
 
     public List<RunningQuery> lastDaemonRunningQueries;
 
@@ -66,7 +62,7 @@ public class RunningQueriesManager {
                 log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
                 final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb);
-                final List<SelectQuery> queriesStarted = result.queriesStarting;
+                final List<SelectQueryExecution> queriesStarted = result.queriesStarting;
 
                 queriesWaiting.removeAll(result.queriesStarting);
 
@@ -77,8 +73,8 @@ public class RunningQueriesManager {
                     }
                 }
 
-                for(SelectQuery startedQuery: queriesStarted) {
-                    startedQuery.onStarted(DateTime.now());
+                for(SelectQueryExecution startedQuery: queriesStarted) {
+                    startedQuery.onStarted(DateTime.now().getMillis());
                 }
             }
         } catch (Exception e) {
@@ -87,27 +83,27 @@ public class RunningQueriesManager {
     }
 
     private static class RunningQueriesUpdateResult {
-        List<SelectQuery> queriesStarting;
+        List<SelectQueryExecution> queriesStarting;
         LongSet cancelledQueries;
 
-        public RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
+        public RunningQueriesUpdateResult(List<SelectQueryExecution> queriesStarting, LongSet cancelledQueries) {
             this.queriesStarting = queriesStarting;
             this.cancelledQueries = cancelledQueries;
         }
     }
 
-    private static RunningQueriesUpdateResult tryStartPendingQueries(List<SelectQuery> pendingQueries, IQLDB iqldb) {
+    private static RunningQueriesUpdateResult tryStartPendingQueries(List<SelectQueryExecution> pendingQueries, IQLDB iqldb) {
         final LongSet cancelledQueries = new LongOpenHashSet();
-        final Long2ObjectMap<SelectQuery> idToPendingQuery = new Long2ObjectOpenHashMap<>();
-        for(SelectQuery query : pendingQueries) {
+        final Long2ObjectMap<SelectQueryExecution> idToPendingQuery = new Long2ObjectOpenHashMap<>();
+        for(SelectQueryExecution query : pendingQueries) {
             if(query.id <= 0) {
                 continue;   // it wasn't inserted yet
             }
             idToPendingQuery.put(query.id, query);
         }
         final List<RunningQuery> alreadyRunningQueries = iqldb.getRunningQueriesForLocking();
-        final List<SelectQuery> queriesThatCouldntStart = Lists.newArrayList();
-        final List<SelectQuery> queriesStarting = Lists.newArrayList();
+        final List<SelectQueryExecution> queriesThatCouldntStart = Lists.newArrayList();
+        final List<SelectQueryExecution> queriesStarting = Lists.newArrayList();
         final Set<String> qhashesRunning = Sets.newHashSet();
         final Object2IntOpenHashMap<String> usernameToRunningCount = new Object2IntOpenHashMap<>();
         final Object2IntOpenHashMap<String> usernameToSessionsCount = new Object2IntOpenHashMap<>();
@@ -118,7 +114,7 @@ public class RunningQueriesManager {
                 cancelledQueries.add(runningQuery.id);
             }
 
-            final SelectQuery pendingQuery = idToPendingQuery.get(runningQuery.id);
+            final SelectQueryExecution pendingQuery = idToPendingQuery.get(runningQuery.id);
             if(pendingQuery != null) {
                 // the query we are looking at is something we may be able to start if the limits allow. let's check
                 final int queriesRunningForIdentity;
@@ -137,7 +133,7 @@ public class RunningQueriesManager {
                     pendingQuery.cancelled = true;
                 }
 
-                if((qhashesRunning.contains(pendingQuery.queryHash) ||
+                if((qhashesRunning.contains(pendingQuery.query) ||
                         !pendingQuery.limits.satisfiesConcurrentQueriesLimit(queriesRunningForIdentity) ||
                         !pendingQuery.limits.satisfiesConcurrentImhotepSessionsLimit(sessionsForIdentity))
                         && !runningQuery.killed) {
@@ -158,7 +154,7 @@ public class RunningQueriesManager {
         }
 
         final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
-        for(SelectQuery startingQuery: queriesStarting) {
+        for(SelectQueryExecution startingQuery: queriesStarting) {
             iqldb.setRunningQueryStartTime(queryExecutionStartTime, startingQuery.id);
         }
         log.debug("Started " + queriesStarting.size() + ", still pending " + queriesThatCouldntStart.size());
@@ -167,7 +163,7 @@ public class RunningQueriesManager {
     }
 
     private void applyCancellations(LongSet cancelledQueries) {
-        for(SelectQuery runningQuery : queriesRunning) {
+        for(SelectQueryExecution runningQuery : queriesRunning) {
             if(cancelledQueries.contains(runningQuery.id)) {
                 runningQuery.cancelled = true;
             }
@@ -175,7 +171,7 @@ public class RunningQueriesManager {
     }
 
 
-    public void register(SelectQuery selectQuery) {
+    public void register(SelectQueryExecution selectQuery) {
         iqldb.insertRunningQuery(selectQuery);
         synchronized (queriesWaiting) {
             queriesWaiting.add(selectQuery);
@@ -184,10 +180,10 @@ public class RunningQueriesManager {
         tryStartingWaitingQueries();
     }
 
-    public void unregister(SelectQuery selectQuery) {
+    public void unregister(SelectQueryExecution selectQuery) {
         synchronized (queriesWaiting) {
             if(queriesWaiting.remove(selectQuery)) {
-                log.debug("Stopping to wait for locking of " + selectQuery.shortHash);
+                log.debug("Stopping to wait for locking of " + selectQuery.query);
             }
         }
 
@@ -199,7 +195,7 @@ public class RunningQueriesManager {
             return; // wasn't inserted in the DB yet
         }
 
-        log.debug("Deleting query from DB " + selectQuery.shortHash + " " + selectQuery.id);
+        log.debug("Deleting query from DB " + selectQuery.query + " " + selectQuery.id);
         // it's important that we release the query so try until we do
         boolean released = false;
         while(!released) {
@@ -208,7 +204,7 @@ public class RunningQueriesManager {
                 released = true;
             } catch (Exception e) {
                 log.error("Failed to release query, going to retry. Id " + selectQuery.id
-                        + ". " + selectQuery.queryStringTruncatedForPrint, e);
+                        + ". " + selectQuery.query, e);
                 try {
                     Thread.sleep(1000);
                 } catch (Exception ignored) { }
@@ -232,19 +228,19 @@ public class RunningQueriesManager {
         }
     }
 
-    private List<RunningQuery> convertSelectQueriesToRunningQueries(List<SelectQuery> queries) {
+    private List<RunningQuery> convertSelectQueriesToRunningQueries(List<SelectQueryExecution> queries) {
         final List<RunningQuery> runningQueries = Lists.newArrayList();
-        for(SelectQuery query : queries) {
+        for(SelectQueryExecution query : queries) {
             runningQueries.add(new RunningQuery(
                     query.id,
-                    query.queryStringTruncatedForPrint,
-                    query.queryHash,
+                    query.query,
+                    null,
                     query.clientInfo.username,
                     query.clientInfo.client,
-                    query.querySubmitTimestamp,
-                    query.queryStartTimestamp,
+                    null,
+                    new DateTime(query.queryStartTimestamp),
                     IQLDB.hostname,
-                    query.sessions,
+                    (byte) 1,
                     query.cancelled
             ));
         }

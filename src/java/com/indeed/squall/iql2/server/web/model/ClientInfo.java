@@ -2,10 +2,6 @@ package com.indeed.squall.iql2.server.web.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-/**
- * @author yuanlei
- */
-
 public class ClientInfo {
     /** name of the user performing the query */
     public final String username;

@@ -2,11 +2,11 @@ package com.indeed.squall.iql2.server.web.config;
 
 import com.google.common.base.Strings;
 import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.squall.common.web.DataSourceLoader;
 import com.indeed.squall.iql2.server.LocalImhotepDaemon;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.CORSInterceptor;
@@ -17,9 +17,12 @@ import com.indeed.squall.iql2.server.web.healthcheck.HealthcheckPackageMarker;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepClientPinger;
 import com.indeed.squall.iql2.server.web.healthcheck.ImhotepMetadataServiceClientPinger;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.model.IQLDB;
+import com.indeed.squall.iql2.server.web.model.Limits;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
+import com.indeed.util.core.time.WallClock;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +35,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import javax.sql.DataSource;
 import javax.xml.bind.PropertyException;
 import java.io.File;
 import java.net.URISyntaxException;
@@ -169,10 +173,35 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
+    public DataSource iqlDbDataSource() {
+        return DataSourceLoader.tryGetDataSource("iqldb", env);
+    }
+
+    @Bean
+    public IQLDB iqldb() {
+        return new IQLDB(iqlDbDataSource());
+    }
+
+    @Bean
     public AccessControl accessControl() {
         @SuppressWarnings("unchecked")
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
-        return new AccessControl(bannedUserList);
+        @SuppressWarnings("unchecked")
+        final List<String> multiuserClients = (List<String>)env.getProperty("multiuser.clients", List.class, Collections.emptyList());
+
+        return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits());
+    }
+
+    private Limits getDefaultLimits() {
+        final Long queryDocumentCountLimit = env.getProperty("query.document.count.limit", Long.class);
+        return new Limits(
+                queryDocumentCountLimit != null ? (int) (queryDocumentCountLimit / 1_000_000_000) : null,
+                env.getProperty("row.limit", Integer.class),
+                env.getProperty("imhotep.local.temp.file.size.mb.limit", Integer.class),
+                env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Integer.class),
+                env.getProperty("user.concurrent.query.limit", Integer.class),
+                env.getProperty("user.concurrent.imhotep.sessions.limit", Integer.class)
+        );
     }
 
     @Bean

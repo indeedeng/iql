@@ -22,6 +22,8 @@ import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.model.ClientInfo;
+import com.indeed.squall.iql2.server.web.model.Limits;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.TreeTimer;
@@ -136,6 +138,13 @@ public class QueryServlet {
 
         final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
         final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
+        final String author = Strings.nullToEmpty(request.getParameter("author"));
+        final String client = Strings.nullToEmpty(request.getParameter("client"));
+        final String clientProcessId = Strings.nullToEmpty(request.getParameter("clientProcessId"));
+        final String clientProcessName = Strings.nullToEmpty(request.getParameter("clientProcessName"));
+        final String clientExecutionId = Strings.nullToEmpty(request.getParameter("clientExecutionId"));
+        final ClientInfo clientInfo = new ClientInfo(username, author, client, clientProcessId, clientProcessName,
+                clientExecutionId, accessControl.isMultiuserClient(client));
         final TreeTimer timer = new TreeTimer() {
             @Override
             public void push(String s) {
@@ -200,11 +209,13 @@ public class QueryServlet {
                     response.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
 
+                final Limits limits = accessControl.getLimitsForIdentity(username, client);
+
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, groupLimit, imhotepClient,
-                        metadataCache.get(), response.getWriter(), queryInfo, timer, username, query, version, isStream, skipValidation, clock);
+                        queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, limits, groupLimit, imhotepClient,
+                        metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect();
-                queryStartTimestamp = selectQueryExecution.getQueryStartTimestamp();
+                queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
             }
         } catch (Throwable e) {
             if (e instanceof Exception) {
@@ -221,7 +232,7 @@ public class QueryServlet {
                 if (remoteAddr == null) {
                     remoteAddr = request.getRemoteAddr();
                 }
-                logQuery(request, query, username, queryStartTimestamp, errorOccurred, remoteAddr, queryInfo);
+                logQuery(request, query, queryStartTimestamp, errorOccurred, remoteAddr, queryInfo, clientInfo);
             } catch (Throwable ignored) {
                 // Do nothing
             }
@@ -368,34 +379,27 @@ public class QueryServlet {
 
     private void logQuery(HttpServletRequest req,
                           String query,
-                          String userName,
                           long queryStartTimestamp,
                           Throwable errorOccurred,
                           String remoteAddr,
-                          SelectQueryExecution.QueryInfo queryInfo) {
+                          SelectQueryExecution.QueryInfo queryInfo,
+                          ClientInfo clientInfo) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         if (timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
-            logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
+            logQueryToLog4J(query, (Strings.isNullOrEmpty(clientInfo.username) ? remoteAddr : clientInfo.username), timeTaken);
         }
-
-        final String client = Strings.nullToEmpty(req.getParameter("client"));
-        final String author = Strings.nullToEmpty(req.getParameter("author"));
-        final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
-        final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
-        final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
-
 
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
-        logEntry.setProperty("username", userName);
-        logEntry.setProperty("client", client);
+        logEntry.setProperty("username", clientInfo.username);
+        logEntry.setProperty("client", clientInfo.client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
         logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
         logEntry.setProperty("tottime", (int) timeTaken);
-        setIfNotEmpty(logEntry, "author", author);
-        setIfNotEmpty(logEntry, "clientProcessId", clientProcessId);
-        setIfNotEmpty(logEntry, "clientProcessName", clientProcessName);
-        setIfNotEmpty(logEntry, "clientExecutionId", clientExecutionId);
+        setIfNotEmpty(logEntry, "author", clientInfo.author);
+        setIfNotEmpty(logEntry, "clientProcessId", clientInfo.clientProcessId);
+        setIfNotEmpty(logEntry, "clientProcessName", clientInfo.clientProcessName);
+        setIfNotEmpty(logEntry, "clientExecutionId", clientInfo.clientExecutionId);
 
         logString(logEntry, "statement", queryInfo.statementType);
 

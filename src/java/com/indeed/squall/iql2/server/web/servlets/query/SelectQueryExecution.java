@@ -47,6 +47,8 @@ import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
+import com.indeed.squall.iql2.server.web.model.ClientInfo;
+import com.indeed.squall.iql2.server.web.model.Limits;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.time.WallClock;
@@ -97,8 +99,10 @@ public class SelectQueryExecution {
     // IQL2 server systems
     private final QueryCache queryCache;
     private final ExecutionManager executionManager;
+    //private final RunningQueriesManager runningQueriesManager;
 
     // Query sanity limits
+    public final Limits limits;
     private final Long subQueryTermLimit;
     private final Long imhotepLocalTempFileSizeLimit;
     private final Long imhotepDaemonTempFileSizeLimit;
@@ -113,17 +117,19 @@ public class SelectQueryExecution {
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
     private final TreeTimer timer;
+    public final ClientInfo clientInfo;
 
     // Query inputs
-    private final String username;
-    private final String query;
-    private final int version;
-    private final boolean isStream;
-    private final boolean skipValidation;
+    public final String query;
+    public final int version;
+    public final boolean isStream;
+    public final boolean skipValidation;
     private final WallClock clock;
 
-    private boolean ran = false;
-    private long queryStartTimestamp = -1L;
+    public boolean ran = false;
+    public boolean cancelled = false;
+    public long id = -1;
+    public long queryStartTimestamp = -1L;
 
     public SelectQueryExecution(
             final QueryCache queryCache,
@@ -131,12 +137,14 @@ public class SelectQueryExecution {
             final Long subQueryTermLimit,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final Integer groupLimit, ImhotepClient imhotepClient,
+            final Limits limits,
+            final Integer groupLimit,
+            final ImhotepClient imhotepClient,
             final DatasetsMetadata datasetsMetadata,
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
+            final ClientInfo clientInfo,
             final TreeTimer timer,
-            final String username,
             final String query,
             final int version,
             final boolean isStream,
@@ -145,11 +153,12 @@ public class SelectQueryExecution {
     ) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
+        this.clientInfo = clientInfo;
         this.query = query;
         this.version = version;
-        this.username = username;
         this.timer = timer;
         this.isStream = isStream;
+        this.limits = limits;
         this.skipValidation = skipValidation;
         this.groupLimit = groupLimit;
         this.clock = clock;
@@ -162,8 +171,12 @@ public class SelectQueryExecution {
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
     }
 
-    public long getQueryStartTimestamp() {
-        return queryStartTimestamp;
+    public void onStarted(long queryStartTimestamp) {
+        this.queryStartTimestamp = queryStartTimestamp;
+    }
+
+    public void onInserted(long id) {
+        this.id = id;
     }
 
     public void processSelect() throws TimeoutException, IOException, ImhotepOutOfMemoryException {
@@ -175,7 +188,7 @@ public class SelectQueryExecution {
             ran = true;
         }
 
-        final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, username);
+        final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, clientInfo.username);
         try {
             timer.push("Acquire concurrent query lock");
             queryTracker.acquireLocks(); // blocks and waits if necessary
@@ -555,7 +568,7 @@ public class SelectQueryExecution {
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
                             imhotepClient, datasetToChosenShards, requestJson, closer, out, timer,
-                            compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username);
+                            compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clientInfo.username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,

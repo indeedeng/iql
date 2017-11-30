@@ -6,7 +6,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.ims.client.ImsClientInterface;
@@ -14,10 +13,12 @@ import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.model.Limits;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -55,7 +56,8 @@ public class QueryServletTestUtils extends BasicTest {
                 options.queryCache,
                 executionManager,
                 metadataCache,
-                new AccessControl(Collections.<String>emptySet()),
+                new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
+                        null, new Limits(1_000_000_000, 50_000, 1000, 1000, 8, 8)),
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,
                 imhotepDaemonTempFileSizeLimit,

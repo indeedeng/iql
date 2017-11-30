@@ -1,10 +1,7 @@
 package com.indeed.squall.iql2.server.web.model;
 
-/**
- * @author yuanlei
- */
-
 import com.google.common.collect.Maps;
+import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
@@ -46,7 +43,7 @@ public class IQLDB {
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    public void insertRunningQuery(final SelectQuery query) {
+    public void insertRunningQuery(final SelectQueryExecution query) {
         // Hack to workaround the column not allowing nulls
         final String queryExecutionStartTime = "1970-01-01 00:00:01";
 
@@ -54,17 +51,15 @@ public class IQLDB {
             @Override
             public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
                 final PreparedStatement ps = connection.prepareStatement("INSERT INTO tblrunning " +
-                                "(query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
-                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                "(query, username, client, submit_time, execution_start_time, hostname) " +
+                                "VALUES (?, ?, ?, ?, ?, ?)",
                         Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000));
-                ps.setString(2, StringUtils.abbreviate(query.queryHash, 30));
-                ps.setString(3, StringUtils.abbreviate(query.clientInfo.username, 100));
-                ps.setString(4, StringUtils.abbreviate(query.clientInfo.client, 100));
-                ps.setTimestamp(5, new Timestamp(query.querySubmitTimestamp.getMillis()));
-                ps.setString(6, queryExecutionStartTime);
-                ps.setString(7, StringUtils.abbreviate(hostname, 20));
-                ps.setByte(8, query.sessions);
+                ps.setString(1, StringUtils.abbreviate(query.query, 1000));
+                ps.setString(2, StringUtils.abbreviate(query.clientInfo.username, 100));
+                ps.setString(3, StringUtils.abbreviate(query.clientInfo.client, 100));
+                ps.setTimestamp(4, new Timestamp(query.queryStartTimestamp));
+                ps.setString(5, queryExecutionStartTime);
+                ps.setString(6, StringUtils.abbreviate(hostname, 20));
                 return ps;
             }
         };

@@ -9,9 +9,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author yuanlei
- */
 public class RunningQuery {
     public final long id;
     public final String query;
