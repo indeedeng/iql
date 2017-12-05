@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.indeed</groupId>
         <artifactId>proprietary-parent</artifactId>
-        <version>10</version>
+        <version>12</version>
     </parent>
 
     <artifactId>iql</artifactId>
