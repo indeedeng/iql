@@ -16,7 +16,6 @@ import com.indeed.squall.iql2.language.DatasetDescriptor;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
-import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.GlobalUncaughtExceptionHandler;
 import com.indeed.squall.iql2.server.web.QueryLogEntry;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
@@ -24,6 +23,7 @@ import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.model.ClientInfo;
 import com.indeed.squall.iql2.server.web.model.Limits;
+import com.indeed.squall.iql2.server.web.model.RunningQueriesManager;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
 import com.indeed.util.core.TreeTimer;
@@ -76,7 +76,7 @@ public class QueryServlet {
 
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
-    private final ExecutionManager executionManager;
+    private final RunningQueriesManager runningQueriesManager;
     private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
@@ -92,7 +92,7 @@ public class QueryServlet {
     public QueryServlet(
             final ImhotepClient imhotepClient,
             final QueryCache queryCache,
-            final ExecutionManager executionManager,
+            final RunningQueriesManager runningQueriesManager,
             final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
@@ -103,7 +103,7 @@ public class QueryServlet {
     ) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
-        this.executionManager = executionManager;
+        this.runningQueriesManager = runningQueriesManager;
         this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
@@ -212,9 +212,9 @@ public class QueryServlet {
                 final Limits limits = accessControl.getLimitsForIdentity(username, client);
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        queryCache, executionManager, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, limits, groupLimit, imhotepClient,
+                        queryCache, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, limits, groupLimit, imhotepClient,
                         metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
-                selectQueryExecution.processSelect();
+                selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
             }
         } catch (Throwable e) {

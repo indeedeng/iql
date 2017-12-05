@@ -4,10 +4,6 @@ import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import javax.annotation.Nullable;
 import java.text.DecimalFormat;
 
-/**
- * @author yuanlei
- */
-
 public class Limits {
     @Nullable public final Integer queryDocumentCountLimitBillions;
     @Nullable public final Integer queryInMemoryRowsLimit;

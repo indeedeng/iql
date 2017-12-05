@@ -8,10 +8,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import javax.annotation.Nullable;
 import java.util.Set;
 
-/**
- * @author yuanlei
- */
-
 public class SelectExecutionStats {
     public boolean cached;
     public int rowsWritten;

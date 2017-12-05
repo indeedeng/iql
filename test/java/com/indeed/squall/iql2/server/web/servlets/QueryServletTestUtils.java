@@ -4,16 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.squall.iql2.server.web.AccessControl;
-import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.model.IQLDB;
 import com.indeed.squall.iql2.server.web.model.Limits;
+import com.indeed.squall.iql2.server.web.model.RunningQueriesManager;
+import com.indeed.squall.iql2.server.web.model.SelectQuery;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
@@ -23,30 +24,22 @@ import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
+import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class QueryServletTestUtils extends BasicTest {
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static IQLDB iqldb = Mockito.mock(IQLDB.class);
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
         final Long imhotepDaemonTempFileSizeLimit = -1L;
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
-        final ExecutionManager executionManager = new ExecutionManager();
-
-        try {
-            final Field maxQueriesPerUser = ExecutionManager.class.getDeclaredField("maxQueriesPerUser");
-            maxQueriesPerUser.setAccessible(true);
-            maxQueriesPerUser.setInt(executionManager, 1);
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
 
         final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient);
         metadataCache.updateMetadata();
@@ -54,10 +47,16 @@ public class QueryServletTestUtils extends BasicTest {
         return new QueryServlet(
                 imhotepClient,
                 options.queryCache,
-                executionManager,
+                new RunningQueriesManager(iqldb) {
+                    @Override
+                    public void register(SelectQuery selectQuery) {
+                        super.register(selectQuery);
+                        selectQuery.onStarted(DateTime.now());
+                    }
+                },
                 metadataCache,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
-                        null, new Limits(1_000_000_000, 50_000, 1000, 1000, 8, 8)),
+                        null, new Limits(50, 50_000, 1000, 1000, 8, 8)),
                 new TopTermsCache(imhotepClient, "", true),
                 imhotepLocalTempFileSizeLimit,
                 imhotepDaemonTempFileSizeLimit,

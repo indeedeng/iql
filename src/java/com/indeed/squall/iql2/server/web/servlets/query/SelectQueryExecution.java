@@ -24,10 +24,13 @@ import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.util.core.time.WallClock;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.indeed.common.util.io.Closeables2;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.exceptions.ImhotepKnownException;
+import com.indeed.imhotep.exceptions.ImhotepOverloadedException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
@@ -45,10 +48,11 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.server.web.ExecutionManager;
 import com.indeed.squall.iql2.server.web.cache.QueryCache;
 import com.indeed.squall.iql2.server.web.model.ClientInfo;
 import com.indeed.squall.iql2.server.web.model.Limits;
+import com.indeed.squall.iql2.server.web.model.RunningQueriesManager;
+import com.indeed.squall.iql2.server.web.model.SelectQuery;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.time.WallClock;
@@ -57,6 +61,7 @@ import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.Charsets;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
@@ -91,15 +96,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SelectQueryExecution {
+public class SelectQueryExecution implements Closeable {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // IQL2 server systems
     private final QueryCache queryCache;
-    private final ExecutionManager executionManager;
-    //private final RunningQueriesManager runningQueriesManager;
 
     // Query sanity limits
     public final Limits limits;
@@ -125,15 +128,13 @@ public class SelectQueryExecution {
     public final boolean isStream;
     public final boolean skipValidation;
     private final WallClock clock;
+    private final Closer closer = Closer.create();
 
     public boolean ran = false;
-    public boolean cancelled = false;
-    public long id = -1;
     public long queryStartTimestamp = -1L;
 
     public SelectQueryExecution(
             final QueryCache queryCache,
-            final ExecutionManager executionManager,
             final Long subQueryTermLimit,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
@@ -164,22 +165,18 @@ public class SelectQueryExecution {
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
-        this.executionManager = executionManager;
         this.subQueryTermLimit = subQueryTermLimit;
         this.queryCache = queryCache;
         this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
         this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
     }
 
-    public void onStarted(long queryStartTimestamp) {
-        this.queryStartTimestamp = queryStartTimestamp;
+    @Override
+    public void close() {
+        Closeables2.closeQuietly(closer, log);
     }
 
-    public void onInserted(long id) {
-        this.id = id;
-    }
-
-    public void processSelect() throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    public void processSelect(final RunningQueriesManager runningQueriesManager) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
         // .. just in case.
         synchronized (this) {
             if (ran) {
@@ -188,10 +185,8 @@ public class SelectQueryExecution {
             ran = true;
         }
 
-        final ExecutionManager.QueryTracker queryTracker = executionManager.queryStarted(query, clientInfo.username);
         try {
             timer.push("Acquire concurrent query lock");
-            queryTracker.acquireLocks(); // blocks and waits if necessary
             final long startTime = clock.currentTimeMillis();
             timer.pop();
             queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
@@ -219,11 +214,13 @@ public class SelectQueryExecution {
 
             final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
             final Set<String> warnings = new HashSet<>();
-            final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(50000000000L);
+            Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
+            if (numDocLimitBillion == null) numDocLimitBillion = 50;
+            final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
             final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
             final ProgressCallback progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
 
-            final SelectExecutionInformation execInfo = executeSelect(queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+            final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     warnings.add(s);
@@ -253,10 +250,9 @@ public class SelectQueryExecution {
                 outputStream.println("data: :)");
                 outputStream.println();
             }
-        } finally {
-            if (!queryTracker.isAsynchronousRelease()) {
-                queryTracker.close();
-            }
+        } catch (Exception e) {
+            log.debug("Exception when execute the select query: " + query, e);
+            throw e;
         }
     }
 
@@ -296,13 +292,14 @@ public class SelectQueryExecution {
 
     // TODO: These parameters are nuts
     private SelectExecutionInformation executeSelect(
+            final RunningQueriesManager runningQueriesManager,
             final QueryInfo queryInfo,
             final String q,
             final boolean useLegacy,
             final Consumer<String> out,
             final ProgressCallback progressCallback,
             final com.indeed.squall.iql2.language.compat.Consumer<String> warn
-    ) throws IOException, ImhotepOutOfMemoryException {
+    ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
         timer.push(q);
 
         timer.push("parse query");
@@ -327,7 +324,23 @@ public class SelectQueryExecution {
             queryInfo.totalDatasetRange = datasetRangeSum;
         }
 
-        final SelectExecutionInformation result = new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
+        int sessions = parseResult.query.datasets.size();
+        if (sessions > 8) {
+            throw new ImhotepOverloadedException("User is creating more than 8 sessions concurrently!!!");
+        }
+        final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
+                (byte) sessions, this);
+
+        SelectExecutionInformation result;
+        try {
+            selectQuery.lock();
+            queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();
+            result = new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
+        } finally {
+            if (!selectQuery.isAsynchronousRelease()) {
+                Closeables2.closeQuietly(selectQuery, log);
+            }
+        }
         timer.pop();
 
         return result;
@@ -636,7 +649,7 @@ public class SelectQueryExecution {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
-        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, 12);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 

@@ -19,6 +19,7 @@ import com.indeed.squall.iql2.server.web.healthcheck.ImhotepMetadataServiceClien
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.model.IQLDB;
 import com.indeed.squall.iql2.server.web.model.Limits;
+import com.indeed.squall.iql2.server.web.model.RunningQueriesManager;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.squall.iql2.server.web.topterms.TopTermsCache;
@@ -190,6 +191,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         final List<String> multiuserClients = (List<String>)env.getProperty("multiuser.clients", List.class, Collections.emptyList());
 
         return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits());
+    }
+
+    @Bean
+    public RunningQueriesManager runningQueriesManager() {
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb());
+        runningQueriesManager.onStartup();
+        return runningQueriesManager;
     }
 
     private Limits getDefaultLimits() {
