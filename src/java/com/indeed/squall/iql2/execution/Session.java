@@ -965,10 +965,16 @@ public class Session {
         void term(long term, long[] stats, int group);
     }
 
+    /**
+     * {@code metricIndexes} must be disjoint across sessions.
+     */
     public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer) throws IOException {
         iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer);
     }
 
+    /**
+     * {@code metricIndexes} must be disjoint across sessions.
+     */
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
@@ -1050,9 +1056,12 @@ public class Session {
         }
     }
 
+    /**
+     * {@code state.metricIndexes} must be disjoint across sessions.
+     */
     private static void copyStats(SessionIntIterationState state, long[] dst) {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
-            dst[state.metricIndexes.getInt(i)] += state.statsBuff[i];
+            dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];
         }
         if (state.presenceIndex != null) {
             dst[state.presenceIndex] = 1;
@@ -1098,10 +1107,16 @@ public class Session {
         void term(String term, long[] stats, int group);
     }
 
+    /**
+     * {@code metricIndexes} must be disjoint across sessions.
+     */
     public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer) throws IOException {
         iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer);
     }
 
+    /**
+     * {@code metricIndexes} must be disjoint across sessions.
+     */
     public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer) throws IOException {
@@ -1208,6 +1223,9 @@ public class Session {
         }
     }
 
+    /**
+     * {@code state.metricIndexes} must be disjoint across sessions.
+     */
     private static void copyStats(SessionStringIterationState state, long[] dst) {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
             dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];

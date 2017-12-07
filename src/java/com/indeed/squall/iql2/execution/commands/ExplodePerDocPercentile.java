@@ -55,13 +55,16 @@ public class ExplodePerDocPercentile implements Command {
         final int[] soFar = new int[session.numGroups + 1];
         final Map<String, IntList> metricIndexes = Maps.newHashMap();
         for (final String k : session.sessions.keySet()) {
-            metricIndexes.put(k, new IntArrayList(new int[]{0}));
+            final int nextIndex = metricIndexes.size();
+            metricIndexes.put(k, new IntArrayList(new int[]{nextIndex}));
         }
         session.timer.push("compute cutoffs (iterateMultiInt)");
         Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
             @Override
             public void term(long term, long[] stats, int group) {
-                runningCounts[group] += stats[0];
+                for (final long stat : stats) {
+                    runningCounts[group] += stat;
+                }
 
                 final int fraction;
                 if (runningCounts[group] == counts[group]) {
