@@ -3,21 +3,25 @@ package com.indeed.squall.iql2.execution.groupkeys.sets;
 import com.indeed.squall.iql2.execution.groupkeys.GroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public class YearMonthGroupKey implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numMonths;
     private final DateTime startMonth;
+    private final String formatString;
     private final DateTimeFormatter formatter;
 
-    public YearMonthGroupKey(GroupKeySet previous, int numMonths, DateTime startMonth, DateTimeFormatter formatter) {
+    public YearMonthGroupKey(GroupKeySet previous, int numMonths, DateTime startMonth, String formatString) {
         this.previous = previous;
         this.numMonths = numMonths;
         this.startMonth = startMonth;
-        this.formatter = formatter;
+        this.formatString = formatString;
+        this.formatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
     }
 
     @Override
@@ -55,11 +59,11 @@ public class YearMonthGroupKey implements GroupKeySet {
         return numMonths == that.numMonths &&
                 Objects.equals(previous, that.previous) &&
                 Objects.equals(startMonth, that.startMonth) &&
-                Objects.equals(formatter, that.formatter);
+                Objects.equals(formatString, that.formatString);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(previous, numMonths, startMonth, formatter);
+        return Objects.hash(previous, numMonths, startMonth, formatString);
     }
 }

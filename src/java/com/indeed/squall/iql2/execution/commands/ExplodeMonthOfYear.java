@@ -12,8 +12,6 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.YearMonthGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 import java.util.List;
 
@@ -40,7 +38,6 @@ public class ExplodeMonthOfYear implements Command {
         final int oldNumGroups = session.numGroups;
 
         final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
-        final DateTimeFormatter formatter = DateTimeFormat.forPattern(TimeUnit.MONTH.formatString);
         final DateTime startMonth = new DateTime(earliestStart, zone).withDayOfMonth(1).withTimeAtStartOfDay();
         final DateTime endMonthExclusive = new DateTime(latestEnd, zone).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
         final int numMonths = Months.monthsBetween(
@@ -71,6 +68,6 @@ public class ExplodeMonthOfYear implements Command {
 
         session.regroup(rulesArray);
 
-        session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, formatter));
+        session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, TimeUnit.MONTH.formatString));
     }
 }

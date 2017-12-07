@@ -1,24 +1,28 @@
 package com.indeed.squall.iql2.execution.groupkeys;
 
-import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 public class TimeRangeGroupKey extends GroupKey {
     private final String format;
     private final long start;
     private final long end;
+    private final DateTimeFormatter formatter;
 
     public TimeRangeGroupKey(String format, long start, long end) {
         this.format = format;
         this.start = start;
         this.end = end;
+        formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
     }
 
     @Override
     public void addToList(List<String> list) {
-        list.add("[" + new DateTime(start).toString(format) + ", " + new DateTime(end).toString(format) + ")");
+        list.add("[" + formatter.print(start) + ", " + formatter.print(end) + ")");
     }
 
     @Override
