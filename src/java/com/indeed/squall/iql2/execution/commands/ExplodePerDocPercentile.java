@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -41,7 +42,7 @@ public class ExplodePerDocPercentile implements Command {
         session.timer.push("get counts");
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            s.session.pushStat("count()");
+            s.session.pushStat("hasintfield " + field);
             final long[] stats = s.session.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
@@ -61,19 +62,30 @@ public class ExplodePerDocPercentile implements Command {
             @Override
             public void term(long term, long[] stats, int group) {
                 runningCounts[group] += stats[0];
-                final int fraction = (int) Math.floor((double) numBuckets * runningCounts[group] / counts[group]);
-                for (int i = soFar[group] + 1; i <= fraction; i++) {
-                    cutoffs[group][i - 1] = term;
-                    soFar[group] = i;
+
+                final int fraction;
+                if (runningCounts[group] == counts[group]) {
+                    // To not to rely on double precision.
+                    fraction = numBuckets;
+                } else if (runningCounts[group] < counts[group]){
+                    fraction = (int) Math.floor(((double) numBuckets * runningCounts[group]) / counts[group]);
+                } else {
+                    // per-group hasintfield < sum_term per-term-group hasintfield means it is multi-valued field.
+                    throw new UnsupportedOperationException(
+                            String.format("Query failed trying to do ExplodePerDocPercentile on a multi-valued field %s.", field)
+                    );
                 }
+                for (int i = soFar[group]; i < fraction; i++) {
+                    cutoffs[group][i] = term;
+                }
+                soFar[group] = Math.max(soFar[group], fraction);
             }
         }, session.timer);
         session.timer.pop();
 
         for (int group = 1; group <= session.numGroups; group++) {
-            for (int idx = soFar[group] + 1; idx < numBuckets; idx++) {
-                cutoffs[group][idx] = Integer.MAX_VALUE;
-            }
+            Preconditions.checkState(runningCounts[group] == counts[group], "Failed to detect multi-valued field, or missed some values?");
+            Preconditions.checkState(soFar[group] == numBuckets);
         }
 
         session.timer.push("compute bucket remaps");

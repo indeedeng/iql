@@ -1052,7 +1052,7 @@ public class Session {
 
     private static void copyStats(SessionIntIterationState state, long[] dst) {
         for (int i = 0; i < state.metricIndexes.size(); i++) {
-            dst[state.metricIndexes.getInt(i)] = state.statsBuff[i];
+            dst[state.metricIndexes.getInt(i)] += state.statsBuff[i];
         }
         if (state.presenceIndex != null) {
             dst[state.presenceIndex] = 1;
