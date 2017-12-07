@@ -32,7 +32,7 @@ public class SelectQuery implements Closeable {
     private static final byte VERSION_FOR_HASHING = 2;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,100}+)[^\\)]+\\)");
+    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
     private final RunningQueriesManager runningQueriesManager;
     final String queryString;
     public final String queryHash; // this hash doesn't include the shards so is different from the caching hash
