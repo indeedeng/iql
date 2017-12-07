@@ -405,6 +405,10 @@ public class QueryServlet {
             logInteger(logEntry, "days", queryInfo.totalDatasetRange.toStandardDays().getDays());
         }
         logLong(logEntry, "ftgsmb", queryInfo.ftgsMB);
+        logLong(logEntry, "imhotepcputimems", queryInfo.imhotepcputimems);
+        logLong(logEntry, "imhoteprammb", queryInfo.imhoteprammb);
+        logLong(logEntry, "imhotepftgsmb", queryInfo.imhotepftgsmb);
+        logLong(logEntry, "imhotepfieldfilesmb", queryInfo.imhotepfieldfilesmb);
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
         logInteger(logEntry, "maxgroups", queryInfo.maxGroups);

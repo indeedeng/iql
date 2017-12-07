@@ -32,6 +32,7 @@ import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
@@ -123,10 +124,13 @@ public class Session {
     public static class CreateSessionResult {
         public final Optional<Session> session;
         public final long tempFileBytesWritten;
+        @Nullable
+        public final PerformanceStats imhotepPerformanceStats;
 
-        CreateSessionResult(Optional<Session> session, long tempFileBytesWritten) {
+        CreateSessionResult(Optional<Session> session, long tempFileBytesWritten, PerformanceStats imhotepPerformanceStats) {
             this.session = session;
             this.tempFileBytesWritten = tempFileBytesWritten;
+            this.imhotepPerformanceStats = imhotepPerformanceStats;
         }
     }
 
@@ -201,13 +205,26 @@ public class Session {
                 }
             }
 
-            return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten);
+            final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
+            try {
+                // Close sessions and get performance stats
+                for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
+                    final PerformanceStats sessionPerformanceStats = sessionInfo.session.closeAndGetPerformanceStats();
+                    if (sessionPerformanceStats != null) {
+                        performanceStats.add(sessionPerformanceStats);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Exception trying to close Imhotep sessions", e);
+            }
+
+            return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
             createSubSessions(client, requestRust, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L);
+            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit)), 0L, null);
         }
     }
 
@@ -297,8 +314,9 @@ public class Session {
             final ImhotepSession build = closer.register(sessionBuilder.build());
             progressCallback.sessionOpened(build);
             treeTimer.pop();
-            // TODO: closer.register() the wrapped session as well once AbstractImhotepMultiSession's close() is idempotent
-            final ImhotepSession session = wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields));
+            // Just in case they have resources, register the wrapped session as well.
+            // Double close() is supposed to be safe.
+            final ImhotepSession session = closer.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             treeTimer.push("determine time range");

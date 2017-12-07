@@ -20,6 +20,7 @@ import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -259,6 +260,14 @@ public class SelectQueryExecution {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
+        final PerformanceStats imhotepPerfStats = execInfo.imhotepPerformanceStats;
+        if (imhotepPerfStats != null) {
+            queryInfo.imhotepcputimems = imhotepPerfStats.cpuTime / 1000000;   // nanoseconds to ms;
+            queryInfo.imhoteprammb = imhotepPerfStats.maxMemoryUsage / 1024 / 1024;
+            queryInfo.imhotepftgsmb = imhotepPerfStats.ftgsTempFileSize / 1024 / 1024;
+            queryInfo.imhotepfieldfilesmb = imhotepPerfStats.fieldFilesReadSize / 1024 / 1024;
+        }
+
         if (execInfo.hasMoreRows) {
             warnings.add(String.format("Only first %d rows returned sorted on the last group by column", queryInfo.rows));
         }
@@ -446,7 +455,7 @@ public class SelectQueryExecution {
                         progressCallback.startCommand(null, null, true);
                         final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
                         timer.pop();
-                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], cacheKeys,
+                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], null, cacheKeys,
                                 Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
                     } else {
                         final Consumer<String> oldOut = out;
@@ -530,6 +539,7 @@ public class SelectQueryExecution {
                             allShardsUsed,
                             queryCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
+                            createResult.imhotepPerformanceStats,
                             cacheKeys,
                             infoCollectingProgressCallback.getSessionIds(),
                             infoCollectingProgressCallback.getTotalNumDocs(),
@@ -658,6 +668,10 @@ public class SelectQueryExecution {
         @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
         @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
         @Nullable Long ftgsMB;
+        @Nullable Long imhotepcputimems;
+        @Nullable Long imhoteprammb;
+        @Nullable Long imhotepftgsmb;
+        @Nullable Long imhotepfieldfilesmb;
         @Nullable Collection<String> sessionIDs;
         @Nullable Integer numShards;
         @Nullable Long numDocs;
@@ -672,6 +686,8 @@ public class SelectQueryExecution {
         public final Multimap<String, List<Shard>> shards;
         public final Map<Query, Boolean> queryCached;
         public final long imhotepTempBytesWritten;
+        @Nullable
+        public final PerformanceStats imhotepPerformanceStats;
         public final Set<String> cacheKeys;
 
         public final List<String> sessionIds;
@@ -680,11 +696,12 @@ public class SelectQueryExecution {
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
-        private SelectExecutionInformation(Multimap<String, List<Shard>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, Set<String> cacheKeys, List<String> sessionIds,
+        private SelectExecutionInformation(Multimap<String, List<Shard>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats, Set<String> cacheKeys, List<String> sessionIds,
                                            long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, final boolean hasMoreRows) {
             this.shards = shards;
             this.queryCached = queryCached;
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
+            this.imhotepPerformanceStats = imhotepPerformanceStats;
             this.cacheKeys = ImmutableSet.copyOf(cacheKeys);
             this.sessionIds = ImmutableList.copyOf(sessionIds);
             this.totalNumDocs = totalNumDocs;
