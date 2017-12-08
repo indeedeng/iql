@@ -19,6 +19,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.util.core.time.WallClock;
@@ -218,7 +219,7 @@ public class SelectQueryExecution {
                 headerMap.put("IQL-Cached", execInfo.allCached());
                 headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
                 headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
+                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(-1L)));
                 headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
                 headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
                 headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
@@ -727,17 +728,20 @@ public class SelectQueryExecution {
             });
         }
 
-        public long newestShard() {
-            long newest = -1;
+        public Optional<Long> newestStaticShard() {
+            long newestStatic = -1;
             for (final List<Shard> shardset : shards.values()) {
                 for (final Shard shard : shardset) {
-                    newest = Math.max(newest, shard.getVersion());
+                    if (!DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
+                        newestStatic = Math.max(newestStatic, shard.getVersion());
+                    }
                 }
             }
-            if (newest == -1) {
-                throw new IllegalArgumentException("No shards!");
+            if (newestStatic == -1) {
+                return Optional.absent();
+            } else {
+                return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
             }
-            return DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newest));
         }
     }
 
