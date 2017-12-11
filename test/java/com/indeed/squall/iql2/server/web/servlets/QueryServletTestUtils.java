@@ -14,7 +14,6 @@ import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.model.IQLDB;
 import com.indeed.squall.iql2.server.web.model.Limits;
 import com.indeed.squall.iql2.server.web.model.RunningQueriesManager;
-import com.indeed.squall.iql2.server.web.model.SelectQuery;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServlet;
@@ -24,7 +23,6 @@ import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
-import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -34,7 +32,7 @@ import java.util.List;
 
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static IQLDB iqldb = Mockito.mock(IQLDB.class);
+    private static IQLDB iqldb;
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final Long imhotepLocalTempFileSizeLimit = -1L;
@@ -43,20 +41,12 @@ public class QueryServletTestUtils extends BasicTest {
 
         final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient);
         metadataCache.updateMetadata();
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
         return new QueryServlet(
                 imhotepClient,
                 options.queryCache,
-                //TODO: improve this hack to make unit test cover the management logic
-                new RunningQueriesManager(iqldb) {
-                    @Override
-                    public void register(SelectQuery selectQuery) {
-                        super.register(selectQuery);
-                        //Manually trigger the query to execuate directly, so the unit test won't be awaiting forever
-                        //As a consequence, management logic doesn't work, no db read/write operations
-                        selectQuery.onStarted(DateTime.now());
-                    }
-                },
+                runningQueriesManager,
                 metadataCache,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, 50_000, 1000, 1000, 8, 8)),

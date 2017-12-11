@@ -89,10 +89,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -216,8 +212,17 @@ public class SelectQueryExecution implements Closeable {
             final Set<String> warnings = new HashSet<>();
             //Check query document count limit
             Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
-            if (numDocLimitBillion == null) numDocLimitBillion = 50;
-            final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
+            NumDocLimitingProgressCallback numDocLimitingProgressCallback;
+            if (numDocLimitBillion == null) {
+                numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(0) {
+                    @Override
+                    public void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions) {
+                        super.sessionsOpened(sessions);
+                    }
+                };
+            } else {
+                numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
+            }
             final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
             final ProgressCallback progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
 
@@ -326,8 +331,8 @@ public class SelectQueryExecution implements Closeable {
         }
 
         int sessions = parseResult.query.datasets.size();
-        if (sessions > 8) {
-            throw new ImhotepOverloadedException("User is creating more than 8 sessions concurrently!!!");
+        if (sessions > limits.concurrentImhotepSessionsLimit) {
+            throw new ImhotepOverloadedException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
                 (byte) sessions, this);
@@ -479,20 +484,7 @@ public class SelectQueryExecution implements Closeable {
             try (final Closer closer = Closer.create()) {
                 if (queryCache.isEnabled() && !skipCache) {
                     timer.push("cache check");
-                    boolean isCached;
-                    try {
-                        ExecutorService executor = Executors.newSingleThreadExecutor();
-                        SimpleTimeLimiter timeout = new SimpleTimeLimiter(executor);
-                        isCached = timeout.callWithTimeout(new Callable<Boolean>() {
-                            @Override
-                            public Boolean call() throws Exception {
-                                return queryCache.isFileCached(computeCacheKey.cacheFileName);
-                            }
-                        }, 500, TimeUnit.MILLISECONDS, true);
-                    } catch (Exception e) {
-                        log.debug("Cache check takes more than 500ms, gave up :(");
-                        isCached = false;
-                    }
+                    final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
                     timer.pop();
 
                     queryCached.put(query, isCached);
