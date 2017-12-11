@@ -210,21 +210,18 @@ public class SelectQueryExecution implements Closeable {
 
             final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
             final Set<String> warnings = new HashSet<>();
+            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
+            ProgressCallback progressCallback;
+
             //Check query document count limit
             Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
             NumDocLimitingProgressCallback numDocLimitingProgressCallback;
-            if (numDocLimitBillion == null) {
-                numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(0) {
-                    @Override
-                    public void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions) {
-                        super.sessionsOpened(sessions);
-                    }
-                };
-            } else {
+            if (numDocLimitBillion != null) {
                 numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
+                progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
+            } else {
+                progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
             }
-            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
-            final ProgressCallback progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
 
             final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
                 @Override
@@ -330,26 +327,23 @@ public class SelectQueryExecution implements Closeable {
             queryInfo.totalDatasetRange = datasetRangeSum;
         }
 
-        int sessions = parseResult.query.datasets.size();
+        final int sessions = parseResult.query.datasets.size();
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new ImhotepOverloadedException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
                 (byte) sessions, this);
 
-        SelectExecutionInformation result;
         try {
             selectQuery.lock();
             queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();
-            result = new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
+            return new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
         } finally {
             if (!selectQuery.isAsynchronousRelease()) {
                 Closeables2.closeQuietly(selectQuery, log);
             }
+            timer.pop();
         }
-        timer.pop();
-
-        return result;
     }
 
     private class ParsedQueryExecution {
