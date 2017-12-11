@@ -47,10 +47,13 @@ public class QueryServletTestUtils extends BasicTest {
         return new QueryServlet(
                 imhotepClient,
                 options.queryCache,
+                //TODO: improve this hack to make unit test cover the management logic
                 new RunningQueriesManager(iqldb) {
                     @Override
                     public void register(SelectQuery selectQuery) {
                         super.register(selectQuery);
+                        //Manually trigger the query to execuate directly, so the unit test won't be awaiting forever
+                        //As a consequence, management logic doesn't work, no db read/write operations
                         selectQuery.onStarted(DateTime.now());
                     }
                 },

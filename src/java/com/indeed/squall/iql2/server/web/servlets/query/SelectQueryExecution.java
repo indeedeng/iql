@@ -214,6 +214,7 @@ public class SelectQueryExecution implements Closeable {
 
             final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
             final Set<String> warnings = new HashSet<>();
+            //Check query document count limit
             Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
             if (numDocLimitBillion == null) numDocLimitBillion = 50;
             final NumDocLimitingProgressCallback numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
