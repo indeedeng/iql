@@ -47,7 +47,7 @@ public class QueryServletTestUtils extends BasicTest {
                 runningQueriesManager,
                 metadataCache,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
-                        null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 22, 8)),
+                        null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
                 new TopTermsCache(imhotepClient, "", true),
                 options.wallClock
         );
