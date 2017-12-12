@@ -19,15 +19,12 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
-import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.PerformanceStats;
-import com.indeed.util.core.time.WallClock;
-import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.indeed.common.util.io.Closeables2;
+import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
@@ -102,7 +99,6 @@ public class SelectQueryExecution implements Closeable {
 
     // Query sanity limits
     public final Limits limits;
-    private final Integer groupLimit;
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
@@ -129,7 +125,6 @@ public class SelectQueryExecution implements Closeable {
     public SelectQueryExecution(
             final QueryCache queryCache,
             final Limits limits,
-            final Integer groupLimit,
             final ImhotepClient imhotepClient,
             final DatasetsMetadata datasetsMetadata,
             final PrintWriter outputStream,
@@ -151,7 +146,6 @@ public class SelectQueryExecution implements Closeable {
         this.isStream = isStream;
         this.limits = limits;
         this.skipValidation = skipValidation;
-        this.groupLimit = groupLimit;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
@@ -172,78 +166,74 @@ public class SelectQueryExecution implements Closeable {
             ran = true;
         }
 
-        try {
-            final long startTime = clock.currentTimeMillis();
-            queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
-            if (isStream) {
-                outputStream.println(": This is the start of the IQL Query Stream");
-                outputStream.println();
-            }
-            final Consumer<String> out;
-            if (isStream) {
-                out = new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        outputStream.print("data: ");
-                        outputStream.println(s);
-                    }
-                };
-            } else {
-                out = new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        outputStream.println(s);
-                    }
-                };
-            }
-
-            final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
-            final Set<String> warnings = new HashSet<>();
-            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
-            ProgressCallback progressCallback;
-
-            //Check query document count limit
-            Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
-            NumDocLimitingProgressCallback numDocLimitingProgressCallback;
-            if (numDocLimitBillion != null) {
-                numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
-                progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
-            } else {
-                progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
-            }
-
-            final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+        final long startTime = clock.currentTimeMillis();
+        queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
+        if (isStream) {
+            outputStream.println(": This is the start of the IQL Query Stream");
+            outputStream.println();
+        }
+        final Consumer<String> out;
+        if (isStream) {
+            out = new Consumer<String>() {
                 @Override
                 public void accept(String s) {
-                    warnings.add(s);
+                    outputStream.print("data: ");
+                    outputStream.println(s);
                 }
-            });
-            extractCompletedQueryInfoData(execInfo, warnings, countingOut);
-            if (isStream) {
-                outputStream.println();
-                outputStream.println("event: header");
-
-                // TODO: Fix these headers
-                final Map<String, Object> headerMap = new HashMap<>();
-                headerMap.put("IQL-Cached", execInfo.allCached());
-                headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-                headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-                headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(-1L)));
-                headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
-                headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
-                headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
-                if (!warnings.isEmpty()) {
-                    headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
+            };
+        } else {
+            out = new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    outputStream.println(s);
                 }
-                outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
-                outputStream.println();
+            };
+        }
 
-                outputStream.println("event: complete");
-                outputStream.println("data: :)");
-                outputStream.println();
+        final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
+        final Set<String> warnings = new HashSet<>();
+        final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
+        ProgressCallback progressCallback;
+
+        //Check query document count limit
+        Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
+        NumDocLimitingProgressCallback numDocLimitingProgressCallback;
+        if (numDocLimitBillion != null) {
+            numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
+            progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
+        } else {
+            progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
+        }
+
+        final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.squall.iql2.language.compat.Consumer<String>() {
+            @Override
+            public void accept(String s) {
+                warnings.add(s);
             }
-        } catch (Exception e) {
-            throw e;
+        });
+        extractCompletedQueryInfoData(execInfo, warnings, countingOut);
+        if (isStream) {
+            outputStream.println();
+            outputStream.println("event: header");
+
+            // TODO: Fix these headers
+            final Map<String, Object> headerMap = new HashMap<>();
+            headerMap.put("IQL-Cached", execInfo.allCached());
+            headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+            headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
+            headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
+            headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
+            headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
+            headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
+            if (!warnings.isEmpty()) {
+                headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
+            }
+            outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
+            outputStream.println();
+
+            outputStream.println("event: complete");
+            outputStream.println("data: :)");
+            outputStream.println();
         }
     }
 
@@ -327,7 +317,7 @@ public class SelectQueryExecution implements Closeable {
             selectQuery.lock();
             timer.pop();
             queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();
-            return new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
+            return new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, limits.queryInMemoryRowsLimit).executeParsedQuery();
         } finally {
             if (!selectQuery.isAsynchronousRelease()) {
                 Closeables2.closeQuietly(selectQuery, log);

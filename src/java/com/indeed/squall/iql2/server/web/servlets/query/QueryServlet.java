@@ -200,12 +200,6 @@ public class QueryServlet {
                 explainQueryExecution.processExplain();
             } else {
                 final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
-                final Integer groupLimit;
-                if (request.getParameter("groupLimit") != null) {
-                    groupLimit = Integer.parseInt(request.getParameter("groupLimit"));
-                } else {
-                    groupLimit = null;
-                }
 
                 if (isStream) {
                     response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
@@ -216,7 +210,7 @@ public class QueryServlet {
                 final Limits limits = accessControl.getLimitsForIdentity(username, client);
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        queryCache, limits, groupLimit, imhotepClient,
+                        queryCache, limits, imhotepClient,
                         metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
