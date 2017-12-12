@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -80,10 +81,7 @@ public class QueryServlet {
     private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
-    private final Long imhotepLocalTempFileSizeLimit;
-    private final Long imhotepDaemonTempFileSizeLimit;
     private final WallClock clock;
-    private final Long subQueryTermLimit;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
@@ -96,10 +94,7 @@ public class QueryServlet {
             final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
-            final Long imhotepLocalTempFileSizeLimit,
-            final Long imhotepDaemonTempFileSizeLimit,
-            final WallClock clock,
-            final Long subQueryTermLimit
+            final WallClock clock
     ) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
@@ -107,10 +102,7 @@ public class QueryServlet {
         this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
-        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
-        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
         this.clock = clock;
-        this.subQueryTermLimit = subQueryTermLimit;
     }
 
     public static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -124,6 +116,18 @@ public class QueryServlet {
         }
         return upperCased;
     }
+
+    @RequestMapping("/private/updateLimits")
+    @ResponseBody
+    protected String updateLimits() {
+        try {
+            accessControl.updateLimits();
+            return "Limits reloaded from the DB";
+        } catch (Exception e) {
+            return "Update failed: " + e.toString();
+        }
+    }
+
 
     @RequestMapping("query")
     public void query(
@@ -212,7 +216,7 @@ public class QueryServlet {
                 final Limits limits = accessControl.getLimitsForIdentity(username, client);
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        queryCache, subQueryTermLimit, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, limits, groupLimit, imhotepClient,
+                        queryCache, limits, groupLimit, imhotepClient,
                         metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;

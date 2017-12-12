@@ -30,7 +30,7 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
-import com.indeed.imhotep.exceptions.ImhotepOverloadedException;
+import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
@@ -102,9 +102,6 @@ public class SelectQueryExecution implements Closeable {
 
     // Query sanity limits
     public final Limits limits;
-    private final Long subQueryTermLimit;
-    private final Long imhotepLocalTempFileSizeLimit;
-    private final Long imhotepDaemonTempFileSizeLimit;
     private final Integer groupLimit;
 
     // IQL2 Imhotep-based state
@@ -131,9 +128,6 @@ public class SelectQueryExecution implements Closeable {
 
     public SelectQueryExecution(
             final QueryCache queryCache,
-            final Long subQueryTermLimit,
-            final Long imhotepLocalTempFileSizeLimit,
-            final Long imhotepDaemonTempFileSizeLimit,
             final Limits limits,
             final Integer groupLimit,
             final ImhotepClient imhotepClient,
@@ -161,10 +155,7 @@ public class SelectQueryExecution implements Closeable {
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
-        this.subQueryTermLimit = subQueryTermLimit;
         this.queryCache = queryCache;
-        this.imhotepLocalTempFileSizeLimit = imhotepLocalTempFileSizeLimit;
-        this.imhotepDaemonTempFileSizeLimit = imhotepDaemonTempFileSizeLimit;
     }
 
     @Override
@@ -182,9 +173,7 @@ public class SelectQueryExecution implements Closeable {
         }
 
         try {
-            timer.push("Acquire concurrent query lock");
             final long startTime = clock.currentTimeMillis();
-            timer.pop();
             queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
             if (isStream) {
                 outputStream.println(": This is the start of the IQL Query Stream");
@@ -254,7 +243,6 @@ public class SelectQueryExecution implements Closeable {
                 outputStream.println();
             }
         } catch (Exception e) {
-            log.debug("Exception when execute the select query: " + query, e);
             throw e;
         }
     }
@@ -329,13 +317,15 @@ public class SelectQueryExecution implements Closeable {
 
         final int sessions = parseResult.query.datasets.size();
         if (sessions > limits.concurrentImhotepSessionsLimit) {
-            throw new ImhotepOverloadedException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
+            throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
                 (byte) sessions, this);
 
         try {
+            timer.push("Acquire concurrent query lock");
             selectQuery.lock();
+            timer.pop();
             queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();
             return new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, groupLimit).executeParsedQuery();
         } finally {
@@ -395,8 +385,8 @@ public class SelectQueryExecution implements Closeable {
                                         final SelectExecutionInformation execInfo = new ParsedQueryExecution(inputStream, new Consumer<String>() {
                                             @Override
                                             public void accept(String s) {
-                                                if ((subQueryTermLimit > 0) && ((terms.size() + stringTerms.size()) >= subQueryTermLimit)) {
-                                                    throw new IllegalStateException("Sub query cannot have more than [" + subQueryTermLimit + "] terms!");
+                                                if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
+                                                    throw new IllegalStateException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                                                 }
                                                 final String term = s.split("\t")[0];
                                                 try {
@@ -568,7 +558,7 @@ public class SelectQueryExecution implements Closeable {
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
                             imhotepClient, datasetToChosenShards, requestJson, closer, out, timer,
-                            compositeProgressCallback, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, clientInfo.username);
+                            compositeProgressCallback, limits.queryFTGSIQLLimitMB.longValue(), limits.queryFTGSImhotepDaemonLimitMB.longValue(), clientInfo.username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
