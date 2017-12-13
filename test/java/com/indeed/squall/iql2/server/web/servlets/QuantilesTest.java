@@ -60,6 +60,13 @@ public class QuantilesTest extends BasicTest {
         QueryServletTestUtils.testIQL2(createDataset(FieldType.OPTIONAL), expected, "from dataset yesterday today as A, dataset as B group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
+    @Test
+    public void testNoDocs() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[0.0, 1.0)", "0", "9223372036854776000", "NaN", "-9223372036854776000"));
+        QueryServletTestUtils.testIQL2(createDataset(FieldType.MANDATORY), expected, "from dataset yesterday today as A, dataset as B where f<0 group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+    }
+
     public static Dataset createDataset(final FieldType fieldType) {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
