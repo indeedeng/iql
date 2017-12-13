@@ -88,7 +88,7 @@ public class ExplodePerDocPercentile implements Command {
 
         for (int group = 1; group <= session.numGroups; group++) {
             Preconditions.checkState(runningCounts[group] == counts[group], "Failed to detect multi-valued field, or missed some values?");
-            Preconditions.checkState(soFar[group] == numBuckets);
+            Preconditions.checkState((soFar[group] == numBuckets) || (counts[group] == 0));
         }
 
         session.timer.push("compute bucket remaps");
@@ -105,7 +105,7 @@ public class ExplodePerDocPercentile implements Command {
             final IntArrayList positiveGroups = new IntArrayList();
             final List<RegroupConditionMessage> conditions = Lists.newArrayList();
             for (int bucket = 0; bucket < numBuckets; bucket++) {
-                if (bucket > 0 && cutoffs[group][bucket] == cutoffs[group][bucket - 1]) {
+                if ((bucket > 0) && (cutoffs[group][bucket] == cutoffs[group][bucket - 1])) {
                     continue;
                 }
                 final int end = ArrayUtils.lastIndexOf(cutoffs[group], cutoffs[group][bucket]);
