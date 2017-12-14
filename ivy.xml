@@ -64,6 +64,9 @@
 
         <dependency org="org.antlr" name="antlr4-runtime" rev="4.5"/>
 
+        <!-- For com.indeed.common.net.GoogleShortlinkClient -->
+        <dependency org="indeed" name="common-net" rev="${common-net.version}"/>
+
         <!-- Elaborations dependencies -->
         <dependency org="indeed" name="common-dbutil" rev="${common-dbutil.version}"/>
         <dependency org="mysql" name="mysql-connector-java" rev="${mysql-connector.version}"/>

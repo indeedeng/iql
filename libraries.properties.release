@@ -1,6 +1,7 @@
 common-daemons.version=4.1.43
 common-dbutil.version=4.1.30
 common-jobsearch.version=4.1.106
+common-net.version=4.1.28
 common-util.version=4.1.47
 commons-codec.version=1.10
 commons-math3.version=3.3
