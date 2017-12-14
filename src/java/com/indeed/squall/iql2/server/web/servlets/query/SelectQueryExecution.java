@@ -221,7 +221,7 @@ public class SelectQueryExecution implements Closeable {
             headerMap.put("IQL-Cached", execInfo.allCached());
             headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
             headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-            headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestShard()));
+            headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(-1L)));
             headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
             headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
             headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
