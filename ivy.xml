@@ -69,6 +69,9 @@
         <dependency org="mysql" name="mysql-connector-java" rev="${mysql-connector.version}"/>
         <dependency org="indeed" name="docservice" rev="${docservice.version}" conf="master->interfaces"/>
         <dependency org="indeed" name="sourceservice" rev="${sourceservice.version}"/>
+        <!-- CgCategoryBatchLookup requires at least this version of HTTPClient to work with SNI-->
+        <dependency org="apache" name="httpcomponents-httpclient" rev="4.5.3"/>
+        <dependency org="org.apache.httpcomponents" name="fluent-hc" rev="4.5.2"/>
 
         <exclude org="hadoop" module="hadoop-yarn.*"/>
         <!-- Jersey conflicts with RESTEasy -->
