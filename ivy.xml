@@ -6,13 +6,12 @@
     <info organisation="indeed" module="iql2-server" status="integration"/>
 
     <configurations defaultconfmapping="master->default(master)">
-        <conf name="master"/>
+        <conf name="master" visibility="private"/>
         <conf name="test" extends="master"/>
-        <conf name="compile" extends="master"/>
-        <conf name="default" extends="master"/>
-        <conf name="runtime" extends="master"/>
-        <conf name="webapp" extends="master"/>
-        <conf name="developer" extends="master"/>
+        <conf name="compile" extends="master" visibility="private"/>
+        <conf name="webapp" extends="master" visibility="private"/>
+        <conf name="developer" visibility="private"/>
+        <conf name="sources" visibility="private"/>
     </configurations>
 
     <publications>
@@ -68,18 +67,11 @@
         <!-- Elaborations dependencies -->
         <dependency org="indeed" name="common-dbutil" rev="${common-dbutil.version}"/>
         <dependency org="mysql" name="mysql-connector-java" rev="${mysql-connector.version}"/>
-        <dependency org="indeed" name="docservice" rev="${docservice.version}" conf="webapp,compile,developer->interfaces"/>
-        <dependency org="indeed" name="sourceservice" rev="${sourceservice.version}" conf="webapp,compile,developer->default"/>
-
-        <exclude org="tomcat" conf="webapp,developer"/>
-        <exclude org="org.mortbay.jetty" conf="webapp,developer"/>
-        <exclude org="javax.servlet" module="servlet-api" conf="webapp,developer"/>
-        <exclude org="javax.servlet.jsp" module="jsp-api" conf="webapp,developer"/>
-        <exclude org="spring" module="spring-asm" conf="webapp,developer"/>
+        <dependency org="indeed" name="docservice" rev="${docservice.version}" conf="master->interfaces"/>
+        <dependency org="indeed" name="sourceservice" rev="${sourceservice.version}"/>
 
         <exclude org="hadoop" module="hadoop-yarn.*"/>
         <!-- Jersey conflicts with RESTEasy -->
         <exclude org="com.sun.jersey" module="*"/>
-        <conflict org="spring" module="*" rev="${spring.version}"/>
     </dependencies>
 </ivy-module>

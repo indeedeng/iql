@@ -1,13 +1,6 @@
-thirdparty-repo-opt-in=true
-protobuf.version=2.5.0
-
-indeed.current.version=4
-indeed.next.version=5
-spring.version=4.3.8.RELEASE
+webapp.path=iql2
 
 coverage.line.minimum_pct=15
 coverage.method.minimum_pct=15
 coverage.block.minimum_pct=15
 coverage.class.minimum_pct=15
-
-use.gradle.resolver=true

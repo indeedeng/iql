@@ -28,6 +28,8 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
         implements WebApplicationInitializer {
     private static final Logger log = Logger.getLogger(WebApp.class);
     private static boolean started = false;
+    private static final String serverIdParamName = "loggingServerId";
+    private static final String subserverIdParamName = "loggingSubServerId";
 
     @Override
     public void onStartup(ServletContext servletContext) throws ServletException {
@@ -35,6 +37,13 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
             return; // avoid double initialization when a subclass exists
         }
         WebApp.started = true;
+
+        if(servletContext.getInitParameter(serverIdParamName) == null) {
+            servletContext.setInitParameter(serverIdParamName, "1");
+        }
+        if(servletContext.getInitParameter(subserverIdParamName) == null) {
+            servletContext.setInitParameter(subserverIdParamName, "51");
+        }
 
         initWebapp(servletContext);
 
