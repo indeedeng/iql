@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
 import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
+import com.indeed.squall.iql2.language.metadata.FieldMetadata;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -16,11 +17,11 @@ public class DatasetDescriptor {
 
     final String name;
     final String description;
-    final ImmutableList<FieldDescriptor> fields;
+    final ImmutableList<FieldMetadata> fields;
     // for IQL1 convention
     final ImmutableList<Dimension> metrics;
 
-    public DatasetDescriptor(String name, String description, List<FieldDescriptor> fields, ImmutableList<Dimension> dimensions) {
+    public DatasetDescriptor(String name, String description, List<FieldMetadata> fields, ImmutableList<Dimension> dimensions) {
         this.name = name;
         this.description = description;
         this.fields = ImmutableList.copyOf(fields);
@@ -28,16 +29,16 @@ public class DatasetDescriptor {
     }
 
     public static DatasetDescriptor from(final String dataset, final DatasetMetadata datasetMetadata) {
-        final List<FieldDescriptor> fields = Lists.newArrayList();
+        final List<FieldMetadata> fields = Lists.newArrayList();
 
-        for (final String field : datasetMetadata.intFields) {
-            fields.add(new FieldDescriptor(field, "", "Integer"));
+        for (final FieldMetadata field : datasetMetadata.intFields) {
+            fields.add(field);
         }
-        for (final String field : datasetMetadata.stringFields) {
-            fields.add(new FieldDescriptor(field, "", "String"));
+        for (final FieldMetadata field : datasetMetadata.stringFields) {
+            fields.add(field);
         }
 
-        return new DatasetDescriptor(dataset, "", fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
+        return new DatasetDescriptor(dataset, datasetMetadata.description, fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
     }
 
     public String getName() {
@@ -48,7 +49,7 @@ public class DatasetDescriptor {
         return description;
     }
 
-    public List<FieldDescriptor> getFields() {
+    public List<FieldMetadata> getFields() {
         //noinspection ReturnOfCollectionOrArrayField
         return fields;
     }

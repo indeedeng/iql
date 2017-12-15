@@ -3,6 +3,8 @@ package com.indeed.squall.iql2.language.util;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.squall.iql2.language.metadata.FieldMetadata;
+import com.indeed.squall.iql2.language.metadata.ImmutableFieldMetadata;
 
 import java.util.Map;
 import java.util.Optional;
@@ -37,12 +39,14 @@ public class ValidationHelper {
 
 
     public boolean containsStringField(String dataset, String field) {
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(field)) ||
+        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).setFieldType(FieldMetadata.FieldType.String).build();
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(fieldMetadata)) ||
                 (datasetAliasStringFields.containsKey(dataset) && datasetAliasStringFields.get(dataset).contains(field));
     }
 
     public boolean containsIntField(String dataset, String field) {
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(field)) ||
+        FieldMetadata fieldMetadata = ImmutableFieldMetadata.builder().setName(field).setFieldType(FieldMetadata.FieldType.Integer).build();
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(fieldMetadata)) ||
                 (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
     }
 
