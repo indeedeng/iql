@@ -548,7 +548,7 @@ public class SelectQueryExecution implements Closeable {
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
                             imhotepClient, datasetToChosenShards, requestJson, closer, out, timer,
-                            compositeProgressCallback, limits.queryFTGSIQLLimitMB.longValue(), limits.queryFTGSImhotepDaemonLimitMB.longValue(), clientInfo.username);
+                            compositeProgressCallback, mbToBytes(limits.queryFTGSIQLLimitMB), mbToBytes(limits.queryFTGSImhotepDaemonLimitMB), clientInfo.username);
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,
@@ -566,6 +566,13 @@ public class SelectQueryExecution implements Closeable {
                 }
             }
         }
+    }
+
+    private static Long mbToBytes(Integer megabytes) {
+        if(megabytes == null) {
+            return 0L;
+        }
+        return megabytes <= 0 ? (long)megabytes : (long)megabytes * 1024 * 1024;
     }
 
     // increment query limit so that we know that whether it filters the response data size
