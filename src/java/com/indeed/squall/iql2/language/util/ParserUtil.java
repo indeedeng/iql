@@ -15,6 +15,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 
 import java.util.Collections;
+import java.util.Set;
 
 /**
  *
@@ -37,7 +38,8 @@ public class ParserUtil {
         if (!metadata.isPresent()) {
             return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
         } else {
-            return LuceneQueryTranslator.rewrite(parsed, metadata.get().intFields);
+            final Set<String> intFields = metadata.get().getIntFieldsStringFromMetadata();
+            return LuceneQueryTranslator.rewrite(parsed, intFields);
         }
     }
 

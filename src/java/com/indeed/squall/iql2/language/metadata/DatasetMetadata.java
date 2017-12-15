@@ -8,24 +8,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * all fields are case insensitive
  */
 public class DatasetMetadata {
     public final String datasetName;
-    public final Set<String> intFields;
-    public final Set<String> stringFields;
+    public final String description;
+    public final Set<FieldMetadata> intFields;
+    public final Set<FieldMetadata> stringFields;
     public final Map<String, Dimension> fieldToDimension;
 
-    public DatasetMetadata(String datasetName) {
+    public DatasetMetadata(String datasetName, String description) {
         this.datasetName = datasetName;
         intFields = ImmutableSet.of();
         stringFields = ImmutableSet.of();
         fieldToDimension = ImmutableMap.of();
+        this.description = description;
     }
 
-    public DatasetMetadata(final String datasetName, final Set<String> intFields, final Set<String> stringFields,
+    public DatasetMetadata(final String datasetName, final String description, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, Dimension> fieldToDimension) {
         this.datasetName = datasetName;
         this.intFields = toCaseInsensitive(intFields);
@@ -34,11 +37,22 @@ public class DatasetMetadata {
         final Map<String, Dimension> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         caseInsensitiveMap.putAll(fieldToDimension);
         this.fieldToDimension = caseInsensitiveMap;
+        this.description = description;
     }
 
-    private Set<String> toCaseInsensitive(final Set<String> set) {
-        final TreeSet<String> caseInsensitiveSet = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private Set<FieldMetadata> toCaseInsensitive(final Set<FieldMetadata> set) {
+        final TreeSet<FieldMetadata> caseInsensitiveSet = new TreeSet<>(FieldMetadata.CASE_INSENSITIVE_ORDER);
         caseInsensitiveSet.addAll(set);
         return caseInsensitiveSet;
+    }
+
+    public Set<String> getIntFieldsStringFromMetadata() {
+        return intFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
+                Collectors.toCollection(()->new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
+    }
+
+    public Set<String> getStrFieldsStringFromMetadata() {
+        return stringFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
+                Collectors.toCollection(()->new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
     }
 }
