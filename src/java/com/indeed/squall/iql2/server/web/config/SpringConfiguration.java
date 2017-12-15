@@ -122,30 +122,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    public Long imhotepLocalTempFileSizeLimit() {
-        final long limitInMegabytes = env.getProperty("imhotep.local.temp.file.size.mb.limit", Long.class, Long.MAX_VALUE);
-        if (limitInMegabytes < Long.MAX_VALUE) {
-            return mbToBytes(limitInMegabytes);
-        } else {
-            return Long.MAX_VALUE;
-        }
-    }
-
-    @Bean
-    public Long imhotepDaemonTempFileSizeLimit() {
-        return mbToBytes(env.getProperty("imhotep.daemon.temp.file.size.mb.limit", Long.class, -1L));
-    }
-
-    @Bean
-    public Long subQueryTermLimit() {
-        return env.getProperty("subquery.term.limit", Long.class, -1L);
-    }
-
-    private Long mbToBytes(Long megabytes) {
-        return megabytes <= 0 ? megabytes : megabytes * 1024 * 1024;
-    }
-
-    @Bean
     QueryCache queryCache() throws PropertyException {
         return QueryCacheFactory.newQueryCache(env);
     }
