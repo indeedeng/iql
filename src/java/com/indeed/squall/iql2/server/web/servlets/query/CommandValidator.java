@@ -57,7 +57,7 @@ public class CommandValidator {
             for (final Map.Entry<Positioned<String>, Positioned<String>> aliasToFieldEntry : relevantDataset.fieldAliases.entrySet()) {
                 final String aliasField = aliasToFieldEntry.getKey().unwrap();
                 final String actualFieldString = aliasToFieldEntry.getValue().unwrap();
-                final FieldMetadata actualField = ImmutableFieldMetadata.builder().setName(actualFieldString).setFieldType(FieldMetadata.FieldType.Integer).build();
+                final FieldMetadata actualField = ImmutableFieldMetadata.builder().setName(actualFieldString).setType(FieldMetadata.Type.Integer).build();
                 if (datasetMetada.fieldToDimension.containsKey(actualFieldString)) {
                     if (!datasetMetada.fieldToDimension.get(actualFieldString).isAlias) {
                         throw new IllegalArgumentException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));

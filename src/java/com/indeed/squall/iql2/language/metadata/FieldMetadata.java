@@ -14,9 +14,9 @@ import java.util.Comparator;
 public abstract class FieldMetadata {
     public abstract String getName();
     @Nullable public abstract String getDescription();
-    public abstract FieldType getFieldType();
+    public abstract Type getType();
 
-    public enum FieldType {
+    public enum Type {
         String,
         Integer
     }

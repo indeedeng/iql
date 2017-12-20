@@ -13,6 +13,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.squall.iql2.language.DatasetDescriptor;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.AccessControl;
 import com.indeed.squall.iql2.server.web.ErrorResult;
@@ -279,15 +280,17 @@ public class QueryServlet {
         }
     }
 
-    // TODO: this should get data from the Metadata
     private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
-        final List<String> datasets = imhotepClient.getDatasetNames();
-        final List<Map<String, String>> datasetWithEmptyDescriptions = new ArrayList<>();
-        for (final String dataset : datasets) {
-            datasetWithEmptyDescriptions.add(ImmutableMap.of("name", dataset, "description", ""));
+        final List<String> datasetNames = imhotepClient.getDatasetNames();
+        final DatasetsMetadata metadata = metadataCache.get();
+        final List<Map<String, String>> datasets = new ArrayList<>();
+        for (final String dataset : datasetNames) {
+            final String description = metadata.getMetadata(dataset).isPresent() ?
+                    Strings.nullToEmpty(metadata.getMetadata(dataset).get().description) : "";
+            datasets.add(ImmutableMap.of("name", dataset, "description", description));
         }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasetWithEmptyDescriptions)));
+            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasets)));
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
         }
@@ -314,9 +317,11 @@ public class QueryServlet {
 
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             final Map<String, Object> result = new HashMap<>();
+            final DatasetsMetadata metadata = metadataCache.get();
+            final com.google.common.base.Optional<DatasetMetadata> targetMetadata = metadata.getMetadata(dataset);
+            final String description = !targetMetadata.isPresent() ? "" : targetMetadata.get().getFieldDescription(field);
             result.put("name", field);
-            // TODO: this should get data from the Metadata
-            result.put("description", "");
+            result.put("description", description);
             result.put("type", type);
             result.put("imhotepType", imhotepType);
             final List<String> topTerms = topTermsCache.getTopTerms(dataset, field);
