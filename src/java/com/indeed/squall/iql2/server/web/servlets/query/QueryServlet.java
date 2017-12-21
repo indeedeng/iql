@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -32,6 +33,7 @@ import com.indeed.util.core.time.WallClock;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,6 +71,7 @@ public class QueryServlet {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
         GlobalUncaughtExceptionHandler.register();
+        OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
         try {
             hostname = java.net.InetAddress.getLocalHost().getHostName();
         } catch (java.net.UnknownHostException ex) {
@@ -290,6 +293,7 @@ public class QueryServlet {
             datasets.add(ImmutableMap.of("name", dataset, "description", description));
         }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasets)));
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
@@ -300,22 +304,16 @@ public class QueryServlet {
         final DatasetInfo datasetInfo = imhotepClient.getDatasetInfo(dataset);
 
         final String type;
-        final String imhotepType;
         if (datasetInfo.getIntFields().contains(field)) {
             type = "Integer";
-            if (datasetInfo.getStringFields().contains(field)) {
-                imhotepType = "String";
-            } else {
-                imhotepType = "Integer";
-            }
         } else if (datasetInfo.getStringFields().contains(field)) {
             type = "String";
-            imhotepType = "String";
         } else {
             throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
         }
 
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final Map<String, Object> result = new HashMap<>();
             final DatasetsMetadata metadata = metadataCache.get();
             final com.google.common.base.Optional<DatasetMetadata> targetMetadata = metadata.getMetadata(dataset);
@@ -323,7 +321,6 @@ public class QueryServlet {
             result.put("name", field);
             result.put("description", description);
             result.put("type", type);
-            result.put("imhotepType", imhotepType);
             final List<String> topTerms = topTermsCache.getTopTerms(dataset, field);
             result.put("topTerms", topTerms);
             response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
@@ -342,6 +339,7 @@ public class QueryServlet {
             content = OBJECT_MAPPER.writeValueAsString(datasetDescriptor);
         }
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().println(content);
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");

@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.language;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.dimensions.Dimension;
@@ -38,7 +39,7 @@ public class DatasetDescriptor {
             fields.add(field);
         }
 
-        return new DatasetDescriptor(dataset, datasetMetadata.description, fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
+        return new DatasetDescriptor(dataset, Strings.nullToEmpty(datasetMetadata.description), fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
     }
 
     public String getName() {
