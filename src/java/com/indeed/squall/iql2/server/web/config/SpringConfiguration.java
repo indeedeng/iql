@@ -160,7 +160,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public IQLDB iqldb() {
-        return new IQLDB(iqlDbDataSource());
+        final DataSource dataSource = iqlDbDataSource();
+        if (dataSource == null) {
+            return null;
+        }
+        return new IQLDB(dataSource);
     }
 
     @Bean
