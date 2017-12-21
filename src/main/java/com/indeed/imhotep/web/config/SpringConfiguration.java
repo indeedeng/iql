@@ -40,9 +40,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -208,7 +209,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public IQLDB iqldb() {
-        return new IQLDB(iqlDbDataSource());
+        final DataSource dataSource = iqlDbDataSource();
+        return dataSource != null ? new IQLDB(dataSource) : null;
     }
 
     @Bean
@@ -264,6 +266,14 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/metadata").setViewName("redirect:/metadata/");
         registry.addViewController("/metadata/").setViewName("forward:/metadata/index.html");
+    }
+
+    // Configure default JSON serializer to produce pretty/indented output for human readability
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        Jackson2ObjectMapperBuilder builder = new Jackson2ObjectMapperBuilder();
+        builder.indentOutput(true);
+        converters.add(new MappingJackson2HttpMessageConverter(builder.build()));
     }
 
     // do we need this?

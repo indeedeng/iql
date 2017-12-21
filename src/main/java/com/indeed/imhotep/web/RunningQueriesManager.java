@@ -138,8 +138,8 @@ public class RunningQueriesManager {
                 }
 
                 if((qhashesRunning.contains(pendingQuery.queryHash) ||
-                        !pendingQuery.limits.satisfiesConcurrentQueriesLimit(queriesRunningForIdentity) ||
-                        !pendingQuery.limits.satisfiesConcurrentImhotepSessionsLimit(sessionsForIdentity))
+                        !pendingQuery.limits.satisfiesConcurrentQueriesLimit(queriesRunningForIdentity + 1) ||
+                        !pendingQuery.limits.satisfiesConcurrentImhotepSessionsLimit(sessionsForIdentity + pendingQuery.sessions))
                         && !runningQuery.killed) {
                     queriesThatCouldntStart.add(pendingQuery);
                 } else {

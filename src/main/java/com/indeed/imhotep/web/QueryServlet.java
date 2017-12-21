@@ -164,12 +164,13 @@ public class QueryServlet {
 
             parsedQuery = StatementParser.parse(query, metadata);
             if(parsedQuery instanceof SelectStatement) {
-                logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
-
                 final Limits limits = accessControl.getLimitsForIdentity(userName, client);
 
                 selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits,
                         new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
+
+                logQueryToLog4J(selectQuery.queryStringTruncatedForPrint, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
+
                 try {
                     selectQuery.lock(); // blocks and waits if necessary
 
@@ -763,8 +764,9 @@ public class QueryServlet {
                                  @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         final String userName = clientInfo.username;
+        final String queryWithShortenedLists = selectQuery != null ? selectQuery.queryStringTruncatedForPrint : query;
         if(timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
-            logQueryToLog4J(query, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
+            logQueryToLog4J(queryWithShortenedLists, (Strings.isNullOrEmpty(userName) ? remoteAddr : userName), timeTaken);
         }
 
         final QueryLogEntry logEntry = new QueryLogEntry();
@@ -797,7 +799,7 @@ public class QueryServlet {
             }
         }
         logEntry.setProperty("params", Joiner.on(' ').join(params));
-        final String queryToLog = query.length() > LOGGED_FIELD_LENGTH_LIMIT ? query.substring(0, LOGGED_FIELD_LENGTH_LIMIT) : query;
+        final String queryToLog = queryWithShortenedLists.length() > LOGGED_FIELD_LENGTH_LIMIT ? queryWithShortenedLists.substring(0, LOGGED_FIELD_LENGTH_LIMIT) : queryWithShortenedLists;
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", query.length());
         logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
