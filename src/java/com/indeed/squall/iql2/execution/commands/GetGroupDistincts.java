@@ -40,6 +40,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     }
 
     private class IterateHandlerImpl implements IterateHandler<long[]> {
+        private final BitSet groupSeen = new BitSet();
+        private boolean started = false;
+        private int lastGroup = 0;
+
         private final long[] groupCounts;
         private final Session session;
 
@@ -79,26 +83,22 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
         @Override
         public long[] finish() throws ImhotepOutOfMemoryException {
+            if (windowSize > 1) {
+                updateAllSeenGroups();
+            }
             return groupCounts;
         }
 
         private class IntIterateCallback implements Session.IntIterateCallback {
-            private final BitSet groupSeen = new BitSet();
-            private boolean started = false;
-            private int lastGroup = 0;
             private long currentTerm = 0;
 
             @Override
             public void term(long term, long[] stats, int group) {
                 if (started && currentTerm != term) {
-                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                        groupCounts[lastGroup - 1]++;
-                    }
+                    updateAllSeenGroups();
                     groupSeen.clear();
                 } else if (started) {
-                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
-                        groupCounts[lastGroup - 1]++;
-                    }
+                    updateSeenGroupsUntil(group);
                 }
                 currentTerm = term;
                 started = true;
@@ -113,22 +113,15 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         }
 
         private class StringIterateCallback implements Session.StringIterateCallback {
-            private final BitSet groupSeen = new BitSet();
-            private boolean started = false;
-            private int lastGroup = 0;
             private String currentTerm;
 
             @Override
             public void term(String term, long[] stats, int group) {
                 if (started && !currentTerm.equals(term)) {
-                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                        groupCounts[lastGroup - 1]++;
-                    }
+                    updateAllSeenGroups();
                     groupSeen.clear();
                 } else if (started) {
-                    while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
-                        groupCounts[lastGroup - 1]++;
-                    }
+                    updateSeenGroupsUntil(group);
                 }
                 currentTerm = term;
                 started = true;
@@ -139,6 +132,18 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 if (groupSeen.get(group)) {
                     groupCounts[group - 1]++;
                 }
+            }
+        }
+
+        private void updateAllSeenGroups() {
+            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
+                groupCounts[lastGroup - 1]++;
+            }
+        }
+
+        private void updateSeenGroupsUntil(int group) {
+            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
+                groupCounts[lastGroup - 1]++;
             }
         }
 
