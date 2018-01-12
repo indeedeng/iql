@@ -125,7 +125,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
-            <version>2.6.0-cdh5.4.7</version>
+            <version>2.6.0-cdh5.4.11</version>
             <exclusions>
                 <exclusion>
                     <artifactId>javax.servlet</artifactId>
@@ -222,7 +222,7 @@
         <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
-        <amazon-aws-java.version>1.7.14</amazon-aws-java.version><!-- in sync with hadoop 2.4.5-cdh5.4.7 -->
+        <amazon-aws-java.version>1.11.262</amazon-aws-java.version><!-- in sync with hadoop 2.6.0-cdh5.4.11 -->
         <lucene.version>2.4.1</lucene.version>
         <fastutil.version>6.2.2</fastutil.version>
     </properties>
