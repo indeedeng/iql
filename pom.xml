@@ -182,6 +182,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.databind.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
             <version>${lucene.version}</version>
@@ -222,7 +228,11 @@
         <gnu-trove.version>2.0.2</gnu-trove.version>
         <commons-io.version>2.2</commons-io.version>
         <automaton.version>1.11-8</automaton.version>
+
         <amazon-aws-java.version>1.11.262</amazon-aws-java.version><!-- in sync with hadoop 2.6.0-cdh5.4.11 -->
+        <!-- keep jackson in sync with aws-java-sdk versions -->
+        <jackson.databind.version>2.6.7.1</jackson.databind.version>
+
         <lucene.version>2.4.1</lucene.version>
         <fastutil.version>6.2.2</fastutil.version>
     </properties>
