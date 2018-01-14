@@ -2,9 +2,11 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
-import com.indeed.imhotep.GroupRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
@@ -75,8 +77,13 @@ public class RegroupIntoLastSiblingWhere implements Command {
         }
 
         session.timer.push("build rules");
-        final RegroupCondition theCondition = new RegroupCondition("fakeField", true, 0, null, false);
-        final GroupRemapRule[] rules = new GroupRemapRule[session.numGroups];
+        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+                .setField("fakeField")
+                .setIntType(true)
+                .setIntTerm(0)
+                .setInequality(false)
+                .build());
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
         int numRemerged = 0;
         for (int i = 1; i <= session.numGroups; i++) {
             final int newGroup;
@@ -99,12 +106,17 @@ public class RegroupIntoLastSiblingWhere implements Command {
             } else {
                 newGroup = i;
             }
-            rules[i - 1] = new GroupRemapRule(i, theCondition, newGroup, newGroup);
+            rules[i - 1] = GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(i)
+                    .setNegativeGroup(newGroup)
+                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                    .addAllCondition(fakeConditions)
+                    .build();
         }
         session.timer.pop();
 
         if (numRemerged > 0) {
-            session.regroup(rules);
+            session.regroupWithProtos(rules, true);
         }
 
         // TODO: Use a bitset?

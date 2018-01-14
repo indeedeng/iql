@@ -2,10 +2,12 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.imhotep.GroupRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -75,8 +77,13 @@ public class MetricRegroup implements Command {
 
                 if (withDefaultBucket) {
                     timer.push("merge gutters into default");
-                    final GroupRemapRule[] rules = new GroupRemapRule[intermediateBuckets * groupsBefore];
-                    final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0L, null, false);
+                    final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[intermediateBuckets * groupsBefore];
+                    final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+                            .setField("fakeField")
+                            .setIntType(true)
+                            .setIntTerm(0)
+                            .setInequality(false)
+                            .build());
                     for (int i = 0; i < rules.length; i++) {
                         final int group = i + 1;
                         final int groupOffset = (group - 1) % intermediateBuckets;
@@ -87,9 +94,14 @@ public class MetricRegroup implements Command {
                         } else {
                             newGroup = 1 + (prevGroup - 1) * (intermediateBuckets - 1) + groupOffset;
                         }
-                        rules[i] = new GroupRemapRule(group, fakeCondition, newGroup, newGroup);
+                        rules[i] = GroupMultiRemapMessage.newBuilder()
+                                .setTargetGroup(group)
+                                .setNegativeGroup(newGroup)
+                                .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                                .addAllCondition(fakeConditions)
+                                .build();
                     }
-                    session.regroup(rules);
+                    session.regroupWithProtos(rules, true);
                     timer.pop();
                 }
 

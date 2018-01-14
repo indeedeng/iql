@@ -2,9 +2,10 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.GroupRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -50,8 +51,13 @@ public class ExplodeMonthOfYear implements Command {
         session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");
-        final List<GroupRemapRule> rules = Lists.newArrayList();
-        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
+        final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+                .setField("fakeField")
+                .setIntType(true)
+                .setIntTerm(0)
+                .setInequality(false)
+                .build());
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
                 final long start = realStart + innerGroup * unitSize;
@@ -60,13 +66,18 @@ public class ExplodeMonthOfYear implements Command {
 
                 final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
                 final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
-                rules.add(new GroupRemapRule(base, fakeCondition, newGroup, newGroup));
+                rules.add(GroupMultiRemapMessage.newBuilder()
+                        .setTargetGroup(base)
+                        .setNegativeGroup(newGroup)
+                        .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                        .addAllCondition(fakeConditions)
+                        .build());
             }
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
+        final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[0]);
         session.timer.pop();
 
-        session.regroup(rulesArray);
+        session.regroupWithProtos(rulesArray, true);
 
         session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, TimeUnit.MONTH.formatString));
     }

@@ -2,9 +2,10 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.GroupRemapRule;
-import com.indeed.imhotep.RegroupCondition;
+import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -37,19 +38,29 @@ public class ExplodeDayOfWeek implements Command {
 
         session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
-        final List<GroupRemapRule> rules = Lists.newArrayList();
-        final RegroupCondition fakeCondition = new RegroupCondition("fakeField", true, 0, null, false);
+        final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+                .setField("fakeField")
+                .setIntType(true)
+                .setIntTerm(0)
+                .setInequality(false)
+                .build());
         for (int group = 1; group <= numGroups; group++) {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
             final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
             final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
-            rules.add(new GroupRemapRule(group, fakeCondition, newGroup, newGroup));
+            rules.add(GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(group)
+                    .setNegativeGroup(newGroup)
+                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                    .addAllCondition(fakeConditions)
+                    .build());
         }
-        final GroupRemapRule[] rulesArray = rules.toArray(new GroupRemapRule[0]);
+        final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[0]);
         session.timer.pop();
         session.timer.push("shuffle regroup");
-        session.regroup(rulesArray);
+        session.regroupWithProtos(rulesArray, true);
         session.timer.pop();
         session.assumeDense(new DayOfWeekGroupKeySet(session.groupKeySet));
 
