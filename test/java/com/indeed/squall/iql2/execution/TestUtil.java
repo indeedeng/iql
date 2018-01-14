@@ -4,9 +4,12 @@ import com.google.common.base.Optional;
 import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.indeed.flamdex.MemoryFlamdex;
+import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepJavaLocalSession;
+import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
+import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
@@ -20,13 +23,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Ignore
 public class TestUtil {
@@ -46,7 +43,14 @@ public class TestUtil {
         }
         final Map<String, Session.ImhotepSessionInfo> sessionInfoMap = new HashMap<>();
         for (final Map.Entry<String, MemoryFlamdex> entry : datasetFlamdexes.entrySet()) {
-            final ImhotepSession session = new ImhotepJavaLocalSession(entry.getValue());
+            final ImhotepSession session = new ImhotepJavaLocalSession(entry.getValue()) {
+                //Workaround for regroupWithProtos to work in local (unit tests)
+                @Override
+                public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+                    final GroupMultiRemapRule[] rules = ImhotepDaemonMarshaller.marshalGroupMultiRemapMessageList(Arrays.asList(rawRuleMessages));
+                    return regroup(rules, errorOnCollisions);
+                }
+            };
             sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
         }
 

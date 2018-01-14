@@ -75,7 +75,7 @@ public class ApplyGroupFilter implements Command {
             final int newGroup = keep[i] ? newGroupParents.size() : 0;
             rules.add(GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(i)
-                    .setNegativeGroup(0)
+                    .setNegativeGroup(newGroup)
                     .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
                     .addAllCondition(fakeConditions)
                     .build());
