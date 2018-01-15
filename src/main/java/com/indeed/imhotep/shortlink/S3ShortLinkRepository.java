@@ -84,10 +84,10 @@ public class S3ShortLinkRepository implements ShortLinkRepository {
             // does object exist?
             client.getObjectMetadata(bucket, OBJECT_PREFIX + code);
         } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() != 404) {
+                log.warn(e);
                 return false;
             }
-            throw e;
         }
 
         byte[] paramStringBytes = paramString.getBytes(StringUtils.UTF8);
