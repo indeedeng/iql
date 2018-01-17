@@ -1,6 +1,5 @@
 package com.indeed.squall.iql2.execution.commands;
 
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
@@ -41,7 +40,7 @@ public class ExplodeSessionNames implements Command {
                 messages[i] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(target)
                         .setNegativeGroup(newGroup)
-                        .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
+                        .addPositiveGroup(newGroup)
                         .addCondition(FAKE_CONDITION)
                         .build();
             }

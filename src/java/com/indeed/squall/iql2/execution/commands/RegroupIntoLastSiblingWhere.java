@@ -2,8 +2,6 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -77,12 +75,12 @@ public class RegroupIntoLastSiblingWhere implements Command {
         }
 
         session.timer.push("build rules");
-        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(0)
                 .setInequality(false)
-                .build());
+                .build();
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
         int numRemerged = 0;
         for (int i = 1; i <= session.numGroups; i++) {
@@ -109,8 +107,8 @@ public class RegroupIntoLastSiblingWhere implements Command {
             rules[i - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(i)
                     .setNegativeGroup(newGroup)
-                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                    .addAllCondition(fakeConditions)
+                    .addCondition(fakeCondition)
+                    .addPositiveGroup(newGroup)
                     .build();
         }
         session.timer.pop();

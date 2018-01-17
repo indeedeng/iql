@@ -1,7 +1,5 @@
 package com.indeed.squall.iql2.execution.commands;
 
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
@@ -61,12 +59,12 @@ public class ApplyGroupFilter implements Command {
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keep.length - 1];
-        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+        final RegroupConditionMessage fakeCondition =RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(0)
                 .setInequality(false)
-                .build());
+                .build();
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
         final IntList newGroupParents = new IntArrayList();
@@ -76,8 +74,8 @@ public class ApplyGroupFilter implements Command {
             rules[i - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(i)
                     .setNegativeGroup(newGroup)
-                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                    .addAllCondition(fakeConditions)
+                    .addCondition(fakeCondition)
+                    .addPositiveGroup(newGroup)
                     .build();
             if (keep[i]) {
                 newGroupKeys.add(session.groupKeySet.groupKey(i));

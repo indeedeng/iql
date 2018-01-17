@@ -1,8 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -13,8 +11,6 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.YearMonthGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
-
-import java.util.List;
 
 public class ExplodeMonthOfYear implements Command {
     @Override
@@ -52,12 +48,12 @@ public class ExplodeMonthOfYear implements Command {
 
         session.timer.push("compute month remapping");
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[oldNumGroups * numBuckets];
-        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(0)
                 .setInequality(false)
-                .build());
+                .build();
         int index = 0;
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
@@ -70,8 +66,8 @@ public class ExplodeMonthOfYear implements Command {
                 rules[index++] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(base)
                         .setNegativeGroup(newGroup)
-                        .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                        .addAllCondition(fakeConditions)
+                        .addCondition(fakeCondition)
+                        .addPositiveGroup(newGroup)
                         .build();
             }
         }

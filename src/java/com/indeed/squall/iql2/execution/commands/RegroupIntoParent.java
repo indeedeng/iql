@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -9,7 +8,6 @@ import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
-import java.util.Arrays;
 import java.util.Map;
 
 public class RegroupIntoParent implements Command {
@@ -66,21 +64,19 @@ public class RegroupIntoParent implements Command {
 
         session.timer.push("create rules");
         final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
-        final RegroupConditionMessage[] fakeConditions = new RegroupConditionMessage[] {
-                RegroupConditionMessage.newBuilder()
+        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(1)
                 .setInequality(false)
-                .build()
-        };
+                .build();
         for (int group = 1; group <= session.numGroups; group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
             messages[group - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
                     .setNegativeGroup(newGroup)
-                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                    .addAllCondition(Arrays.asList(fakeConditions))
+                    .addCondition(fakeCondition)
+                    .addPositiveGroup(newGroup)
                     .build();
         }
         session.timer.pop();

@@ -1,8 +1,6 @@
 package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -12,8 +10,6 @@ import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.squall.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
-
-import java.util.List;
 
 public class ExplodeDayOfWeek implements Command {
     public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
@@ -39,12 +35,12 @@ public class ExplodeDayOfWeek implements Command {
         session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups];
-        final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(0)
                 .setInequality(false)
-                .build());
+                .build();
         for (int group = 1; group <= numGroups; group++) {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
@@ -53,8 +49,8 @@ public class ExplodeDayOfWeek implements Command {
             rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
                     .setNegativeGroup(newGroup)
-                    .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                    .addAllCondition(fakeConditions)
+                    .addCondition(fakeCondition)
+                    .addPositiveGroup(newGroup)
                     .build();
         }
         session.timer.pop();

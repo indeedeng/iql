@@ -59,7 +59,7 @@ public class ExplodePerGroup implements Command {
                 messages[group - 1] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(group)
                         .setNegativeGroup(0)
-                        .addAllPositiveGroup(Ints.asList(new int[]{0}))
+                        .addPositiveGroup(0)
                         .addCondition(fakeCondition)
                         .build();
                 continue;

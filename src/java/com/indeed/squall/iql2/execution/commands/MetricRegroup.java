@@ -2,8 +2,6 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
@@ -78,12 +76,12 @@ public class MetricRegroup implements Command {
                 if (withDefaultBucket) {
                     timer.push("merge gutters into default");
                     final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[intermediateBuckets * groupsBefore];
-                    final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
+                    final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                             .setField("fakeField")
                             .setIntType(true)
                             .setIntTerm(0)
                             .setInequality(false)
-                            .build());
+                            .build();
                     for (int i = 0; i < rules.length; i++) {
                         final int group = i + 1;
                         final int groupOffset = (group - 1) % intermediateBuckets;
@@ -97,8 +95,8 @@ public class MetricRegroup implements Command {
                         rules[i] = GroupMultiRemapMessage.newBuilder()
                                 .setTargetGroup(group)
                                 .setNegativeGroup(newGroup)
-                                .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
-                                .addAllCondition(fakeConditions)
+                                .addCondition(fakeCondition)
+                                .addPositiveGroup(newGroup)
                                 .build();
                     }
                     session.regroupWithProtos(rules, true);
