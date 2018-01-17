@@ -244,7 +244,7 @@ public interface DocFilter {
                     }
                 }
             }
-            final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups];
             final RegroupConditionMessage.Builder stringConditionBuilder = RegroupConditionMessage.newBuilder()
                     .setField(field)
                     .setIntType(false)
@@ -264,12 +264,12 @@ public interface DocFilter {
                         final String term = terms.get(i);
                         conditions[i] = stringConditionBuilder.setStringTerm(term).build();
                     }
-                    rules.add(GroupMultiRemapMessage.newBuilder()
+                    rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                             .setTargetGroup(group)
                             .setNegativeGroup(0)
                             .addAllPositiveGroup(Ints.asList(positives))
                             .addAllCondition(Arrays.asList(conditions))
-                            .build());
+                            .build();
                 }
                 if (intGroupTerms.containsKey(group)) {
                     final List<Long> terms = intGroupTerms.get(group);
@@ -280,16 +280,15 @@ public interface DocFilter {
                         final long term = terms.get(i);
                         conditions[i] = intConditionBuilder.setIntTerm(term).build();
                     }
-                    rules.add(GroupMultiRemapMessage.newBuilder()
+                    rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                             .setTargetGroup(group)
                             .setNegativeGroup(0)
                             .addAllPositiveGroup(Ints.asList(positives))
                             .addAllCondition(Arrays.asList(conditions))
-                            .build());
+                            .build();
                 }
             }
-            final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[0]);
-            session.session.regroupWithProtos(rulesArray, false);
+            session.session.regroupWithProtos(rules, false);
         }
     }
 

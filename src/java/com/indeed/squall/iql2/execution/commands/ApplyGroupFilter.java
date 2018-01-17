@@ -60,7 +60,7 @@ public class ApplyGroupFilter implements Command {
             }
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
-        List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keep.length - 1];
         final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
@@ -73,22 +73,21 @@ public class ApplyGroupFilter implements Command {
         newGroupParents.add(-1);
         for (int i = 1; i < keep.length; i++) {
             final int newGroup = keep[i] ? newGroupParents.size() : 0;
-            rules.add(GroupMultiRemapMessage.newBuilder()
+            rules[i - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(i)
                     .setNegativeGroup(newGroup)
                     .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
                     .addAllCondition(fakeConditions)
-                    .build());
+                    .build();
             if (keep[i]) {
                 newGroupKeys.add(session.groupKeySet.groupKey(i));
                 newGroupParents.add(session.groupKeySet.parentGroup(i));
             }
         }
-        final GroupMultiRemapMessage[] messages = rules.toArray(new GroupMultiRemapMessage[0]);
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
-                session.regroupWithProtos(messages, true);
+                session.regroupWithProtos(rules, true);
             }
         });
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);

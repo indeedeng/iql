@@ -69,8 +69,8 @@ public class ExplodeByAggregatePercentile implements Command {
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
             }, session.timer);
-            final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
 
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
             final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
                     .setField(field)
                     .setIntType(true)
@@ -111,15 +111,14 @@ public class ExplodeByAggregatePercentile implements Command {
                     nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
-                rules.add(GroupMultiRemapMessage.newBuilder()
+                rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(group)
                         .setNegativeGroup(0)
                         .addAllPositiveGroup(Ints.asList(positiveGroups))
                         .addAllCondition(Arrays.asList(conditions))
-                        .build());
+                        .build();
             }
-            final GroupMultiRemapMessage[] rulesArr = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
-            session.regroupWithProtos(rulesArr, true);
+            session.regroupWithProtos(rules, true);
         } else if (session.isStringField(field)) {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.StringIterateCallback() {
@@ -133,7 +132,7 @@ public class ExplodeByAggregatePercentile implements Command {
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
             }, session.timer);
-            final List<GroupMultiRemapMessage> rules = Lists.newArrayListWithCapacity(session.numGroups);
+            final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
             final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
                     .setField(field)
                     .setIntType(false)
@@ -175,15 +174,14 @@ public class ExplodeByAggregatePercentile implements Command {
                     nextGroupKeys.add(new StringGroupKey(keyTerm));
                     nextGroupParents.add(group);
                 }
-                rules.add(GroupMultiRemapMessage.newBuilder()
+                rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(group)
                         .setNegativeGroup(0)
                         .addAllPositiveGroup(Ints.asList(positiveGroups))
                         .addAllCondition(Arrays.asList(conditions))
-                        .build());
+                        .build();
             }
-            final GroupMultiRemapMessage[] rulesArr = rules.toArray(new GroupMultiRemapMessage[rules.size()]);
-            session.regroupWithProtos(rulesArr, true);
+            session.regroupWithProtos(rules, true);
         } else {
             throw new IllegalArgumentException("Field is neither int field nor string field: " + field);
         }

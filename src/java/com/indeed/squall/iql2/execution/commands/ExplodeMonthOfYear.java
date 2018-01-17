@@ -51,13 +51,14 @@ public class ExplodeMonthOfYear implements Command {
         session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");
-        final List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[oldNumGroups * numBuckets];
         final List<RegroupConditionMessage> fakeConditions = Lists.newArrayList(RegroupConditionMessage.newBuilder()
                 .setField("fakeField")
                 .setIntType(true)
                 .setIntTerm(0)
                 .setInequality(false)
                 .build());
+        int index = 0;
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
                 final long start = realStart + innerGroup * unitSize;
@@ -66,18 +67,17 @@ public class ExplodeMonthOfYear implements Command {
 
                 final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
                 final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
-                rules.add(GroupMultiRemapMessage.newBuilder()
+                rules[index++] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(base)
                         .setNegativeGroup(newGroup)
                         .addAllPositiveGroup(Ints.asList(new int[] {newGroup}))
                         .addAllCondition(fakeConditions)
-                        .build());
+                        .build();
             }
         }
-        final GroupMultiRemapMessage[] rulesArray = rules.toArray(new GroupMultiRemapMessage[0]);
         session.timer.pop();
 
-        session.regroupWithProtos(rulesArray, true);
+        session.regroupWithProtos(rules, true);
 
         session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, TimeUnit.MONTH.formatString));
     }

@@ -92,7 +92,7 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         session.timer.push("compute bucket remaps");
-        List<GroupMultiRemapMessage> rules = Lists.newArrayList();
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
         final List<GroupKey> nextGroupKeys = Lists.newArrayList();
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
@@ -117,23 +117,20 @@ public class ExplodePerDocPercentile implements Command {
                 positiveGroups.add(newGroup);
                 conditions.add(conditionBuilder.setIntTerm(cutoffs[group][bucket]).build());
             }
-            rules.add(GroupMultiRemapMessage.newBuilder()
+            rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
                     .setNegativeGroup(0)
                     .addAllPositiveGroup(positiveGroups)
                     .addAllCondition(conditions)
-                    .build());
+                    .build();
         }
-
-        final GroupMultiRemapMessage[] messages = rules.toArray(new GroupMultiRemapMessage[0]);
-        rules = null;
         session.timer.pop();
 
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
                 timer.push("regroup");
-                session.regroupWithProtos(messages, true);
+                session.regroupWithProtos(rules, true);
                 timer.pop();
 
                 timer.push("popStat");
