@@ -69,7 +69,6 @@
 
         <!-- Elaborations dependencies -->
         <dependency org="indeed" name="common-dbutil" rev="${common-dbutil.version}"/>
-        <dependency org="indeed" name="sourceservice-boxcar" rev="${sourceservice-boxcar.version}" conf="master->interfaces"/>
         <dependency org="mysql" name="mysql-connector-java" rev="${mysql-connector.version}"/>
         <dependency org="indeed" name="docservice" rev="${docservice.version}" conf="master->interfaces"/>
         <dependency org="indeed" name="sourceservice" rev="${sourceservice.version}"/>
