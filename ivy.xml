@@ -56,9 +56,7 @@
 
         <dependency org="indeed" name="squall-webrunner" rev="${squall-webrunner.version}" conf="developer,test->default"/>
         <dependency org="indeed" name="hadoop" rev="${hadoop.version}"/>
-        <!-- Import to master instead of developer since we need CDH5 configs on the Tomcat classpath now-->
-        <!--<dependency org="indeed" name="squall-devconfig" rev="${squall-devconfig.version}" conf="developer->default"/>-->
-        <dependency org="indeed" name="squall-devconfig" rev="${squall-devconfig.version}"/>
+        <dependency org="indeed" name="squall-devconfig" rev="${squall-devconfig.version}" conf="developer->default"/>
 
         <dependency org="junit" name="junit" rev="${junit.version}" conf="test->default"/>
 
