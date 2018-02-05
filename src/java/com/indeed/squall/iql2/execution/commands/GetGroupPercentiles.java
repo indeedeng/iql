@@ -113,7 +113,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
         private class IntIterateCallback implements Session.IntIterateCallback {
             @Override
-            public void term(long term, long[] stats, int group) {
+            public void term(final long term, final long[] stats, final int group) {
                 final long oldCount = runningCounts[group];
                 long termCount = 0L;
                 for (final int index : relevantIndexes) {
@@ -130,6 +130,16 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
                 }
 
                 runningCounts[group] = newCount;
+            }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return true;
             }
         }
     }

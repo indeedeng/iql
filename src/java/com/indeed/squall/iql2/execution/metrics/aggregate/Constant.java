@@ -11,7 +11,7 @@ import java.util.Set;
 public class Constant implements AggregateMetric {
     private final double value;
 
-    public Constant(double value) {
+    public Constant(final double value) {
         this.value = value;
     }
 
@@ -21,23 +21,33 @@ public class Constant implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] result = new double[numGroups + 1];
         Arrays.fill(result, value);
         return result;
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         return value;
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         return value;
+    }
+
+    @Override
+    public boolean needGroup() {
+        return false;
+    }
+
+    @Override
+    public boolean needStats() {
+        return false;
     }
 }

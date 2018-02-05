@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -117,10 +118,20 @@ public class IterateHandlers {
         }
 
         @Override
-        public void term(long term, long[] stats, int group) {
+        public void term(final long term, final long[] stats, final int group) {
             for (final Session.IntIterateCallback callback : callbacks) {
                 callback.term(term, stats, group);
             }
+        }
+
+        @Override
+        public boolean needGroup() {
+            return Arrays.stream(callbacks).anyMatch(Session.IntIterateCallback::needGroup);
+        }
+
+        @Override
+        public boolean needStats() {
+            return Arrays.stream(callbacks).anyMatch(Session.IntIterateCallback::needStats);
         }
     } 
     
@@ -132,10 +143,20 @@ public class IterateHandlers {
         }
 
         @Override
-        public void term(String term, long[] stats, int group) {
+        public void term(final String term, final long[] stats, final int group) {
             for (final Session.StringIterateCallback callback : callbacks) {
                 callback.term(term, stats, group);
             }
+        }
+
+        @Override
+        public boolean needGroup() {
+            return Arrays.stream(callbacks).anyMatch(Session.StringIterateCallback::needGroup);
+        }
+
+        @Override
+        public boolean needStats() {
+            return Arrays.stream(callbacks).anyMatch(Session.StringIterateCallback::needStats);
         }
     } 
 }

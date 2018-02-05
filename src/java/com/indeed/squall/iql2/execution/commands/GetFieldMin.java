@@ -55,8 +55,18 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         public Session.IntIterateCallback intIterateCallback() {
             return new Session.IntIterateCallback() {
                 @Override
-                public void term(long term, long[] stats, int group) {
+                public void term(final long term, final long[] stats, final int group) {
                     min[group - 1] = Math.min(min[group - 1], term);
+                }
+
+                @Override
+                public boolean needGroup() {
+                    return true;
+                }
+
+                @Override
+                public boolean needStats() {
+                    return false;
                 }
             };
         }
@@ -65,13 +75,23 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         public Session.StringIterateCallback stringIterateCallback() {
             return new Session.StringIterateCallback() {
                 @Override
-                public void term(String term, long[] stats, int group) {
+                public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
                         // Can't assume that earlier values are smaller, because String sort order.
                         min[group - 1] = Math.min(min[group - 1], v);
                     } catch (NumberFormatException ignored) {
                     }
+                }
+
+                @Override
+                public boolean needGroup() {
+                    return true;
+                }
+
+                @Override
+                public boolean needStats() {
+                    return false;
                 }
             };
         }

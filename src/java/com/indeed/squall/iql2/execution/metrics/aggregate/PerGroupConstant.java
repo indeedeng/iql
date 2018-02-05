@@ -11,7 +11,7 @@ import java.util.Set;
 public class PerGroupConstant implements AggregateMetric {
     final double[] values;
 
-    public PerGroupConstant(double[] values) {
+    public PerGroupConstant(final double[] values) {
         this.values = values;
     }
 
@@ -21,21 +21,31 @@ public class PerGroupConstant implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         return Arrays.copyOf(values, numGroups + 1);
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         return values[group];
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         return values[group];
+    }
+
+    @Override
+    public boolean needGroup() {
+        return true;
+    }
+
+    @Override
+    public boolean needStats() {
+        return false;
     }
 }

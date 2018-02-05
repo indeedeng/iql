@@ -20,7 +20,7 @@ public class ParentLag implements AggregateMetric {
 
     private GroupKeySet groupKeySet;
 
-    public ParentLag(int delay, AggregateMetric metric) {
+    public ParentLag(final int delay, final AggregateMetric metric) {
         this.delay = delay;
         this.metric = metric;
         prevScores = new ArrayDeque<>(delay + 1);
@@ -33,13 +33,13 @@ public class ParentLag implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
         metric.register(metricIndexes, groupKeySet);
         this.groupKeySet = groupKeySet;
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] innerResult = metric.getGroupStats(stats, numGroups);
         final double[] result = new double[numGroups + 1];
         for (int i = 1; i <= numGroups; i++) {
@@ -49,17 +49,27 @@ public class ParentLag implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         return handle(group, metric.apply(term, stats, group));
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         return handle(group, metric.apply(term, stats, group));
     }
 
+    @Override
+    public boolean needGroup() {
+        return true;
+    }
+
+    @Override
+    public boolean needStats() {
+        return metric.needStats();
+    }
+
     // TODO: This doesn't seem right...
-    private double handle(int group, double metricResult) {
+    private double handle(final int group, final double metricResult) {
         final int parent = groupKeySet.parentGroup(group);
         int targetGroupKey = -1;
         for (final int key : prevGroupKeys) {

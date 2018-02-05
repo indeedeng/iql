@@ -89,12 +89,12 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
 
         @Override
         public Session.IntIterateCallback intIterateCallback() {
-            return new IntIterateCallback();
+            return new IterateCallback();
         }
 
         @Override
         public Session.StringIterateCallback stringIterateCallback() {
-            return new StringIterateCallback();
+            return new IterateCallback();
         }
 
         @Override
@@ -102,9 +102,9 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
             return groupSums;
         }
 
-        private class IntIterateCallback implements Session.IntIterateCallback {
+        private class IterateCallback implements Session.IntIterateCallback, Session.StringIterateCallback {
             @Override
-            public void term(long term, long[] stats, int group) {
+            public void term(final long term, final long[] stats, final int group) {
                 final double v = metric.apply(term, stats, group);
                 if (filter.isPresent()) {
                     if (filter.get().allow(term, stats, group)) {
@@ -114,11 +114,9 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
                     groupSums[group - 1] += v;
                 }
             }
-        }
 
-        private class StringIterateCallback implements Session.StringIterateCallback {
             @Override
-            public void term(String term, long[] stats, int group) {
+            public void term(final String term, final long[] stats, final int group) {
                 final double v = metric.apply(term, stats, group);
                 if (filter.isPresent()) {
                     if (filter.get().allow(term, stats, group)) {
@@ -127,6 +125,17 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
                 } else {
                     groupSums[group - 1] += v;
                 }
+            }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return metric.needStats()
+                        || (filter.isPresent() && filter.get().needStats());
             }
         }
     }

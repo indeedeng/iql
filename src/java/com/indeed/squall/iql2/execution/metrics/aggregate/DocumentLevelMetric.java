@@ -13,7 +13,7 @@ public class DocumentLevelMetric implements AggregateMetric {
     private final List<String> pushes;
     private int index = -1;
 
-    public DocumentLevelMetric(String sessionName, List<String> pushes) {
+    public DocumentLevelMetric(final String sessionName, final List<String> pushes) {
         this.sessionName = sessionName;
         this.pushes = pushes;
     }
@@ -24,12 +24,12 @@ public class DocumentLevelMetric implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
         this.index = metricIndexes.get(new QualifiedPush(sessionName, pushes));
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] result = new double[numGroups + 1];
         for (int i = 0; i < Math.min(result.length, stats[index].length); i++) {
             result[i] = (double) stats[index][i];
@@ -38,13 +38,23 @@ public class DocumentLevelMetric implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         return stats[index];
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         return stats[index];
+    }
+
+    @Override
+    public boolean needGroup() {
+        return false;
+    }
+
+    @Override
+    public boolean needStats() {
+        return true;
     }
 
     public int getIndex() {

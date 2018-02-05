@@ -15,7 +15,7 @@ public class IterateLag implements AggregateMetric {
 
     private final Int2ObjectMap<ArrayDeque<Double>> prevScores; // dear god this is terrible
 
-    public IterateLag(int delay, AggregateMetric metric) {
+    public IterateLag(final int delay, final AggregateMetric metric) {
         this.delay = delay;
         this.metric = metric;
         this.prevScores = new Int2ObjectOpenHashMap<>();
@@ -27,28 +27,39 @@ public class IterateLag implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes,
+                         final GroupKeySet groupKeySet) {
         metric.register(metricIndexes, groupKeySet);
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         throw new UnsupportedOperationException("Shouldn't hit IterateLag in GetGroupStats");
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         final double value = metric.apply(term, stats, group);
-        return this.handle(value, group);
+        return handle(value, group);
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         final double value = metric.apply(term, stats, group);
-        return this.handle(value, group);
+        return handle(value, group);
     }
 
-    private double handle(double value, int group) {
+    @Override
+    public boolean needGroup() {
+        return true;
+    }
+
+    @Override
+    public boolean needStats() {
+        return metric.needStats();
+    }
+
+    private double handle(final double value, final int group) {
         ArrayDeque<Double> groupPrevScores = prevScores.get(group);
         if (groupPrevScores == null) {
             groupPrevScores = new ArrayDeque<>(delay + 1);

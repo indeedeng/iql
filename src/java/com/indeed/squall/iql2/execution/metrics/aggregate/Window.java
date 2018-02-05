@@ -19,7 +19,7 @@ public class Window implements AggregateMetric {
     private double[] groupToWindowSum;
     private GroupKeySet groupKeySet;
 
-    public Window(int size, AggregateMetric inner) {
+    public Window(final int size, final AggregateMetric inner) {
         this.size = size;
         this.inner = inner;
     }
@@ -30,14 +30,14 @@ public class Window implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
         inner.register(metricIndexes, groupKeySet);
         groupToWindowSum = new double[groupKeySet.numGroups() + 1];
         this.groupKeySet = groupKeySet;
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] innerResult = inner.getGroupStats(stats, numGroups);
         final double[] result = new double[numGroups + 1];
         double sum = 0;
@@ -61,7 +61,7 @@ public class Window implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         if (iterationStarted && !term.equals(currentStringTerm)) {
             clear();
         }
@@ -71,13 +71,23 @@ public class Window implements AggregateMetric {
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         if (iterationStarted && term != currentIntTerm) {
             clear();
         }
         currentIntTerm = term;
         final double value = inner.apply(term, stats, group);
         return handle(group, value);
+    }
+
+    @Override
+    public boolean needGroup() {
+        return true;
+    }
+
+    @Override
+    public boolean needStats() {
+        return inner.needStats();
     }
 
     private void clear() {
@@ -89,7 +99,7 @@ public class Window implements AggregateMetric {
         Arrays.fill(groupToWindowSum, 0.0);
     }
 
-    private double handle(int group, double value) {
+    private double handle(final int group, final double value) {
         iterationStarted = true;
         final int parentGroup = groupKeySet.parentGroup(group);
         for (int offset = 0; offset < size; offset++) {

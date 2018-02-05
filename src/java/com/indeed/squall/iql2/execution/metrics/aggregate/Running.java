@@ -13,7 +13,7 @@ public class Running implements AggregateMetric {
     private final Map<Integer, Double> groupSums = new Int2DoubleOpenHashMap();
     private int[] groupToRealGroup;
 
-    public Running(AggregateMetric inner, int offset) {
+    public Running(final AggregateMetric inner, final int offset) {
         this.inner = inner;
         this.offset = offset;
     }
@@ -24,9 +24,9 @@ public class Running implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
         inner.register(metricIndexes, groupKeySet);
-        this.groupToRealGroup = new int[groupKeySet.numGroups() + 1];
+        groupToRealGroup = new int[groupKeySet.numGroups() + 1];
         for (int group = 1; group <= groupKeySet.numGroups(); group++) {
             GroupKeySet keyset = groupKeySet;
             int index = group;
@@ -39,7 +39,7 @@ public class Running implements AggregateMetric {
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] innerResult = inner.getGroupStats(stats, numGroups);
         double sum = 0;
         int currentParent = -1;
@@ -57,19 +57,29 @@ public class Running implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         final double val = inner.apply(term, stats, group);
         return getResult(groupToRealGroup[group], val);
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         final double val = inner.apply(term, stats, group);
         return getResult(groupToRealGroup[group], val);
     }
 
-    private double getResult(int group, double val) {
-        Double v = groupSums.get(group);
+    @Override
+    public boolean needGroup() {
+        return true;
+    }
+
+    @Override
+    public boolean needStats() {
+        return inner.needStats();
+    }
+
+    private double getResult(final int group, final double val) {
+        final Double v = groupSums.get(group);
         final double result;
         if (v != null) {
             result = v + val;
