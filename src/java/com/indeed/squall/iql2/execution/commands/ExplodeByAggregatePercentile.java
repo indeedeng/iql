@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: class is not reachable. Confirm and delete.
 public class ExplodeByAggregatePercentile implements Command {
     public final String field;
     public final AggregateMetric metric;

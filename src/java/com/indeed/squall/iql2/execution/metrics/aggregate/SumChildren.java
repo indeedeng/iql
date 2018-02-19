@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+// TODO: check if SumChildren is ever used and delete if not.
 public class SumChildren implements AggregateMetric {
     private final AggregateMetric metric;
 
