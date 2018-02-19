@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.query.GroupBy;
-import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
@@ -822,12 +822,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "regex", "field", field.unwrap(), "value", regex));
+            this.serialize(gen, serializers);
         }
 
         @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            this.serialize(gen, serializers);
+            gen.writeObject(ImmutableMap.of("type", "regex", "field", field.unwrap(), "value", regex));
         }
 
         @Override
