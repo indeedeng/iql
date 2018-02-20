@@ -7,12 +7,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+// TODO: check if SumChildren is ever used and delete if not.
 public class SumChildren implements AggregateMetric {
     private final AggregateMetric metric;
 
     private GroupKeySet groupKeySet;
 
-    public SumChildren(AggregateMetric metric) {
+    public SumChildren(final AggregateMetric metric) {
         this.metric = metric;
     }
 
@@ -22,13 +23,14 @@ public class SumChildren implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes,
+                         final GroupKeySet groupKeySet) {
         this.groupKeySet = groupKeySet;
         metric.register(metricIndexes, groupKeySet);
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final double[] innerStats = metric.getGroupStats(stats, numGroups);
         final double[] result = new double[numGroups + 1];
         int currentParent = -1;
@@ -51,12 +53,22 @@ public class SumChildren implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         throw new IllegalArgumentException("Cannot stream SumChildren");
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         throw new IllegalArgumentException("Cannot stream SumChildren");
+    }
+
+    @Override
+    public boolean needGroup() {
+        return false;
+    }
+
+    @Override
+    public boolean needStats() {
+        return false;
     }
 }

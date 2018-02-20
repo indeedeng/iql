@@ -981,6 +981,12 @@ public class Session {
 
     public interface IntIterateCallback {
         void term(long term, long[] stats, int group);
+        // if needGroup() returns false then group value is ignored inside term(...) method
+        // and it's valid to pass any value as group
+        boolean needGroup();
+        // if needStats() returns false then stats value is ignored inside term(...) method
+        // and it's valid to pass any array or null as stats
+        boolean needStats();
     }
 
     /**
@@ -1123,6 +1129,12 @@ public class Session {
 
     public interface StringIterateCallback {
         void term(String term, long[] stats, int group);
+        // if needGroup() returns false then group value is ignored inside term(...) method
+        // and it's valid to pass any value as group
+        boolean needGroup();
+        // if needStats() returns false then stats value is ignored inside term(...) method
+        // and it's valid to pass any array or null as stats
+        boolean needStats();
     }
 
     /**

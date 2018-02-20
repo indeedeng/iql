@@ -172,7 +172,7 @@ public class EventRegexServlet {
         }
 
         @Override
-        public void term(long term, long[] stats, int group) {
+        public void term(final long term, final long[] stats, final int group) {
             if (anySeen && term != lastTerm) {
                 final String sequence = sb.toString();
                 final boolean matches = !automaton.intersection(new RegExp(this.regexSb.toString()).toAutomaton()).isEmpty();
@@ -207,6 +207,16 @@ public class EventRegexServlet {
             }
             regexSb.append(')');
         }
+
+        @Override
+        public boolean needGroup() {
+            return false;
+        }
+
+        @Override
+        public boolean needStats() {
+            return true;
+        }
     }
 
     private static class StringCallback implements Session.StringIterateCallback {
@@ -228,7 +238,7 @@ public class EventRegexServlet {
         }
 
         @Override
-        public void term(String term, long[] stats, int group) {
+        public void term(final String term, final long[] stats, final int group) {
             if (anySeen && term.equals(lastTerm)) {
                 final String sequence = sb.toString();
                 final boolean matches = !automaton.intersection(new RegExp(this.regexSb.toString()).toAutomaton()).isEmpty();
@@ -262,6 +272,16 @@ public class EventRegexServlet {
                 }
             }
             regexSb.append(')');
+        }
+
+        @Override
+        public boolean needGroup() {
+            return false;
+        }
+
+        @Override
+        public boolean needStats() {
+            return true;
         }
     }
 
@@ -351,7 +371,7 @@ public class EventRegexServlet {
         }
 
         @Override
-        public void term(long term, long[] stats, int group) {
+        public void term(final long term, final long[] stats, final int group) {
             if (states[group] == -1) {
                 return;
             }
@@ -367,6 +387,16 @@ public class EventRegexServlet {
                     states[group] = runAutomaton.step(states[group], c);
                 }
             }
+        }
+
+        @Override
+        public boolean needGroup() {
+            return true;
+        }
+
+        @Override
+        public boolean needStats() {
+            return true;
         }
     }
 

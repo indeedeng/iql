@@ -55,9 +55,19 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         public Session.IntIterateCallback intIterateCallback() {
             return new Session.IntIterateCallback() {
                 @Override
-                public void term(long term, long[] stats, int group) {
+                public void term(final long term, final long[] stats, final int group) {
                     // Relying on the assumption of FTGS sort order -- last term in each group will be the highest.
                     max[group - 1] = term;
+                }
+
+                @Override
+                public boolean needGroup() {
+                    return true;
+                }
+
+                @Override
+                public boolean needStats() {
+                    return false;
                 }
             };
         }
@@ -66,13 +76,23 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         public Session.StringIterateCallback stringIterateCallback() {
             return new Session.StringIterateCallback() {
                 @Override
-                public void term(String term, long[] stats, int group) {
+                public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
                         // Can't assume that later values are larger, because String sort order.
                         max[group - 1] = Math.max(max[group - 1], v);
-                    } catch (NumberFormatException ignored) {
+                    } catch (final NumberFormatException ignored) {
                     }
+                }
+
+                @Override
+                public boolean needGroup() {
+                    return true;
+                }
+
+                @Override
+                public boolean needStats() {
+                    return false;
                 }
             };
         }

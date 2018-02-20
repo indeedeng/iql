@@ -278,7 +278,7 @@ public class SimpleIterate implements Command {
 
         return new Session.StringIterateCallback() {
             @Override
-            public void term(String term, long[] stats, int group) {
+            public void term(final String term, final long[] stats, final int group) {
                 if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
                     return;
                 }
@@ -287,6 +287,18 @@ public class SimpleIterate implements Command {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
                 out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
+            }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return ((filterOrNull != null) && filterOrNull.needStats())
+                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+
             }
         };
     }
@@ -304,7 +316,7 @@ public class SimpleIterate implements Command {
     private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final DenseInt2ObjectMap<Queue<TermSelects>> pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
         return new Session.StringIterateCallback() {
             @Override
-            public void term(String term, long[] stats, int group) {
+            public void term(final String term, final long[] stats, final int group) {
                 if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
                     return;
                 }
@@ -331,6 +343,18 @@ public class SimpleIterate implements Command {
                 ++createdGroupCount;
                 session.checkGroupLimitWithoutLog(createdGroupCount);
             }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return ((filterOrNull != null) && filterOrNull.needStats())
+                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
+                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+            }
         };
     }
 
@@ -338,7 +362,7 @@ public class SimpleIterate implements Command {
         final String[] formatStrings = formFormatStrings();
         return new Session.IntIterateCallback() {
             @Override
-            public void term(long term, long[] stats, int group) {
+            public void term(final long term, final long[] stats, final int group) {
                 if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
                     return;
                 }
@@ -348,13 +372,23 @@ public class SimpleIterate implements Command {
                 }
                 out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
             }
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return ((filterOrNull != null) && filterOrNull.needStats())
+                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+            }
         };
     }
 
     private Session.IntIterateCallback nonStreamingIntCallback(final Session session, final DenseInt2ObjectMap<Queue<TermSelects>> pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
         return new Session.IntIterateCallback() {
             @Override
-            public void term(long term, long[] stats, int group) {
+            public void term(final long term, final long[] stats, final int group) {
                 if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
                     return;
                 }
@@ -380,6 +414,19 @@ public class SimpleIterate implements Command {
                 }
                 ++createdGroupCount;
                 session.checkGroupLimitWithoutLog(createdGroupCount);
+            }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return ((filterOrNull != null) && filterOrNull.needStats())
+                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
+                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+
             }
         };
     }

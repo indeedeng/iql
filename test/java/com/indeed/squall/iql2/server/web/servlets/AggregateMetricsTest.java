@@ -103,6 +103,23 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("c", "4", "2", "4"));
         expected.add(ImmutableList.of("d", "141", "4", "2"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk select count(), lag(1, count()), lag(2, count())");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+                "from organic yesterday today group by tk in (\"a\", \"b\", \"c\", \"d\") select count(), lag(1, count()), lag(2, count())");
+    }
+
+    @Test
+    public void testIterateLagInt() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("3", "1", "0"));
+        expected.add(ImmutableList.of("5", "1", "500")); // todo: this is wrong! See IQL-549
+        expected.add(ImmutableList.of("7", "1", "699"));
+        expected.add(ImmutableList.of("100", "1", "9999"));
+        expected.add(ImmutableList.of("1000", "1", "99999"));
+        QueryServletTestUtils.testIQL2(
+                OrganicDataset.create(),
+                expected,
+                "from organic yesterday today group by oji in (3, 5, 7, 100, 1000) select COUNT(), if (lag(1,count()) > 0) then oji * 100 * count() - lag(1, count()) else 0",
+                true);
     }
 
     @Test
@@ -178,6 +195,9 @@ public class AggregateMetricsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "4", "302"));
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select sum_over(tk, count()), sum_over(tk, 1), sum_over(tk, [2])");
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(),
+                ImmutableList.of(ImmutableList.of("", "306", "2653", "151")),
+                "from organic yesterday today select sum_over(oji, ojc), sum_over(ojc, oji), sum_over(tk, count())", true);
     }
 
     @Test
@@ -195,4 +215,31 @@ public class AggregateMetricsTest extends BasicTest {
                 "from organic 2015-01-01 00:00 2015-01-01 01:00 as o1, organic 2015-01-01 01:00 2015-01-01 02:00 as o2 " +
                         "SELECT AVG(o1.oji), AVG(o2.oji), AVG(DISTINCT(o1.tk)), PRINTF('%.2f', AVG(oji)), PRINTF('%.2f', AVG(o1.oji+o2.oji))");
     }
+
+    @Test
+    public void testBootstrap() throws Exception {
+        testBootstrapMetric("\"min\"", "0.0204");
+        testBootstrapMetric("\"max\"", "0.1772");
+        //testBootstrapMetric("all", "")); // TODO: write separate test for "all"
+        testBootstrapMetric("\"numTerms\"", "4.0000");
+        testBootstrapMetric("\"skippedTerms\"", "0.0000");
+        testBootstrapMetric("\"mean\"", "0.1213");
+        testBootstrapMetric("\"variance\"", "0.0030");
+
+        // double value as metric means persentile
+        testBootstrapMetric("0.25", "0.1193");
+        testBootstrapMetric("0.50", "0.1213");
+        testBootstrapMetric("0.75", "0.1233");
+    }
+
+    private void testBootstrapMetric(final String metric, final String expectedValue) throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", expectedValue));
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(),
+                expected,
+                "from organic yesterday today select PRINTF('%.4f', BOOTSTRAP(tk, ojc / oji, 100, \"seed\", " + metric + "))");
+    }
+
+
+
 }

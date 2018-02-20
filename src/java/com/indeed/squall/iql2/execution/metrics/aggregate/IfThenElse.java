@@ -13,7 +13,9 @@ public class IfThenElse implements AggregateMetric {
     private final AggregateMetric trueCase;
     private final AggregateMetric falseCase;
 
-    public IfThenElse(AggregateFilter condition, AggregateMetric trueCase, AggregateMetric falseCase) {
+    public IfThenElse(final AggregateFilter condition,
+                      final AggregateMetric trueCase,
+                      final AggregateMetric falseCase) {
         this.condition = condition;
         this.trueCase = trueCase;
         this.falseCase = falseCase;
@@ -29,14 +31,15 @@ public class IfThenElse implements AggregateMetric {
     }
 
     @Override
-    public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+    public void register(final Map<QualifiedPush, Integer> metricIndexes,
+                         final GroupKeySet groupKeySet) {
         condition.register(metricIndexes, groupKeySet);
         trueCase.register(metricIndexes, groupKeySet);
         falseCase.register(metricIndexes, groupKeySet);
     }
 
     @Override
-    public double[] getGroupStats(long[][] stats, int numGroups) {
+    public double[] getGroupStats(final long[][] stats, final int numGroups) {
         final boolean[] conditionResults = condition.getGroupStats(stats, numGroups);
         final double[] trueResults = trueCase.getGroupStats(stats, numGroups);
         final double[] falseResults = falseCase.getGroupStats(stats, numGroups);
@@ -49,7 +52,7 @@ public class IfThenElse implements AggregateMetric {
     }
 
     @Override
-    public double apply(String term, long[] stats, int group) {
+    public double apply(final String term, final long[] stats, final int group) {
         final boolean cond = condition.allow(term, stats, group);
         if (cond) {
             return trueCase.apply(term, stats, group);
@@ -59,12 +62,22 @@ public class IfThenElse implements AggregateMetric {
     }
 
     @Override
-    public double apply(long term, long[] stats, int group) {
+    public double apply(final long term, final long[] stats, final int group) {
         final boolean cond = condition.allow(term, stats, group);
         if (cond) {
             return trueCase.apply(term, stats, group);
         } else {
             return falseCase.apply(term, stats, group);
         }
+    }
+
+    @Override
+    public boolean needGroup() {
+        return condition.needGroup() || trueCase.needGroup() || falseCase.needGroup();
+    }
+
+    @Override
+    public boolean needStats() {
+        return condition.needStats() || trueCase.needStats() || falseCase.needStats();
     }
 }

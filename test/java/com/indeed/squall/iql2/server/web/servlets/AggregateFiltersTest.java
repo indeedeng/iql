@@ -94,4 +94,18 @@ public class AggregateFiltersTest {
         final List<List<String>> expected = new ArrayList<>();
         QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk having false select count()");
     }
+
+    @Test
+    public void testRegex() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2"));
+        expected.add(ImmutableList.of("1", "84"));
+        expected.add(ImmutableList.of("2", "1"));
+        expected.add(ImmutableList.of("3", "60"));
+        expected.add(ImmutableList.of("5", "1"));
+        expected.add(ImmutableList.of("10", "2"));
+        expected.add(ImmutableList.of("15", "1"));
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by ojc having tk=~\".*\" select count()", true);
+    }
+
 }

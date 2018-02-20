@@ -36,8 +36,8 @@ public class DimensionTest extends BasicTest {
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "200")), "from dimension yesterday today SELECT i1*plus", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "4", "1")), "from dimension yesterday today SELECT plus!=i1, plus=calc", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today SELECT LUCENE('i1:0')", options);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1", "2.67", "0.89", "13")), "from dimension yesterday today SELECT " +
-                "DISTINCT(i1 HAVING i1divi2 > 2), PRINTF('%.2f', SUM_OVER(s1, i1divi2)), PRINTF('%.2f', AVG_OVER(s1, i1divi2)), AVG_OVER(s1 HAVING plus > 5, plus)", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1", "2.67", "4.86", "0.89", "13", "13")), "from dimension yesterday today SELECT " +
+                "DISTINCT(i1 HAVING i1divi2 > 2), PRINTF('%.2f', SUM_OVER(s1, i1divi2)), PRINTF('%.2f', SUM_OVER(i1, i1divi2)), PRINTF('%.2f', AVG_OVER(s1, i1divi2)), AVG_OVER(s1 HAVING plus > 5, plus), AVG_OVER(i1 HAVING plus > 5, plus)", options);
 
         assertFailQuery("from dimension yesterday today SELECT i1divi2=1", "");
         assertFailQuery("from dimension yesterday today SELECT field_min(plus)", "non alias dimension in FTGS is not supported");

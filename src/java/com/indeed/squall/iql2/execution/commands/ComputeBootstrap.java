@@ -247,7 +247,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
 
         private class IterateCallback implements Session.IntIterateCallback, Session.StringIterateCallback {
             @Override
-            public void term(long term, long[] stats, int group) {
+            public void term(final long term, final long[] stats, final int group) {
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     term(stats, group);
                 } else {
@@ -256,7 +256,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
             }
 
             @Override
-            public void term(String term, long[] stats, int group) {
+            public void term(final String term, final long[] stats, final int group) {
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     term(stats, group);
                 } else {
@@ -264,7 +264,18 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                 }
             }
 
-            private void term(long[] stats, int group) {
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return (statIndexes.length > 0)
+                        || (filter.isPresent() && filter.get().needStats());
+            }
+
+            private void term(final long[] stats, final int group) {
                 entriesSeen += 1;
                 if (entriesSeen >= maxEntries) {
                     throw new IllegalStateException("Too many entries in BOOTSTRAP() execution. maxEntries = " + maxEntries);

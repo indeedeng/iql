@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: class is not reachable. Confirm and delete.
 public class ExplodeByAggregatePercentile implements Command {
     public final String field;
     public final AggregateMetric metric;
@@ -60,7 +61,7 @@ public class ExplodeByAggregatePercentile implements Command {
             final Int2ObjectOpenHashMap<Long2DoubleOpenHashMap> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiInt(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
                 @Override
-                public void term(long term, long[] stats, int group) {
+                public void term(final long term, final long[] stats, final int group) {
                     Long2DoubleOpenHashMap termToValue = perGroupTermToValue.get(group);
                     if (termToValue == null) {
                         termToValue = new Long2DoubleOpenHashMap();
@@ -68,6 +69,10 @@ public class ExplodeByAggregatePercentile implements Command {
                     }
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
+                @Override
+                public boolean needGroup() { return true; }
+                @Override
+                public boolean needStats() { return metric.needStats(); }
             }, session.timer);
 
             final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
@@ -123,7 +128,7 @@ public class ExplodeByAggregatePercentile implements Command {
             final Int2ObjectOpenHashMap<Object2DoubleOpenHashMap<String>> perGroupTermToValue = new Int2ObjectOpenHashMap<>();
             Session.iterateMultiString(session.getSessionsMapRaw(), sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.StringIterateCallback() {
                 @Override
-                public void term(String term, long[] stats, int group) {
+                public void term(final String term, final long[] stats, final int group) {
                     Object2DoubleOpenHashMap<String> termToValue = perGroupTermToValue.get(group);
                     if (termToValue == null) {
                         termToValue = new Object2DoubleOpenHashMap<>();
@@ -131,6 +136,10 @@ public class ExplodeByAggregatePercentile implements Command {
                     }
                     termToValue.put(term, metric.apply(term, stats, group));
                 }
+                @Override
+                public boolean needGroup() { return true; }
+                @Override
+                public boolean needStats() { return metric.needStats(); }
             }, session.timer);
             final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
             final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
