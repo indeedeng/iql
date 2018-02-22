@@ -54,7 +54,7 @@ public class DatasetStatsController {
 
     @RequestMapping(value = "/typeconflictfields", produces = "application/json")
     @ResponseBody
-    public String getTypeConflictFields() throws JsonProcessingException {
+    public List<DatasetTypeConflictFields> getTypeConflictFields() {
         updateDatasetStatsCache();
         final List<DatasetTypeConflictFields> result = Lists.newArrayList();
         for(DatasetStats stats : cached) {
@@ -62,8 +62,7 @@ public class DatasetStatsController {
                 result.add(new DatasetTypeConflictFields(stats.name, stats.typeConflictFields));
             }
         }
-        final ObjectMapper mapper = new ObjectMapper();
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
+        return result;
     }
 
     private static class DatasetTypeConflictFields {
