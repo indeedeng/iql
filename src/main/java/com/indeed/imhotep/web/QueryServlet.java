@@ -675,7 +675,7 @@ public class QueryServlet {
         } else {
             for(FieldMetadata field : datasetMetadata.getFields().values()) {
                 final String description = Strings.nullToEmpty(field.getDescription());
-                outputStream.println(field.getName() + "\t" + description);
+                outputStream.println(field.getName() + "\t" + description.replaceAll("[\r\n\t]+", " "));
             }
         }
         outputStream.close();

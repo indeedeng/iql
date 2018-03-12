@@ -66,10 +66,10 @@ public class RunningQuery {
     public static RowMapper<RunningQuery> resultSetRowMapper = new RowMapper<RunningQuery>() {
         @Override
         public RunningQuery mapRow(ResultSet rs, int rowNum) throws SQLException {
-            final Timestamp submitTime = rs.getTimestamp("submit_time");
-            Timestamp executionStartTime = rs.getTimestamp("execution_start_time");
-            if(executionStartTime.getTime() < TimeUnit.DAYS.toMillis(2)) {
-                executionStartTime = null;  // Hack to workaround the column not allowing nulls
+            final long submitTime = rs.getLong("submit_time");
+            long executionStartTime = rs.getLong("execution_start_time");
+            if(executionStartTime < TimeUnit.DAYS.toSeconds(2)) {
+                executionStartTime = 0;  // Hack to workaround the column not allowing nulls
             }
 
             return new RunningQuery(
@@ -78,8 +78,8 @@ public class RunningQuery {
                     rs.getString("qhash"),
                     rs.getString("username"),
                     rs.getString("client"),
-                    submitTime != null ? new DateTime(submitTime.getTime()) : null,
-                    executionStartTime != null ? new DateTime(executionStartTime.getTime()) : null,
+                    submitTime != 0 ? new DateTime(submitTime * 1000) : null,
+                    executionStartTime != 0 ? new DateTime(executionStartTime * 1000) : null,
                     rs.getString("hostname"),
                     rs.getByte("sessions"),
                     rs.getBoolean("killed"));
