@@ -157,9 +157,9 @@ public class RunningQueriesManager {
             }
         }
 
-        final Timestamp queryExecutionStartTime = new Timestamp(System.currentTimeMillis());
+        final long queryExecutionStartTimeSecondsSinceEpoch = System.currentTimeMillis() / 1000;
         for(SelectQuery startingQuery: queriesStarting) {
-            iqldb.setRunningQueryStartTime(queryExecutionStartTime, startingQuery.id);
+            iqldb.setRunningQueryStartTime(queryExecutionStartTimeSecondsSinceEpoch, startingQuery.id);
         }
         log.debug("Started " + queriesStarting.size() + ", still pending " + queriesThatCouldntStart.size());
 
