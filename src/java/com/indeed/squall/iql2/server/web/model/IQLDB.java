@@ -44,21 +44,21 @@ public class IQLDB {
 
     public void insertRunningQuery(final SelectQuery query) {
         // Hack to workaround the column not allowing nulls
-        final String queryExecutionStartTime = "1970-01-01 00:00:01";
+        final long queryExecutionStartTime = 1;
 
         final PreparedStatementCreator psc = new PreparedStatementCreator() {
             @Override
             public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
                 final PreparedStatement ps = connection.prepareStatement("INSERT INTO tblrunning " +
                                 "(query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
-                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                "VALUES (?, ?, ?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), ?, ?)",
                         Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1, StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000));
                 ps.setString(2, StringUtils.abbreviate(query.queryHash, 30));
                 ps.setString(3, StringUtils.abbreviate(query.clientInfo.username, 100));
                 ps.setString(4, StringUtils.abbreviate(query.clientInfo.client, 100));
-                ps.setTimestamp(5, new Timestamp(query.querySubmitTimestamp.getMillis()));
-                ps.setString(6, queryExecutionStartTime);
+                ps.setLong(5, query.querySubmitTimestamp.getMillis() / 1000);
+                ps.setLong(6, queryExecutionStartTime);
                 ps.setString(7, StringUtils.abbreviate(hostname, 20));
                 ps.setByte(8, query.sessions);
                 return ps;
@@ -69,9 +69,9 @@ public class IQLDB {
         query.onInserted(keyHolder.getKey().longValue());
     }
 
-    public void setRunningQueryStartTime(Timestamp queryExecutionStartTime, long id) {
-        jdbcTemplate.update("UPDATE tblrunning SET execution_start_time = ? WHERE id = ?",
-                queryExecutionStartTime, id);
+    public void setRunningQueryStartTime(long queryExecutionStartTimeSecondsSinceEpoch, long id) {
+        jdbcTemplate.update("UPDATE tblrunning SET execution_start_time = FROM_UNIXTIME(?) WHERE id = ?",
+                queryExecutionStartTimeSecondsSinceEpoch, id);
     }
 
     public void cancelQuery(long id) {
@@ -102,8 +102,8 @@ public class IQLDB {
     }
 
     private List<RunningQuery> getRunningQueries(@Nullable String hostname) {
-        String query = "SELECT id, query, qhash, username, client, submit_time, execution_start_time, " +
-                "hostname, sessions, killed FROM tblrunning";
+        String query = "SELECT id, query, qhash, username, client, UNIX_TIMESTAMP(submit_time) as submit_time, " +
+                "UNIX_TIMESTAMP(execution_start_time) as execution_start_time, hostname, sessions, killed FROM tblrunning";
         String[] args = new String[0];
         if(hostname != null) {
             query += " WHERE hostname = ?";
