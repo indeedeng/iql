@@ -1,0 +1,6 @@
+webapp.path=iql2
+
+coverage.line.minimum_pct=15
+coverage.method.minimum_pct=15
+coverage.block.minimum_pct=15
+coverage.class.minimum_pct=15

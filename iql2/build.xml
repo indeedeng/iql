@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="iql2-server" default="compile" basedir=".">
+    <property environment="env"/>
+    <!-- cross-platform hack to get the host name -->
+    <property name="env.HOSTNAME" value="${env.COMPUTERNAME}" />
+
+    <!-- first load local settings in build.properties (ant properties are immutable so we load this first) -->
+    <property file="build.properties"/>
+    <!-- then load defaults from build.properties.default -->
+    <property file="build.properties.default"/>
+
+    <property name="indeed.project.dir" value="${env.INDEED_PROJECT_DIR}"/>
+    <property name="common.build.dir" value="${indeed.project.dir}/javadev/build"/>
+    <import file="${common.build.dir}/common-build.xml"/>
+
+    <property name="antlr.gen.package" value="com.indeed.squall.iql2.language"/>
+    <property name="antlr.gen.outputPath" value="gen-src/java/com/indeed/squall/iql2/language"/>
+    <property name="antlr.gen.grammarFile" value="JQL.g4"/>
+    <import file="${common.build.dir}/common-antlr.xml"/>
+
+    <target name="generate-transient-java" depends="common.generate-transient-java, generate-antlr-java">
+    </target>
+
+    <property name="publish.test.jar" value="true"/>
+</project>
