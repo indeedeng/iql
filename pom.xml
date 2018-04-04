@@ -33,6 +33,31 @@
         </repository>
     </repositories>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalOptions>-Xdoclint:none</additionalOptions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.indeed</groupId>
@@ -324,6 +349,26 @@
             <version>1.7.11</version>
         </dependency>
 
+        <!-- IQL2 deps -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>4.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.immutables</groupId>
+            <artifactId>value</artifactId>
+            <version>2.1.15</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -340,9 +385,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.75</imhotep.version>
+        <imhotep.version>3.1.76</imhotep.version>
         <ims.version>4.0.4</ims.version>
-        <indeed-util.version>1.0.15</indeed-util.version>
+        <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>

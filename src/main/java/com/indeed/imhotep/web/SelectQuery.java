@@ -29,7 +29,7 @@ public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
     // this can be incremented to invalidate the old cache
-    private static final byte VERSION_FOR_HASHING = 2;
+    public static final byte VERSION_FOR_HASHING = 2;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
@@ -41,10 +41,12 @@ public class SelectQuery implements Closeable {
     final ClientInfo clientInfo;
     final Limits limits;
     final DateTime querySubmitTimestamp;
-    final byte sessions = 1;    // imhotep sessions
+    final byte sessions;    // imhotep sessions
     final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
+    /** Only in IQL1 */
+    @Nullable
     final SelectStatement parsedStatement;
-    IQLQuery iqlQuery;
+    Closeable iqlQuery;
     boolean cancelled = false;
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
@@ -53,7 +55,7 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement) {
+    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
         this.runningQueriesManager = runningQueriesManager;
         this.queryString = queryString;
         this.clientInfo = clientInfo;
@@ -62,6 +64,8 @@ public class SelectQuery implements Closeable {
         this.parsedStatement = parsedStatement;
         this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(queryString).replaceAll("\\($1\\.\\.\\.\\)");
         this.queryHash = getQueryHash(queryString, null, false);
+        this.sessions = sessions;
+        this.iqlQuery = iqlQuery;
         this.shortHash = this.queryHash.substring(0, 6);
         log.debug("Query created with hash " + shortHash);
     }
@@ -135,7 +139,9 @@ public class SelectQuery implements Closeable {
 //     TODO: rework since query may be killed from another daemon
     public void kill() {
         try {
-            iqlQuery.close();
+            if(iqlQuery != null) {
+                iqlQuery.close();
+            }
         } catch (Exception e) {
             log.warn("Failed to close the Imhotep session to kill query" + queryStringTruncatedForPrint, e);
         }
@@ -170,6 +176,11 @@ public class SelectQuery implements Closeable {
 
     public String getSubmitTime() {
         return querySubmitTimestamp.toString();
+    }
+
+    @JsonIgnore
+    public DateTime getQueryStartTimestamp() {
+        return queryStartTimestamp;
     }
 
     @Override

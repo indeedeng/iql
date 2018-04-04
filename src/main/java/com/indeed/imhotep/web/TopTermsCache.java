@@ -29,6 +29,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,16 +45,14 @@ public class TopTermsCache {
     private static final String CACHE_FILE_NAME = "toptermscache.bin";
     private static final int CACHE_UPDATE_FREQUENCY = 24 * 60 * 60 * 1000; // 24 hours;
     private final ImhotepClient client;
-    private final ImhotepMetadataCache imhotepMetadataCache;
     private final String localCachePath;
     private boolean initialized = false;
     private final boolean devMode;
 
     private volatile Map<String, Map<String, List<String>>> datasetToFieldToTerms = Maps.newHashMap();
 
-    public TopTermsCache(ImhotepClient client, ImhotepMetadataCache imhotepMetadataCache, String localCachePath, boolean devMode) {
+    public TopTermsCache(ImhotepClient client, String localCachePath, boolean devMode) {
         this.client = client;
-        this.imhotepMetadataCache = imhotepMetadataCache;
         this.localCachePath = localCachePath;
         this.devMode = devMode;
     }
@@ -99,8 +98,7 @@ public class TopTermsCache {
         final DateTime startTime = DateTime.now().minusDays(DAYS_DELAY).withTimeAtStartOfDay().plusHours(12);
         final DateTime endTime = startTime.plusHours(1);
 
-        for(final DatasetMetadata datasetMetadata : imhotepMetadataCache.getDatasets().values()) {
-            final String dataset = datasetMetadata.getName();
+        for(final String dataset : client.getDatasetNames()) {
             long started = System.currentTimeMillis();
 
             final Map<String, List<String>> fieldToTerms = Maps.newHashMap();
@@ -119,19 +117,17 @@ public class TopTermsCache {
             }
 
             try {
-                for (FieldMetadata fieldMetadata : datasetMetadata.getFields().values()) {
-                    if (fieldMetadata.getType() != FieldType.String) {
-                        continue; // we are trying to get some values for enum like string fields. can skip the random integer values
-                    }
-                    final String field = fieldMetadata.getName();
+                // we are trying to get some values for enum like string fields. can skip the random integer values
+                final Collection<String> stringFields = client.getDatasetInfo(dataset).getStringFields();
+                for(final String field : stringFields) {
                     final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
 
-                    if (termCounts.size() == 0) {
+                    if(termCounts.size() == 0) {
                         log.debug(dataset + "." + field + " has no terms");
                     }
 
                     final List<String> terms = Lists.newArrayList();
-                    for (TermCount termCount : termCounts) {
+                    for(TermCount termCount : termCounts) {
                         terms.add(termCount.getTerm().getTermStringVal());
                     }
                     fieldToTerms.put(field, terms);

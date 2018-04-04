@@ -73,33 +73,9 @@ public class ImhotepMetadataCache {
     private ImsClientInterface metadataClient;
 
 
-    public ImhotepMetadataCache(ImhotepClient client, String disabledFields, boolean imsEnabled) {
+    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields) {
+        metadataClient = imsClient;
         imhotepClient = client;
-        try {
-            ///A way to get the port from tomcat without a request
-            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
-                       Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
-            ArrayList<String> ports = new ArrayList<String>();
-            for (ObjectName obj : objs) {
-                String port = obj.getKeyProperty("port");
-                ports.add(port);
-            }
-            String url = "http://localhost:" + ports.get(0)+"/iql/";
- //            String url = "https://squall.ausprod.indeed.net/iql/";
-            if(imsEnabled) {
-                metadataClient = ImsClient.build(url);
-            } else {
-                metadataClient = null;
-                log.info("IMS disabled by the ims.enabled setting");
-            }
-
-        } catch (URISyntaxException e) {
-                log.error("Failed to connect to the metadata service",e);
-        }
-        catch (Exception e) {
-            log.error(e);
-        }
         if(!Strings.isNullOrEmpty(disabledFields)) {
             for(String field : disabledFields.split(",")) {
                 try {

@@ -40,6 +40,7 @@ import com.indeed.imhotep.sql.ast2.SelectClause;
 import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
+import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -107,7 +108,6 @@ public class QueryServlet {
             "nocache", "head", "progress", "totals", "getshardlist", "nocacheread", "nocachewrite", "async");
 
     private final ImhotepClient imhotepClient;
-    private final ImhotepClient imhotepInteractiveClient;
     private final ImhotepMetadataCache metadata;
     private final TopTermsCache topTermsCache;
     private final QueryCache queryCache;
@@ -125,7 +125,6 @@ public class QueryServlet {
                         ExecutorService executorService,
                         AccessControl accessControl) {
         this.imhotepClient = imhotepClient;
-        this.imhotepInteractiveClient = imhotepInteractiveClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
         this.queryCache = queryCache;
@@ -138,7 +137,7 @@ public class QueryServlet {
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws ServletException, IOException {
 
-        final String httpUserName = getUserNameFromRequest(req);
+        final String httpUserName = UsernameUtil.getUserNameFromRequest(req);
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
         final String author = Strings.nullToEmpty(req.getParameter("author"));
         final String client = Strings.nullToEmpty(req.getParameter("client"));
@@ -167,7 +166,7 @@ public class QueryServlet {
                 final Limits limits = accessControl.getLimitsForIdentity(userName, client);
 
                 selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits,
-                        new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery);
+                        new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery, (byte)1, null);
 
                 logQueryToLog4J(selectQuery.queryStringTruncatedForPrint, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
 
@@ -244,64 +243,15 @@ public class QueryServlet {
         return value;
     }
 
-    /**
-     * Gets the user name from the HTTP request if it was provided through Basic authentication.
-     * 
-     * @param request Http request
-     * @return User name if Basic auth is used or null otherwise
-     */
-    private static String getUserNameFromRequest(final HttpServletRequest request) {
-        final String authHeader = request.getHeader("Authorization");
-        if (authHeader == null) {
-            // try simple
-            final String rawUser = request.getRemoteUser();
-            if (rawUser == null) {
-                return null;
-            } else {
-                return rawUser;
-            }
-        } else {
-            final String credStr;
-            if (authHeader.startsWith("user ")) {
-                credStr = authHeader.substring(5);
-            } else {
-                // try basic auth
-                if (!authHeader.toUpperCase().startsWith("BASIC ")) {
-                    // Not basic
-                    return null;
-                }
-
-                // remove basic
-                final String credEncoded = authHeader.substring(6); //length of 'BASIC '
-
-                final byte[] credRaw = Base64.decodeBase64(credEncoded.getBytes());
-                if (credRaw == null) {
-                    // invalid decoding
-                    return null;
-                }
-
-                credStr = new String(credRaw);
-            }
-
-            // get username part from username:password
-            final String[] x = credStr.split(":");
-            if (x.length < 1) {
-                // bad split
-                return null;
-            }
-
-            return x[0];
-        }
-    }
-
     private void handleSelectStatement(final SelectQuery selectQuery, final SelectRequestArgs args, final HttpServletResponse resp) throws IOException {
         final SelectExecutionStats selectExecutionStats = selectQuery.selectExecutionStats;
         final SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
-        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, args.interactive ? imhotepInteractiveClient : imhotepClient,
+        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
                 args.imhotepUserName, metadata, selectQuery.limits);
+        selectQuery.iqlQuery = iqlQuery;
 
         selectExecutionStats.shardCount = iqlQuery.getShards().size();
 

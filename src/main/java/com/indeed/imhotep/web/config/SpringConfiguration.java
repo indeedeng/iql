@@ -31,8 +31,15 @@ import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryServlet;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.server.SpringContextAware;
+import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
+import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
+import com.indeed.util.core.time.DefaultWallClock;
+import com.indeed.util.core.time.WallClock;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -52,20 +59,29 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.Query;
 import javax.sql.DataSource;
 import javax.xml.bind.PropertyException;
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableWebMvc
 @EnableScheduling
-@ComponentScan(basePackageClasses = {SpringConfiguration.class,QueryServlet.class})
+@ComponentScan(basePackageClasses = {SpringConfiguration.class, QueryServlet.class,
+        ServletsPackageMarker.class, QueryServletPackageMarker.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 
@@ -110,21 +126,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 false);
     }
 
-    @Bean(destroyMethod = "close")
-    public ImhotepClient imhotepInteractiveClient() {
-        final ImhotepClient interactiveClient = getImhotepClient(
-                env.getProperty("imhotep.daemons.interactive.zookeeper.quorum"),
-                env.getProperty("imhotep.daemons.interactive.zookeeper.path"),
-                env.getProperty("imhotep.daemons.interactive.host"),
-                true);
-        if(interactiveClient != null) {
-            return interactiveClient;
-        } else {
-            // interactive not provided, reuse the normal client
-            return imhotepClient();
-        }
-    }
-
     private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts, boolean quiet) {
         if(!Strings.isNullOrEmpty(hosts)) {
             final List<Host> hostObjects = Lists.newArrayList();
@@ -143,16 +144,50 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
     }
 
+    // TODO: merge!
+    // IQL1 metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCache() {
-        return new ImhotepMetadataCache(imhotepClient(), env.getProperty("disabled.fields"),
-                env.getProperty("ims.enabled", Boolean.class, true));
+    public ImhotepMetadataCache metadataCacheIQL2() {
+        return new ImhotepMetadataCache(imsClient(), imhotepClient(), env.getProperty("disabled.fields"));
+    }
+    // IQL2 metadata cache
+    @Bean
+    public MetadataCache metadataCacheIQL2(ImsClientInterface imsClient, ImhotepClient imhotepClient) {
+        return new MetadataCache(imsClient, imhotepClient);
+    }
+    @Bean
+    public TopTermsCache topTermsCache() {
+        return new TopTermsCache(imhotepClient(), env.getProperty("topterms.cache.dir"),
+                IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER);
     }
 
     @Bean
-    public TopTermsCache topTermsCache() {
-        return new TopTermsCache(imhotepClient(), metadataCache(), env.getProperty("topterms.cache.dir"),
-                IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER);
+    public ImsClientInterface imsClient() {
+        final boolean imsEnabled = env.getProperty("ims.enabled", Boolean.class, true);
+        try {
+            ///A way to get the port from tomcat without a request
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
+                    Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
+            ArrayList<String> ports = new ArrayList<String>();
+            for (ObjectName obj : objs) {
+                String port = obj.getKeyProperty("port");
+                ports.add(port);
+            }
+            String url = "http://localhost:" + ports.get(0)+"/iql/";
+            if(imsEnabled) {
+                return ImsClient.build(url);
+            } else {
+                log.info("IMS disabled by the ims.enabled setting");
+                return null;
+            }
+        } catch (URISyntaxException e) {
+            log.error("Failed to connect to the metadata service",e);
+        }
+        catch (Exception e) {
+            log.error(e);
+        }
+        return null;
     }
 
     @Bean
@@ -284,5 +319,17 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 //        } catch (InterruptedException e) {
 //            throw new IOException("interrupted while shutting down", e);
 //        }
+//    }
+
+    // IQL2 beans
+    @Bean
+    WallClock clock() {
+        return new DefaultWallClock();
+    }
+
+    // Is this better than the ThreadPoolExecutor above?
+//    @Bean
+//    public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
+//        return new ScheduledThreadPoolExecutor(4);
 //    }
 }
