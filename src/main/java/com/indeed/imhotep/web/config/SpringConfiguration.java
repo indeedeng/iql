@@ -62,6 +62,7 @@ import javax.annotation.PostConstruct;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.Query;
+import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 import javax.xml.bind.PropertyException;
 import java.io.File;
@@ -84,6 +85,9 @@ import java.util.concurrent.TimeUnit;
         ServletsPackageMarker.class, QueryServletPackageMarker.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
+
+    @Autowired
+    ServletContext servletContext;
 
     @Autowired
     Environment env;
@@ -174,7 +178,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 String port = obj.getKeyProperty("port");
                 ports.add(port);
             }
-            String url = "http://localhost:" + ports.get(0)+"/iql/";
+            String url = "http://localhost:" + ports.get(0) + servletContext.getContextPath() + "/";
             if(imsEnabled) {
                 return ImsClient.build(url);
             } else {
