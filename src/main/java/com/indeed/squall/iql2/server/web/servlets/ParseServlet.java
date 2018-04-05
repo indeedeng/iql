@@ -7,7 +7,6 @@ import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -26,14 +25,14 @@ public class ParseServlet {
         this.metadataCache = metadataCache;
     }
 
-    @RequestMapping("parse")
+//    @RequestMapping("parse")
     @ResponseBody
     public Object parse(
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        final int version = ServletUtil.getVersion(request);
+        final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         try {
             response.setHeader("Content-Type", "application/json");
             Queries.parseQuery(q, version == 1, metadataCache.get(), new StoppedClock());

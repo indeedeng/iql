@@ -19,14 +19,17 @@ import com.indeed.imhotep.sql.parser.QuerySplitter;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
+import com.indeed.squall.iql2.server.web.servlets.SplitServlet;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -37,9 +40,20 @@ import java.io.IOException;
 @Controller
 public class SplitterServlet {
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+    private final SplitServlet splitServletV2;
+
+    @Autowired
+    public SplitterServlet(SplitServlet splitServletV2) {
+        this.splitServletV2 = splitServletV2;
+    }
 
     @RequestMapping("/split")
-    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) throws ServletException, IOException {
+    @ResponseBody
+    protected Object doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) throws ServletException, IOException {
+        if(ServletUtil.getIQLVersionBasedOnPath(req) == 2) {
+            return splitServletV2.split(req, resp, query);
+        }
+
         resp.setContentType("application/json");
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode json = mapper.createObjectNode();
@@ -67,8 +81,6 @@ public class SplitterServlet {
             json.put("endRawString", fromClause != null ? fromClause.getEndRawString() : "");
         }
 
-        final ServletOutputStream outputStream = resp.getOutputStream();
-        mapper.writeValue(outputStream, json);
-        outputStream.close();
+        return json;
     }
 }

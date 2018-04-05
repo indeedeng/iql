@@ -5,13 +5,16 @@ import org.springframework.web.bind.ServletRequestUtils;
 import javax.servlet.http.HttpServletRequest;
 
 public class ServletUtil {
-    public static int getVersion(HttpServletRequest request) {
-        final int fallbackVersion;
-        if (request.getServletPath().startsWith("/iql2/")) {
-            fallbackVersion = 2;
+    public static int getIQLVersionBasedOnPath(HttpServletRequest request) {
+        if(request.getRequestURI().startsWith("/iql2/")) {
+            return 2;
         } else {
-            fallbackVersion = 1;
+            return 1;
         }
+    }
+
+    public static int getIQLVersionBasedOnParam(HttpServletRequest request) {
+        final int fallbackVersion = getIQLVersionBasedOnPath(request);
         return ServletRequestUtils.getIntParameter(request, "v", fallbackVersion);
     }
 }

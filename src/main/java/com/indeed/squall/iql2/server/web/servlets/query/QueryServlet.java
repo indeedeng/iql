@@ -34,9 +34,7 @@ import org.joda.time.DateTimeZone;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,7 +57,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Controller
+@Controller("QueryServletV2")
 public class QueryServlet {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Logger log = Logger.getLogger(QueryServlet.class);
@@ -120,19 +118,7 @@ public class QueryServlet {
         return upperCased;
     }
 
-    @RequestMapping("/private/updateLimits")
-    @ResponseBody
-    protected String updateLimits() {
-        try {
-            accessControl.updateLimits();
-            return "Limits reloaded from the DB";
-        } catch (Exception e) {
-            return "Update failed: " + e.toString();
-        }
-    }
-
-
-    @RequestMapping("query")
+//    @RequestMapping("query")
     public void query(
             final HttpServletRequest request,
             final HttpServletResponse response,
@@ -140,7 +126,7 @@ public class QueryServlet {
     ) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
         final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
 
-        final int version = ServletUtil.getVersion(request);
+        final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         final String contentType = Optional.ofNullable(request.getHeader("Accept")).orElse("text/plain;charset=utf-8");
 
         final String httpUsername = UsernameUtil.getUserNameFromRequest(request);

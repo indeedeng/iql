@@ -41,8 +41,8 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
+import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.util.core.io.Closeables2;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,6 +81,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
 * @author dwahler
@@ -114,6 +115,7 @@ public class QueryServlet {
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
     private final AccessControl accessControl;
+    private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -123,7 +125,8 @@ public class QueryServlet {
                         QueryCache queryCache,
                         RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
-                        AccessControl accessControl) {
+                        AccessControl accessControl,
+                        com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
@@ -131,11 +134,17 @@ public class QueryServlet {
         this.runningQueriesManager = runningQueriesManager;
         this.executorService = executorService;
         this.accessControl = accessControl;
+        this.queryServletV2 = queryServletV2;
     }
 
     @RequestMapping("/query")
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp,
-                         @Nonnull @RequestParam("q") String query) throws ServletException, IOException {
+                         @Nonnull @RequestParam("q") String query) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
+
+        if(ServletUtil.getIQLVersionBasedOnPath(req) == 2) {
+            queryServletV2.query(req, resp, query);
+            return;
+        }
 
         final String httpUserName = UsernameUtil.getUserNameFromRequest(req);
         final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);

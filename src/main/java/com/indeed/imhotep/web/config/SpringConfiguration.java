@@ -147,7 +147,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // TODO: merge!
     // IQL1 metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL2() {
+    public ImhotepMetadataCache metadataCacheIQL1() {
         return new ImhotepMetadataCache(imsClient(), imhotepClient(), env.getProperty("disabled.fields"));
     }
     // IQL2 metadata cache

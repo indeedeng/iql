@@ -1,11 +1,9 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
-import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -16,14 +14,14 @@ import java.util.HashMap;
 
 @Controller
 public class SplitServlet {
-    @RequestMapping("split")
+//    @RequestMapping("split")
     @ResponseBody
     public Object split(
             final HttpServletRequest request,
             final HttpServletResponse response,
             final @Nonnull @RequestParam("q") String q
     ) {
-        final int version = ServletUtil.getVersion(request);
+        final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         response.setHeader("Content-Type", "application/json");
         try {
             return Queries.parseSplitQuery(q, version == 1, new StoppedClock());
