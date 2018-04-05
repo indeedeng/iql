@@ -14,7 +14,7 @@ public class ServletUtil {
     }
 
     public static int getIQLVersionBasedOnParam(HttpServletRequest request) {
-        final int fallbackVersion = getIQLVersionBasedOnPath(request);
-        return ServletRequestUtils.getIntParameter(request, "v", fallbackVersion);
+        final int defaultLanguageVersion = 1;
+        return ServletRequestUtils.getIntParameter(request, "v", defaultLanguageVersion);
     }
 }
