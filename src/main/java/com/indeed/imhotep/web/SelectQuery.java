@@ -96,12 +96,13 @@ public class SelectQuery implements Closeable {
     }
 
     public void lock() {
+        final long waitStartTime = System.currentTimeMillis();
+        runningQueriesManager.register(this);
+
         if (!runningQueriesManager.isEnabled()) {
             return;
         }
 
-        final long waitStartTime = System.currentTimeMillis();
-        runningQueriesManager.register(this);
         // block until inserted into mysql
         try {
             // TODO: handle MySQL failure to avoid blocking forever?

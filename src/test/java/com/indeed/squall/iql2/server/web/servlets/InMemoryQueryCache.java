@@ -4,8 +4,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
-import com.indeed.common.util.io.Files;
-import com.indeed.squall.iql2.server.web.cache.QueryCache;
+import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.util.io.Files;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteList;
 

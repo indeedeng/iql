@@ -1,7 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.common.util.time.StoppedClock;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.language.compat.Consumer;

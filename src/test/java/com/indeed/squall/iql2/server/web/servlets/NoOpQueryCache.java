@@ -1,6 +1,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
-import com.indeed.squall.iql2.server.web.cache.QueryCache;
+
+import com.indeed.imhotep.iql.cache.QueryCache;
 
 import java.io.File;
 import java.io.IOException;

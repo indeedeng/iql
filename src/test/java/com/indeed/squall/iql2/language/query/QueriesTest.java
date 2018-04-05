@@ -1,10 +1,10 @@
 package com.indeed.squall.iql2.language.query;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.common.util.time.DefaultWallClock;
-import com.indeed.common.util.time.ResettableWallClock;
+import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.util.core.time.StoppedClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
@@ -19,7 +19,7 @@ public class QueriesTest {
 
     @Test
     public void testSplitQuery() {
-        final ResettableWallClock clock = new ResettableWallClock(DateTime.parse("2015-01-02").withZone(DateTimeZone.forOffsetHours(-6)).getMillis());
+        final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZone(DateTimeZone.forOffsetHours(-6)).getMillis());
         {
             final String query = "FROM jobsearch 1d 0d";
             Assert.assertEquals(
