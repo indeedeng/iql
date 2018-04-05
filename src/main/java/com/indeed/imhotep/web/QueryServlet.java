@@ -721,6 +721,7 @@ public class QueryServlet {
 
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
+        logEntry.setProperty("iqlversion", 1);
         logEntry.setProperty("username", userName);
         logEntry.setProperty("client", clientInfo.client);
         if(!clientInfo.author.isEmpty()) {

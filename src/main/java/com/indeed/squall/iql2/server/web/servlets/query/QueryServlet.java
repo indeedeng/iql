@@ -391,6 +391,7 @@ public class QueryServlet {
 
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
+        logEntry.setProperty("iqlversion", 2);
         logEntry.setProperty("username", clientInfo.username);
         logEntry.setProperty("client", clientInfo.client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
