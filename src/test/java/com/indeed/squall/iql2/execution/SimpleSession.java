@@ -12,7 +12,8 @@ import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.flamdex.query.Term;
-import com.indeed.imhotep.group.ImhotepChooser;
+import com.indeed.imhotep.group.IterativeHasher;
+import com.indeed.imhotep.group.IterativeHasherUtils;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.IntOrAction;
 import com.indeed.squall.iql2.execution.actions.MetricAction;
@@ -248,17 +249,21 @@ public class SimpleSession {
             positive = sampleAction.positiveGroup;
             negative = sampleAction.negativeGroup;
             scope = sampleAction.scope;
-            final ImhotepChooser chooser = new ImhotepChooser(sampleAction.seed, 1.0 - sampleAction.probability);
+            final IterativeHasher hasher = new IterativeHasher.Murmur3Hasher(sampleAction.seed);
+            final IterativeHasher.ConsistentLongHasher intHasher = hasher.consistentLongHasher();
+            final IterativeHasher.StringHasher strHasher = hasher.stringHasher();
+            final IterativeHasherUtils.GroupChooser chooser =
+                    IterativeHasherUtils.createChooser(new double[] {1.0 - sampleAction.probability});
             predicate = new Predicate<Document>() {
                 @Override
                 public boolean apply(Document input) {
                     for (final long v : input.getIntField(sampleAction.field)) {
-                        if (!chooser.choose(String.valueOf(v))) {
+                        if (chooser.getGroup(intHasher.calculateHash(v)) == 0) {
                             return false;
                         }
                     }
                     for (final String s : input.getStringField(sampleAction.field)) {
-                        if (!chooser.choose(s)) {
+                        if (chooser.getGroup(strHasher.calculateHash(s)) == 0) {
                             return false;
                         }
                     }
@@ -704,17 +709,21 @@ public class SimpleSession {
         for (final Map.Entry<String, List<SampleFields.SampleDefinition>> entry : perDatasetDefinitions.entrySet()) {
             final List<Predicate<Document>> predicates = Lists.newArrayList();
             for (final SampleFields.SampleDefinition defn : entry.getValue()) {
-                final ImhotepChooser chooser = new ImhotepChooser(defn.seed, 1.0 - defn.fraction);
+                final IterativeHasher hasher = new IterativeHasher.Murmur3Hasher(defn.seed);
+                final IterativeHasher.ConsistentLongHasher intHasher = hasher.consistentLongHasher();
+                final IterativeHasher.StringHasher strHasher = hasher.stringHasher();
+                final IterativeHasherUtils.GroupChooser chooser =
+                        IterativeHasherUtils.createChooser(new double[] {1.0 - defn.fraction});
                 predicates.add(new Predicate<Document>() {
                     @Override
                     public boolean apply(Document input) {
                         for (final long v : input.getIntField(defn.field)) {
-                            if (!chooser.choose(String.valueOf(v))) {
+                            if (chooser.getGroup(intHasher.calculateHash(v)) == 0) {
                                 return false;
                             }
                         }
                         for (final String v : input.getStringField(defn.field)) {
-                            if (!chooser.choose(v)) {
+                            if (chooser.getGroup(strHasher.calculateHash(v)) == 0) {
                                 return false;
                             }
                         }
