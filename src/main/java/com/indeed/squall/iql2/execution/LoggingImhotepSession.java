@@ -196,6 +196,18 @@ public class LoggingImhotepSession implements ImhotepSession {
     }
 
     @Override
+    public void randomMetricRegroup(final int stat, final String salt, final double p, final int targetGroup, final int negativeGroup, final int positiveGroup) throws ImhotepOutOfMemoryException {
+        log.info("LoggingImhotepSession.randomMetricRegroup: " + "stat = [" + stat + "], salt = [" + salt + "], p = [" + p + "], targetGroup = [" + targetGroup + "], negativeGroup = [" + negativeGroup + "], positiveGroup = [" + positiveGroup + "]");
+        wrapped.randomMetricRegroup(stat, salt, p, targetGroup, negativeGroup, positiveGroup);
+    }
+
+    @Override
+    public void randomMetricMultiRegroup(final int stat, final String salt, final int targetGroup, final double[] percentages, final int[] resultGroups) throws ImhotepOutOfMemoryException {
+        log.info("LoggingImhotepSession.randomMetricMultiRegroup: " + "stat = [" + stat + "], salt = [" + salt + "], targetGroup = [" + targetGroup + "], percentages = [" + Arrays.toString(percentages) + "], resultGroups = [" + Arrays.toString(resultGroups) + "]");
+        wrapped.randomMetricMultiRegroup(stat, salt, targetGroup, percentages, resultGroups);
+    }
+
+    @Override
     public int metricRegroup(int stat, long min, long max, long intervalSize) throws ImhotepOutOfMemoryException {
         log.info("LoggingImhotepSession.metricRegroup: " + "stat = [" + stat + "], min = [" + min + "], max = [" + max + "], intervalSize = [" + intervalSize + "]");
         return wrapped.metricRegroup(stat, min, max, intervalSize);

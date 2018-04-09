@@ -415,6 +415,16 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
     }
 
     @Override
+    public void randomMetricRegroup(final int stat, final String salt, final double p, final int targetGroup, final int negativeGroup, final int positiveGroup) throws ImhotepOutOfMemoryException {
+        wrapped.randomMetricRegroup(stat, salt, p, targetGroup, negativeGroup, positiveGroup);
+    }
+
+    @Override
+    public void randomMetricMultiRegroup(final int stat, final String salt, final int targetGroup, final double[] percentages, final int[] resultGroups) throws ImhotepOutOfMemoryException {
+        wrapped.randomMetricMultiRegroup(stat, salt, targetGroup, percentages, resultGroups);
+    }
+
+    @Override
     public int metricRegroup(int stat, long min, long max, long intervalSize) throws ImhotepOutOfMemoryException {
         return wrapped.metricRegroup(stat, min, max, intervalSize);
     }
