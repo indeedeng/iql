@@ -1,11 +1,11 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Optional;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
-import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
+import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
@@ -286,6 +286,24 @@ public class DocFilters {
                     seed = String.valueOf(Math.random());
                 }
                 accept(scopedField.wrap(new DocFilter.Sample(scopedField.field, numerator, denominator, seed)));
+            }
+
+            @Override
+            public void enterDocSampleDocId(final JQLParser.DocSampleDocIdContext ctx) {
+                final long numerator = Long.parseLong(ctx.numerator.getText());
+                final long denominator;
+                if (ctx.denominator != null) {
+                    denominator = Long.parseLong(ctx.denominator.getText());
+                } else {
+                    denominator = 100;
+                }
+                final String seed;
+                if (ctx.seed != null) {
+                    seed = ParserCommon.unquote(ctx.seed.getText());
+                } else {
+                    seed = String.valueOf(Math.random());
+                }
+                accept(new DocFilter.SampleDocId(numerator, denominator, seed));
             }
 
             @Override

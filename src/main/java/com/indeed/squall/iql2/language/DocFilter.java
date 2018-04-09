@@ -1,7 +1,6 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -13,14 +12,15 @@ import com.indeed.squall.iql2.language.actions.MetricAction;
 import com.indeed.squall.iql2.language.actions.QueryAction;
 import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
+import com.indeed.squall.iql2.language.actions.SampleDocIdAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.passes.ExtractQualifieds;
-import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.MapUtil;
 import com.indeed.squall.iql2.language.util.ParserUtil;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -55,6 +55,7 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(Qualified qualified) throws E;
         T visit(Lucene lucene) throws E;
         T visit(Sample sample) throws E;
+        T visit(SampleDocId sample) throws E;
         T visit(Always always) throws E;
         T visit(Never never) throws E;
         T visit(StringFieldIn stringFieldIn) throws E;
@@ -1395,6 +1396,78 @@ public abstract class DocFilter extends AbstractPositional {
             return "Sample{" +
                     "field='" + field + '\'' +
                     ", numerator=" + numerator +
+                    ", denominator=" + denominator +
+                    ", seed='" + seed + '\'' +
+                    '}';
+        }
+    }
+
+    public static class SampleDocId extends DocFilter {
+        public final long numerator;
+        public final long denominator;
+        public final String seed;
+
+        public SampleDocId(final long numerator, final long denominator, final String seed) {
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.seed = seed;
+        }
+
+        @Override
+        public DocFilter transform(final Function<DocMetric, DocMetric> g,
+                                   final Function<DocFilter, DocFilter> i) {
+            return i.apply(this);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(final String dataset) {
+            // TODO: Support this
+            throw new UnsupportedOperationException("Haven't implemented Sample yet");
+        }
+
+        @Override
+        public List<Action> getExecutionActions(final Map<String, String> scope,
+                                                final int target,
+                                                final int positive,
+                                                final int negative,
+                                                final GroupSupplier groupSupplier) {
+            return Collections.singletonList(new SampleDocIdAction(scope.keySet(), (double) numerator / denominator, seed, target, positive, negative));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset,
+                             final ValidationHelper validationHelper,
+                             final Validator validator) {
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if ((o == null) || (getClass() != o.getClass())) {
+                return false;
+            }
+            final SampleDocId sample = (SampleDocId) o;
+            return Objects.equals(numerator, sample.numerator) &&
+                    Objects.equals(denominator, sample.denominator) &&
+                    Objects.equals(seed, sample.seed);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(numerator, denominator, seed);
+        }
+
+        @Override
+        public String toString() {
+            return "SampleDocId{" +
+                    "numerator=" + numerator +
                     ", denominator=" + denominator +
                     ", seed='" + seed + '\'' +
                     '}';

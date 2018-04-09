@@ -6,7 +6,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.indeed.util.core.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.Actions;
@@ -23,6 +22,7 @@ import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodePerGroup;
 import com.indeed.squall.iql2.execution.commands.ExplodeRandom;
+import com.indeed.squall.iql2.execution.commands.ExplodeRandomDocId;
 import com.indeed.squall.iql2.execution.commands.ExplodeSessionNames;
 import com.indeed.squall.iql2.execution.commands.ExplodeTimeBuckets;
 import com.indeed.squall.iql2.execution.commands.FilterDocs;
@@ -47,6 +47,7 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.apache.log4j.Logger;
@@ -360,6 +361,11 @@ public class Commands {
                 final int k = command.get("k").intValue();
                 final String salt = command.get("salt").textValue();
                 return new ExplodeRandom(field, k, salt);
+            }
+            case "explodeRandomDocId": {
+                final int k = command.get("k").intValue();
+                final String salt = command.get("salt").textValue();
+                return new ExplodeRandomDocId(k, salt);
             }
         }
         throw new RuntimeException("oops:" + command);

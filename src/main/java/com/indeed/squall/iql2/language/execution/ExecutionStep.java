@@ -732,4 +732,32 @@ public interface ExecutionStep {
                     '}';
         }
     }
+
+    class ExplodeRandomDocId implements ExecutionStep {
+        private final int k;
+        private final String salt;
+
+        public ExplodeRandomDocId(final int k, final String salt) {
+            this.k = k;
+            this.salt = salt;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.singletonList(new com.indeed.squall.iql2.language.commands.ExplodeRandomDocId(k, salt));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeRandomDocId{" +
+                    "k=" + k +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
 }

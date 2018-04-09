@@ -77,6 +77,16 @@ public class Actions {
                         negative
                 );
             }
+            case "sampleDocIdAction": {
+                return new SampleDocIdAction(
+                        scope,
+                        json.get("probability").doubleValue(),
+                        json.get("seed").textValue(),
+                        target,
+                        positive,
+                        negative
+                );
+            }
             case "unconditionalAction": {
                 return new UnconditionalAction(scope, target, json.get("newGroup").intValue());
             }

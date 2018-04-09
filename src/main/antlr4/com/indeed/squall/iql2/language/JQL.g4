@@ -83,6 +83,7 @@ DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
+DOCID: 'DOCID' ;
 
 M: 'M' ;
 Y : 'Y' ;
@@ -379,6 +380,7 @@ jqlDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
     | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
+    | SAMPLE '(' DOCID'('')' ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSampleDocId
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
@@ -404,6 +406,7 @@ groupByElement [boolean useLegacy]
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     | {!$ctx.useLegacy}? RANDOM '(' field=identifier ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupBy
+    | {!$ctx.useLegacy}? RANDOM '(' DOCID '(' ')' ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupByDocId
     ;
 
 // TODO: Make TOPTERMS a valid identifier

@@ -8,7 +8,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.*;
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.addConstantColumn;
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 public class FieldRegroupTest extends BasicTest {
     final Dataset dataset = OrganicDataset.create();
@@ -115,5 +117,27 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "20"));
         testAll(dataset, expected, "from organic yesterday today group by ojc[100 BY ojc/count()] select count(), ojc limit 2", true);
         testIQL2(dataset, addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], allbit select count(), ojc limit 2", true);
+    }
+
+    @Test
+    public void testRandomRegroup() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("No term", "0"));
+        expected.add(ImmutableList.of("1", "8"));
+        expected.add(ImmutableList.of("2", "3"));
+        expected.add(ImmutableList.of("3", "140"));
+        testIQL2(dataset, expected, "from organic yesterday today group by random(oji, 3, \"SomeRandomSalt\") select count()", true);
+        testIQL2(dataset, addConstantColumn(1, "1", expected.subList(1, expected.size())), "from organic yesterday today group by random(oji, 3, \"SomeRandomSalt\"), allbit select count()", true);
+    }
+
+    @Test
+    public void testRandomRegroupByDocId() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("No term", "0"));
+        expected.add(ImmutableList.of("1", "68"));
+        expected.add(ImmutableList.of("2", "38"));
+        expected.add(ImmutableList.of("3", "45"));
+        testIQL2(dataset, expected, "from organic yesterday today group by random(docId(), 3, \"SomeRandomSalt\") select count()", true);
+        testIQL2(dataset, addConstantColumn(1, "1", expected.subList(1, expected.size())), "from organic yesterday today group by random(docId(), 3, \"SomeRandomSalt\"), allbit select count()", true);
     }
 }
