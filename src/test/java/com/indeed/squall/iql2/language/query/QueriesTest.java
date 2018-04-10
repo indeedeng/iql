@@ -19,7 +19,7 @@ public class QueriesTest {
 
     @Test
     public void testSplitQuery() {
-        final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZone(DateTimeZone.forOffsetHours(-6)).getMillis());
+        final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZoneRetainFields(DateTimeZone.forOffsetHours(-6)).getMillis());
         {
             final String query = "FROM jobsearch 1d 0d";
             Assert.assertEquals(
