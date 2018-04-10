@@ -309,7 +309,11 @@ public class Queries {
     static List<String> extractHeaders(Query parsed, CharStream input) {
         final List<String> result = new ArrayList<>();
         for (GroupByMaybeHaving groupBy : parsed.groupBys) {
-            result.add(getRawInput(input, groupBy.groupBy));
+            if (groupBy.alias.isPresent()) {
+                result.add(groupBy.alias.get());
+            } else {
+                result.add(getRawInput(input, groupBy.groupBy));
+            }
         }
         if (result.isEmpty()) {
             result.add("");

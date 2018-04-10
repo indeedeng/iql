@@ -162,6 +162,25 @@ class Parser {
     }
 
     @autobind
+    groupByAliases(groupByRaw) {
+        if (groupByRaw.trim().length === 0) {
+            return success([]);
+        }
+        const parseResult = runParser('groupByContents', groupByRaw, [this.isLegacy]);
+        if (parseResult.errors) return parseResult;
+        const parsed = parseResult.success;
+        const getText = makeGetText(parsed);
+        function getAlias(groupByElement) {
+            let as = groupByElement.alias;
+            if (as !== null) {
+                return getText(as);
+            }
+            return "";
+        }
+        return success(parsed.groupByElementWithHaving().map(getAlias));
+    }
+
+    @autobind
     selectRaws(selectRaw) {
         if (selectRaw.trim().length === 0) {
             return success([]);

@@ -54,10 +54,13 @@ public class ExtractPrecomputed {
             processor.setStartDepth(i + 1);
             processor.setMaxDepth(i + 1);
             final Optional<AggregateFilter> filter;
+            final Optional<String> alias;
             if (groupBy.groupBy instanceof GroupBy.GroupByField) {
                 filter = ((GroupBy.GroupByField) groupBy.groupBy).filter;
+                alias = Optional.absent();
             } else {
                 filter = groupBy.filter;
+                alias = groupBy.alias;
             }
             if (!filter.isPresent()) {
                 groupBys.add(groupBy.traverse1(processor));
@@ -69,13 +72,13 @@ public class ExtractPrecomputed {
                     processor.setComputationType(ComputationType.PostComputation);
                     final Optional<AggregateFilter> newFilter = Optional.of(filter.get().traverse1(processor));
                     if (!(groupBy.groupBy instanceof GroupBy.GroupByField)) {
-                        groupBys.add(new GroupByMaybeHaving(groupBy.groupBy.traverse1(processor), newFilter));
+                        groupBys.add(new GroupByMaybeHaving(groupBy.groupBy.traverse1(processor), newFilter, alias));
                     } else {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
                                 groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
                                 groupByField.withDefault, groupByField.forceNonStreaming);
-                        groupBys.add(new GroupByMaybeHaving(newGroupByField.traverse1(processor), newFilter));
+                        groupBys.add(new GroupByMaybeHaving(newGroupByField.traverse1(processor), newFilter, alias));
                     }
                     processor.setComputationType(ComputationType.PreComputation);
                 }

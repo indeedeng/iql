@@ -24,10 +24,12 @@ import java.util.Objects;
 public class GroupByMaybeHaving {
     public final GroupBy groupBy;
     public final Optional<AggregateFilter> filter;
+    public final Optional<String> alias;
 
-    public GroupByMaybeHaving(GroupBy groupBy, Optional<AggregateFilter> filter) {
+    public GroupByMaybeHaving(GroupBy groupBy, Optional<AggregateFilter> filter, Optional<String> alias) {
         this.groupBy = groupBy;
         this.filter = filter;
+        this.alias = alias;
     }
 
     public GroupByMaybeHaving transform(
@@ -40,7 +42,7 @@ public class GroupByMaybeHaving {
             public AggregateFilter apply(AggregateFilter input) {
                 return input.transform(f, g, h, i, groupByF);
             }
-        }));
+        }), alias);
     }
 
     public GroupByMaybeHaving traverse1(final Function<AggregateMetric, AggregateMetric> f) {
@@ -48,15 +50,7 @@ public class GroupByMaybeHaving {
             public AggregateFilter apply(AggregateFilter input) {
                 return input.traverse1(f);
             }
-        }));
-    }
-
-    public static GroupByMaybeHaving of(GroupBy groupBy, AggregateFilter aggregateFilter) {
-        return new GroupByMaybeHaving(groupBy, Optional.of(aggregateFilter));
-    }
-
-    public static GroupByMaybeHaving of(GroupBy groupBy) {
-        return new GroupByMaybeHaving(groupBy, Optional.<AggregateFilter>absent());
+        }), alias);
     }
 
     @Override
@@ -65,12 +59,13 @@ public class GroupByMaybeHaving {
         if (o == null || getClass() != o.getClass()) return false;
         GroupByMaybeHaving that = (GroupByMaybeHaving) o;
         return Objects.equals(groupBy, that.groupBy) &&
-                Objects.equals(filter, that.filter);
+                Objects.equals(filter, that.filter) &&
+                Objects.equals(alias, that.alias);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(groupBy, filter);
+        return Objects.hash(groupBy, filter, alias);
     }
 
     @Override
@@ -78,6 +73,7 @@ public class GroupByMaybeHaving {
         return "GroupByMaybeHaving{" +
                 "groupBy=" + groupBy +
                 ", filter=" + filter +
+                ", alias=" + alias +
                 '}';
     }
 }

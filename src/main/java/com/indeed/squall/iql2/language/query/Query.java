@@ -270,7 +270,7 @@ public class Query extends AbstractPositional {
                             groupBys.set(j, new GroupByMaybeHaving(
                                     new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
                                             groupByField.withDefault),
-                                    groupByMaybeHaving.filter));
+                                    groupByMaybeHaving.filter, groupByMaybeHaving.alias));
                             foundRewriteGroupBy = true;
                         }
                     }

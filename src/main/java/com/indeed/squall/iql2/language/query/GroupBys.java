@@ -67,11 +67,15 @@ public class GroupBys {
             final WallClock clock
     ) {
         final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), options, datasetsMetadata, warn, clock);
+        Optional<AggregateFilter> aggregateFilter = Optional.absent();
+        Optional<String> alias = Optional.absent();
         if (ctx.filter != null) {
-            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, options, datasetsMetadata, warn, clock));
-        } else {
-            return GroupByMaybeHaving.of(groupBy);
+            aggregateFilter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.filter, options, datasetsMetadata, warn, clock));
         }
+        if (ctx.alias != null) {
+            alias = Optional.of(ctx.alias.getText());
+        }
+        return new GroupByMaybeHaving(groupBy, aggregateFilter, alias);
     }
 
     public static GroupBy parseGroupBy(final JQLParser.GroupByElementContext groupByElementContext, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {

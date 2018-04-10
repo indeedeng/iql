@@ -36,7 +36,7 @@ public class FixTopKHaving {
                     newFilter = groupBy.filter.get();
                 }
                 final GroupBy.GroupByField newGroupBy = new GroupBy.GroupByField(groupByField.field, Optional.of(newFilter), groupByField.limit, groupByField.metric, groupByField.withDefault, groupByField.forceNonStreaming);
-                newGroupBys.add(new GroupByMaybeHaving(newGroupBy, Optional.<AggregateFilter>absent()));
+                newGroupBys.add(new GroupByMaybeHaving(newGroupBy, Optional.<AggregateFilter>absent(), Optional.<String>absent()));
             } else {
                 newGroupBys.add(groupBy);
             }

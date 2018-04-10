@@ -56,21 +56,21 @@ public class GroupByTest {
 
     @Test
     public void groupByMetric() throws Exception {
-        final GroupByMaybeHaving bucketOji1to10by1 = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), 1, 10, 1, false, false), Optional.<AggregateFilter>absent());
+        final GroupByMaybeHaving bucketOji1to10by1 = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), 1, 10, 1, false, false), Optional.<AggregateFilter>absent(), Optional.<String>absent());
         Assert.assertEquals(bucketOji1to10by1, Queries.runParser("bucket(oji, 1, 10, 1)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(bucketOji1to10by1, Queries.runParser("bucket(oji, 1, 10, 1)", PARSE_IQL2_GROUP_BY));
         Assert.assertEquals(bucketOji1to10by1, Queries.runParser("oji from 1 to 10 by 1)", PARSE_IQL2_GROUP_BY));
 
-        final GroupByMaybeHaving bucketOji1to10by2NoGutter = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), 1, 10, 2, true, false), Optional.<AggregateFilter>absent());
+        final GroupByMaybeHaving bucketOji1to10by2NoGutter = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), 1, 10, 2, true, false), Optional.<AggregateFilter>absent(), Optional.<String>absent());
         Assert.assertEquals(bucketOji1to10by2NoGutter, Queries.runParser("BUCKETS(oji, 1, 10, 2, true)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(bucketOji1to10by2NoGutter, Queries.runParser("BUCKETS(oji, 1, 10, 2, true)", PARSE_IQL2_GROUP_BY));
 
-        final GroupByMaybeHaving withNegatives = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), -10, 10, 1, false, false), Optional.<AggregateFilter>absent());
+        final GroupByMaybeHaving withNegatives = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), -10, 10, 1, false, false), Optional.<AggregateFilter>absent(), Optional.<String>absent());
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL2_GROUP_BY));
         Assert.assertEquals(withNegatives, Queries.runParser("oji FROM -10 TO 10 BY 1", PARSE_IQL2_GROUP_BY));
 
-        final GroupByMaybeHaving withDefault = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), -10, 10, 1, true, true), Optional.<AggregateFilter>absent());
+        final GroupByMaybeHaving withDefault = new GroupByMaybeHaving(new GroupBy.GroupByMetric(new DocMetric.Field("OJI"), -10, 10, 1, true, true), Optional.<AggregateFilter>absent(), Optional.<String>absent());
         Assert.assertEquals(withDefault, Queries.runParser("BUCKET(oji, -10, 10, 1) WITH DEFAULT", PARSE_IQL2_GROUP_BY));
         Assert.assertEquals(withDefault, Queries.runParser("oji FROM -10 TO 10 BY 1 WITH DEFAULT", PARSE_IQL2_GROUP_BY));
     }

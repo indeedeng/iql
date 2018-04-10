@@ -389,7 +389,7 @@ jqlDocFilter
     ;
 
 groupByElementWithHaving [boolean useLegacy]
-    : groupByElement[$ctx.useLegacy] ({!$ctx.useLegacy}? HAVING filter=aggregateFilter[$ctx.useLegacy])?
+    : groupByElement[$ctx.useLegacy] ({!$ctx.useLegacy}? HAVING filter=aggregateFilter[$ctx.useLegacy])? ({!$ctx.useLegacy}? AS alias=identifier)?
     ;
 
 groupByElement [boolean useLegacy]
