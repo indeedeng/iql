@@ -410,9 +410,10 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final GroupBy.GroupByRandomDocId groupByRandom) throws RuntimeException {
-                sb.append("random(docId(), ")
-                        .append(groupByRandom.k)
+            public Void visit(final GroupBy.GroupByRandomMetric groupByRandom) throws RuntimeException {
+                sb.append("random(");
+                pp(groupByRandom.metric, consumer, clock);
+                sb.append(groupByRandom.k)
                         .append(", \"")
                         .append(groupByRandom.salt)
                         .append('"');
@@ -994,9 +995,10 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocFilter.SampleDocId sample) throws RuntimeException {
-                sb.append("sample(docId(), ")
-                        .append(sample.numerator).append(", ")
+            public Void visit(final DocFilter.SampleDocMetric sample) throws RuntimeException {
+                sb.append("sample(");
+                pp(sample.metric, consumer, clock);
+                sb.append(sample.numerator).append(", ")
                         .append(sample.denominator).append(", ")
                         .append(sample.seed)
                         .append(")");
@@ -1090,6 +1092,12 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Count count) {
                 sb.append("count()");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.DocId count) throws RuntimeException {
+                sb.append("docId()");
                 return null;
             }
 

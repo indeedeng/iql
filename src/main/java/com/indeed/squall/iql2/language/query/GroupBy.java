@@ -32,7 +32,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByQuantiles groupByQuantiles) throws E;
         T visit(GroupByPredicate groupByPredicate) throws E;
         T visit(GroupByRandom groupByRandom) throws E;
-        T visit(GroupByRandomDocId groupByRandom) throws E;
+        T visit(GroupByRandomMetric groupByRandom) throws E;
     }
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
@@ -867,11 +867,13 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    public static class GroupByRandomDocId extends GroupBy {
+    public static class GroupByRandomMetric extends GroupBy {
+        public final DocMetric metric;
         public final int k;
         public final String salt;
 
-        public GroupByRandomDocId(final int k, final String salt) {
+        public GroupByRandomMetric(final DocMetric metric, final int k, final String salt) {
+            this.metric = metric;
             this.k = k;
             this.salt = salt;
         }
@@ -887,7 +889,7 @@ public abstract class GroupBy extends AbstractPositional {
                                  final Function<DocMetric, DocMetric> g,
                                  final Function<AggregateFilter, AggregateFilter> h,
                                  final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByRandomMetric(metric.transform(g, i), k, salt));
         }
 
         @Override
@@ -897,7 +899,11 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(final Set<String> scope) {
-            return new ExecutionStep.ExplodeRandomDocId(k, salt);
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+            for (final String dataset : scope) {
+                perDatasetMetric.put(dataset, metric);
+            }
+            return new ExecutionStep.ExplodeRandomMetric(perDatasetMetric, scope, k, salt);
         }
 
         @Override
@@ -919,19 +925,22 @@ public abstract class GroupBy extends AbstractPositional {
                 return false;
             }
 
-            final GroupByRandomDocId that = (GroupByRandomDocId) o;
-            return (k == that.k) && com.google.common.base.Objects.equal(salt, that.salt);
+            final GroupByRandomMetric that = (GroupByRandomMetric) o;
+            return com.google.common.base.Objects.equal(metric, that.metric)
+                    && (k == that.k)
+                    && com.google.common.base.Objects.equal(salt, that.salt);
         }
 
         @Override
         public int hashCode() {
-            return com.google.common.base.Objects.hashCode(k, salt);
+            return com.google.common.base.Objects.hashCode(metric, k, salt);
         }
 
         @Override
         public String toString() {
-            return "GroupByRandomDocId{" +
-                    "k=" + k +
+            return "GroupByRandomMetric{" +
+                    "metric =" + metric +
+                    ", k=" + k +
                     ", salt='" + salt + '\'' +
                     '}';
         }

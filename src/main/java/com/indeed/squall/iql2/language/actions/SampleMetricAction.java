@@ -4,17 +4,18 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-public class SampleDocIdAction implements Action, JsonSerializable {
-    public final ImmutableSet<String> scope;
+public class SampleMetricAction implements Action, JsonSerializable {
+    final ImmutableMap<String, ImmutableList<String>> perDatasetPushes;
     public final double probability;
     public final String seed;
 
@@ -22,8 +23,17 @@ public class SampleDocIdAction implements Action, JsonSerializable {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleDocIdAction(final Set<String> scope, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public SampleMetricAction(final Map<String, List<String>> perDatasetPushes,
+                              final double probability,
+                              final String seed,
+                              final int targetGroup,
+                              final int positiveGroup,
+                              final int negativeGroup) {
+        final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
+        for (final Map.Entry<String, List<String>> entry : perDatasetPushes.entrySet()) {
+            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
+        }
+        this.perDatasetPushes = copy.build();
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;
@@ -34,8 +44,8 @@ public class SampleDocIdAction implements Action, JsonSerializable {
     @Override
     public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
         final Map<String, Object> m = new HashMap<>();
-        m.put("action", "sampleDocIdAction");
-        m.put("scope", scope);
+        m.put("action", "sampleMetricAction");
+        m.put("perDatasetFilter", perDatasetPushes);
         m.put("probability", probability);
         m.put("seed", seed);
         m.put("target", targetGroup);
@@ -55,8 +65,8 @@ public class SampleDocIdAction implements Action, JsonSerializable {
 
     @Override
     public String toString() {
-        return "SampleDocIdAction{" +
-                "scope=" + scope +
+        return "SampleMetricAction{" +
+                "perDatasetPushes=" + perDatasetPushes +
                 ", probability=" + probability +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +

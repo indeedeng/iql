@@ -40,8 +40,12 @@ public class MetricAction implements Action {
                         final List<String> pushes = perDatasetPushes.get(name);
 
                         timer.push("pushStats");
-                        session.pushStats(pushes);
+                        final int index = session.pushStats(pushes);
                         timer.pop();
+
+                        if (index != 1) {
+                            throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + name + "\"");
+                        }
 
                         timer.push("metricFilter");
                         session.metricFilter(0, 1, 1, positiveGroup == 0);

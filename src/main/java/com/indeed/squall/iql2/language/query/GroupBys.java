@@ -301,7 +301,8 @@ public class GroupBys {
             }
 
             @Override
-            public void enterRandomGroupByDocId(final JQLParser.RandomGroupByDocIdContext ctx) {
+            public void enterRandomMetricGroupBy(final JQLParser.RandomMetricGroupByContext ctx) {
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock);
                 final int k = Integer.parseInt(ctx.k.getText());
                 final String salt;
                 if (ctx.salt == null) {
@@ -309,7 +310,7 @@ public class GroupBys {
                 } else {
                     salt = ParserCommon.unquote(ctx.salt.getText());
                 }
-                accept(new GroupBy.GroupByRandomDocId(k, salt));
+                accept(new GroupBy.GroupByRandomMetric(metric, k, salt));
             }
         });
 

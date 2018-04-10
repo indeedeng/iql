@@ -5,16 +5,28 @@ import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
-public class ExplodeRandomDocId implements Command, JsonSerializable {
+public class RandomMetricRegroup implements Command, JsonSerializable {
+    public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     private final int k;
     private final String salt;
 
-    public ExplodeRandomDocId(final int k, final String salt) {
+    public RandomMetricRegroup(final Map<String, List<String>> perDatasetMetric,
+                               final int k,
+                               final String salt) {
+        final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
+        for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
+            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
+        }
+        this.perDatasetMetric = copy.build();
         this.k = k;
         this.salt = salt;
     }
@@ -26,7 +38,8 @@ public class ExplodeRandomDocId implements Command, JsonSerializable {
     @Override
     public void serialize(final JsonGenerator gen, final SerializerProvider serializerProvider) throws IOException {
         gen.writeStartObject();
-        gen.writeStringField("command", "explodeRandomDocId");
+        gen.writeStringField("command", "randomMetricRegroup");
+        gen.writeObjectField("perDatasetMetric", perDatasetMetric);
         gen.writeNumberField("k", k);
         gen.writeStringField("salt", salt);
         gen.writeEndObject();
@@ -47,19 +60,20 @@ public class ExplodeRandomDocId implements Command, JsonSerializable {
         if ((o == null) || (getClass() != o.getClass())) {
             return false;
         }
-        final ExplodeRandomDocId that = (ExplodeRandomDocId) o;
-        return (k == that.k) && Objects.equal(salt, that.salt);
+        final RandomMetricRegroup that = (RandomMetricRegroup) o;
+        return Objects.equal(perDatasetMetric, that.perDatasetMetric) && (k == that.k) && Objects.equal(salt, that.salt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(k, salt);
+        return Objects.hashCode(perDatasetMetric, k, salt);
     }
 
     @Override
     public String toString() {
-        return "ExplodeRandomDocId{" +
-                "k=" + k +
+        return "RandomMetricRegroup{" +
+                "perDatasetMetric=" + perDatasetMetric +
+                ", k=" + k +
                 ", salt='" + salt + '\'' +
                 '}';
     }

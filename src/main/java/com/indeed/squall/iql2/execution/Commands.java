@@ -22,7 +22,6 @@ import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodePerGroup;
 import com.indeed.squall.iql2.execution.commands.ExplodeRandom;
-import com.indeed.squall.iql2.execution.commands.ExplodeRandomDocId;
 import com.indeed.squall.iql2.execution.commands.ExplodeSessionNames;
 import com.indeed.squall.iql2.execution.commands.ExplodeTimeBuckets;
 import com.indeed.squall.iql2.execution.commands.FilterDocs;
@@ -35,6 +34,7 @@ import com.indeed.squall.iql2.execution.commands.GetNumGroups;
 import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
+import com.indeed.squall.iql2.execution.commands.RandomMetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
 import com.indeed.squall.iql2.execution.commands.SampleFields;
@@ -362,10 +362,23 @@ public class Commands {
                 final String salt = command.get("salt").textValue();
                 return new ExplodeRandom(field, k, salt);
             }
-            case "explodeRandomDocId": {
+            case "randomMetricRegroup": {
+                // TODO: copy-paste from "metricRegroup" case. Will be deleted when we get rid of json stuff.
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = command.get("perDatasetMetric");
+                final Iterator<String> metricNameIterator = metrics.fieldNames();
+                while (metricNameIterator.hasNext()) {
+                    final String metricName = metricNameIterator.next();
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode metricList = metrics.get(metricName);
+                    for (int i = 0; i < metricList.size(); i++) {
+                        pushes.add(metricList.get(i).textValue());
+                    }
+                    perDatasetMetric.put(metricName, pushes);
+                }
                 final int k = command.get("k").intValue();
                 final String salt = command.get("salt").textValue();
-                return new ExplodeRandomDocId(k, salt);
+                return new RandomMetricRegroup(perDatasetMetric, k, salt);
             }
         }
         throw new RuntimeException("oops:" + command);

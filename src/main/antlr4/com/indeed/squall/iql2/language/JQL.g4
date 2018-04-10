@@ -322,6 +322,7 @@ jqlDocMetric
     | '(' jqlDocMetric ')' # DocMetricParens
     | jqlDocMetricAtom # DocAtom
     | integer # DocInt
+    | DOCID '(' ')' # DocId
     ;
 
 termVal [boolean useLegacy]
@@ -380,7 +381,7 @@ jqlDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
     | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
-    | SAMPLE '(' DOCID'('')' ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSampleDocId
+    | SAMPLE '(' jqlDocMetric ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSampleMetric
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
@@ -406,7 +407,7 @@ groupByElement [boolean useLegacy]
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     | {!$ctx.useLegacy}? RANDOM '(' field=identifier ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupBy
-    | {!$ctx.useLegacy}? RANDOM '(' DOCID '(' ')' ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupByDocId
+    | {!$ctx.useLegacy}? RANDOM '(' jqlDocMetric ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomMetricGroupBy
     ;
 
 // TODO: Make TOPTERMS a valid identifier

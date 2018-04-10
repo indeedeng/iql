@@ -289,7 +289,8 @@ public class DocFilters {
             }
 
             @Override
-            public void enterDocSampleDocId(final JQLParser.DocSampleDocIdContext ctx) {
+            public void enterDocSampleMetric(final JQLParser.DocSampleMetricContext ctx) {
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -303,7 +304,7 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(new DocFilter.SampleDocId(numerator, denominator, seed));
+                accept(new DocFilter.SampleDocMetric(metric, numerator, denominator, seed));
             }
 
             @Override

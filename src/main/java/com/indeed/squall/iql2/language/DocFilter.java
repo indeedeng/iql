@@ -3,6 +3,7 @@ package com.indeed.squall.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.flamdex.query.Query;
@@ -12,7 +13,7 @@ import com.indeed.squall.iql2.language.actions.MetricAction;
 import com.indeed.squall.iql2.language.actions.QueryAction;
 import com.indeed.squall.iql2.language.actions.RegexAction;
 import com.indeed.squall.iql2.language.actions.SampleAction;
-import com.indeed.squall.iql2.language.actions.SampleDocIdAction;
+import com.indeed.squall.iql2.language.actions.SampleMetricAction;
 import com.indeed.squall.iql2.language.actions.StringOrAction;
 import com.indeed.squall.iql2.language.actions.UnconditionalAction;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
@@ -55,7 +56,7 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(Qualified qualified) throws E;
         T visit(Lucene lucene) throws E;
         T visit(Sample sample) throws E;
-        T visit(SampleDocId sample) throws E;
+        T visit(SampleDocMetric sample) throws E;
         T visit(Always always) throws E;
         T visit(Never never) throws E;
         T visit(StringFieldIn stringFieldIn) throws E;
@@ -1402,12 +1403,14 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class SampleDocId extends DocFilter {
+    public static class SampleDocMetric extends DocFilter {
+        public final DocMetric metric;
         public final long numerator;
         public final long denominator;
         public final String seed;
 
-        public SampleDocId(final long numerator, final long denominator, final String seed) {
+        public SampleDocMetric(final DocMetric metric, final long numerator, final long denominator, final String seed) {
+            this.metric = metric;
             this.numerator = numerator;
             this.denominator = denominator;
             this.seed = seed;
@@ -1431,7 +1434,11 @@ public abstract class DocFilter extends AbstractPositional {
                                                 final int positive,
                                                 final int negative,
                                                 final GroupSupplier groupSupplier) {
-            return Collections.singletonList(new SampleDocIdAction(scope.keySet(), (double) numerator / denominator, seed, target, positive, negative));
+            final Map<String, List<String>> perDatasetPushes = Maps.newHashMapWithExpectedSize(scope.size());
+            for (final String dataset : scope.keySet()) {
+                perDatasetPushes.put(dataset, metric.getPushes(dataset));
+            }
+            return Collections.singletonList(new SampleMetricAction(perDatasetPushes, (double) numerator / denominator, seed, target, positive, negative));
         }
 
         @Override
@@ -1453,8 +1460,9 @@ public abstract class DocFilter extends AbstractPositional {
             if ((o == null) || (getClass() != o.getClass())) {
                 return false;
             }
-            final SampleDocId sample = (SampleDocId) o;
-            return Objects.equals(numerator, sample.numerator) &&
+            final SampleDocMetric sample = (SampleDocMetric) o;
+            return Objects.equals(metric, sample.metric) &&
+                    Objects.equals(numerator, sample.numerator) &&
                     Objects.equals(denominator, sample.denominator) &&
                     Objects.equals(seed, sample.seed);
         }
@@ -1466,8 +1474,9 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public String toString() {
-            return "SampleDocId{" +
-                    "numerator=" + numerator +
+            return "SampleDocMetric{" +
+                    "metric=" + metric +
+                    ", numerator=" + numerator +
                     ", denominator=" + denominator +
                     ", seed='" + seed + '\'' +
                     '}';
