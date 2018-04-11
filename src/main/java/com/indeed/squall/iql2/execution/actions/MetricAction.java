@@ -44,7 +44,8 @@ public class MetricAction implements Action {
                         timer.pop();
 
                         if (index != 1) {
-                            throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + name + "\"");
+                            throw new IllegalArgumentException(
+                                    "Didn't end up with 1 stat after pushing in index named \"" + name + "\", pushes = [" + pushes + "]");
                         }
 
                         timer.push("metricFilter");

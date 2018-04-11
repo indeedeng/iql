@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SampleMetricAction implements Action {
-    public final Map<String, List<String>> perDatasetPushes;
+    public final Map<String, List<String>> perDatasetMetric;
     public final double probability;
     public final String seed;
 
@@ -18,13 +18,13 @@ public class SampleMetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, List<String>> perDatasetPushes,
+    public SampleMetricAction(final Map<String, List<String>> perDatasetMetric,
                               final double probability,
                               final String seed,
                               final int targetGroup,
                               final int positiveGroup,
                               final int negativeGroup) {
-        this.perDatasetPushes = perDatasetPushes;
+        this.perDatasetMetric = perDatasetMetric;
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;
@@ -39,10 +39,10 @@ public class SampleMetricAction implements Action {
             session.process(new SessionCallback() {
                 @Override
                 public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
-                    if (!perDatasetPushes.containsKey(name)) {
+                    if (!perDatasetMetric.containsKey(name)) {
                         return;
                     }
-                    final List<String> pushes = perDatasetPushes.get(name);
+                    final List<String> pushes = perDatasetMetric.get(name);
 
                     timer.push("pushStats");
                     final int numStats = session.pushStats(pushes);
@@ -62,14 +62,14 @@ public class SampleMetricAction implements Action {
                 }
             });
         } else {
-            throw new UnsupportedOperationException("Can only do MetricAction filters when negativeGroup or positive group > 1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
+            throw new UnsupportedOperationException("Can only do SampleMetricAction filters when negativeGroup or positive group > 1.");
         }
     }
 
     @Override
     public String toString() {
         return "SampleMetricAction{" +
-                "perDatasetFilter=" + perDatasetPushes +
+                "perDatasetMetric=" + perDatasetMetric +
                 ", probability=" + probability +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +

@@ -1355,8 +1355,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            // TODO: Support this
-            throw new UnsupportedOperationException("Haven't implemented Sample yet");
+            throw new UnsupportedOperationException("Sample::asZeroOneMetric is not implemented");
         }
 
         @Override
@@ -1419,13 +1418,12 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocFilter transform(final Function<DocMetric, DocMetric> g,
                                    final Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new SampleDocMetric(metric.transform(g, i), numerator, denominator, seed));
         }
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            // TODO: Support this
-            throw new UnsupportedOperationException("Haven't implemented Sample yet");
+            throw new UnsupportedOperationException("SampleDocMetric::asZeroOneMetric is not implemented");
         }
 
         @Override
@@ -1450,6 +1448,7 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(final String dataset,
                              final ValidationHelper validationHelper,
                              final Validator validator) {
+            metric.validate(dataset, validationHelper, validator);
         }
 
         @Override
@@ -1469,7 +1468,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public int hashCode() {
-            return Objects.hash(numerator, denominator, seed);
+            return Objects.hash(metric, numerator, denominator, seed);
         }
 
         @Override

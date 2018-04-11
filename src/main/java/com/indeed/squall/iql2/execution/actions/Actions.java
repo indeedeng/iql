@@ -78,21 +78,21 @@ public class Actions {
                 );
             }
             case "sampleMetricAction": {
-                final Map<String, List<String>> perDatasetFilterMetric = Maps.newHashMap();
-                final JsonNode filters = json.get("perDatasetFilter");
-                final Iterator<String> filterNameIterator = filters.fieldNames();
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = json.get("perDatasetMetric");
+                final Iterator<String> filterNameIterator = metrics.fieldNames();
                 while (filterNameIterator.hasNext()) {
                     final String filterName = filterNameIterator.next();
                     final List<String> pushes = Lists.newArrayList();
-                    final JsonNode filterList = filters.get(filterName);
+                    final JsonNode filterList = metrics.get(filterName);
                     for (int i = 0; i < filterList.size(); i++) {
                         pushes.add(filterList.get(i).textValue());
                     }
-                    perDatasetFilterMetric.put(filterName, pushes);
+                    perDatasetMetric.put(filterName, pushes);
                 }
 
                 return new SampleMetricAction(
-                        perDatasetFilterMetric,
+                        perDatasetMetric,
                         json.get("probability").doubleValue(),
                         json.get("seed").textValue(),
                         target,

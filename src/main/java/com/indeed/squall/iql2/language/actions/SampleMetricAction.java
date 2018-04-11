@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SampleMetricAction implements Action, JsonSerializable {
-    final ImmutableMap<String, ImmutableList<String>> perDatasetPushes;
+    final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     public final double probability;
     public final String seed;
 
@@ -23,17 +23,17 @@ public class SampleMetricAction implements Action, JsonSerializable {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, List<String>> perDatasetPushes,
+    public SampleMetricAction(final Map<String, List<String>> perDatasetMetrics,
                               final double probability,
                               final String seed,
                               final int targetGroup,
                               final int positiveGroup,
                               final int negativeGroup) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetPushes.entrySet()) {
+        for (final Map.Entry<String, List<String>> entry : perDatasetMetrics.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
         }
-        this.perDatasetPushes = copy.build();
+        this.perDatasetMetric = copy.build();
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;
@@ -45,7 +45,7 @@ public class SampleMetricAction implements Action, JsonSerializable {
     public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
         final Map<String, Object> m = new HashMap<>();
         m.put("action", "sampleMetricAction");
-        m.put("perDatasetFilter", perDatasetPushes);
+        m.put("perDatasetMetric", perDatasetMetric);
         m.put("probability", probability);
         m.put("seed", seed);
         m.put("target", targetGroup);
@@ -66,7 +66,7 @@ public class SampleMetricAction implements Action, JsonSerializable {
     @Override
     public String toString() {
         return "SampleMetricAction{" +
-                "perDatasetPushes=" + perDatasetPushes +
+                "perDatasetMetric=" + perDatasetMetric +
                 ", probability=" + probability +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +
