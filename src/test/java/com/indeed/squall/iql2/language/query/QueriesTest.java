@@ -16,20 +16,16 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.StoppedClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 /**
  *
@@ -64,7 +60,7 @@ public class QueriesTest {
             Assert.assertEquals(
                     new SplitQuery("jobsearch 1d 0d",
                             "ojc > 10 AND country='us'", "country[TOP BY ojc HAVING oji > 0] AS myalias, ctk", "count(), oji", "",
-                            extractHeadersHelper(query, false),
+                            Lists.newArrayList("myalias", "ctk", "count()", "oji"),
                             ImmutableList.of("country[TOP BY ojc HAVING oji > 0] AS myalias", "ctk"), ImmutableList.of("count()", "oji"), "jobsearch",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),

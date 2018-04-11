@@ -57,11 +57,10 @@ public class ExtractPrecomputed {
             final Optional<String> alias;
             if (groupBy.groupBy instanceof GroupBy.GroupByField) {
                 filter = ((GroupBy.GroupByField) groupBy.groupBy).filter;
-                alias = Optional.absent();
             } else {
                 filter = groupBy.filter;
-                alias = groupBy.alias;
             }
+            alias = groupBy.alias;
             if (!filter.isPresent()) {
                 groupBys.add(groupBy.traverse1(processor));
             } else {
