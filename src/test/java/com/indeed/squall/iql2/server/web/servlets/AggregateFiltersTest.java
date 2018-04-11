@@ -110,15 +110,13 @@ public class AggregateFiltersTest {
 
     @Test
     public void testSample() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "142"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today where sample(oji, 1, 2, \"SomeRandomSalt\") select count()", true);
-    }
-
-    @Test
-    public void testSampleDocId() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "63"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today where sample(DOCID(), 1, 2, \"SomeRandomSalt\") select count()", true);
+        final String[] metric = new String[] {"oji", "ojc", "docId()", "0", "oji + 10", "oji + ojc * LEN(tk)" };
+        final int[] result = new int[] {142, 63, 63, 0, 139, 141};
+        for (int i = 0; i < metric.length; i++) {
+            final List<List<String>> expected = new ArrayList<>();
+            expected.add(ImmutableList.of("", String.valueOf(result[i])));
+            QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+                    "from organic yesterday today where sample("+ metric[i] + ", 1, 2, \"SomeRandomSalt\") select count()", true);
+        }
     }
 }

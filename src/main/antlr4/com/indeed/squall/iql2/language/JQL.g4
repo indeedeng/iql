@@ -129,7 +129,7 @@ identifier
     | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
-    | BACKQUOTED_ID | LEN
+    | BACKQUOTED_ID | LEN | DOCID
     ;
 timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable

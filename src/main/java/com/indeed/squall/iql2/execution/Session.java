@@ -935,64 +935,6 @@ public class Session {
         timer.pop();
     }
 
-    public void randomDocIdRegroup(final String seed,
-                                   final double probability,
-                                   final int targetGroup,
-                                   final int positiveGroup,
-                                   final int negativeGroup,
-                                   final ImmutableSet<String> scope) throws ImhotepOutOfMemoryException {
-        // TODO: Parallelize
-        timer.push("randomDocIdRegroup");
-        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
-            if (scope.contains(entry.getKey())) {
-                final ImhotepSession imhotepSession = entry.getValue().session;
-                timer.push("session:" + entry.getValue().displayName);
-
-                timer.push("pushStat(docId())");
-                final int statsCount = imhotepSession.pushStat("docId()");
-                timer.pop();
-
-                timer.push("randomMetricRegroup");
-                imhotepSession.randomMetricRegroup(statsCount-1, seed, probability, targetGroup, negativeGroup, positiveGroup);
-                timer.pop();
-
-                timer.push("popStat");
-                imhotepSession.popStat();
-                timer.pop();
-
-                timer.pop();
-            }
-        }
-        timer.pop();
-    }
-
-    public void randomDocIdMultiRegroup(final String seed,
-                                        final int targetGroup,
-                                        final double[] percentages,
-                                        final int[] resultGroups) throws ImhotepOutOfMemoryException {
-        // TODO: Parallelize
-        timer.push("randomDocIdMultiRegroup");
-        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
-            final ImhotepSession imhotepSession = entry.getValue().session;
-            timer.push("session:" + entry.getValue().displayName);
-
-            timer.push("pushStat(docId())");
-            final int statsCount = imhotepSession.pushStat("docId()");
-            timer.pop();
-
-            timer.push("randomMetricMultiRegroup");
-            imhotepSession.randomMetricMultiRegroup(statsCount-1, seed, targetGroup, percentages, resultGroups);
-            timer.pop();
-
-            timer.push("popStat");
-            imhotepSession.popStat();
-            timer.pop();
-
-            timer.pop();
-        }
-        timer.pop();
-    }
-
     public void process(SessionCallback sessionCallback) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize, use different timers per thread and somehow merge them back into the parent without
         //       overcounting parallel time?
