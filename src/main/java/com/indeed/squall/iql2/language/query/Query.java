@@ -24,7 +24,7 @@ import com.indeed.squall.iql2.language.AggregateMetrics;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
 import com.indeed.squall.iql2.language.Positioned;
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class Query extends AbstractPositional {
     public final List<Dataset> datasets;
     public final Optional<DocFilter> filter;
-    public final List<GroupByMaybeHaving> groupBys;
+    public final List<GroupByEntry> groupBys;
     public final List<AggregateMetric> selects;
     public final List<Optional<String>> formatStrings;
     public final List<String> options;
@@ -57,7 +57,7 @@ public class Query extends AbstractPositional {
 
     private static final String FORMAT_STRING_TEMPLATE = "%%.%sf";
 
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByMaybeHaving> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
+    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByEntry> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
@@ -96,7 +96,7 @@ public class Query extends AbstractPositional {
             }
         }
 
-        final List<GroupByMaybeHaving> groupBys;
+        final List<GroupByEntry> groupBys;
         if (groupByContents.isPresent()) {
             groupBys = GroupBys.parseGroupBys(groupByContents.get(), options, datasetsMetadata, warn, clock);
         } else {
@@ -182,8 +182,8 @@ public class Query extends AbstractPositional {
         } else {
             filter = Optional.absent();
         }
-        final List<GroupByMaybeHaving> groupBys = Lists.newArrayList();
-        for (final GroupByMaybeHaving gb : this.groupBys) {
+        final List<GroupByEntry> groupBys = Lists.newArrayList();
+        for (final GroupByEntry gb : this.groupBys) {
             groupBys.add(gb.transform(groupBy, f, g, h, i));
         }
         final List<AggregateMetric> selects = Lists.newArrayList();
@@ -194,8 +194,8 @@ public class Query extends AbstractPositional {
     }
 
     public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
-        final List<GroupByMaybeHaving> groupBys = Lists.newArrayList();
-        for (final GroupByMaybeHaving gb : this.groupBys) {
+        final List<GroupByEntry> groupBys = Lists.newArrayList();
+        for (final GroupByEntry gb : this.groupBys) {
             groupBys.add(gb.traverse1(f));
         }
         final List<AggregateMetric> selects = Lists.newArrayList();
@@ -240,7 +240,7 @@ public class Query extends AbstractPositional {
     }
 
     // rewrite field in (A, B), group by field to group by field in (A, B...)
-    private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByMaybeHaving> groupBys) {
+    private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
         final Set<String> rewrittenFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
@@ -262,15 +262,15 @@ public class Query extends AbstractPositional {
                 }
                 boolean foundRewriteGroupBy = false;
                 for (int j = 0; j < groupBys.size(); j++) {
-                    final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(j);
-                    final GroupBy groupBy = groupByMaybeHaving.groupBy;
+                    final GroupByEntry groupByEntry = groupBys.get(j);
+                    final GroupBy groupBy = groupByEntry.groupBy;
                     if (groupBy instanceof GroupBy.GroupByField) {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
                         if (filterField.equalsIgnoreCase(groupByField.field.unwrap())) {
-                            groupBys.set(j, new GroupByMaybeHaving(
+                            groupBys.set(j, new GroupByEntry(
                                     new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
                                             groupByField.withDefault),
-                                    groupByMaybeHaving.filter, groupByMaybeHaving.alias));
+                                    groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;
                         }
                     }

@@ -26,7 +26,7 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.Positional;
 import com.indeed.squall.iql2.language.Positioned;
@@ -209,7 +209,7 @@ public class PrettyPrint {
             sb.append("GROUP BY ");
             final boolean isMultiGroupBy = query.groupBys.size() > 1;
             boolean isFirst = true;
-            for (final GroupByMaybeHaving groupBy : query.groupBys) {
+            for (final GroupByEntry groupBy : query.groupBys) {
                 if (isFirst && isMultiGroupBy) {
                     sb.append("\n    ");
                 } else if (!isFirst) {
@@ -248,7 +248,7 @@ public class PrettyPrint {
     }
 
     // TODO: prettyprint comments
-    private void pp(GroupByMaybeHaving groupBy, Consumer<String> consumer, WallClock clock) {
+    private void pp(GroupByEntry groupBy, Consumer<String> consumer, WallClock clock) {
         pp(groupBy.groupBy, consumer, clock);
         if (groupBy.filter.isPresent()) {
             sb.append(" HAVING ");

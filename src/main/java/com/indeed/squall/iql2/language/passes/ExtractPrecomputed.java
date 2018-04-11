@@ -24,7 +24,7 @@ import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.execution.ExecutionStep;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.precomputed.Precomputed;
@@ -47,9 +47,9 @@ public class ExtractPrecomputed {
     public static Extracted extractPrecomputed(Query query, DatasetsMetadata datasetsMetadata) {
         final Processor processor = new Processor(1, 1, query.extractDatasetNames(),
                 SubstituteDimension.substituteDimensionAggregateMetric(query, datasetsMetadata));
-        final List<GroupByMaybeHaving> groupBys = new ArrayList<>();
+        final List<GroupByEntry> groupBys = new ArrayList<>();
         for (int i = 0; i < query.groupBys.size(); i++) {
-            final GroupByMaybeHaving groupBy = query.groupBys.get(i);
+            final GroupByEntry groupBy = query.groupBys.get(i);
             processor.setDepth(i + 1);
             processor.setStartDepth(i + 1);
             processor.setMaxDepth(i + 1);
@@ -72,13 +72,13 @@ public class ExtractPrecomputed {
                     processor.setComputationType(ComputationType.PostComputation);
                     final Optional<AggregateFilter> newFilter = Optional.of(filter.get().traverse1(processor));
                     if (!(groupBy.groupBy instanceof GroupBy.GroupByField)) {
-                        groupBys.add(new GroupByMaybeHaving(groupBy.groupBy.traverse1(processor), newFilter, alias));
+                        groupBys.add(new GroupByEntry(groupBy.groupBy.traverse1(processor), newFilter, alias));
                     } else {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
                                 groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
                                 groupByField.withDefault, groupByField.forceNonStreaming);
-                        groupBys.add(new GroupByMaybeHaving(newGroupByField.traverse1(processor), newFilter, alias));
+                        groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
                     processor.setComputationType(ComputationType.PreComputation);
                 }
@@ -113,14 +113,14 @@ public class ExtractPrecomputed {
         final Map<Integer, List<ComputationInfo>> depthToPostComputation = computationStages(computedNames.get(ComputationType.PostComputation));
         final Map<Integer, ExecutionStep> groupBySteps = new HashMap<>();
         final Map<Integer, ExecutionStep.FilterGroups> postGroupByFilter = new HashMap<>();
-        final List<GroupByMaybeHaving> groupBys = query.groupBys;
+        final List<GroupByEntry> groupBys = query.groupBys;
         final Set<String> scope = query.extractDatasetNames();
         for (int i = 0; i < groupBys.size(); i++) {
-            final GroupByMaybeHaving groupByMaybeHaving = groupBys.get(i);
-            final ExecutionStep step = groupByMaybeHaving.groupBy.executionStep(scope);
+            final GroupByEntry groupByEntry = groupBys.get(i);
+            final ExecutionStep step = groupByEntry.groupBy.executionStep(scope);
             groupBySteps.put(i, step);
-            if (groupByMaybeHaving.filter.isPresent()) {
-                postGroupByFilter.put(i, new ExecutionStep.FilterGroups(groupByMaybeHaving.filter.get()));
+            if (groupByEntry.filter.isPresent()) {
+                postGroupByFilter.put(i, new ExecutionStep.FilterGroups(groupByEntry.filter.get()));
             }
         }
         final List<ExecutionStep> resultSteps = new ArrayList<>();
