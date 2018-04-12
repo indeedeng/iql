@@ -50,7 +50,7 @@ public class SplitterServlet {
     @RequestMapping("/split")
     @ResponseBody
     protected Object doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) throws ServletException, IOException {
-        if(ServletUtil.getIQLVersionBasedOnPath(req) == 2) {
+        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
             return splitServletV2.split(req, resp, query);
         }
 

@@ -140,7 +140,7 @@ public class QueryServlet {
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
 
-        if(ServletUtil.getIQLVersionBasedOnPath(req) == 2) {
+        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
             queryServletV2.query(req, resp, query);
             return;
         }

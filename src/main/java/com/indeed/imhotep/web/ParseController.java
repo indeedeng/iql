@@ -53,7 +53,7 @@ public class ParseController {
                                           @RequestParam(value = "json", required = false, defaultValue = "") String json,
                                           final HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-        if(ServletUtil.getIQLVersionBasedOnPath(req) == 2) {
+        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
             return parseServletV2.parse(req, resp, query);
         }
 

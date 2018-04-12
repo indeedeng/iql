@@ -29,6 +29,6 @@ public class ServletUtil {
 
     public static int getIQLVersionBasedOnParam(HttpServletRequest request) {
         final int defaultLanguageVersion = 1;
-        return ServletRequestUtils.getIntParameter(request, "v", defaultLanguageVersion);
+        return ServletRequestUtils.getIntParameter(request, "v", defaultLanguageVersion) == 1 ? 1 : 2;
     }
 }
