@@ -388,8 +388,8 @@ jqlDocFilter
     | FALSE # DocFalse
     ;
 
-groupByElementWithHaving [boolean useLegacy]
-    : groupByElement[$ctx.useLegacy] ({!$ctx.useLegacy}? HAVING filter=aggregateFilter[$ctx.useLegacy])?
+groupByEntry [boolean useLegacy]
+    : groupByElement[$ctx.useLegacy] ({!$ctx.useLegacy}? HAVING filter=aggregateFilter[$ctx.useLegacy])? ({!$ctx.useLegacy}? AS alias=identifier)?
     ;
 
 groupByElement [boolean useLegacy]
@@ -482,7 +482,7 @@ whereContents [boolean useLegacy]
     ;
 
 groupByContents [boolean useLegacy]
-    : (groupByElementWithHaving[$ctx.useLegacy] (',' groupByElementWithHaving[$ctx.useLegacy])*)?
+    : (groupByEntry[$ctx.useLegacy] (',' groupByEntry[$ctx.useLegacy])*)?
     ;
 
 formattedAggregateMetric [boolean useLegacy]

@@ -25,7 +25,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.DocMetrics;
-import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.squall.iql2.language.ParserCommon;
@@ -50,28 +50,32 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupByMaybeHaving> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
-        final List<JQLParser.GroupByElementWithHavingContext> elements = groupByContentsContext.groupByElementWithHaving();
-        final List<GroupByMaybeHaving> result = new ArrayList<>(elements.size());
-        for (final JQLParser.GroupByElementWithHavingContext element : elements) {
-            result.add(parseGroupByMaybeHaving(element, options, datasetsMetadata, warn, clock));
+    public static List<GroupByEntry> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+        final List<JQLParser.GroupByEntryContext> elements = groupByContentsContext.groupByEntry();
+        final List<GroupByEntry> result = new ArrayList<>(elements.size());
+        for (final JQLParser.GroupByEntryContext element : elements) {
+            result.add(parseGroupByEntry(element, options, datasetsMetadata, warn, clock));
         }
         return result;
     }
 
-    public static GroupByMaybeHaving parseGroupByMaybeHaving(
-            final JQLParser.GroupByElementWithHavingContext ctx,
+    public static GroupByEntry parseGroupByEntry(
+            final JQLParser.GroupByEntryContext ctx,
             final List<String> options,
             final DatasetsMetadata datasetsMetadata,
             final Consumer<String> warn,
             final WallClock clock
     ) {
         final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), options, datasetsMetadata, warn, clock);
+        Optional<AggregateFilter> aggregateFilter = Optional.absent();
+        Optional<String> alias = Optional.absent();
         if (ctx.filter != null) {
-            return GroupByMaybeHaving.of(groupBy, AggregateFilters.parseAggregateFilter(ctx.filter, options, datasetsMetadata, warn, clock));
-        } else {
-            return GroupByMaybeHaving.of(groupBy);
+            aggregateFilter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.filter, options, datasetsMetadata, warn, clock));
         }
+        if (ctx.alias != null) {
+            alias = Optional.of(ctx.alias.getText());
+        }
+        return new GroupByEntry(groupBy, aggregateFilter, alias);
     }
 
     public static GroupBy parseGroupBy(final JQLParser.GroupByElementContext groupByElementContext, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {

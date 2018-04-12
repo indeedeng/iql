@@ -158,7 +158,26 @@ class Parser {
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
-        return success(parsed.groupByElementWithHaving().map(getText));
+        return success(parsed.groupByEntry().map(getText));
+    }
+
+    @autobind
+    groupByAliases(groupByRaw) {
+        if (groupByRaw.trim().length === 0) {
+            return success([]);
+        }
+        const parseResult = runParser('groupByContents', groupByRaw, [this.isLegacy]);
+        if (parseResult.errors) return parseResult;
+        const parsed = parseResult.success;
+        const getText = makeGetText(parsed);
+        function getAlias(groupByElement) {
+            let as = groupByElement.alias;
+            if (as !== null) {
+                return getText(as);
+            }
+            return "";
+        }
+        return success(parsed.groupByEntry().map(getAlias));
     }
 
     @autobind
@@ -249,7 +268,7 @@ class Parser {
      */
     @autobind
     getBucketedMinMaxInterval(groupBy) {
-        const parseResult = runParser('groupByElementWithHaving', groupBy, [this.isLegacy]);
+        const parseResult = runParser('groupByEntry', groupBy, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -469,7 +488,7 @@ class Parser {
         const input = parsedQuery.parser._input.tokenSource._input;
         if (parsedQuery.groupByContents() !== null) {
             const groupByContents = parsedQuery.groupByContents();
-            const elems = groupByContents.groupByElementWithHaving();
+            const elems = groupByContents.groupByEntry();
             const lastElem = elems[elems.length - 1];
             const groupByEnd = getStartStop(lastElem).stop;
             const before = input.getText(0, groupByEnd);
@@ -496,7 +515,7 @@ class Parser {
         const parsedQuery = parseResult.success;
         if (parsedQuery.groupByContents() !== null) {
             const groupByContents = parsedQuery.groupByContents();
-            const elems = groupByContents.groupByElementWithHaving();
+            const elems = groupByContents.groupByEntry();
             if (groupByIndex >= elems.length) {
                 return failure('query has only ' + elems.length + ' group bys.', 'a query with at least ' + (groupByIndex + 1) + ' group bys.');
             }

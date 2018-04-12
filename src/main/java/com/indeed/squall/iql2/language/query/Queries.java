@@ -32,7 +32,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.DocMetrics;
-import com.indeed.squall.iql2.language.GroupByMaybeHaving;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLLexer;
 import com.indeed.squall.iql2.language.JQLParser;
@@ -308,8 +308,8 @@ public class Queries {
     @VisibleForTesting
     static List<String> extractHeaders(Query parsed, CharStream input) {
         final List<String> result = new ArrayList<>();
-        for (GroupByMaybeHaving groupBy : parsed.groupBys) {
-            result.add(getRawInput(input, groupBy.groupBy));
+        for (GroupByEntry groupBy : parsed.groupBys) {
+            result.add(groupBy.alias.or(() -> getRawInput(input, groupBy.groupBy)));
         }
         if (result.isEmpty()) {
             result.add("");
@@ -346,7 +346,7 @@ public class Queries {
             return Collections.emptyList();
         }
         final List<String> result = new ArrayList<>();
-        for (final JQLParser.GroupByElementWithHavingContext elem : groupByContents.groupByElementWithHaving()) {
+        for (final JQLParser.GroupByEntryContext elem : groupByContents.groupByEntry()) {
             result.add(getText(input, elem));
         }
         return result;
