@@ -53,7 +53,7 @@ public class SampleMetricAction implements Action {
                     }
 
                     timer.push("randomMetricRegroup");
-                    session.randomMetricRegroup(0, seed, probability, targetGroup, negativeGroup, positiveGroup);
+                    session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
                     timer.pop();
 
                     timer.push("popStat");
