@@ -21,11 +21,11 @@ import com.google.common.collect.Maps;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
-import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
-import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ParserUtil;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 import org.apache.commons.codec.binary.Base64;
 
@@ -43,6 +43,7 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(PushableDocMetric pushableDocMetric) throws E;
         T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
         T visit(Count count) throws E;
+        T visit(DocId count) throws E;
         T visit(Field field) throws E;
         T visit(Exponentiate exponentiate) throws E;
         T visit(Negate negate) throws E;
@@ -230,6 +231,48 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public String toString() {
             return "Count{}";
+        }
+    }
+
+    public static class DocId extends DocMetric {
+        public DocId() {
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g,
+                                   final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        protected List<String> getPushes(final String dataset) {
+            return Collections.singletonList("docId()");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset,
+                             final ValidationHelper validationHelper,
+                             final Validator validator) {
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return getClass() == o.getClass();
+        }
+
+        @Override
+        public int hashCode() {
+            return 71543399;
+        }
+
+        @Override
+        public String toString() {
+            return "DocId{}";
         }
     }
 

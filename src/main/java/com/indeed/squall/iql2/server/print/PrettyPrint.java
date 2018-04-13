@@ -20,7 +20,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.indeed.util.core.time.StoppedClock;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -39,6 +38,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.ParserUtil;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
@@ -417,6 +417,17 @@ public class PrettyPrint {
                         .append(getText(groupByRandom.field))
                         .append(", ")
                         .append(groupByRandom.k)
+                        .append(", \"")
+                        .append(groupByRandom.salt)
+                        .append('"');
+                return null;
+            }
+
+            @Override
+            public Void visit(final GroupBy.GroupByRandomMetric groupByRandom) throws RuntimeException {
+                sb.append("random(");
+                pp(groupByRandom.metric, consumer, clock);
+                sb.append(groupByRandom.k)
                         .append(", \"")
                         .append(groupByRandom.salt)
                         .append('"');
@@ -998,6 +1009,17 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final DocFilter.SampleDocMetric sample) throws RuntimeException {
+                sb.append("sample(");
+                pp(sample.metric, consumer, clock);
+                sb.append(sample.numerator).append(", ")
+                        .append(sample.denominator).append(", ")
+                        .append(sample.seed)
+                        .append(")");
+                return null;
+            }
+
+            @Override
             public Void visit(DocFilter.Always always) {
                 sb.append("true");
                 return null;
@@ -1084,6 +1106,12 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Count count) {
                 sb.append("count()");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.DocId count) throws RuntimeException {
+                sb.append("docId()");
                 return null;
             }
 

@@ -91,6 +91,29 @@ public class Actions {
                         negative
                 );
             }
+            case "sampleMetricAction": {
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = json.get("perDatasetMetric");
+                final Iterator<String> filterNameIterator = metrics.fieldNames();
+                while (filterNameIterator.hasNext()) {
+                    final String filterName = filterNameIterator.next();
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode filterList = metrics.get(filterName);
+                    for (int i = 0; i < filterList.size(); i++) {
+                        pushes.add(filterList.get(i).textValue());
+                    }
+                    perDatasetMetric.put(filterName, pushes);
+                }
+
+                return new SampleMetricAction(
+                        perDatasetMetric,
+                        json.get("probability").doubleValue(),
+                        json.get("seed").textValue(),
+                        target,
+                        positive,
+                        negative
+                );
+            }
             case "unconditionalAction": {
                 return new UnconditionalAction(scope, target, json.get("newGroup").intValue());
             }

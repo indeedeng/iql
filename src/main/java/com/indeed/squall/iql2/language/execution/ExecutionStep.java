@@ -31,6 +31,7 @@ import com.indeed.squall.iql2.language.commands.ComputeAndCreateGroupStatsLookup
 import com.indeed.squall.iql2.language.commands.FieldIterateOpts;
 import com.indeed.squall.iql2.language.commands.IterateAndExplode;
 import com.indeed.squall.iql2.language.commands.MetricRegroup;
+import com.indeed.squall.iql2.language.commands.RandomMetricRegroup;
 import com.indeed.squall.iql2.language.commands.RegroupFieldIn;
 import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.commands.TimePeriodRegroup;
@@ -741,6 +742,47 @@ public interface ExecutionStep {
         public String toString() {
             return "ExplodeRandom{" +
                     "field='" + field + '\'' +
+                    ", k=" + k +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    class ExplodeRandomMetric implements ExecutionStep {
+        private final Map<String, DocMetric> perDatasetMetric;
+        private final Set<String> scope;
+        private final int k;
+        private final String salt;
+
+        public ExplodeRandomMetric(final Map<String, DocMetric> perDatasetMetric,
+                                   final Set<String> scope,
+                                   final int k,
+                                   final String salt) {
+            this.perDatasetMetric = perDatasetMetric;
+            this.scope = scope;
+            this.k = k;
+            this.salt = salt;
+        }
+
+        @Override
+        public List<Command> commands() {
+            final Map<String, List<String>> datasetToPushes = new HashMap<>();
+            for (final String s : scope) {
+                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
+            }
+            return Collections.singletonList(new RandomMetricRegroup(datasetToPushes, k, salt));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "ExplodeRandomMetric{" +
+                    "perDatasetMetric=" + perDatasetMetric +
+                    ", scope=" + scope +
                     ", k=" + k +
                     ", salt='" + salt + '\'' +
                     '}';

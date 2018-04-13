@@ -14,10 +14,10 @@
 
 package com.indeed.squall.iql2.language;
 
-import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
+import com.indeed.util.core.time.WallClock;
 
 import java.util.List;
 
@@ -381,6 +381,11 @@ public class DocMetrics {
             public void enterDocMetricFilter(JQLParser.DocMetricFilterContext ctx) {
                 final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, null, warn, clock);
                 accept(new DocMetric.IfThenElse(filter, new DocMetric.Constant(1), new DocMetric.Constant(0)));
+            }
+
+            @Override
+            public void enterDocId(final JQLParser.DocIdContext ctx) {
+                accept(new DocMetric.DocId());
             }
         });
 

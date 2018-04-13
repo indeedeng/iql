@@ -46,6 +46,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByQuantiles groupByQuantiles) throws E;
         T visit(GroupByPredicate groupByPredicate) throws E;
         T visit(GroupByRandom groupByRandom) throws E;
+        T visit(GroupByRandomMetric groupByRandom) throws E;
     }
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
@@ -874,6 +875,85 @@ public abstract class GroupBy extends AbstractPositional {
         public String toString() {
             return "GroupByRandom{" +
                     "field=" + field +
+                    ", k=" + k +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    public static class GroupByRandomMetric extends GroupBy {
+        public final DocMetric metric;
+        public final int k;
+        public final String salt;
+
+        public GroupByRandomMetric(final DocMetric metric, final int k, final String salt) {
+            this.metric = metric;
+            this.k = k;
+            this.salt = salt;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public GroupBy transform(final Function<GroupBy, GroupBy> groupBy,
+                                 final Function<AggregateMetric, AggregateMetric> f,
+                                 final Function<DocMetric, DocMetric> g,
+                                 final Function<AggregateFilter, AggregateFilter> h,
+                                 final Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(new GroupByRandomMetric(metric.transform(g, i), k, salt));
+        }
+
+        @Override
+        public GroupBy traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(final Set<String> scope) {
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+            for (final String dataset : scope) {
+                perDatasetMetric.put(dataset, metric);
+            }
+            return new ExecutionStep.ExplodeRandomMetric(perDatasetMetric, scope, k, salt);
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if ((o == null) || (getClass() != o.getClass())) {
+                return false;
+            }
+
+            final GroupByRandomMetric that = (GroupByRandomMetric) o;
+            return com.google.common.base.Objects.equal(metric, that.metric)
+                    && (k == that.k)
+                    && com.google.common.base.Objects.equal(salt, that.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(metric, k, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByRandomMetric{" +
+                    "metric =" + metric +
                     ", k=" + k +
                     ", salt='" + salt + '\'' +
                     '}';

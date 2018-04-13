@@ -83,6 +83,7 @@ DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
+DOCID: 'DOCID' ;
 
 M: 'M' ;
 Y : 'Y' ;
@@ -128,7 +129,7 @@ identifier
     | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
-    | BACKQUOTED_ID | LEN
+    | BACKQUOTED_ID | LEN | DOCID
     ;
 timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
@@ -321,6 +322,7 @@ jqlDocMetric
     | '(' jqlDocMetric ')' # DocMetricParens
     | jqlDocMetricAtom # DocAtom
     | integer # DocInt
+    | DOCID '(' ')' # DocId
     ;
 
 termVal [boolean useLegacy]
@@ -379,6 +381,7 @@ jqlDocFilter
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
     | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
+    | SAMPLE '(' jqlDocMetric ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSampleMetric
     | '!' jqlDocFilter # DocNot
     | NOT '(' jqlDocFilter ')' # DocNot
     | jqlDocFilter (AND|'&&') jqlDocFilter # DocAnd
@@ -404,6 +407,7 @@ groupByElement [boolean useLegacy]
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     | {!$ctx.useLegacy}? RANDOM '(' field=identifier ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupBy
+    | {!$ctx.useLegacy}? RANDOM '(' jqlDocMetric ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomMetricGroupBy
     ;
 
 // TODO: Make TOPTERMS a valid identifier

@@ -20,7 +20,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.indeed.util.core.Pair;
 import com.indeed.flamdex.query.Term;
 import com.indeed.squall.iql2.execution.actions.Action;
 import com.indeed.squall.iql2.execution.actions.Actions;
@@ -49,6 +48,7 @@ import com.indeed.squall.iql2.execution.commands.GetNumGroups;
 import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
+import com.indeed.squall.iql2.execution.commands.RandomMetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
 import com.indeed.squall.iql2.execution.commands.SampleFields;
@@ -61,6 +61,7 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetrics;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.apache.log4j.Logger;
@@ -374,6 +375,24 @@ public class Commands {
                 final int k = command.get("k").intValue();
                 final String salt = command.get("salt").textValue();
                 return new ExplodeRandom(field, k, salt);
+            }
+            case "randomMetricRegroup": {
+                // TODO: copy-paste from "metricRegroup" case. Will be deleted when we get rid of json stuff.
+                final Map<String, List<String>> perDatasetMetric = Maps.newHashMap();
+                final JsonNode metrics = command.get("perDatasetMetric");
+                final Iterator<String> metricNameIterator = metrics.fieldNames();
+                while (metricNameIterator.hasNext()) {
+                    final String metricName = metricNameIterator.next();
+                    final List<String> pushes = Lists.newArrayList();
+                    final JsonNode metricList = metrics.get(metricName);
+                    for (int i = 0; i < metricList.size(); i++) {
+                        pushes.add(metricList.get(i).textValue());
+                    }
+                    perDatasetMetric.put(metricName, pushes);
+                }
+                final int k = command.get("k").intValue();
+                final String salt = command.get("salt").textValue();
+                return new RandomMetricRegroup(perDatasetMetric, k, salt);
             }
         }
         throw new RuntimeException("oops:" + command);

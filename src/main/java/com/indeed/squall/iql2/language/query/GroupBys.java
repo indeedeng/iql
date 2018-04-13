@@ -16,7 +16,6 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.indeed.util.core.time.WallClock;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -36,6 +35,7 @@ import com.indeed.squall.iql2.language.TimeUnit;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
+import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
@@ -316,6 +316,19 @@ public class GroupBys {
                     salt = ParserCommon.unquote(ctx.salt.getText());
                 }
                 accept(new GroupBy.GroupByRandom(field, k, salt));
+            }
+
+            @Override
+            public void enterRandomMetricGroupBy(final JQLParser.RandomMetricGroupByContext ctx) {
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock);
+                final int k = Integer.parseInt(ctx.k.getText());
+                final String salt;
+                if (ctx.salt == null) {
+                    salt = "DEFAULT SALT";
+                } else {
+                    salt = ParserCommon.unquote(ctx.salt.getText());
+                }
+                accept(new GroupBy.GroupByRandomMetric(metric, k, salt));
             }
         });
 
