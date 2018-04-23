@@ -135,7 +135,7 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public Set<QualifiedPush> requires() {
-            return Sets.union(left.requires(), left.requires());
+            return Sets.union(left.requires(), right.requires());
         }
 
         @Override
