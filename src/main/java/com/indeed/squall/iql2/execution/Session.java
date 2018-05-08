@@ -109,7 +109,7 @@ public class Session {
     public final TreeTimer timer;
     private final ProgressCallback progressCallback;
     public final int groupLimit;
-    private final long firstStartTimeMill;
+    private final long firstStartTimeMillis;
 
     public int numGroups = 1;
 
@@ -133,14 +133,14 @@ public class Session {
             TreeTimer timer,
             ProgressCallback progressCallback,
             @Nullable Integer groupLimit,
-            long firstStartTimeMill
+            long firstStartTimeMillis
 
     ) {
         this.sessions = sessions;
         this.timer = timer;
         this.progressCallback = progressCallback;
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
-        this.firstStartTimeMill = firstStartTimeMill;
+        this.firstStartTimeMillis = firstStartTimeMillis;
     }
 
     public static class CreateSessionResult {
@@ -191,12 +191,12 @@ public class Session {
             treeTimer.pop();
 
             treeTimer.push("createSubSessions");
-            final long firstStartTimeMill = createSubSessions(client, requestRust, sessionRequest.get("datasets"), datasetToChosenShards,
+            final long firstStartTimeMillis = createSubSessions(client, requestRust, sessionRequest.get("datasets"), datasetToChosenShards,
                     closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             treeTimer.pop();
 
-            final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMill);
+            final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis);
             for (int i = 0; i < commands.size(); i++) {
                 final JsonNode command = commands.get(i);
                 final boolean isLast = i == commands.size() - 1;
@@ -243,10 +243,10 @@ public class Session {
             return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
         } else {
             progressCallback.startSession(Optional.<Integer>absent());
-            final long firstStartTimeMill = createSubSessions(client, requestRust, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+            final long firstStartTimeMillis = createSubSessions(client, requestRust, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
             progressCallback.sessionsOpened(sessions);
             out.accept("opened");
-            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMill)), 0L, null);
+            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis)), 0L, null);
         }
     }
 
@@ -268,7 +268,7 @@ public class Session {
             upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
         }
 
-        long firstStartTimeMill = 0;
+        long firstStartTimeMillis = 0;
         for (int i = 0; i < sessionRequest.size(); i++) {
             final JsonNode elem = sessionRequest.get(i);
             final String datasetName = elem.get("dataset").textValue();
@@ -365,12 +365,12 @@ public class Session {
             }
             sessions.put(name, new ImhotepSessionInfo(session, displayName, upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
             if (i == 0) {
-                firstStartTimeMill = startDateTime.getMillis();
+                firstStartTimeMillis = startDateTime.getMillis();
             }
 
             treeTimer.pop();
         }
-        return firstStartTimeMill;
+        return firstStartTimeMillis;
     }
 
     private static Map<String, String> combineAliases(final Map<String, String> fieldAliases, final Map<String, String> dimensionAliases) {
@@ -660,8 +660,8 @@ public class Session {
         }
     }
 
-    public long getFirstStartTimeMill() {
-        return firstStartTimeMill;
+    public long getFirstStartTimeMillis() {
+        return firstStartTimeMillis;
     }
 
     public long getLongestSessionDistance() {
