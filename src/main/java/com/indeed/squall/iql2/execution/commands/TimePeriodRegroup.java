@@ -46,7 +46,7 @@ public class TimePeriodRegroup implements Command {
                 shardEnd = end + periodMillis - (end- shardStart) % periodMillis;
             }
         } else {
-            shardStart = session.getFirstStartTimeMill();
+            shardStart = session.getFirstStartTimeMillis();
             long longestDistance = session.getLongestSessionDistance();
             if (longestDistance % periodMillis != 0) {
                 longestDistance = longestDistance + periodMillis - longestDistance % periodMillis;
