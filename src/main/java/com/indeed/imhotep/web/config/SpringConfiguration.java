@@ -13,6 +13,7 @@
  */
  package com.indeed.imhotep.web.config;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.LocalImhotepDaemon;
@@ -48,6 +49,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -313,6 +315,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         Jackson2ObjectMapperBuilder builder = new Jackson2ObjectMapperBuilder();
         builder.indentOutput(true);
         converters.add(new MappingJackson2HttpMessageConverter(builder.build()));
+        converters.add(new StringHttpMessageConverter(Charsets.UTF_8));
     }
 
     // do we need this?
