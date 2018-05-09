@@ -43,7 +43,7 @@ public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
     // this can be incremented to invalidate the old cache
-    public static final byte VERSION_FOR_HASHING = 2;
+    public static final byte VERSION_FOR_HASHING = 3;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
