@@ -414,6 +414,10 @@ public class QueryServlet {
         logLong(logEntry, "imhoteprammb", queryInfo.imhoteprammb);
         logLong(logEntry, "imhotepftgsmb", queryInfo.imhotepftgsmb);
         logLong(logEntry, "imhotepfieldfilesmb", queryInfo.imhotepfieldfilesmb);
+        logLong(logEntry, "cpuSlotsExecTimeMs", queryInfo.cpuSlotsExecTimeMs);
+        logLong(logEntry, "cpuSlotsWaitTimeMs", queryInfo.cpuSlotsWaitTimeMs);
+        logLong(logEntry, "ioSlotsExecTimeMs", queryInfo.ioSlotsExecTimeMs);
+        logLong(logEntry, "ioSlotsWaitTimeMs", queryInfo.ioSlotsWaitTimeMs);
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
         logInteger(logEntry, "maxgroups", queryInfo.maxGroups);

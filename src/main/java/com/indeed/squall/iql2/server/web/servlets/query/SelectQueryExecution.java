@@ -278,6 +278,10 @@ public class SelectQueryExecution implements Closeable {
             queryInfo.imhoteprammb = imhotepPerfStats.maxMemoryUsage / 1024 / 1024;
             queryInfo.imhotepftgsmb = imhotepPerfStats.ftgsTempFileSize / 1024 / 1024;
             queryInfo.imhotepfieldfilesmb = imhotepPerfStats.fieldFilesReadSize / 1024 / 1024;
+            queryInfo.cpuSlotsExecTimeMs = imhotepPerfStats.cpuSlotsExecTimeMs;
+            queryInfo.cpuSlotsWaitTimeMs = imhotepPerfStats.cpuSlotsWaitTimeMs;
+            queryInfo.ioSlotsExecTimeMs = imhotepPerfStats.ioSlotsExecTimeMs;
+            queryInfo.ioSlotsWaitTimeMs = imhotepPerfStats.ioSlotsWaitTimeMs;
         }
 
         if (execInfo.hasMoreRows) {
@@ -707,6 +711,10 @@ public class SelectQueryExecution implements Closeable {
         @Nullable Long imhoteprammb;
         @Nullable Long imhotepftgsmb;
         @Nullable Long imhotepfieldfilesmb;
+        @Nullable Long cpuSlotsExecTimeMs;
+        @Nullable Long cpuSlotsWaitTimeMs;
+        @Nullable Long ioSlotsExecTimeMs;
+        @Nullable Long ioSlotsWaitTimeMs;
         @Nullable Collection<String> sessionIDs;
         @Nullable Integer numShards;
         @Nullable Long numDocs;

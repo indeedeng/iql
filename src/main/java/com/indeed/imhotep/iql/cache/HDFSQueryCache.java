@@ -156,11 +156,11 @@ public class HDFSQueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        final OutputStream cacheStream = getOutputStream(cachedFileName);
-        final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile));
-        ByteStreams.copy(fileIn, cacheStream);
-        fileIn.close();
-        cacheStream.close();
+        try(final OutputStream cacheStream = getOutputStream(cachedFileName)) {
+            try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
+                ByteStreams.copy(fileIn, cacheStream);
+            }
+        }
     }
 
     private void makeSurePathExists(Path path) throws IOException {

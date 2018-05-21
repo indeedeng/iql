@@ -41,7 +41,7 @@ public class LocalImhotepDaemon {
             final String tempDir = Files.createTempDir().getAbsolutePath();
             final ImhotepDaemon theImhotep = new ImhotepDaemon(
                     ss,
-                    new LocalImhotepServiceCore(Paths.get(shardsDir), Paths.get(tempDir), Long.MAX_VALUE, false, new GenericFlamdexReaderSource(), new LocalImhotepServiceConfig()),
+                    new LocalImhotepServiceCore(Paths.get(shardsDir), Paths.get(tempDir), Long.MAX_VALUE, new GenericFlamdexReaderSource(), new LocalImhotepServiceConfig()),
                     null,
                     null,
                     "localhost",

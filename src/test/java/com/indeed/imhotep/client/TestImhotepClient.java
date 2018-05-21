@@ -16,16 +16,18 @@ package com.indeed.imhotep.client;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
-import com.indeed.imhotep.AbstractImhotepMultiSession;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
+import com.indeed.imhotep.ImhotepMemoryPool;
 import com.indeed.imhotep.ImhotepRemoteSession;
+import com.indeed.imhotep.MemoryReservationContext;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.local.ImhotepJavaLocalSession;
 import com.indeed.imhotep.local.ImhotepLocalSession;
+import com.indeed.imhotep.local.MTImhotepLocalMultiSession;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import org.joda.time.DateTime;
@@ -131,30 +133,37 @@ public class TestImhotepClient extends ImhotepClient {
                         }
                     }
                 }
+                try {
+                    return new MTImhotepLocalMultiSession(sessions.toArray(new ImhotepLocalSession[sessions.size()]),
+                            new MemoryReservationContext(new ImhotepMemoryPool(Long.MAX_VALUE)),
+                            new AtomicLong(Long.MAX_VALUE), false, "", "") {
+                        @Override
+                        protected void postClose() {
 
-                return new AbstractImhotepMultiSession(sessions.toArray(new ImhotepSession[sessions.size()])) {
-                    @Override
-                    protected void postClose() {
+                        }
 
-                    }
+                        @Override
+                        public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
+                            throw new UnsupportedOperationException();
+                        }
 
-                    @Override
-                    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
-                        throw new UnsupportedOperationException();
-                    }
+                        @Override
+                        protected ImhotepRemoteSession createImhotepRemoteSession(InetSocketAddress address, String sessionId, AtomicLong tempFileSizeBytesLeft) {
+                            throw new UnsupportedOperationException();
+                        }
 
-                    @Override
-                    protected ImhotepRemoteSession createImhotepRemoteSession(InetSocketAddress address, String sessionId, AtomicLong tempFileSizeBytesLeft) {
-                        throw new UnsupportedOperationException();
-                    }
+                        //Workaround for regroupWithProtos to work in local (unit tests)
+                        @Override
+                        public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+                            final GroupMultiRemapRule[] rules = ImhotepDaemonMarshaller.marshalGroupMultiRemapMessageList(Arrays.asList(rawRuleMessages));
+                            return regroup(rules, errorOnCollisions);
+                        }
 
-                    //Workaround for regroupWithProtos to work in local (unit tests)
-                    @Override
-                    public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-                        final GroupMultiRemapRule[] rules = ImhotepDaemonMarshaller.marshalGroupMultiRemapMessageList(Arrays.asList(rawRuleMessages));
-                        return regroup(rules, errorOnCollisions);
-                    }
-                };
+
+                    };
+                } catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
             }
         };
     }

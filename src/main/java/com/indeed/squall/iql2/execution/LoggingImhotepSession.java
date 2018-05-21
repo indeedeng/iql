@@ -21,7 +21,6 @@ import com.indeed.imhotep.Instrumentation;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
-import com.indeed.imhotep.api.DocIterator;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -90,12 +89,6 @@ public class LoggingImhotepSession implements ImhotepSession {
     }
 
     @Override
-    public DocIterator getDocIterator(String[] intFields, String[] stringFields) throws ImhotepOutOfMemoryException {
-        log.info("LoggingImhotepSession.getDocIterator: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "]");
-        return wrapped.getDocIterator(intFields, stringFields);
-    }
-
-    @Override
     public RawFTGSIterator[] getFTGSIteratorSplits(String[] intFields, String[] stringFields, long termLimit) {
         log.info("LoggingImhotepSession.getFTGSIteratorSplits: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "], termLimit = [" + termLimit + "]");
         return wrapped.getFTGSIteratorSplits(intFields, stringFields, termLimit);
@@ -129,6 +122,18 @@ public class LoggingImhotepSession implements ImhotepSession {
     public RawFTGSIterator mergeSubsetFTGSSplit(Map<String, long[]> intFields, Map<String, String[]> stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
         log.info("LoggingImhotepSession.mergeSubsetFTGSSplit: " + "intFields = [" + intFields + "], stringFields = [" + stringFields + "], sessionId = [" + sessionId + "], nodes = [" + Arrays.toString(nodes) + "], splitIndex = [" + splitIndex + "]");
         return wrapped.mergeSubsetFTGSSplit(intFields, stringFields, sessionId, nodes, splitIndex);
+    }
+
+    @Override
+    public GroupStatsIterator getDistinct(String field, boolean isIntField) {
+        log.info("LoggingImhotepSession.getDistinct: field = [" + field + "], isIntField = [" + isIntField + "]");
+        return wrapped.getDistinct(field, isIntField);
+    }
+
+    @Override
+    public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
+        log.info("LoggingImhotepSession.mergeDistinctSplit: field = [" + field + "], isIntField = [" + isIntField + "], sessionId = [" + sessionId + "], nodes = [" + nodes + "], splitIndex = [" + splitIndex + "]");
+        return wrapped.mergeDistinctSplit(field, isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override

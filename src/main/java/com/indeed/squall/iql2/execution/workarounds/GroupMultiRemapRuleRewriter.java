@@ -24,7 +24,6 @@ import com.indeed.imhotep.Instrumentation;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
-import com.indeed.imhotep.api.DocIterator;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -207,11 +206,6 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
     }
 
     @Override
-    public DocIterator getDocIterator(String[] strings, String[] strings1) throws ImhotepOutOfMemoryException {
-        return wrapped.getDocIterator(strings, strings1);
-    }
-
-    @Override
     public RawFTGSIterator[] getFTGSIteratorSplits(String[] strings, String[] strings1, long l) {
         return wrapped.getFTGSIteratorSplits(strings, strings1, l);
     }
@@ -244,6 +238,16 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
     @Override
     public RawFTGSIterator mergeSubsetFTGSSplit(Map<String, long[]> map, Map<String, String[]> map1, String s, InetSocketAddress[] inetSocketAddresses, int i) {
         return wrapped.mergeSubsetFTGSSplit(map, map1, s, inetSocketAddresses, i);
+    }
+
+    @Override
+    public GroupStatsIterator getDistinct(String field, boolean isIntField) {
+        return wrapped.getDistinct(field, isIntField);
+    }
+
+    @Override
+    public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
+        return wrapped.mergeDistinctSplit(field, isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override

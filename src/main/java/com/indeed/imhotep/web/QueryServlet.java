@@ -853,11 +853,14 @@ public class QueryServlet {
         logEntry.setProperty("ftgsmb", selectQuery.selectExecutionStats.imhotepTempFilesBytesWritten / 1024 / 1024);
         final PerformanceStats performanceStats = selectQuery.selectExecutionStats.imhotepPerformanceStats;
         if(performanceStats != null) {
-            logEntry.setProperty("imhotepcputimems", performanceStats.cpuTime / 1000000);   // nanoseconds to ms
+            logEntry.setProperty("imhotepcputimems", TimeUnit.NANOSECONDS.toMillis(performanceStats.cpuTime));
             logEntry.setProperty("imhoteprammb", performanceStats.maxMemoryUsage / 1024 / 1024);
             logEntry.setProperty("imhotepftgsmb", performanceStats.ftgsTempFileSize / 1024 / 1024);
             logEntry.setProperty("imhotepfieldfilesmb", performanceStats.fieldFilesReadSize / 1024 / 1024);
-
+            logEntry.setProperty("cpuSlotsExecTimeMs", performanceStats.cpuSlotsExecTimeMs);
+            logEntry.setProperty("cpuSlotsWaitTimeMs", performanceStats.cpuSlotsWaitTimeMs);
+            logEntry.setProperty("ioSlotsExecTimeMs", performanceStats.ioSlotsExecTimeMs);
+            logEntry.setProperty("ioSlotsWaitTimeMs", performanceStats.ioSlotsWaitTimeMs);
         }
     }
 
