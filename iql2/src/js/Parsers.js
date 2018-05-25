@@ -295,7 +295,7 @@ class Parser {
     }
 
     @autobind
-    iqlDateToMomentDate(rawDate) {
+    iqlDateToMomentDate(rawDate, utcOffsetHours) {
         function successIfValid(d) {
             if (d.isValid()) {
                 return success(d);
@@ -312,16 +312,17 @@ class Parser {
         }
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
+        const timeAtStartOfDay = moment().utcOffset(utcOffsetHours).startOf('day');
         if (((this.isLegacy || rawDate.length > 3) && 'TODAY'.startsWith(rawDate.toUpperCase()))
             || ('AGO' === rawDate.toUpperCase())){
-            return successIfValid(moment().startOf('day'));
+            return successIfValid(timeAtStartOfDay);
         } else if (rawDate.length >= 3 && 'TOMORROW'.startsWith(rawDate.toUpperCase())) {
-            return successIfValid(moment().startOf('day').add(1, 'days'));
+            return successIfValid(timeAtStartOfDay.add(1, 'days'));
         } else if (rawDate.length > 1 && 'YESTERDAY'.startsWith(rawDate.toUpperCase())) {
-            return successIfValid(moment().startOf('day').subtract(1, 'days'));
+            return successIfValid(timeAtStartOfDay.subtract(1, 'days'));
         } else if (parsed.timePeriod() !== null) {
             const timePeriod = parsed.timePeriod();
-            const res = moment().startOf('day');
+            const res = timeAtStartOfDay;
             for (let i = 0; i < timePeriod.timeunits.length; i++) {
                 const timeUnit = timePeriod.timeunits[i];
                 const coeff = timeUnit.coeff ? getText(timeUnit.coeff) : 1;
@@ -548,7 +549,7 @@ class Parser {
 
     // return original query if we fail to parse it
     @autobind
-    convertQueryDateToAbsoluteIfValid(q) {
+    convertQueryDateToAbsoluteIfValid(q, utcOffsetHours) {
         const queryParseResult = this.query(q);
         if (!queryParseResult.success) {
             return q;
@@ -562,7 +563,7 @@ class Parser {
         for (const date of dates) {
             convertedQuery += q.slice(lastPos, date[0]);
             let originDateStr = q.substring(date[0], date[1] + 1);
-            const rawDateMoment = this.iqlDateToMomentDate(originDateStr);
+            const rawDateMoment = this.iqlDateToMomentDate(originDateStr, utcOffsetHours);
             if (rawDateMoment.success) {
                 let formattedDate;
                 const dateMoment = rawDateMoment.success;
