@@ -6,6 +6,8 @@ const ErrorListener = require('antlr4').error.ErrorListener;
 
 const moment = require('moment');
 
+const DEFAULT_UTC_OFFSET = -6;
+
 import autobind from 'autobind-decorator';
 
 function failure(err, expected) {
@@ -295,7 +297,7 @@ class Parser {
     }
 
     @autobind
-    iqlDateToMomentDate(rawDate, utcOffsetHours) {
+    iqlDateToMomentDate(rawDate) {
         function successIfValid(d) {
             if (d.isValid()) {
                 return success(d);
@@ -312,7 +314,7 @@ class Parser {
         }
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
-        const timeAtStartOfDay = moment().utcOffset(utcOffsetHours).startOf('day');
+        const timeAtStartOfDay = moment().utcOffset(DEFAULT_UTC_OFFSET).startOf('day');
         if (((this.isLegacy || rawDate.length > 3) && 'TODAY'.startsWith(rawDate.toUpperCase()))
             || ('AGO' === rawDate.toUpperCase())){
             return successIfValid(timeAtStartOfDay);
@@ -549,7 +551,7 @@ class Parser {
 
     // return original query if we fail to parse it
     @autobind
-    convertQueryDateToAbsoluteIfValid(q, utcOffsetHours) {
+    convertQueryDateToAbsoluteIfValid(q) {
         const queryParseResult = this.query(q);
         if (!queryParseResult.success) {
             return q;
@@ -563,7 +565,7 @@ class Parser {
         for (const date of dates) {
             convertedQuery += q.slice(lastPos, date[0]);
             let originDateStr = q.substring(date[0], date[1] + 1);
-            const rawDateMoment = this.iqlDateToMomentDate(originDateStr, utcOffsetHours);
+            const rawDateMoment = this.iqlDateToMomentDate(originDateStr);
             if (rawDateMoment.success) {
                 let formattedDate;
                 const dateMoment = rawDateMoment.success;
