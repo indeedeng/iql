@@ -46,9 +46,7 @@ public class FilterDocs implements Command {
                     return;
                 }
 
-                timer.push("pushStats");
-                final int index = session.pushStats(perDatasetFilterMetric.get(name));
-                timer.pop();
+                final int index = Session.pushStatsWithTimer(session, perDatasetFilterMetric.get(name), timer);
 
                 if (index != 1) {
                     throw new IllegalArgumentException("Didn't end up with 1 stat after pushing in index named \"" + name + "\"");

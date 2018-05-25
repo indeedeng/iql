@@ -147,7 +147,7 @@ public class ExplodePerDocPercentile implements Command {
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
-                timer.push("regroup");
+                timer.push("regroupWithProtos(" + rules.length + " rules)");
                 session.regroupWithProtos(rules, true);
                 timer.pop();
 

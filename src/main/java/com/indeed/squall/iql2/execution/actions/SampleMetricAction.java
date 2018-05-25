@@ -44,9 +44,7 @@ public class SampleMetricAction implements Action {
                     }
                     final List<String> pushes = perDatasetMetric.get(name);
 
-                    timer.push("pushStats");
-                    final int numStats = session.pushStats(pushes);
-                    timer.pop();
+                    final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
 
                     if (numStats != 1) {
                         throw new IllegalStateException("Pushed more than one stat!: " + pushes);

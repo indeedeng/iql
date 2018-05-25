@@ -53,9 +53,7 @@ public class MetricAction implements Action {
                     if (scope.contains(name)) {
                         final List<String> pushes = perDatasetPushes.get(name);
 
-                        timer.push("pushStats");
-                        final int index = session.pushStats(pushes);
-                        timer.pop();
+                        final int index = Session.pushStatsWithTimer(session, pushes, timer);
 
                         if (index != 1) {
                             throw new IllegalArgumentException(

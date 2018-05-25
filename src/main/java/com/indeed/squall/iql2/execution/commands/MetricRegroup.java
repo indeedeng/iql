@@ -75,9 +75,7 @@ public class MetricRegroup implements Command {
                 }
                 final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
 
-                timer.push("pushStats");
-                final int numStats = session.pushStats(pushes);
-                timer.pop();
+                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
 
                 if (numStats != 1) {
                     throw new IllegalStateException("Pushed more than one stat!: " + pushes);
@@ -88,7 +86,7 @@ public class MetricRegroup implements Command {
                 timer.pop();
 
                 if (withDefaultBucket) {
-                    timer.push("merge gutters into default");
+                    timer.push("merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
                     final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[intermediateBuckets * groupsBefore];
                     final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
                             .setField("fakeField")
