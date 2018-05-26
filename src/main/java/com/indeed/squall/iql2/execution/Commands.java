@@ -29,12 +29,9 @@ import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.iql2.execution.commands.ComputeBootstrap;
-import com.indeed.squall.iql2.execution.commands.CreateGroupStatsLookup;
-import com.indeed.squall.iql2.execution.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
-import com.indeed.squall.iql2.execution.commands.ExplodePerGroup;
 import com.indeed.squall.iql2.execution.commands.ExplodeRandom;
 import com.indeed.squall.iql2.execution.commands.ExplodeSessionNames;
 import com.indeed.squall.iql2.execution.commands.ExplodeTimeBuckets;
@@ -44,14 +41,11 @@ import com.indeed.squall.iql2.execution.commands.GetFieldMin;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
-import com.indeed.squall.iql2.execution.commands.GetNumGroups;
 import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RandomMetricRegroup;
-import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
-import com.indeed.squall.iql2.execution.commands.SampleFields;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
@@ -122,15 +116,6 @@ public class Commands {
                 }
                 final List<Optional<String>> formatStrings = readFormatStrings(command, metrics.size());
                 return new GetGroupStats(metrics, formatStrings, returnGroupKeys);
-            }
-            case "createGroupStatsLookup": {
-                final JsonNode valuesNode = command.get("values");
-                final double[] stats = new double[valuesNode.size() + 1];
-                for (int i = 0; i < valuesNode.size(); i++) {
-                    stats[i + 1] = valuesNode.get(i).doubleValue();
-                }
-                final Optional<String> name = getOptionalName(command);
-                return new CreateGroupStatsLookup(stats, name);
             }
             case "computeBootstrap": {
                 final Set<String> scope = parseScope(command);
@@ -205,35 +190,6 @@ public class Commands {
                         command.get("fromPredicate").booleanValue()
                 );
             }
-            case "getNumGroups": {
-                return new GetNumGroups();
-            }
-            case "explodePerGroup": {
-                final JsonNode fieldTermOpts = command.get("fieldTermOpts");
-                final List<TermsWithExplodeOpts> termsWithExplodeOpts = Lists.newArrayListWithCapacity(fieldTermOpts.size() + 1);
-                termsWithExplodeOpts.add(null);
-                for (int i = 0; i < fieldTermOpts.size(); i++) {
-                    final JsonNode pairNode = fieldTermOpts.get(i);
-                    final JsonNode fieldTermsNode = pairNode.get(0);
-                    final List<Term> terms = Lists.newArrayListWithCapacity(fieldTermsNode.size());
-                    for (int j = 0; j < fieldTermsNode.size(); j++) {
-                        final JsonNode fieldTermNode = fieldTermsNode.get(j);
-                        final String field = fieldTermNode.get(0).textValue();
-                        final JsonNode termNode = fieldTermNode.get(1);
-                        final Term term;
-                        if (termNode.get("type").textValue().equals("string")) {
-                            term = Term.stringTerm(field, termNode.get("value").textValue());
-                        } else {
-                            term = Term.intTerm(field, termNode.get("value").longValue());
-                        }
-                        terms.add(term);
-                    }
-                    final JsonNode explodeOpts = pairNode.get(1);
-                    final Optional<String> defaultName = parseExplodeOpts(explodeOpts);
-                    termsWithExplodeOpts.add(new TermsWithExplodeOpts(terms, defaultName));
-                }
-                return new ExplodePerGroup(termsWithExplodeOpts);
-            }
             case "explodeDayOfWeek": {
                 return new ExplodeDayOfWeek();
             }
@@ -265,12 +221,6 @@ public class Commands {
                 }
                 return new ComputeAndCreateGroupStatsLookups(namedComputations);
             }
-            case "explodeByAggregatePercentile": {
-                final String field = command.get("field").textValue();
-                final AggregateMetric metric = AggregateMetrics.fromJson(command.get("metric"), namedMetricLookup, groupKeySet);
-                final int numBuckets = command.get("numBuckets").intValue();
-                return new ExplodeByAggregatePercentile(field, metric, numBuckets);
-            }
             case "explodePerDocPercentile": {
                 final String field = command.get("field").textValue();
                 final int numBuckets = command.get("numBuckets").intValue();
@@ -291,11 +241,6 @@ public class Commands {
             case "regroupIntoParent": {
                 return new RegroupIntoParent(GroupLookupMergeType.parseJson(command.get("mergeType")));
             }
-            case "regroupIntoLastSiblingWhere": {
-                final AggregateFilter filter = AggregateFilters.fromJson(command.get("filter"), namedMetricLookup, groupKeySet);
-                final GroupLookupMergeType mergeType = GroupLookupMergeType.parseJson(command.get("mergeType"));
-                return new RegroupIntoLastSiblingWhere(filter, mergeType);
-            }
             case "explodeMonthOfYear": {
                 return new ExplodeMonthOfYear();
             }
@@ -314,25 +259,6 @@ public class Commands {
                         Optional.fromNullable(command.get("timeFormat").textValue()),
                         command.get("isRelative").booleanValue()
                 );
-            }
-            case "sampleFields": {
-                final JsonNode perDatasetSamples = command.get("perDatasetSamples");
-                final Iterator<String> it = perDatasetSamples.fieldNames();
-                final Map<String, List<SampleFields.SampleDefinition>> perDatasetDefinitions = Maps.newHashMap();
-                while (it.hasNext()) {
-                    final String dataset = it.next();
-                    final JsonNode list = perDatasetSamples.get(dataset);
-                    final List<SampleFields.SampleDefinition> definitions = Lists.newArrayListWithCapacity(list.size());
-                    for (int i = 0; i < list.size(); i++) {
-                        final JsonNode elem = list.get(i);
-                        final String field = elem.get("field").textValue();
-                        final double fraction = elem.get("fraction").doubleValue();
-                        final String seed = elem.get("seed").textValue();
-                        definitions.add(new SampleFields.SampleDefinition(field, fraction, seed));
-                    }
-                    perDatasetDefinitions.put(dataset, definitions);
-                }
-                return new SampleFields(perDatasetDefinitions);
             }
             case "applyFilterActions": {
                 final List<Action> actions = new ArrayList<>();

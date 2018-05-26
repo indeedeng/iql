@@ -19,7 +19,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
-import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Term;
 import com.indeed.squall.iql2.language.actions.Action;
@@ -433,38 +432,6 @@ public interface ExecutionStep {
         }
     }
 
-    class FilterDocs implements ExecutionStep {
-        private final DocFilter filter;
-        private final Set<String> scope;
-
-        public FilterDocs(DocFilter filter, Set<String> scope) {
-            this.filter = filter;
-            this.scope = scope;
-        }
-
-        @Override
-        public List<Command> commands() {
-            final Map<String, DocMetric.PushableDocMetric> perDatasetPushes = new HashMap<>();
-            for (final String dataset : scope) {
-                perDatasetPushes.put(dataset, new DocMetric.PushableDocMetric(filter.asZeroOneMetric(dataset)));
-            }
-            return Collections.<Command>singletonList(new com.indeed.squall.iql2.language.commands.FilterDocs(perDatasetPushes));
-        }
-
-        @Override
-        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return "FilterDocs{" +
-                    "filter=" + filter +
-                    ", scope=" + scope +
-                    '}';
-        }
-    }
-
     class IterateStats implements ExecutionStep {
         private final String field;
         private final Optional<AggregateFilter> filter;
@@ -607,33 +574,6 @@ public interface ExecutionStep {
         }
     }
 
-    class SampleFields implements ExecutionStep {
-        private final Map<String, List<DocFilter.Sample>> perDatasetSamples;
-
-        public SampleFields(Map<String, List<DocFilter.Sample>> perDatasetSamples) {
-            this.perDatasetSamples = perDatasetSamples;
-        }
-
-        @Override
-        public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.squall.iql2.language.commands.SampleFields(perDatasetSamples));
-        }
-
-        @Override
-        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            // TODO: Is this the right thing to do?
-            return this;
-        }
-
-
-        @Override
-        public String toString() {
-            return "SampleFields{" +
-                    "perDatasetSamples=" + perDatasetSamples +
-                    '}';
-        }
-    }
-
     class FilterActions implements ExecutionStep {
         private final ImmutableList<Action> actions;
 
@@ -680,39 +620,6 @@ public interface ExecutionStep {
         public String toString() {
             return "FilterGroups{" +
                     "filter=" + filter +
-                    '}';
-        }
-    }
-
-    class ExecuteMany implements ExecutionStep {
-        private final List<ExecutionStep> steps;
-
-        public ExecuteMany(List<ExecutionStep> steps) {
-            this.steps = steps;
-        }
-
-        @Override
-        public List<Command> commands() {
-            final List<Command> commands = new ArrayList<>();
-            for (final ExecutionStep step : steps) {
-                commands.addAll(step.commands());
-            }
-            return commands;
-        }
-
-        @Override
-        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            final List<ExecutionStep> newSteps = new ArrayList<>(steps.size());
-            for (final ExecutionStep step : steps) {
-                newSteps.add(step.traverse1(f));
-            }
-            return new ExecuteMany(newSteps);
-        }
-
-        @Override
-        public String toString() {
-            return "ExecuteMany{" +
-                    "steps=" + steps +
                     '}';
         }
     }

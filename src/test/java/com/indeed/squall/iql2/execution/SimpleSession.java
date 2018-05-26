@@ -41,7 +41,6 @@ import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.squall.iql2.execution.commands.CreateGroupStatsLookup;
-import com.indeed.squall.iql2.execution.commands.ExplodeByAggregatePercentile;
 import com.indeed.squall.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.squall.iql2.execution.commands.ExplodeMonthOfYear;
 import com.indeed.squall.iql2.execution.commands.ExplodePerDocPercentile;
@@ -54,12 +53,9 @@ import com.indeed.squall.iql2.execution.commands.GetFieldMin;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
-import com.indeed.squall.iql2.execution.commands.GetNumGroups;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
-import com.indeed.squall.iql2.execution.commands.RegroupIntoLastSiblingWhere;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
-import com.indeed.squall.iql2.execution.commands.SampleFields;
 import com.indeed.squall.iql2.execution.commands.SimpleIterate;
 import com.indeed.squall.iql2.execution.commands.SumAcross;
 import com.indeed.squall.iql2.execution.commands.TimePeriodRegroup;
@@ -129,8 +125,6 @@ public class SimpleSession {
         } else if (command instanceof MetricRegroup) {
             final MetricRegroup metricRegroup = (MetricRegroup) command;
             this.metricRegroup(metricRegroup.perDatasetMetric, metricRegroup.min, metricRegroup.max, metricRegroup.interval, metricRegroup.excludeGutters, metricRegroup.withDefault);
-        } else if (command instanceof GetNumGroups) {
-            out.accept(String.valueOf(groups.getNumGroups()));
         } else if (command instanceof ExplodePerGroup) {
             final ExplodePerGroup explodePerGroup = (ExplodePerGroup) command;
             this.explodePerGroup(explodePerGroup.termsWithExplodeOpts);
@@ -145,8 +139,6 @@ public class SimpleSession {
             throw new UnsupportedOperationException();
         } else if (command instanceof ComputeAndCreateGroupStatsLookups) {
             throw new UnsupportedOperationException();
-        } else if (command instanceof ExplodeByAggregatePercentile) {
-            throw new UnsupportedOperationException();
         } else if (command instanceof ExplodePerDocPercentile) {
             final ExplodePerDocPercentile explodePerDocPercentile = (ExplodePerDocPercentile) command;
             this.explodePerDocPercentile(explodePerDocPercentile.field, explodePerDocPercentile.numBuckets);
@@ -156,9 +148,6 @@ public class SimpleSession {
         } else if (command instanceof RegroupIntoParent) {
             final RegroupIntoParent regroupIntoParent = (RegroupIntoParent) command;
             this.regroupIntoParent(regroupIntoParent.mergeType);
-        } else if (command instanceof RegroupIntoLastSiblingWhere) {
-            final RegroupIntoLastSiblingWhere regroupIntoLastSiblingWhere = (RegroupIntoLastSiblingWhere) command;
-            this.regroupIntoLastSiblingWhere(regroupIntoLastSiblingWhere.filter, regroupIntoLastSiblingWhere.mergeType);
         } else if (command instanceof ExplodeMonthOfYear) {
             this.explodeMonthOfYear();
         } else if (command instanceof ExplodeTimeBuckets) {
@@ -168,9 +157,6 @@ public class SimpleSession {
             final TimePeriodRegroup timePeriodRegroup = (TimePeriodRegroup) command;
             this.timePeriodRegroup(timePeriodRegroup.periodMillis, timePeriodRegroup.timeField, timePeriodRegroup.timeFormat);
             out.accept("TimePeriodRegrouped");
-        } else if (command instanceof SampleFields) {
-            final SampleFields sampleFields = (SampleFields) command;
-            this.sampleFields(sampleFields.perDatasetSamples);
         } else if (command instanceof ApplyFilterActions) {
             final ApplyFilterActions applyFilterActions = (ApplyFilterActions) command;
             for (final Action action : applyFilterActions.actions) {
@@ -716,48 +702,6 @@ public class SimpleSession {
                 addToGroup(1 + (group - 1) * numBuckets + intraGroup);
             }
         });
-    }
-
-    private void sampleFields(final Map<String, List<SampleFields.SampleDefinition>> perDatasetDefinitions) {
-        final Map<String, Predicate<Document>> perDatasetChooser = new HashMap<>();
-        for (final Map.Entry<String, List<SampleFields.SampleDefinition>> entry : perDatasetDefinitions.entrySet()) {
-            final List<Predicate<Document>> predicates = Lists.newArrayList();
-            for (final SampleFields.SampleDefinition defn : entry.getValue()) {
-                final IterativeHasher hasher = new IterativeHasher.Murmur3Hasher(defn.seed);
-                final IterativeHasher.ConsistentLongHasher intHasher = hasher.consistentLongHasher();
-                final IterativeHasher.StringHasher strHasher = hasher.stringHasher();
-                final IterativeHasherUtils.GroupChooser chooser =
-                        IterativeHasherUtils.createChooser(new double[] {1.0 - defn.fraction});
-                predicates.add(new Predicate<Document>() {
-                    @Override
-                    public boolean apply(Document input) {
-                        for (final long v : input.getIntField(defn.field)) {
-                            if (chooser.getGroup(intHasher.calculateHash(v)) == 0) {
-                                return false;
-                            }
-                        }
-                        for (final String v : input.getStringField(defn.field)) {
-                            if (chooser.getGroup(strHasher.calculateHash(v)) == 0) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-                });
-            }
-            perDatasetChooser.put(entry.getKey(), Predicates.and(predicates));
-        }
-        groups = groups.createNew(new Grouping.GroupingCallback() {
-            @Override
-            public void handle(int group, Document document) {
-                if (perDatasetChooser.get(document.dataset).apply(document)) {
-                    addToGroup(group);
-                } else {
-                    discard();
-                }
-            }
-        });
-        // TODO: Don't add a level to the groups tree?
     }
 
     private void getFieldMax(final Set<String> scope, final String field, Consumer<String> out) throws JsonProcessingException {
