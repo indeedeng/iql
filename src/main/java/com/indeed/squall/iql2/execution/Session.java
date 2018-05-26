@@ -333,7 +333,10 @@ public class Session {
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
                 .allowSessionForwarding(requestRust);
             treeTimer.pop();
-            treeTimer.push("build session builder");
+            // TODO: message should be "build session builder (xxx shards on yyy daemons)"
+            // but we can't get information about daemons count now
+            // need to add method to RemoteImhotepMultiSession or to session builder.
+            treeTimer.push("build session builder (" + chosenShards.size() + " shards)");
             final ImhotepSession build = closer.register(sessionBuilder.build());
             progressCallback.sessionOpened(build);
             treeTimer.pop();
@@ -660,6 +663,13 @@ public class Session {
         }
     }
 
+    public static int pushStatsWithTimer(final ImhotepSession session, final List<String> pushes, final TreeTimer timer) throws ImhotepOutOfMemoryException {
+        timer.push("pushStats ('" + String.join("', '", pushes) + "')");
+        final int result = session.pushStats(pushes);
+        timer.pop();
+        return result;
+    }
+
     public long getFirstStartTimeMillis() {
         return firstStartTimeMillis;
     }
@@ -860,7 +870,7 @@ public class Session {
 
     public void regroupWithProtos(GroupMultiRemapMessage[] messages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("regroup");
+        timer.push("regroupWithProtos(" + messages.length + " rules)");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
             sessionInfo.session.regroupWithProtos(messages, errorOnCollisions);
@@ -871,7 +881,7 @@ public class Session {
 
     public void regroup(GroupRemapRule[] rules) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("regroup");
+        timer.push("regroup(" + rules.length + " rules)");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
             sessionInfo.session.regroup(rules);
@@ -893,7 +903,7 @@ public class Session {
 
     public void intOrRegroup(String field, long[] terms, int targetGroup, int negativeGroup, int positiveGroup, Set<String> scope) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("intOrRegroup");
+        timer.push("intOrRegroup(" + terms.length + " terms)");
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(s);
@@ -907,7 +917,7 @@ public class Session {
 
     public void stringOrRegroup(String field, String[] terms, int targetGroup, int negativeGroup, int positiveGroup, Set<String> scope) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("stringOrRegroup");
+        timer.push("stringOrRegroup(" + terms.length + " terms)");
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(s);

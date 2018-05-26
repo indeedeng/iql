@@ -60,7 +60,7 @@ public class ExplodeSessionNames implements Command {
             }
             session.timer.pop();
 
-            session.timer.push("apply dumb rules");
+            session.timer.push("regroupWithProtos(" + messages.length + " rules)");
             s.regroupWithProtos(messages, false);
             session.timer.pop();
 
