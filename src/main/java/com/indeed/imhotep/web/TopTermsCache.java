@@ -20,9 +20,6 @@ import com.indeed.util.io.Files;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.metadata.DatasetMetadata;
-import com.indeed.imhotep.metadata.FieldMetadata;
-import com.indeed.imhotep.metadata.FieldType;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -48,17 +45,22 @@ public class TopTermsCache {
     private final String localCachePath;
     private boolean initialized = false;
     private final boolean devMode;
+    private final boolean topTermsCacheEnabled;
 
     private volatile Map<String, Map<String, List<String>>> datasetToFieldToTerms = Maps.newHashMap();
 
-    public TopTermsCache(ImhotepClient client, String localCachePath, boolean devMode) {
+    public TopTermsCache(ImhotepClient client, String localCachePath, boolean devMode, boolean topTermsCacheEnabled) {
         this.client = client;
         this.localCachePath = localCachePath;
         this.devMode = devMode;
+        this.topTermsCacheEnabled = topTermsCacheEnabled;
     }
 
     @Scheduled(fixedRate = CACHE_UPDATE_FREQUENCY)
     public void updateTopTerms() {
+        if(!topTermsCacheEnabled) {
+            return;
+        }
         final File cacheFile = new File(localCachePath, CACHE_FILE_NAME);
         final String cacheFilePath = cacheFile.getAbsolutePath();
         if((!initialized || devMode) && cacheFile.exists()) {
