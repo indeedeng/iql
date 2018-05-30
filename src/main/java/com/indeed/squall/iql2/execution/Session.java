@@ -44,6 +44,7 @@ import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
@@ -181,6 +182,7 @@ public class Session {
         for (final JsonNode option : sessionRequest.get("options")) {
             optionsSet.add(option.textValue());
         }
+        final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains("rust");
 
@@ -201,12 +203,9 @@ public class Session {
                 final JsonNode command = commands.get(i);
                 final boolean isLast = i == commands.size() - 1;
                 if (isLast) {
-                    session.evaluateCommandToTSV(command, out);
+                    session.evaluateCommandToTSV(command, out, optionsList);
                 } else {
-                    session.evaluateCommand(command, new Consumer<String>() {
-                        public void accept(String s) {
-                        }
-                    });
+                    session.evaluateCommand(command, s -> {}, optionsList);
                 }
                 if (session.numGroups == 0) {
                     break;
@@ -443,15 +442,13 @@ public class Session {
         }
     }
 
-    public void evaluateCommand(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void evaluateCommand(final JsonNode commandTree,
+                                final Consumer<String> out,
+                                final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = commandTree.toString();
         timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
         try {
-            final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
-                public PerGroupConstant apply(String s) {
-                    return namedMetricLookup(s);
-                }
-            }, groupKeySet);
+            final Command command = Commands.parseCommand(commandTree, this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
             try {
                 command.execute(this, out);
@@ -474,15 +471,12 @@ public class Session {
         }
     }
 
-    public void evaluateCommandToTSV(JsonNode commandTree, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void evaluateCommandToTSV(final JsonNode commandTree,
+                                     final Consumer<String> out,
+                                     final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommandToTSV " + commandTree);
         try {
-            final Command command = Commands.parseCommand(commandTree, new Function<String, PerGroupConstant>() {
-                @Override
-                public PerGroupConstant apply(String s) {
-                    return namedMetricLookup(s);
-                }
-            }, groupKeySet);
+            final Command command = Commands.parseCommand(commandTree, this::namedMetricLookup, groupKeySet, options);
             try {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
@@ -967,6 +961,38 @@ public class Session {
             }
         }
         timer.pop();
+    }
+
+    public long[] getSimpleDistinct(final String field, final String scope) {
+        final long[] result = new long[numGroups];
+        if (!sessions.containsKey(scope)) {
+            return result; // or error?
+        }
+
+        final ImhotepSessionInfo info = sessions.get(scope);
+        final ImhotepSession session = info.session;
+        final boolean isIntField;
+        if (info.intFields.contains(field)) {
+            isIntField = true;
+        } else if (info.stringFields.contains(field)) {
+            isIntField = false;
+        } else {
+            return result; // or error?
+        }
+        timer.push("getSimpleDistinct session:" + info.displayName);
+        final GroupStatsIterator iterator = session.getDistinct(field, isIntField);
+        timer.pop();
+        // skipping group zero
+        if (!iterator.hasNext()) {
+            return result;
+        }
+        iterator.nextLong();
+        // extracting result for other groups
+        final int size = iterator.getNumGroups() - 1;
+        for (int i = 0; i < size; i++) {
+            result[i] += iterator.nextLong();
+        }
+        return result;
     }
 
     public void process(SessionCallback sessionCallback) throws ImhotepOutOfMemoryException {

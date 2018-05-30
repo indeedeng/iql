@@ -21,7 +21,6 @@ import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,10 +46,11 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             }
         });
         double[] results;
-        if (computation instanceof GetGroupDistincts
-                || computation instanceof SumAcross
-                || computation instanceof GetFieldMin
-                || computation instanceof GetFieldMax) {
+        if ((computation instanceof GetGroupDistincts)
+                || (computation instanceof GetSimpleGroupDistincts)
+                || (computation instanceof SumAcross)
+                || (computation instanceof GetFieldMin)
+                || (computation instanceof GetFieldMax)) {
             results = Session.MAPPER.readValue(reference.get(), new TypeReference<double[]>(){});
         } else if (computation instanceof GetGroupPercentiles) {
             final List<double[]> intellijDoesntLikeInlining = Session.MAPPER.readValue(reference.get(), new TypeReference<List<double[]>>(){});

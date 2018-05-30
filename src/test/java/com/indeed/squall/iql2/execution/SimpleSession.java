@@ -21,6 +21,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Booleans;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
@@ -53,6 +54,7 @@ import com.indeed.squall.iql2.execution.commands.GetFieldMin;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
+import com.indeed.squall.iql2.execution.commands.GetSimpleGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
 import com.indeed.squall.iql2.execution.commands.RegroupIntoParent;
@@ -119,6 +121,9 @@ public class SimpleSession {
         } else if (command instanceof GetGroupDistincts) {
             final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) command;
             this.getGroupDistincts(getGroupDistincts.scope, getGroupDistincts.field, getGroupDistincts.filter, getGroupDistincts.windowSize, out);
+        } else if (command instanceof GetSimpleGroupDistincts) {
+            final GetSimpleGroupDistincts getGroupDistincts = (GetSimpleGroupDistincts) command;
+            this.getSimpleGroupDistincts(getGroupDistincts.scope, getGroupDistincts.field, out);
         } else if (command instanceof GetGroupPercentiles) {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) command;
             this.getGroupPercentiles(getGroupPercentiles.scope, getGroupPercentiles.field, getGroupPercentiles.percentiles, out);
@@ -376,6 +381,10 @@ public class SimpleSession {
             }
         }
         out.accept(OBJECT_MAPPER.writeValueAsString(distincts));
+    }
+
+    private void getSimpleGroupDistincts(final String scope, final String field, final Consumer<String> out) throws JsonProcessingException {
+        getGroupDistincts(Sets.newHashSet(scope), field, Optional.absent(), 1, out);
     }
 
     private static class IterateFTGS {

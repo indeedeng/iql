@@ -41,6 +41,7 @@ import com.indeed.squall.iql2.execution.commands.GetFieldMin;
 import com.indeed.squall.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.GetGroupPercentiles;
 import com.indeed.squall.iql2.execution.commands.GetGroupStats;
+import com.indeed.squall.iql2.execution.commands.GetSimpleGroupDistincts;
 import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.squall.iql2.execution.commands.IterateAndExplode;
 import com.indeed.squall.iql2.execution.commands.MetricRegroup;
@@ -74,7 +75,7 @@ import java.util.Set;
 public class Commands {
     private static final Logger log = Logger.getLogger(Commands.class);
 
-    public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+    public static Command parseCommand(JsonNode command, Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         switch (command.get("command").textValue()) {
             case "simpleIterate": {
                 final List<AggregateMetric> selecting = Lists.newArrayList();
@@ -144,7 +145,12 @@ public class Commands {
                 } else {
                     filter = Optional.of(AggregateFilters.fromJson(filterNode, namedMetricLookup, groupKeySet));
                 }
-                return new GetGroupDistincts(scope, field, filter, windowSize);
+                if (options.contains("useSimpleDistinct") && (windowSize == 1) && !filter.isPresent() && (scope.size() == 1)) {
+                    // TODO: delete 'options.contains("useSimpleDistinct")' check when new functionality is tested.
+                    return new GetSimpleGroupDistincts(scope.iterator().next(), field);
+                } else {
+                    return new GetGroupDistincts(scope, field, filter, windowSize);
+                }
             }
             case "getGroupPercentiles": {
                 final String field = command.get("field").textValue();
@@ -207,14 +213,14 @@ public class Commands {
                 return new IterateAndExplode(field, selecting, fieldOpts, explodeDefaultName, null);
             }
             case "computeAndCreateGroupStatsLookup": {
-                final Command computation = parseCommand(command.get("computation"), namedMetricLookup, groupKeySet);
+                final Command computation = parseCommand(command.get("computation"), namedMetricLookup, groupKeySet, options);
                 validatePrecomputedCommand(computation);
                 return new ComputeAndCreateGroupStatsLookup(computation, getOptionalName(command));
             }
             case "computeAndCreateGroupStatsLookups": {
                 final List<Pair<Command, String>> namedComputations = Lists.newArrayList();
                 for (final JsonNode namedComputation : command.get("computations")) {
-                    final Command computation = parseCommand(namedComputation.get(0), namedMetricLookup, groupKeySet);
+                    final Command computation = parseCommand(namedComputation.get(0), namedMetricLookup, groupKeySet, options);
                     validatePrecomputedCommand(computation);
                     final String name = namedComputation.get(1).textValue();
                     namedComputations.add(Pair.of(computation, name));
@@ -361,8 +367,14 @@ public class Commands {
         return scope;
     }
 
-    private static void validatePrecomputedCommand(Object computation) {
-        if (computation instanceof GetGroupDistincts || computation instanceof SumAcross || computation instanceof GetFieldMin || computation instanceof GetFieldMax || computation instanceof ComputeBootstrap) {
+    private static void validatePrecomputedCommand(final Object computation) {
+        if ((computation instanceof GetGroupDistincts)
+                || (computation instanceof GetSimpleGroupDistincts)
+                || (computation instanceof SumAcross)
+                || (computation instanceof GetFieldMin)
+                || (computation instanceof GetFieldMax)
+                || (computation instanceof ComputeBootstrap)) {
+            // do nothing
         } else if (computation instanceof GetGroupPercentiles) {
             final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
             if (getGroupPercentiles.percentiles.length != 1) {
