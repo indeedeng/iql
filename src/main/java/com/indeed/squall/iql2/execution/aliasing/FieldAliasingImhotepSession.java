@@ -308,12 +308,12 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
 
     @Override
     public GroupStatsIterator getDistinct(String field, boolean isIntField) {
-        return wrapped.getDistinct(field, isIntField);
+        return wrapped.getDistinct(rewrite(field), isIntField);
     }
 
     @Override
     public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        return wrapped.mergeDistinctSplit(field, isIntField, sessionId, nodes, splitIndex);
+        return wrapped.mergeDistinctSplit(rewrite(field), isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override
