@@ -242,6 +242,9 @@ public class SelectQueryExecution implements Closeable {
             if (!warnings.isEmpty()) {
                 headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
             }
+            if (queryInfo.cpuSlotsExecTimeMs != null) {
+                headerMap.put("IQL-CPU-Slots-Execution-Time-MS", queryInfo.cpuSlotsExecTimeMs);
+            }
             outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
             outputStream.println();
 

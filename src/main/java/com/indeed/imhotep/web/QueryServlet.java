@@ -403,10 +403,6 @@ public class QueryServlet {
                     queryMetadata.addItem("IQL-Warning", warning);
                 }
 
-                if(args.progress) {
-                    completeStream(outputStream, queryMetadata);
-                }
-
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
@@ -437,9 +433,13 @@ public class QueryServlet {
             } finally {
                 try {
                     selectExecutionStats.imhotepPerformanceStats = iqlQuery.closeAndGetPerformanceStats();
+                    queryMetadata.addItem("IQL-CPU-Slots-Execution-Time-MS", selectExecutionStats.imhotepPerformanceStats.cpuSlotsExecTimeMs);
                 } catch (Exception e) {
                     log.error("Exception while closing IQLQuery object", e);
                 }
+            }
+            if(args.progress) {
+            	completeStream(outputStream, queryMetadata);
             }
             outputStream.close();
             selectExecutionStats.rowsWritten = writeResults.rowsWritten;
