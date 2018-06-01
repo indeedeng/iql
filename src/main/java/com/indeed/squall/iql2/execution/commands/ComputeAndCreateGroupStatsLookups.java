@@ -20,7 +20,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.indeed.util.core.Pair;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
@@ -28,6 +27,7 @@ import com.indeed.squall.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.squall.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.List;
@@ -58,6 +58,12 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                         return longToDouble(longs);
                     }
                 }, getGroupDistincts.iterateHandler(session), name));
+            } else if (computation instanceof GetSimpleGroupDistincts) {
+                final AtomicReference<String> reference = new AtomicReference<>();
+                ((Command) computation).execute(session, reference::set);
+                final long[] groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<long[]>() {});
+                final double[] results = longToDouble(groupStats);
+                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session, s -> {});
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
