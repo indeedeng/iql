@@ -83,57 +83,9 @@ public class LoggingImhotepSession implements ImhotepSession {
     }
 
     @Override
-    public RawFTGSIterator[] getSubsetFTGSIteratorSplits(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
-        log.info("LoggingImhotepSession.getSubsetFTGSIteratorSplits: " + "intFields = [" + intFields + "], stringFields = [" + stringFields + "]");
-        return wrapped.getSubsetFTGSIteratorSplits(intFields, stringFields);
-    }
-
-    @Override
-    public RawFTGSIterator[] getFTGSIteratorSplits(String[] intFields, String[] stringFields, long termLimit) {
-        log.info("LoggingImhotepSession.getFTGSIteratorSplits: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "], termLimit = [" + termLimit + "]");
-        return wrapped.getFTGSIteratorSplits(intFields, stringFields, termLimit);
-    }
-
-    @Override
-    public RawFTGSIterator getFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit) {
-        log.info("LoggingImhotepSession.getFTGSIteratorSplit: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "], splitIndex = [" + splitIndex + "], numSplits = [" + numSplits + "], termLimit = [" + termLimit + "]");
-        return wrapped.getFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, termLimit);
-    }
-
-    @Override
-    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
-        log.info("LoggingImhotepSession.writeFTGSIteratorSplit: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "], splitIndex = [" + splitIndex + "], numSplits = [" + numSplits + "], termLimit = [" + termLimit + "], socket = [" + socket + "]");
-        wrapped.writeFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, termLimit, socket);
-    }
-
-    @Override
-    public RawFTGSIterator getSubsetFTGSIteratorSplit(Map<String, long[]> intFields, Map<String, String[]> stringFields, int splitIndex, int numSplits) {
-        log.info("LoggingImhotepSession.getSubsetFTGSIteratorSplit: " + "intFields = [" + intFields + "], stringFields = [" + stringFields + "], splitIndex = [" + splitIndex + "], numSplits = [" + numSplits + "]");
-        return wrapped.getSubsetFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits);
-    }
-
-    @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
-        log.info("LoggingImhotepSession.mergeFTGSSplit: " + "intFields = [" + Arrays.toString(intFields) + "], stringFields = [" + Arrays.toString(stringFields) + "], sessionId = [" + sessionId + "], nodes = [" + Arrays.toString(nodes) + "], splitIndex = [" + splitIndex + "], termLimit = [" + termLimit + "], sortStat = [" + sortStat + "]");
-        return wrapped.mergeFTGSSplit(intFields, stringFields, sessionId, nodes, splitIndex, termLimit, sortStat);
-    }
-
-    @Override
-    public RawFTGSIterator mergeSubsetFTGSSplit(Map<String, long[]> intFields, Map<String, String[]> stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        log.info("LoggingImhotepSession.mergeSubsetFTGSSplit: " + "intFields = [" + intFields + "], stringFields = [" + stringFields + "], sessionId = [" + sessionId + "], nodes = [" + Arrays.toString(nodes) + "], splitIndex = [" + splitIndex + "]");
-        return wrapped.mergeSubsetFTGSSplit(intFields, stringFields, sessionId, nodes, splitIndex);
-    }
-
-    @Override
     public GroupStatsIterator getDistinct(String field, boolean isIntField) {
         log.info("LoggingImhotepSession.getDistinct: field = [" + field + "], isIntField = [" + isIntField + "]");
         return wrapped.getDistinct(field, isIntField);
-    }
-
-    @Override
-    public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        log.info("LoggingImhotepSession.mergeDistinctSplit: field = [" + field + "], isIntField = [" + isIntField + "], sessionId = [" + sessionId + "], nodes = [" + nodes + "], splitIndex = [" + splitIndex + "]");
-        return wrapped.mergeDistinctSplit(field, isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override

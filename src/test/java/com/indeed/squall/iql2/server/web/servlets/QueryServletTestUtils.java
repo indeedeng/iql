@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
@@ -63,6 +64,7 @@ public class QueryServletTestUtils extends BasicTest {
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
                 new TopTermsCache(imhotepClient, "", true, false),
+                MetricStatsEmitter.NULL_EMITTER,
                 options.wallClock
         );
     }

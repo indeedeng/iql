@@ -22,6 +22,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.ErrorResult;
@@ -30,6 +31,7 @@ import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -96,6 +98,7 @@ public class QueryServlet {
     private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
+    private final MetricStatsEmitter metricStatsEmitter;
     private final WallClock clock;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
@@ -109,6 +112,7 @@ public class QueryServlet {
             final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
+            final MetricStatsEmitter metricStatsEmitter,
             final WallClock clock
     ) {
         this.imhotepClient = imhotepClient;
@@ -117,6 +121,7 @@ public class QueryServlet {
         this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
+        this.metricStatsEmitter = metricStatsEmitter;
         this.clock = clock;
     }
 
@@ -451,6 +456,11 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", message);
         }
 
+        final List<Pair<String, String>> metricTags = new ArrayList<>();
+        metricTags.add(new Pair<>("iqlversion", "2"));
+        metricTags.add(new Pair<>("statement", queryInfo.statementType));
+        metricTags.add(new Pair<>("error", errorOccurred != null ? "1" : "0"));
+        this.metricStatsEmitter.histogram("query.time.ms", timeTaken, metricTags);
         dataLog.info(logEntry);
     }
 

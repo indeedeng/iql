@@ -31,6 +31,7 @@ import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.metadata.FieldType;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.sql.IQLTranslator;
 import com.indeed.imhotep.sql.ast2.DescribeStatement;
 import com.indeed.imhotep.sql.ast2.FromClause;
@@ -42,6 +43,7 @@ import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -116,6 +118,7 @@ public class QueryServlet {
     private final ExecutorService executorService;
     private final AccessControl accessControl;
     private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
+    private final MetricStatsEmitter metricStatsEmitter;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -125,7 +128,8 @@ public class QueryServlet {
                         RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
                         AccessControl accessControl,
-                        com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2) {
+                        com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2,
+                        MetricStatsEmitter metricStatsEmitter) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
@@ -134,6 +138,7 @@ public class QueryServlet {
         this.executorService = executorService;
         this.accessControl = accessControl;
         this.queryServletV2 = queryServletV2;
+        this.metricStatsEmitter = metricStatsEmitter;
     }
 
     @RequestMapping("/query")
@@ -213,7 +218,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, selectQuery);
+                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -719,6 +724,7 @@ public class QueryServlet {
                                  IQLStatement parsedQuery,
                                  Throwable errorOccurred,
                                  String remoteAddr,
+                                 MetricStatsEmitter metricStatsEmitter,
                                  @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         final String userName = clientInfo.username;
@@ -780,6 +786,11 @@ public class QueryServlet {
             }
         }
 
+        final List<Pair<String, String>> metricTags = new ArrayList<>();
+        metricTags.add(new Pair<>("iqlversion", "1"));
+        metricTags.add(new Pair<>("statement", queryType));
+        metricTags.add(new Pair<>("error", errorOccurred != null ? "1" : "0"));
+        metricStatsEmitter.histogram("query.time.ms", timeTaken, metricTags);
         dataLog.info(logEntry);
     }
 

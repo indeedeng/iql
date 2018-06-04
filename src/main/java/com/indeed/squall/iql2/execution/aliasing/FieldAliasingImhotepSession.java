@@ -277,43 +277,8 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     @Override
-    public RawFTGSIterator[] getSubsetFTGSIteratorSplits(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
-        return wrapped.getSubsetFTGSIteratorSplits(rewriteMap(intFields), rewriteMap(stringFields));
-    }
-
-    @Override
-    public RawFTGSIterator[] getFTGSIteratorSplits(String[] intFields, String[] stringFields, long termLimit) {
-        return wrapped.getFTGSIteratorSplits(rewriteFields(intFields), rewriteFields(stringFields), termLimit);
-    }
-
-    @Override
-    public RawFTGSIterator getFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit) {
-        return wrapped.getFTGSIteratorSplit(rewriteFields(intFields), rewriteFields(stringFields), splitIndex, numSplits, termLimit);
-    }
-
-    @Override
-    public RawFTGSIterator getSubsetFTGSIteratorSplit(Map<String, long[]> intFields, Map<String, String[]> stringFields, int splitIndex, int numSplits) {
-        return wrapped.getSubsetFTGSIteratorSplit(rewriteMap(intFields), rewriteMap(stringFields), splitIndex, numSplits);
-    }
-
-    @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
-        return wrapped.mergeFTGSSplit(rewriteFields(intFields), rewriteFields(stringFields), sessionId, nodes, splitIndex, termLimit, sortStat);
-    }
-
-    @Override
-    public RawFTGSIterator mergeSubsetFTGSSplit(Map<String, long[]> intFields, Map<String, String[]> stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        return wrapped.mergeSubsetFTGSSplit(rewriteMap(intFields), rewriteMap(stringFields), sessionId, nodes, splitIndex);
-    }
-
-    @Override
     public GroupStatsIterator getDistinct(String field, boolean isIntField) {
         return wrapped.getDistinct(rewrite(field), isIntField);
-    }
-
-    @Override
-    public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        return wrapped.mergeDistinctSplit(rewrite(field), isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override
@@ -487,11 +452,6 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     @Override
     public void rebuildAndFilterIndexes(List<String> intFields, List<String> stringFields) throws ImhotepOutOfMemoryException {
         wrapped.rebuildAndFilterIndexes(rewriteFields(intFields), rewriteFields(stringFields));
-    }
-
-    @Override
-    public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
-        wrapped.writeFTGSIteratorSplit(intFields, stringFields, splitIndex, numSplits, termLimit, socket);
     }
 
     @Override
