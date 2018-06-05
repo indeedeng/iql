@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
@@ -58,6 +60,8 @@ public abstract class AggregateFilter extends AbstractPositional {
 
     public abstract boolean isOrdered();
 
+    public abstract com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
+
     public static class TermIs extends AggregateFilter implements JsonSerializable {
         public final Term term;
 
@@ -87,6 +91,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return false;
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.TermEquals(term.toExecutionTerm());
         }
 
         @Override
@@ -149,6 +158,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return false;
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.TermEqualsRegex(term.toExecutionTerm());
         }
 
         @Override
@@ -224,6 +238,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.MetricEquals(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "metricEquals", "arg1", m1, "arg2", m2));
         }
@@ -289,6 +311,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.MetricNotEquals(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -360,6 +390,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.GreaterThan(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "greaterThan", "arg1", m1, "arg2", m2));
         }
@@ -425,6 +463,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.GreaterThanOrEquals(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -496,6 +542,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.LessThan(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "lessThan", "arg1", m1, "arg2", m2));
         }
@@ -561,6 +615,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return m1.isOrdered() || m2.isOrdered();
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.LessThanOrEquals(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -632,6 +694,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.And(
+                    f1.toExecutionFilter(namedMetricLookup, groupKeySet),
+                    f2.toExecutionFilter(namedMetricLookup, groupKeySet)
+            );
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "and", "arg1", f1, "arg2", f2));
         }
@@ -700,6 +770,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.Or(
+                    f1.toExecutionFilter(namedMetricLookup, groupKeySet),
+                    f2.toExecutionFilter(namedMetricLookup, groupKeySet)
+            );
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "or", "arg1", f1, "arg2", f2));
         }
@@ -762,6 +840,13 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return filter.isOrdered();
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.Not(
+                    filter.toExecutionFilter(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -835,6 +920,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.RegexFilter(regex);
+        }
+
+        @Override
         public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
             this.serialize(gen, serializers);
         }
@@ -894,6 +984,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.Constant(true);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "always"));
         }
@@ -946,6 +1041,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.Constant(false);
+        }
+
+        @Override
         public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeObject(ImmutableMap.of("type", "never"));
         }
@@ -994,6 +1094,11 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return false;
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.AggregateFilter.IsDefaultGroup(groupKeySet);
         }
 
         @Override

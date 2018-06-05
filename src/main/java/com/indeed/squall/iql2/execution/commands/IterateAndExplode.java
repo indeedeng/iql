@@ -41,7 +41,7 @@ public class IterateAndExplode implements Command {
     public final Set<String> scope;
 
     // TODO: Null is horrible, put on some sort of options object
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName, Set<String> scope) {
+    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName, @Nullable Set<String> scope) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;

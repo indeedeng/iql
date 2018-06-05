@@ -18,7 +18,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.util.core.Pair;
@@ -27,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializable {
     private final List<Pair<Command, String>> namedComputations;
@@ -57,6 +61,19 @@ public class ComputeAndCreateGroupStatsLookups implements Command, JsonSerializa
         for (final Pair<Command, String> pair : namedComputations) {
             pair.getFirst().validate(validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.ComputeAndCreateGroupStatsLookups(
+                namedComputations
+                .stream()
+                .map(x -> Pair.of(
+                        x.getFirst().toExecutionCommand(namedMetricLookup, groupKeySet, options),
+                        x.getSecond()
+                ))
+                .collect(Collectors.toList())
+        );
     }
 
     @Override

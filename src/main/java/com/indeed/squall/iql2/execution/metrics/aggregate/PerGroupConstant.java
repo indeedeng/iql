@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class PerGroupConstant implements AggregateMetric {
-    final double[] values;
+    public final double[] values;
 
     public PerGroupConstant(final double[] values) {
         this.values = values;

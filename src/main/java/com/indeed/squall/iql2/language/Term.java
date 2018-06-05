@@ -137,4 +137,8 @@ public class Term implements JsonSerializable {
                 ", isIntTerm=" + isIntTerm +
                 '}';
     }
+
+    public com.indeed.squall.iql2.execution.Term toExecutionTerm() {
+        return new com.indeed.squall.iql2.execution.Term(isIntTerm, stringTerm, intTerm);
+    }
 }

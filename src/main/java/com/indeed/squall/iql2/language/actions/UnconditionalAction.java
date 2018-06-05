@@ -18,7 +18,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
@@ -56,6 +59,13 @@ public class UnconditionalAction implements Action, JsonSerializable {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
 
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        return new com.indeed.squall.iql2.execution.actions.UnconditionalAction(
+                scope, targetGroup, newGroup
+        );
     }
 
     @Override

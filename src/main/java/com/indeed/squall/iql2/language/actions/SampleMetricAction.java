@@ -4,8 +4,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
@@ -61,6 +64,18 @@ public class SampleMetricAction implements Action, JsonSerializable {
 
     @Override
     public void validate(final ValidationHelper validationHelper, final Validator validator) {
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        return new com.indeed.squall.iql2.execution.actions.SampleMetricAction(
+                perDatasetMetric,
+                probability,
+                seed,
+                targetGroup,
+                positiveGroup,
+                negativeGroup
+        );
     }
 
     @Override

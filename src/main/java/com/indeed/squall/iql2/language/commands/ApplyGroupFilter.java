@@ -18,11 +18,15 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class ApplyGroupFilter implements Command, JsonSerializable {
@@ -35,6 +39,13 @@ public class ApplyGroupFilter implements Command, JsonSerializable {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         // TODO: Validate.
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.ApplyGroupFilter(
+                filter.toExecutionFilter(namedMetricLookup, groupKeySet)
+        );
     }
 
     @Override

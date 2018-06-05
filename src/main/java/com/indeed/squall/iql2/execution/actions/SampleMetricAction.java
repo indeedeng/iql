@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.execution.actions;
 
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SampleMetricAction implements Action {
-    public final Map<String, List<String>> perDatasetMetric;
+    public final Map<String, ? extends List<String>> perDatasetMetric;
     public final double probability;
     public final String seed;
 
@@ -18,7 +19,7 @@ public class SampleMetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, List<String>> perDatasetMetric,
+    public SampleMetricAction(final Map<String, ? extends List<String>> perDatasetMetric,
                               final double probability,
                               final String seed,
                               final int targetGroup,
@@ -42,7 +43,7 @@ public class SampleMetricAction implements Action {
                     if (!perDatasetMetric.containsKey(name)) {
                         return;
                     }
-                    final List<String> pushes = perDatasetMetric.get(name);
+                    final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name));
 
                     final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
 

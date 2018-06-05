@@ -14,7 +14,10 @@
 
 package com.indeed.squall.iql2.language.commands;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateMetric;
 
 import java.util.Objects;
@@ -48,5 +51,12 @@ public class TopK {
                 "limit=" + limit +
                 ", metric=" + metric +
                 '}';
+    }
+
+    public com.indeed.squall.iql2.execution.commands.misc.TopK toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        return new com.indeed.squall.iql2.execution.commands.misc.TopK(
+                limit.transform(x -> (int)(long)x),
+                metric.transform(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
+        );
     }
 }

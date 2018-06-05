@@ -18,11 +18,16 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Longs;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -104,5 +109,23 @@ public class FieldIterateOpts implements JsonSerializable {
                 ", intTermSubset=" + intTermSubset +
                 ", stringTermSubset=" + stringTermSubset +
                 '}';
+    }
+
+    public com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        final com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts result = new com.indeed.squall.iql2.execution.commands.misc.FieldIterateOpts();
+        result.filter = filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet));
+        result.limit = limit;
+        result.sortedIntTermSubset = intTermSubset.transform(x -> {
+            final long[] terms = Longs.toArray(x);
+            Arrays.sort(terms);
+            return terms;
+        });
+        result.sortedStringTermSubset = stringTermSubset.transform(x -> {
+            final String[] terms = x.toArray(new String[0]);
+            Arrays.sort(terms);
+            return terms;
+        });
+        result.topK = topK.transform(x -> x.toExecution(namedMetricLookup, groupKeySet));
+        return result;
     }
 }

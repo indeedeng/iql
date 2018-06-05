@@ -14,13 +14,24 @@
 
 package com.indeed.squall.iql2.language.commands;
 
+import com.google.common.base.Function;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
+
+import java.util.List;
 
 public interface Command {
     // TODO: Clean up this API
     void validate(
             ValidationHelper validationHelper,
             Validator validator
+    );
+
+    com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(
+            Function<String, PerGroupConstant> namedMetricLookup,
+            GroupKeySet groupKeySet,
+            List<String> options
     );
 }

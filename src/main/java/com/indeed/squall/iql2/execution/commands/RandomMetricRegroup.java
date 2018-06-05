@@ -20,11 +20,11 @@ public class RandomMetricRegroup implements Command {
     private final int k;
     private final String salt;
 
-    public RandomMetricRegroup(final Map<String, List<String>> perDatasetMetric,
+    public RandomMetricRegroup(final Map<String, ? extends List<String>> perDatasetMetric,
                                final int k,
                                final String salt) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
+        for (final Map.Entry<String, ? extends List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
         }
         this.perDatasetMetric = copy.build();

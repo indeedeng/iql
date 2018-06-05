@@ -39,9 +39,9 @@ public class MetricRegroup implements Command {
     public final boolean withDefault;
     public final boolean fromPredicate;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
+    public MetricRegroup(Map<String, ? extends List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
         final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
+        for (final Map.Entry<String, ? extends List<String>> entry : perDatasetMetric.entrySet()) {
             copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
         }
         this.perDatasetMetric = copy.build();

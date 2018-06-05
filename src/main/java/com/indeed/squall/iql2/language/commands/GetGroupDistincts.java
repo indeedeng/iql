@@ -18,13 +18,19 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.indeed.squall.iql2.execution.commands.GetSimpleGroupDistincts;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,6 +68,24 @@ public class GetGroupDistincts implements Command, JsonSerializable {
         ValidationUtil.validateField(scope, field, validationHelper, validator, this);
         if (filter.isPresent()) {
             filter.get().validate(scope, validationHelper, validator);
+        }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        // TODO: delete 'options.contains("useSimpleDistinct")' check when new functionality is tested.
+        if (options.contains("useSimpleDistinct")
+                && (windowSize == 1)
+                && !filter.isPresent()
+                && (scope.size() == 1)) {
+            return new GetSimpleGroupDistincts(Iterables.getOnlyElement(scope), field);
+        } else {
+            return new com.indeed.squall.iql2.execution.commands.GetGroupDistincts(
+                    scope,
+                    field,
+                    filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet)),
+                    windowSize
+            );
         }
     }
 

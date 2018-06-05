@@ -18,9 +18,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
@@ -78,6 +81,19 @@ public class MetricRegroup implements Command, JsonSerializable {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         // TODO: Validate more List<String>s.... somehow.
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.MetricRegroup(
+                perDatasetMetric,
+                min,
+                max,
+                interval,
+                excludeGutters,
+                withDefault,
+                fromPredicate
+        );
     }
 
     @Override

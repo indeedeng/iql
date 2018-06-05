@@ -18,7 +18,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
@@ -26,6 +29,7 @@ import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -66,6 +70,16 @@ public class SumAcross implements Command, JsonSerializable {
         if (filter.isPresent()) {
             filter.get().validate(scope, validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.SumAcross(
+                scope,
+                field,
+                metric.toExecutionMetric(namedMetricLookup, groupKeySet),
+                filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet))
+        );
     }
 
     @Override

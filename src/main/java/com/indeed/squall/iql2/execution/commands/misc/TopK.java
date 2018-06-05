@@ -21,7 +21,7 @@ public class TopK {
     public final Optional<Integer> limit;
     public final Optional<AggregateMetric> metric;
 
-    TopK(Optional<Integer> limit, Optional<AggregateMetric> metric) {
+    public TopK(Optional<Integer> limit, Optional<AggregateMetric> metric) {
         this.limit = limit;
         this.metric = metric;
     }

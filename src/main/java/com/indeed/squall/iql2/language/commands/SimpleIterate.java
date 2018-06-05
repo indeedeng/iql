@@ -18,7 +18,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
@@ -30,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class SimpleIterate implements Command, JsonSerializable {
     public final String field;
@@ -87,6 +91,18 @@ public class SimpleIterate implements Command, JsonSerializable {
         for (final AggregateMetric metric : selecting) {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.SimpleIterate(
+                field,
+                opts.toExecution(namedMetricLookup, groupKeySet),
+                selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
+                formatStrings,
+                streamResult,
+                null
+        );
     }
 
     @Override

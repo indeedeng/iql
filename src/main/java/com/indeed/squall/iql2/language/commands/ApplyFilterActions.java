@@ -18,8 +18,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
@@ -27,6 +30,7 @@ import com.indeed.squall.iql2.language.util.ValidationHelper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ApplyFilterActions implements Command, JsonSerializable {
     public final ImmutableList<Action> actions;
@@ -50,6 +54,16 @@ public class ApplyFilterActions implements Command, JsonSerializable {
         for (final Action action : actions) {
             action.validate(validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.ApplyFilterActions(
+                actions
+                .stream()
+                .map(x -> x.toExecutionAction(namedMetricLookup, groupKeySet))
+                .collect(Collectors.toList())
+        );
     }
 
     @Override

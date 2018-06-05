@@ -18,6 +18,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
+import com.indeed.squall.iql2.execution.commands.IntRegroupFieldIn;
+import com.indeed.squall.iql2.execution.commands.StringRegroupFieldIn;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
@@ -68,6 +73,15 @@ public class RegroupFieldIn implements Command, JsonSerializable {
             ValidationUtil.validateIntField(scope, field, validationHelper, validator, this);
         } else {
             ValidationUtil.validateStringField(scope, field, validationHelper, validator, this);
+        }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        if (isIntField) {
+            return new IntRegroupFieldIn(field, intTerms, withDefault);
+        } else {
+            return new StringRegroupFieldIn(field, stringTerms, withDefault);
         }
     }
 

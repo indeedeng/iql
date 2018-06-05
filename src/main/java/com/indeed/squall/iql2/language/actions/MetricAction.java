@@ -18,7 +18,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializable;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.Validator;
@@ -29,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MetricAction implements Action, JsonSerializable {
     public final ImmutableSet<String> scope;
@@ -72,6 +76,17 @@ public class MetricAction implements Action, JsonSerializable {
         for (final String dataset : scope) {
             filter.validate(dataset, validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        return new com.indeed.squall.iql2.execution.actions.MetricAction(
+                scope,
+                scope.stream().collect(Collectors.toMap(x -> x, x -> filter.asZeroOneMetric(x).getPushes(x))),
+                targetGroup,
+                positiveGroup,
+                negativeGroup
+        );
     }
 
     @Override
