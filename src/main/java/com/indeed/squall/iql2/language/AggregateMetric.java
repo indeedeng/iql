@@ -86,11 +86,9 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public abstract static class Unop extends AggregateMetric {
         public final AggregateMetric m1;
-        private final String jsonType;
 
         public Unop(AggregateMetric m1, String jsonType) {
             this.m1 = m1;
-            this.jsonType = jsonType;
         }
 
         @Override
@@ -209,12 +207,10 @@ public abstract class AggregateMetric extends AbstractPositional {
     public abstract static class Binop extends AggregateMetric {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
-        private final String jsonType;
 
         public Binop(AggregateMetric m1, AggregateMetric m2, String jsonType) {
             this.m1 = m1;
             this.m2 = m2;
-            this.jsonType = jsonType;
         }
 
         @Override
