@@ -433,10 +433,12 @@ public class QueryServlet {
             } finally {
                 try {
                     selectExecutionStats.imhotepPerformanceStats = iqlQuery.closeAndGetPerformanceStats();
-                    queryMetadata.addItem("IQL-CPU-Slots-Execution-Time-MS", selectExecutionStats.imhotepPerformanceStats.cpuSlotsExecTimeMs);
                 } catch (Exception e) {
                     log.error("Exception while closing IQLQuery object", e);
                 }
+            }
+            if (selectExecutionStats.imhotepPerformanceStats != null) {
+            	queryMetadata.addItem("Imhotep-CPU-Slots-Execution-Time-MS", selectExecutionStats.imhotepPerformanceStats.cpuSlotsExecTimeMs);
             }
             if(args.progress) {
             	completeStream(outputStream, queryMetadata);
