@@ -136,20 +136,10 @@ public class TestImhotepClient extends ImhotepClient {
                 try {
                     return new MTImhotepLocalMultiSession(sessions.toArray(new ImhotepLocalSession[sessions.size()]),
                             new MemoryReservationContext(new ImhotepMemoryPool(Long.MAX_VALUE)),
-                            new AtomicLong(Long.MAX_VALUE), false, "", "") {
+                            new AtomicLong(Long.MAX_VALUE), "", "") {
                         @Override
                         protected void postClose() {
 
-                        }
-
-                        @Override
-                        public void writeFTGSIteratorSplit(String[] intFields, String[] stringFields, int splitIndex, int numSplits, long termLimit, Socket socket) throws ImhotepOutOfMemoryException {
-                            throw new UnsupportedOperationException();
-                        }
-
-                        @Override
-                        protected ImhotepRemoteSession createImhotepRemoteSession(InetSocketAddress address, String sessionId, AtomicLong tempFileSizeBytesLeft) {
-                            throw new UnsupportedOperationException();
                         }
 
                         //Workaround for regroupWithProtos to work in local (unit tests)
