@@ -29,6 +29,7 @@ import com.indeed.imhotep.web.ErrorResult;
 import com.indeed.imhotep.web.GlobalUncaughtExceptionHandler;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
+import com.indeed.imhotep.web.QueryMetrics;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
 import com.indeed.util.core.Pair;
@@ -456,11 +457,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", message);
         }
 
-        final List<Pair<String, String>> metricTags = new ArrayList<>();
-        metricTags.add(new Pair<>("iqlversion", "2"));
-        metricTags.add(new Pair<>("statement", queryInfo.statementType));
-        metricTags.add(new Pair<>("error", errorOccurred != null ? "1" : "0"));
-        this.metricStatsEmitter.histogram("query.time.ms", timeTaken, metricTags);
+        QueryMetrics.logQueryMetrics(2, queryInfo.statementType, errorOccurred != null, timeTaken, this.metricStatsEmitter);
         dataLog.info(logEntry);
     }
 

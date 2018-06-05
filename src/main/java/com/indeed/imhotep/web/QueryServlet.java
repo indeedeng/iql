@@ -786,11 +786,7 @@ public class QueryServlet {
             }
         }
 
-        final List<Pair<String, String>> metricTags = new ArrayList<>();
-        metricTags.add(new Pair<>("iqlversion", "1"));
-        metricTags.add(new Pair<>("statement", queryType));
-        metricTags.add(new Pair<>("error", errorOccurred != null ? "1" : "0"));
-        metricStatsEmitter.histogram("query.time.ms", timeTaken, metricTags);
+        QueryMetrics.logQueryMetrics(1, queryType, errorOccurred != null, timeTaken, metricStatsEmitter);
         dataLog.info(logEntry);
     }
 
