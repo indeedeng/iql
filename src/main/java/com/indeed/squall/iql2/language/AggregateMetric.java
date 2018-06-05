@@ -14,13 +14,8 @@
 
 package com.indeed.squall.iql2.language;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -32,7 +27,6 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -90,7 +84,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             GroupKeySet groupKeySet
     );
 
-    public abstract static class Unop extends AggregateMetric implements JsonSerializable {
+    public abstract static class Unop extends AggregateMetric {
         public final AggregateMetric m1;
         private final String jsonType;
 
@@ -102,16 +96,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return m1.isOrdered();
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", jsonType, "value", m1));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -222,7 +206,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public abstract static class Binop extends AggregateMetric implements JsonSerializable {
+    public abstract static class Binop extends AggregateMetric {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
         private final String jsonType;
@@ -236,16 +220,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return m1.isOrdered() || m2.isOrdered();
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", jsonType, "m1", m1, "m2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -452,7 +426,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public abstract static class RequiresFTGSMetric extends AggregateMetric implements JsonSerializable {
+    public abstract static class RequiresFTGSMetric extends AggregateMetric {
         @Override
         public boolean requiresFTGS() {
             return true;
@@ -462,19 +436,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
             throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- it should be removed by ExtractPrecomputed!");
         }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
     }
 
-    public static class Parent extends AggregateMetric implements JsonSerializable {
+    public static class Parent extends AggregateMetric {
         public final AggregateMetric metric;
 
         public Parent(AggregateMetric metric) {
@@ -512,16 +476,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new IllegalStateException("Cannot serialize Parent metric");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -542,7 +496,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Lag extends AggregateMetric implements JsonSerializable {
+    public static class Lag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -582,16 +536,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "lag", "delay", lag, "m", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -614,7 +558,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class DivideByCount extends AggregateMetric implements JsonSerializable {
+    public static class DivideByCount extends AggregateMetric {
         public final AggregateMetric metric;
 
         public DivideByCount(AggregateMetric metric) {
@@ -652,16 +596,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize DivideByCount -- ExtractPrecomputed should transfer it to Divide!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(final Object o) {
             if (this == o) {
                 return true;
@@ -686,7 +620,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class IterateLag extends AggregateMetric implements JsonSerializable {
+    public static class IterateLag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -729,16 +663,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "iterateLag", "delay", lag, "m", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -761,7 +685,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Window extends AggregateMetric implements JsonSerializable {
+    public static class Window extends AggregateMetric {
         public final int window;
         public final AggregateMetric metric;
 
@@ -804,16 +728,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "window", "size", window, "value", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -836,7 +750,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Qualified extends AggregateMetric implements JsonSerializable {
+    public static class Qualified extends AggregateMetric {
         public final List<String> scope;
         public final AggregateMetric metric;
 
@@ -881,16 +795,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize Qualified metrics -- ExtractPrecomputed should remove them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -913,7 +817,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class DocStatsPushes extends AggregateMetric implements JsonSerializable {
+    public static class DocStatsPushes extends AggregateMetric {
         public final String dataset;
         public final DocMetric.PushableDocMetric pushes;
 
@@ -954,16 +858,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes.getPushes(dataset), "sessionName", dataset));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -989,7 +883,7 @@ public abstract class AggregateMetric extends AbstractPositional {
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
-    public static class DocStats extends AggregateMetric implements JsonSerializable {
+    public static class DocStats extends AggregateMetric {
         public final DocMetric docMetric;
 
         public DocStats(DocMetric docMetric) {
@@ -1029,16 +923,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw DocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1059,7 +943,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Constant extends AggregateMetric implements JsonSerializable {
+    public static class Constant extends AggregateMetric {
         public final double value;
 
         public Constant(double value) {
@@ -1094,16 +978,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.squall.iql2.execution.metrics.aggregate.Constant(value);
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "constant", "value", value));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1184,7 +1058,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Running extends AggregateMetric implements JsonSerializable {
+    public static class Running extends AggregateMetric {
         public final int offset;
         public final AggregateMetric metric;
 
@@ -1224,16 +1098,6 @@ public abstract class AggregateMetric extends AbstractPositional {
                     metric.toExecutionMetric(namedMetricLookup, groupKeySet),
                     offset
             );
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "running", "offset", offset, "value", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1327,7 +1191,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Named extends AggregateMetric implements JsonSerializable {
+    public static class Named extends AggregateMetric {
         public final AggregateMetric metric;
         public final Positioned<String> name;
 
@@ -1367,16 +1231,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize Named metrics -- RemoveNames should have removed them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1399,7 +1253,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class GroupStatsLookup extends AggregateMetric implements JsonSerializable {
+    public static class GroupStatsLookup extends AggregateMetric {
         public final String name;
 
         public GroupStatsLookup(String name) {
@@ -1437,16 +1291,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "groupStatsLookup", "name", name));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1467,7 +1311,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class GroupStatsMultiLookup extends AggregateMetric implements JsonSerializable {
+    public static class GroupStatsMultiLookup extends AggregateMetric {
         public final List<String> names;
 
         public GroupStatsMultiLookup(List<String> names) {
@@ -1506,16 +1350,6 @@ public abstract class AggregateMetric extends AbstractPositional {
                 metrics.add(namedMetricLookup.apply(name).values);
             }
             return new MultiPerGroupConstant(metrics);
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "groupStatsMultiLookup", "names", names));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1597,7 +1431,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class IfThenElse extends AggregateMetric implements JsonSerializable {
+    public static class IfThenElse extends AggregateMetric {
         public final AggregateFilter condition;
         public final AggregateMetric trueCase;
         public final AggregateMetric falseCase;
@@ -1648,16 +1482,6 @@ public abstract class AggregateMetric extends AbstractPositional {
                     trueCase.toExecutionMetric(namedMetricLookup, groupKeySet),
                     falseCase.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "ifThenElse", "condition", condition, "trueCase", trueCase, "falseCase", falseCase));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1791,7 +1615,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Min extends AggregateMetric implements JsonSerializable {
+    public static class Min extends AggregateMetric {
         public final List<AggregateMetric> metrics;
 
         public Min(List<AggregateMetric> metrics) {
@@ -1852,16 +1676,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "min", "metrics", metrics));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1882,7 +1696,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Max extends AggregateMetric implements JsonSerializable {
+    public static class Max extends AggregateMetric {
         public final List<AggregateMetric> metrics;
 
         public Max(List<AggregateMetric> metrics) {
@@ -1941,16 +1755,6 @@ public abstract class AggregateMetric extends AbstractPositional {
                         .collect(Collectors.toList())
             );
 
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "max", "metrics", metrics));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override

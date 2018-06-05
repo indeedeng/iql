@@ -14,12 +14,7 @@
 
 package com.indeed.squall.iql2.language;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.query.GroupBy;
@@ -27,7 +22,6 @@ import com.indeed.squall.iql2.language.util.ErrorMessages;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,7 +56,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
     public abstract com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
 
-    public static class TermIs extends AggregateFilter implements JsonSerializable {
+    public static class TermIs extends AggregateFilter {
         public final Term term;
 
         public TermIs(Term term) {
@@ -99,16 +93,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "termEquals", "value", term));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -129,7 +113,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class TermRegex extends AggregateFilter implements JsonSerializable {
+    public static class TermRegex extends AggregateFilter {
         public final Term term;
 
         public TermRegex(Term term) {
@@ -166,16 +150,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "termEqualsRegex", "value", term));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -196,7 +170,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class MetricIs extends AggregateFilter implements JsonSerializable {
+    public static class MetricIs extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -246,16 +220,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "metricEquals", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -278,7 +242,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class MetricIsnt extends AggregateFilter implements JsonSerializable {
+    public static class MetricIsnt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -322,16 +286,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "metricNotEquals", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -354,7 +308,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Gt extends AggregateFilter implements JsonSerializable {
+    public static class Gt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -398,16 +352,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "greaterThan", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -430,7 +374,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Gte extends AggregateFilter implements JsonSerializable {
+    public static class Gte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -474,16 +418,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "greaterThanOrEquals", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -506,7 +440,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Lt extends AggregateFilter implements JsonSerializable {
+    public static class Lt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -550,16 +484,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "lessThan", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -582,7 +506,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Lte extends AggregateFilter implements JsonSerializable {
+    public static class Lte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
@@ -626,16 +550,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "lessThanOrEquals", "arg1", m1, "arg2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -658,7 +572,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class And extends AggregateFilter implements JsonSerializable {
+    public static class And extends AggregateFilter {
         public final AggregateFilter f1;
         public final AggregateFilter f2;
 
@@ -702,16 +616,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "and", "arg1", f1, "arg2", f2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -734,7 +638,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Or extends AggregateFilter implements JsonSerializable {
+    public static class Or extends AggregateFilter {
         public final AggregateFilter f1;
         public final AggregateFilter f2;
 
@@ -778,16 +682,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "or", "arg1", f1, "arg2", f2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -810,7 +704,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Not extends AggregateFilter implements JsonSerializable {
+    public static class Not extends AggregateFilter {
         public final AggregateFilter filter;
 
         public Not(AggregateFilter filter) {
@@ -850,16 +744,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "not", "value", filter));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -880,7 +764,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Regex extends AggregateFilter implements JsonSerializable {
+    public static class Regex extends AggregateFilter {
         public final Positioned<String> field;
         public final String regex;
 
@@ -925,16 +809,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "regex", "field", field.unwrap(), "value", regex));
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -957,7 +831,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Always extends AggregateFilter implements JsonSerializable {
+    public static class Always extends AggregateFilter {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -989,16 +863,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "always"));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public int hashCode() {
             return 1;
         }
@@ -1014,7 +878,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Never extends AggregateFilter implements JsonSerializable {
+    public static class Never extends AggregateFilter {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -1046,16 +910,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "never"));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
-
-        @Override
         public int hashCode() {
             return 2;
         }
@@ -1070,7 +924,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class IsDefaultGroup extends AggregateFilter implements JsonSerializable {
+    public static class IsDefaultGroup extends AggregateFilter {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -1099,16 +953,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public com.indeed.squall.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.squall.iql2.execution.AggregateFilter.IsDefaultGroup(groupKeySet);
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "isDefaultGroup"));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override

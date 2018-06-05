@@ -14,10 +14,6 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
@@ -29,11 +25,10 @@ import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class ComputeBootstrap implements Command, JsonSerializable {
+public class ComputeBootstrap implements Command {
     private final Set<String> scope;
     private final String field;
     private final Optional<AggregateFilter> filter;
@@ -50,25 +45,6 @@ public class ComputeBootstrap implements Command, JsonSerializable {
         this.metric = metric;
         this.numBootstraps = numBootstraps;
         this.varargs = varargs;
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "computeBootstrap");
-        gen.writeObjectField("scope", scope);
-        gen.writeStringField("field", field);
-        gen.writeObjectField("filter", filter.orNull());
-        gen.writeStringField("seed", seed);
-        gen.writeObjectField("metric", metric);
-        gen.writeNumberField("numBootstraps", numBootstraps);
-        gen.writeObjectField("varargs", varargs);
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
-        this.serialize(jsonGenerator, serializerProvider);
     }
 
     @Override

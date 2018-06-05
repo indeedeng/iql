@@ -14,25 +14,18 @@
 
 package com.indeed.squall.iql2.language.actions;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
-import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
+import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
-public class RegexAction implements Action, JsonSerializable {
+public class RegexAction implements Action {
     public final ImmutableSet<String> scope;
     public final String field;
     public final String regex;
@@ -49,24 +42,6 @@ public class RegexAction implements Action, JsonSerializable {
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
         this.negativeGroup = negativeGroup;
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        final Map<String, Object> m = new HashMap<>();
-        m.put("action", "regexAction");
-        m.put("scope", scope);
-        m.put("field", field);
-        m.put("regex", regex);
-        m.put("target", targetGroup);
-        m.put("positive", positiveGroup);
-        m.put("negative", negativeGroup);
-        gen.writeObject(m);
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override

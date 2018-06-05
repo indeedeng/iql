@@ -14,10 +14,6 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -25,10 +21,9 @@ import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
-import java.io.IOException;
 import java.util.List;
 
-public class ExplodeRandom implements Command, JsonSerializable {
+public class ExplodeRandom implements Command {
     private final String field;
     private final int k;
     private final String salt;
@@ -53,21 +48,6 @@ public class ExplodeRandom implements Command, JsonSerializable {
                 k,
                 salt
         );
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "explodeRandom");
-        gen.writeStringField("field", field);
-        gen.writeNumberField("k", k);
-        gen.writeStringField("salt", salt);
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
-        this.serialize(jsonGenerator, serializerProvider);
     }
 
     @Override

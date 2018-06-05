@@ -14,11 +14,6 @@
 
 package com.indeed.squall.iql2.language.actions;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -29,12 +24,10 @@ import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class QueryAction implements Action, JsonSerializable {
+public class QueryAction implements Action {
     public final ImmutableSet<String> scope;
     public final Map<String, Query> perDatasetQuery;
 
@@ -48,27 +41,6 @@ public class QueryAction implements Action, JsonSerializable {
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
         this.negativeGroup = negativeGroup;
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        final Map<String, Object> m = new HashMap<>();
-        m.put("action", "queryAction");
-        m.put("scope", scope);
-        final Map<String, JsonNode> serializedQueries = new HashMap<>();
-        for (final Map.Entry<String, Query> entry : perDatasetQuery.entrySet()) {
-            serializedQueries.put(entry.getKey(), Actions.queryJson(entry.getValue()));
-        }
-        m.put("perDatasetQuery", serializedQueries);
-        m.put("target", targetGroup);
-        m.put("positive", positiveGroup);
-        m.put("negative", negativeGroup);
-        gen.writeObject(m);
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override

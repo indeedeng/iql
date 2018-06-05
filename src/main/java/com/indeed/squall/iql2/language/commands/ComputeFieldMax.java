@@ -14,12 +14,7 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
 import com.indeed.squall.iql2.execution.commands.GetFieldMax;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -27,28 +22,17 @@ import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class ComputeFieldMax implements Command, JsonSerializable {
+public class ComputeFieldMax implements Command {
     private final Set<String> scope;
     private final String field;
 
     public ComputeFieldMax(Set<String> scope, String field) {
         this.scope = scope;
         this.field = field;
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeObject(ImmutableMap.of("command", "computeFieldMax", "scope", scope, "field", field));
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override

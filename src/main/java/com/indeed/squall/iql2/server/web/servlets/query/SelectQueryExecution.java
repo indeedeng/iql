@@ -14,7 +14,6 @@
 
 package com.indeed.squall.iql2.server.web.servlets.query;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -540,24 +539,7 @@ public class SelectQueryExecution implements Closeable {
                     };
                 }
 
-                final ObjectMapper objectMapper = new ObjectMapper();
-                if (log.isDebugEnabled()) {
-                    log.debug("commands = " + commands);
-                    for (final Command command : commands) {
-                        log.debug("command = " + command);
-                        final String s = objectMapper.writeValueAsString(command);
-                        log.debug("s = " + s);
-                    }
-                    final String commandList = objectMapper.writeValueAsString(commands);
-                    log.debug("commandList = " + commandList);
-                }
-
-                final Map<String, Object> request = new HashMap<>();
                 final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
-
-                request.put("groupLimit", groupLimit);
-
-                final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);

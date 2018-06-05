@@ -1,9 +1,5 @@
 package com.indeed.squall.iql2.language.actions;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -12,12 +8,10 @@ import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SampleMetricAction implements Action, JsonSerializable {
+public class SampleMetricAction implements Action {
     final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     public final double probability;
     public final String seed;
@@ -42,24 +36,6 @@ public class SampleMetricAction implements Action, JsonSerializable {
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
         this.negativeGroup = negativeGroup;
-    }
-
-    @Override
-    public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
-        final Map<String, Object> m = new HashMap<>();
-        m.put("action", "sampleMetricAction");
-        m.put("perDatasetMetric", perDatasetMetric);
-        m.put("probability", probability);
-        m.put("seed", seed);
-        m.put("target", targetGroup);
-        m.put("positive", positiveGroup);
-        m.put("negative", negativeGroup);
-        gen.writeObject(m);
-    }
-
-    @Override
-    public void serializeWithType(final JsonGenerator gen, final SerializerProvider serializers, final TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override

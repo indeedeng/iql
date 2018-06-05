@@ -1297,7 +1297,6 @@ public class Session {
         }
     }
 
-    // TODO: JsonSerializable..?
     public static class GroupStats {
         public final int group;
         public final double[] stats;
