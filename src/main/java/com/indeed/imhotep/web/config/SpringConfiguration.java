@@ -21,6 +21,7 @@ import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.iql.cache.QueryCacheFactory;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.CORSInterceptor;
@@ -104,6 +105,18 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 3, 10, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100),
                 new NamedThreadFactory("IQL-Worker")
         );
+    }
+
+    @Bean
+    @Autowired
+    MetricStatsEmitter metricStatsEmitter(
+            MetricStatsEmitter metricStatsEmitter
+    ) {
+        if (metricStatsEmitter != null) {
+            return metricStatsEmitter;
+        } else {
+            return MetricStatsEmitter.NULL_EMITTER;
+        }
     }
 
     @Bean 

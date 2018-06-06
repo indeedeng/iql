@@ -76,7 +76,7 @@ public class KillSessionController {
                 public Throwable call() throws Exception {
                     try {
                         log.trace("Killing session " + sessionId + " on " + host.hostname + ":" + host.port);
-                        ImhotepRemoteSession session = new ImhotepRemoteSession(host.hostname, host.port, sessionId, null, false);
+                        ImhotepRemoteSession session = new ImhotepRemoteSession(host.hostname, host.port, sessionId, null);
                         session.close();
                     } catch (Throwable e) {
                         return e;

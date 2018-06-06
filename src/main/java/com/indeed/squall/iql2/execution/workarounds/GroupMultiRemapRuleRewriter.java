@@ -29,13 +29,10 @@ import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
-import com.indeed.imhotep.api.RawFTGSIterator;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -201,53 +198,13 @@ public class GroupMultiRemapRuleRewriter extends WrappingImhotepSession implemen
     }
 
     @Override
-    public RawFTGSIterator[] getSubsetFTGSIteratorSplits(Map<String, long[]> map, Map<String, String[]> map1) {
-        return wrapped.getSubsetFTGSIteratorSplits(map, map1);
-    }
-
-    @Override
-    public RawFTGSIterator[] getFTGSIteratorSplits(String[] strings, String[] strings1, long l) {
-        return wrapped.getFTGSIteratorSplits(strings, strings1, l);
-    }
-
-    @Override
-    public RawFTGSIterator getFTGSIteratorSplit(String[] strings, String[] strings1, int i, int i1, long l) {
-        return wrapped.getFTGSIteratorSplit(strings, strings1, i, i1, l);
-    }
-
-    @Override
-    public void writeFTGSIteratorSplit(String[] strings, String[] strings1, int i, int i1, long l, Socket socket) throws ImhotepOutOfMemoryException {
-        wrapped.writeFTGSIteratorSplit(strings, strings1, i, i1, l, socket);
-    }
-
-    @Override
-    public RawFTGSIterator getSubsetFTGSIteratorSplit(Map<String, long[]> map, Map<String, String[]> map1, int i, int i1) {
-        return wrapped.getSubsetFTGSIteratorSplit(map, map1, i, i1);
-    }
-
-    @Override
-    public RawFTGSIterator mergeFTGSSplit(String[] intFields, String[] stringFields, String sessionId, InetSocketAddress[] nodes, int splitIndex, long termLimit, int sortStat) {
-        return wrapped.mergeFTGSSplit(intFields, stringFields, sessionId, nodes, splitIndex, termLimit, sortStat);
-    }
-
-    @Override
     public FTGSIterator getFTGSIterator(String[] intFields, String[] stringFields, long termLimit, int sortStat) {
         return wrapped.getFTGSIterator(intFields, stringFields, termLimit, sortStat);
     }
 
     @Override
-    public RawFTGSIterator mergeSubsetFTGSSplit(Map<String, long[]> map, Map<String, String[]> map1, String s, InetSocketAddress[] inetSocketAddresses, int i) {
-        return wrapped.mergeSubsetFTGSSplit(map, map1, s, inetSocketAddresses, i);
-    }
-
-    @Override
     public GroupStatsIterator getDistinct(String field, boolean isIntField) {
         return wrapped.getDistinct(field, isIntField);
-    }
-
-    @Override
-    public GroupStatsIterator mergeDistinctSplit(String field, boolean isIntField, String sessionId, InetSocketAddress[] nodes, int splitIndex) {
-        return wrapped.mergeDistinctSplit(field, isIntField, sessionId, nodes, splitIndex);
     }
 
     @Override

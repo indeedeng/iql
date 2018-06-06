@@ -107,7 +107,7 @@ public class Document {
         final MemoryFlamdex memoryFlamdex = new MemoryFlamdex();
         memoryFlamdex.addDocument(asFlamdex());
         try {
-            return new ImhotepJavaLocalSession(memoryFlamdex);
+            return new ImhotepJavaLocalSession("TestSession", memoryFlamdex);
         } catch (final ImhotepOutOfMemoryException e) {
             throw Throwables.propagate(e);
         }

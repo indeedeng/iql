@@ -22,14 +22,17 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.ErrorResult;
 import com.indeed.imhotep.web.GlobalUncaughtExceptionHandler;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
+import com.indeed.imhotep.web.QueryMetrics;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -96,6 +99,7 @@ public class QueryServlet {
     private final MetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
+    private final MetricStatsEmitter metricStatsEmitter;
     private final WallClock clock;
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
@@ -109,6 +113,7 @@ public class QueryServlet {
             final MetadataCache metadataCache,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
+            final MetricStatsEmitter metricStatsEmitter,
             final WallClock clock
     ) {
         this.imhotepClient = imhotepClient;
@@ -117,6 +122,7 @@ public class QueryServlet {
         this.metadataCache = metadataCache;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
+        this.metricStatsEmitter = metricStatsEmitter;
         this.clock = clock;
     }
 
@@ -451,6 +457,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", message);
         }
 
+        QueryMetrics.logQueryMetrics(2, queryInfo.statementType, errorOccurred != null, timeTaken, this.metricStatsEmitter);
         dataLog.info(logEntry);
     }
 
