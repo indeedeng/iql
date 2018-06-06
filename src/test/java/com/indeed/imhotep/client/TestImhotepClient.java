@@ -127,14 +127,14 @@ public class TestImhotepClient extends ImhotepClient {
                 for (final com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard : TestImhotepClient.this.shards) {
                     if (shardIds.contains(shard.shardId) && shard.dataset.equals(dataset)) {
                         try {
-                            sessions.add(new ImhotepJavaLocalSession(shard.flamdex));
+                            sessions.add(new ImhotepJavaLocalSession("TestSession", shard.flamdex));
                         } catch (ImhotepOutOfMemoryException e) {
                             throw Throwables.propagate(e);
                         }
                     }
                 }
                 try {
-                    return new MTImhotepLocalMultiSession(sessions.toArray(new ImhotepLocalSession[sessions.size()]),
+                    return new MTImhotepLocalMultiSession("TestSession", sessions.toArray(new ImhotepLocalSession[sessions.size()]),
                             new MemoryReservationContext(new ImhotepMemoryPool(Long.MAX_VALUE)),
                             new AtomicLong(Long.MAX_VALUE), "", "") {
                         @Override

@@ -64,7 +64,7 @@ public class TestUtil {
         }
         final Map<String, Session.ImhotepSessionInfo> sessionInfoMap = new HashMap<>();
         for (final Map.Entry<String, MemoryFlamdex> entry : datasetFlamdexes.entrySet()) {
-            final ImhotepSession session = new ImhotepJavaLocalSession(entry.getValue()) {
+            final ImhotepSession session = new ImhotepJavaLocalSession("TestSession", entry.getValue()) {
                 //Workaround for regroupWithProtos to work in local (unit tests)
                 @Override
                 public int regroupWithProtos(GroupMultiRemapMessage[] rawRuleMessages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
