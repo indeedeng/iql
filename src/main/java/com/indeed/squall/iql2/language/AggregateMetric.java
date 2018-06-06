@@ -87,7 +87,7 @@ public abstract class AggregateMetric extends AbstractPositional {
     public abstract static class Unop extends AggregateMetric {
         public final AggregateMetric m1;
 
-        public Unop(AggregateMetric m1, String jsonType) {
+        public Unop(AggregateMetric m1) {
             this.m1 = m1;
         }
 
@@ -125,7 +125,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Log extends Unop {
         public Log(AggregateMetric m1) {
-            super(m1, "log");
+            super(m1);
         }
 
         @Override
@@ -151,7 +151,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Negate extends Unop {
         public Negate(AggregateMetric m1) {
-            super(m1, "negate");
+            super(m1);
         }
 
         @Override
@@ -180,7 +180,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Abs extends Unop {
         public Abs(AggregateMetric m1) {
-            super(m1, "abs");
+            super(m1);
         }
 
         @Override
@@ -208,7 +208,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public Binop(AggregateMetric m1, AggregateMetric m2, String jsonType) {
+        public Binop(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -250,7 +250,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Add extends Binop {
         public Add(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "addition");
+            super(m1, m2);
         }
 
         @Override
@@ -279,7 +279,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "subtraction");
+            super(m1, m2);
         }
 
         @Override
@@ -308,7 +308,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "multiplication");
+            super(m1, m2);
         }
 
         @Override
@@ -337,7 +337,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "division");
+            super(m1, m2);
         }
 
         @Override
@@ -366,7 +366,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "modulus");
+            super(m1, m2);
         }
 
         @Override
@@ -395,7 +395,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "power");
+            super(m1, m2);
         }
 
         @Override
