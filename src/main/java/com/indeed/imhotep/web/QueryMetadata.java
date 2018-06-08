@@ -119,6 +119,12 @@ public class QueryMetadata {
         }
     }
 
+    public QueryMetadata copy() {
+        final QueryMetadata newInstance = new QueryMetadata();
+        newInstance.items.addAll(this.items);
+        return newInstance;
+    }
+
     private static String streamToString(InputStream inputStream) {
         try {
             final InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charsets.UTF_8);
