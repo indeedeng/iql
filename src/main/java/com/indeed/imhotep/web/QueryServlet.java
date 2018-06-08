@@ -408,6 +408,8 @@ public class QueryServlet {
                     queryMetadata.addItem("IQL-Warning", warning);
                 }
 
+                final QueryMetadata queryMetadataToCache = queryMetadata.copy();
+
                 if (!args.cacheWriteDisabled && !isCached) {
                     executorService.submit(new Callable<Void>() {
                         @Override
@@ -415,7 +417,7 @@ public class QueryServlet {
                             try {
                                 try {
                                     final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                    queryMetadata.toStream(metadataCacheStream);
+                                    queryMetadataToCache.toStream(metadataCacheStream);
                                     metadataCacheStream.close();
                                 } catch (Exception e) {
                                     log.warn("Failed to upload metadata cache: " + cacheFileName, e);
