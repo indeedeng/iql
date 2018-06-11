@@ -34,6 +34,8 @@ public class EmptyClausesTest extends BasicTest {
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by select count()");
     }
 
+    // NOTE: This behavior can and maybe should change. But it should be done in a separate
+    //       ticket with separate discussion and external communication.
     @Test
     public void emptySelect() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
