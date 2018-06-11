@@ -121,7 +121,7 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 // TODO: How to keep this up to date with new lexer tokens..?
 identifier
     : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | DIFF | RATIODIFF | SINGLESCORE
-    | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | SELECT | FROM | GROUP | BY
+    | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
@@ -482,7 +482,7 @@ fromContents [boolean useLegacy]
     ;
 
 whereContents [boolean useLegacy]
-    : (docFilters+=docFilter[$ctx.useLegacy])+
+    : (docFilters+=docFilter[$ctx.useLegacy])*
     ;
 
 groupByContents [boolean useLegacy]
