@@ -14,22 +14,21 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class SumAcross implements Command, JsonSerializable {
+public class SumAcross implements Command {
     public final Set<String> scope;
     public final String field;
     public final AggregateMetric metric;
@@ -43,22 +42,6 @@ public class SumAcross implements Command, JsonSerializable {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "sumAcross");
-        gen.writeObjectField("scope", scope);
-        gen.writeStringField("field", field);
-        gen.writeObjectField("metric", metric);
-        gen.writeObjectField("filter", filter.orNull());
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
-    }
-
-    @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         ValidationUtil.validateField(scope, field, validationHelper, validator, this);
         metric.validate(scope, validationHelper, validator);
@@ -66,6 +49,16 @@ public class SumAcross implements Command, JsonSerializable {
         if (filter.isPresent()) {
             filter.get().validate(scope, validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.SumAcross(
+                scope,
+                field,
+                metric.toExecutionMetric(namedMetricLookup, groupKeySet),
+                filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet))
+        );
     }
 
     @Override

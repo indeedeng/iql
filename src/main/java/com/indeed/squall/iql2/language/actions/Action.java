@@ -14,9 +14,14 @@
 
 package com.indeed.squall.iql2.language.actions;
 
+import com.google.common.base.Function;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
 public interface Action {
     void validate(ValidationHelper validationHelper, Validator validator);
+
+    com.indeed.squall.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
 }

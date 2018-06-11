@@ -64,6 +64,7 @@ import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 import com.indeed.squall.iql2.execution.workarounds.GroupMultiRemapRuleRewriter;
+import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
@@ -160,7 +161,10 @@ public class Session {
     public static CreateSessionResult createSession(
             final ImhotepClient client,
             final Map<String, List<Shard>> datasetToChosenShards,
-            final JsonNode sessionRequest,
+            final Integer groupLimit,
+            final Set<String> optionsSet,
+            final List<com.indeed.squall.iql2.language.commands.Command> commands,
+            final List<Queries.QueryDataset> datasets,
             final Closer closer,
             final Consumer<String> out,
             final TreeTimer treeTimer,
@@ -171,88 +175,66 @@ public class Session {
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
-        final Integer groupLimit;
-        if (sessionRequest.has("groupLimit")) {
-            groupLimit = sessionRequest.get("groupLimit").intValue();
-        } else {
-            groupLimit = null;
-        }
-
-        final Set<String> optionsSet = new HashSet<>();
-        for (final JsonNode option : sessionRequest.get("options")) {
-            optionsSet.add(option.textValue());
-        }
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains("rust");
 
-        if (sessionRequest.has("commands")) {
-            treeTimer.push("readCommands");
-            final JsonNode commands = sessionRequest.get("commands");
-            progressCallback.startSession(Optional.of(commands.size()));
-            treeTimer.pop();
+        progressCallback.startSession(Optional.of(commands.size()));
 
-            treeTimer.push("createSubSessions");
-            final long firstStartTimeMillis = createSubSessions(client, requestRust, sessionRequest.get("datasets"), datasetToChosenShards,
-                    closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
-            progressCallback.sessionsOpened(sessions);
-            treeTimer.pop();
+        treeTimer.push("createSubSessions");
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
+                closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+        progressCallback.sessionsOpened(sessions);
+        treeTimer.pop();
 
-            final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis);
-            for (int i = 0; i < commands.size(); i++) {
-                final JsonNode command = commands.get(i);
-                final boolean isLast = i == commands.size() - 1;
-                if (isLast) {
-                    session.evaluateCommandToTSV(command, out, optionsList);
-                } else {
-                    session.evaluateCommand(command, s -> {}, optionsList);
-                }
-                if (session.numGroups == 0) {
-                    break;
-                }
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis);
+        for (int i = 0; i < commands.size(); i++) {
+            final com.indeed.squall.iql2.language.commands.Command command = commands.get(i);
+            final boolean isLast = i == commands.size() - 1;
+            if (isLast) {
+                session.evaluateCommandToTSV(command, out, optionsList);
+            } else {
+                session.evaluateCommand(command, s -> {}, optionsList);
             }
-
-            long tempFileBytesWritten = 0L;
-            for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
-                ImhotepSession s = sessionInfo.session;
-
-                while (s instanceof WrappingImhotepSession) {
-                    s = ((WrappingImhotepSession) s).wrapped();
-                }
-
-                if (s instanceof RemoteImhotepMultiSession) {
-                    final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) s;
-                    tempFileBytesWritten += remoteImhotepMultiSession.getTempFilesBytesWritten();
-                }
+            if (session.numGroups == 0) {
+                break;
             }
-
-            final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
-            try {
-                // Close sessions and get performance stats
-                for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
-                    final PerformanceStats sessionPerformanceStats = sessionInfo.session.closeAndGetPerformanceStats();
-                    if (sessionPerformanceStats != null) {
-                        performanceStats.add(sessionPerformanceStats);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Exception trying to close Imhotep sessions", e);
-            }
-
-            return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
-        } else {
-            progressCallback.startSession(Optional.<Integer>absent());
-            final long firstStartTimeMillis = createSubSessions(client, requestRust, sessionRequest, datasetToChosenShards, closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
-            progressCallback.sessionsOpened(sessions);
-            out.accept("opened");
-            return new CreateSessionResult(Optional.of(new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis)), 0L, null);
         }
+
+        long tempFileBytesWritten = 0L;
+        for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
+            ImhotepSession s = sessionInfo.session;
+
+            while (s instanceof WrappingImhotepSession) {
+                s = ((WrappingImhotepSession) s).wrapped();
+            }
+
+            if (s instanceof RemoteImhotepMultiSession) {
+                final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) s;
+                tempFileBytesWritten += remoteImhotepMultiSession.getTempFilesBytesWritten();
+            }
+        }
+
+        final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
+        try {
+            // Close sessions and get performance stats
+            for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
+                final PerformanceStats sessionPerformanceStats = sessionInfo.session.closeAndGetPerformanceStats();
+                if (sessionPerformanceStats != null) {
+                    performanceStats.add(sessionPerformanceStats);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception trying to close Imhotep sessions", e);
+        }
+
+        return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
     }
 
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
-            final JsonNode sessionRequest,
+            final List<Queries.QueryDataset> sessionRequest,
             final Map<String, List<Shard>> datasetToChosenShards,
             final Closer closer,
             final Map<String, ImhotepSessionInfo> sessions,
@@ -269,23 +251,13 @@ public class Session {
 
         long firstStartTimeMillis = 0;
         for (int i = 0; i < sessionRequest.size(); i++) {
-            final JsonNode elem = sessionRequest.get(i);
-            final String datasetName = elem.get("dataset").textValue();
-            final String actualDataset = upperCaseToActualDataset.get(datasetName.toUpperCase());
-            Preconditions.checkNotNull(actualDataset, "Dataset does not exist: %s", datasetName);
-            final String start = elem.get("start").textValue();
-            final String end = elem.get("end").textValue();
-            final String name = elem.has("name") ? elem.get("name").textValue() : datasetName;
-            final String displayName = elem.get("displayName").textValue();
-            final Map<String, String> uppercasedFieldAliases = upperCaseMap(
-                    MAPPER.readValue(elem.get("fieldAliases").textValue(),
-                            new TypeReference<Map<String, String>>() {
-                            }));
-            final Map<String, String> uppercasedDimensionAliases = upperCaseMap(
-                    MAPPER.readValue(elem.get("dimensionAliases").textValue(), new TypeReference<Map<String, String>>() {
-                    }));
+            final Queries.QueryDataset dataset = sessionRequest.get(i);
+            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.toUpperCase());
+            Preconditions.checkNotNull(actualDataset, "Dataset does not exist: %s", dataset.name);
+            final Map<String, String> uppercasedFieldAliases = upperCaseMap(dataset.fieldAliases);
+            final Map<String, String> uppercasedDimensionAliases = upperCaseMap(dataset.dimensionAliases);
             final Map<String, String> uppercasedCombinedAliases = combineAliases(uppercasedFieldAliases, uppercasedDimensionAliases);
-            treeTimer.push("session:" + displayName);
+            treeTimer.push("session:" + dataset.displayName);
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardInfo");
@@ -314,16 +286,16 @@ public class Session {
                     sessionStringFields.add(entry.getKey());
                     upperCasedStringFields.add(entry.getKey().toUpperCase());
                 } else {
-                    throw new IllegalStateException("Field [" + uppercasedField + "] not found in index [" + datasetName + "]");
+                    throw new IllegalStateException("Field [" + uppercasedField + "] not found in index [" + dataset.dataset + "]");
                 }
             }
 
-            final DateTime startDateTime = parseDateTime(start);
-            final DateTime endDateTime = parseDateTime(end);
+            final DateTime startDateTime = parseDateTime(dataset.start);
+            final DateTime endDateTime = parseDateTime(dataset.end);
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
-            final List<Shard> chosenShards = datasetToChosenShards.get(name);
+            final List<Shard> chosenShards = datasetToChosenShards.get(dataset.name);
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(actualDataset, startDateTime, endDateTime)
                 .username("IQL2:" + username)
@@ -365,7 +337,7 @@ public class Session {
                 session.popStat();
                 treeTimer.pop();
             }
-            sessions.put(name, new ImhotepSessionInfo(session, displayName, upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
+            sessions.put(dataset.name, new ImhotepSessionInfo(session, dataset.displayName, upperCasedIntFields, upperCasedStringFields, startDateTime, endDateTime, timeField.toUpperCase()));
             if (i == 0) {
                 firstStartTimeMillis = startDateTime.getMillis();
             }
@@ -442,13 +414,13 @@ public class Session {
         }
     }
 
-    public void evaluateCommand(final JsonNode commandTree,
+    public void evaluateCommand(final com.indeed.squall.iql2.language.commands.Command lCommand,
                                 final Consumer<String> out,
                                 final List<String> options) throws ImhotepOutOfMemoryException, IOException {
-        final String commandTreeString = commandTree.toString();
+        final String commandTreeString = lCommand.toString();
         timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
         try {
-            final Command command = Commands.parseCommand(commandTree, this::namedMetricLookup, groupKeySet, options);
+            final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
             try {
                 command.execute(this, out);
@@ -471,12 +443,12 @@ public class Session {
         }
     }
 
-    public void evaluateCommandToTSV(final JsonNode commandTree,
+    public void evaluateCommandToTSV(final com.indeed.squall.iql2.language.commands.Command lCommand,
                                      final Consumer<String> out,
                                      final List<String> options) throws ImhotepOutOfMemoryException, IOException {
-        timer.push("evaluateCommandToTSV " + commandTree);
+        timer.push("evaluateCommandToTSV " + lCommand);
         try {
-            final Command command = Commands.parseCommand(commandTree, this::namedMetricLookup, groupKeySet, options);
+            final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             try {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
@@ -1325,7 +1297,6 @@ public class Session {
         }
     }
 
-    // TODO: JsonSerializable..?
     public static class GroupStats {
         public final int group;
         public final double[] stats;

@@ -14,22 +14,19 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class MetricRegroup implements Command, JsonSerializable {
+public class MetricRegroup implements Command {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     public final long min;
     public final long max;
@@ -53,31 +50,21 @@ public class MetricRegroup implements Command, JsonSerializable {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "metricRegroup");
-        gen.writeObjectField("perDatasetMetric", perDatasetMetric);
-        gen.writeNumberField("min", min);
-        gen.writeNumberField("max", max);
-        gen.writeNumberField("interval", interval);
-        if (excludeGutters) {
-            gen.writeObjectField("opts", Collections.singletonList(ImmutableMap.of("type", "excludeGutters")));
-        } else {
-            gen.writeObjectField("opts", Collections.emptyList());
-        }
-        gen.writeBooleanField("withDefault", withDefault);
-        gen.writeBooleanField("fromPredicate", fromPredicate);
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
-    }
-
-    @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         // TODO: Validate more List<String>s.... somehow.
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.MetricRegroup(
+                perDatasetMetric,
+                min,
+                max,
+                interval,
+                excludeGutters,
+                withDefault,
+                fromPredicate
+        );
     }
 
     @Override

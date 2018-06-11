@@ -14,26 +14,30 @@
 
 package com.indeed.squall.iql2.language;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.DocumentLevelMetric;
+import com.indeed.squall.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
+import com.indeed.squall.iql2.execution.metrics.aggregate.ParentLag;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 // TODO: PerGroupConstants, SumChildren, IfThenElse ????
 public abstract class AggregateMetric extends AbstractPositional {
+
+    public static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";
+
     public interface Visitor<T, E extends Throwable> {
         T visit(Add add) throws E;
         T visit(Log log) throws E;
@@ -75,29 +79,21 @@ public abstract class AggregateMetric extends AbstractPositional {
     public abstract void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator);
     public abstract boolean isOrdered();
     public boolean requiresFTGS() { return false; }
+    public abstract com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(
+            Function<String, PerGroupConstant> namedMetricLookup,
+            GroupKeySet groupKeySet
+    );
 
-    public abstract static class Unop extends AggregateMetric implements JsonSerializable {
+    public abstract static class Unop extends AggregateMetric {
         public final AggregateMetric m1;
-        private final String jsonType;
 
-        public Unop(AggregateMetric m1, String jsonType) {
+        public Unop(AggregateMetric m1) {
             this.m1 = m1;
-            this.jsonType = jsonType;
         }
 
         @Override
         public boolean isOrdered() {
             return m1.isOrdered();
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", jsonType, "value", m1));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -129,7 +125,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Log extends Unop {
         public Log(AggregateMetric m1) {
-            super(m1, "log");
+            super(m1);
         }
 
         @Override
@@ -146,11 +142,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Log(f.apply(m1));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Log(m1.toExecutionMetric(namedMetricLookup, groupKeySet));
+        }
     }
 
     public static class Negate extends Unop {
         public Negate(AggregateMetric m1) {
-            super(m1, "negate");
+            super(m1);
         }
 
         @Override
@@ -167,11 +168,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Negate(f.apply(m1));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Subtract(
+                    new com.indeed.squall.iql2.execution.metrics.aggregate.Constant(0.0),
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
     public static class Abs extends Unop {
         public Abs(AggregateMetric m1) {
-            super(m1, "abs");
+            super(m1);
         }
 
         @Override
@@ -188,32 +197,25 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Abs(f.apply(m1));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Abs(m1.toExecutionMetric(namedMetricLookup, groupKeySet));
+        }
     }
 
-    public abstract static class Binop extends AggregateMetric implements JsonSerializable {
+    public abstract static class Binop extends AggregateMetric {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
-        private final String jsonType;
 
-        public Binop(AggregateMetric m1, AggregateMetric m2, String jsonType) {
+        public Binop(AggregateMetric m1, AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
-            this.jsonType = jsonType;
         }
 
         @Override
         public boolean isOrdered() {
             return m1.isOrdered() || m2.isOrdered();
-        }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", jsonType, "m1", m1, "m2", m2));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -248,7 +250,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class Add extends Binop {
         public Add(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "addition");
+            super(m1, m2);
         }
 
         @Override
@@ -265,11 +267,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Add(f.apply(m1), f.apply(m2));
         }
-   }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Add(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
+    }
 
     public static class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "subtraction");
+            super(m1, m2);
         }
 
         @Override
@@ -286,11 +296,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Subtract(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Subtract(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
     public static class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "multiplication");
+            super(m1, m2);
         }
 
         @Override
@@ -307,11 +325,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Multiply(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Multiply(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
     public static class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "division");
+            super(m1, m2);
         }
 
         @Override
@@ -328,11 +354,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Divide(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Divide(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
     public static class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "modulus");
+            super(m1, m2);
         }
 
         @Override
@@ -349,11 +383,19 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Modulus(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Modulus(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
     public static class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2, "power");
+            super(m1, m2);
         }
 
         @Override
@@ -370,9 +412,17 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new Power(f.apply(m1), f.apply(m2));
         }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Power(
+                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
+        }
     }
 
-    public abstract static class RequiresFTGSMetric extends AggregateMetric implements JsonSerializable {
+    public abstract static class RequiresFTGSMetric extends AggregateMetric {
         @Override
         public boolean requiresFTGS() {
             return true;
@@ -382,19 +432,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
             throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- it should be removed by ExtractPrecomputed!");
         }
-
-        @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- should be removed by ExtractPrecomputed!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
-        }
     }
 
-    public static class Parent extends AggregateMetric implements JsonSerializable {
+    public static class Parent extends AggregateMetric {
         public final AggregateMetric metric;
 
         public Parent(AggregateMetric metric) {
@@ -427,13 +467,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new IllegalStateException("Cannot serialize Parent metric");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
@@ -457,7 +492,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Lag extends AggregateMetric implements JsonSerializable {
+    public static class Lag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -492,13 +527,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "lag", "delay", lag, "m", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new ParentLag(lag, metric.toExecutionMetric(namedMetricLookup, groupKeySet));
         }
 
         @Override
@@ -524,7 +554,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class DivideByCount extends AggregateMetric implements JsonSerializable {
+    public static class DivideByCount extends AggregateMetric {
         public final AggregateMetric metric;
 
         public DivideByCount(AggregateMetric metric) {
@@ -557,13 +587,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize DivideByCount -- ExtractPrecomputed should transfer it to Divide!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
@@ -591,7 +616,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class IterateLag extends AggregateMetric implements JsonSerializable {
+    public static class IterateLag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
 
@@ -626,13 +651,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "iterateLag", "delay", lag, "m", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.IterateLag(
+                    lag,
+                    metric.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -658,7 +681,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Window extends AggregateMetric implements JsonSerializable {
+    public static class Window extends AggregateMetric {
         public final int window;
         public final AggregateMetric metric;
 
@@ -693,13 +716,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "window", "size", window, "value", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Window(
+                    window,
+                    metric.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -725,7 +746,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Qualified extends AggregateMetric implements JsonSerializable {
+    public static class Qualified extends AggregateMetric {
         public final List<String> scope;
         public final AggregateMetric metric;
 
@@ -765,13 +786,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize Qualified metrics -- ExtractPrecomputed should remove them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
@@ -797,7 +813,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class DocStatsPushes extends AggregateMetric implements JsonSerializable {
+    public static class DocStatsPushes extends AggregateMetric {
         public final String dataset;
         public final DocMetric.PushableDocMetric pushes;
 
@@ -833,13 +849,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "docStats", "pushes", pushes.getPushes(dataset), "sessionName", dataset));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new DocumentLevelMetric(dataset, pushes.getPushes(dataset));
         }
 
         @Override
@@ -868,7 +879,7 @@ public abstract class AggregateMetric extends AbstractPositional {
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
-    public static class DocStats extends AggregateMetric implements JsonSerializable {
+    public static class DocStats extends AggregateMetric {
         public final DocMetric docMetric;
 
         public DocStats(DocMetric docMetric) {
@@ -903,13 +914,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize raw DocStats metrics -- ExtractPrecomputed should transform them into DocStatsPushes!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
@@ -933,7 +939,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Constant extends AggregateMetric implements JsonSerializable {
+    public static class Constant extends AggregateMetric {
         public final double value;
 
         public Constant(double value) {
@@ -966,13 +972,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "constant", "value", value));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Constant(value);
         }
 
         @Override
@@ -1026,6 +1027,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1048,7 +1054,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Running extends AggregateMetric implements JsonSerializable {
+    public static class Running extends AggregateMetric {
         public final int offset;
         public final AggregateMetric metric;
 
@@ -1083,13 +1089,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "running", "offset", offset, "value", metric));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Running(
+                    metric.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    offset
+            );
         }
 
         @Override
@@ -1152,6 +1156,11 @@ public abstract class AggregateMetric extends AbstractPositional {
             return false;
         }
 
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
+        }
+
 
         @Override
         public boolean equals(Object o) {
@@ -1178,7 +1187,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Named extends AggregateMetric implements JsonSerializable {
+    public static class Named extends AggregateMetric {
         public final AggregateMetric metric;
         public final Positioned<String> name;
 
@@ -1213,13 +1222,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            throw new UnsupportedOperationException("Cannot / should not serialize Named metrics -- RemoveNames should have removed them!");
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
@@ -1245,7 +1249,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class GroupStatsLookup extends AggregateMetric implements JsonSerializable {
+    public static class GroupStatsLookup extends AggregateMetric {
         public final String name;
 
         public GroupStatsLookup(String name) {
@@ -1278,13 +1282,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "groupStatsLookup", "name", name));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return namedMetricLookup.apply(name);
         }
 
         @Override
@@ -1308,7 +1307,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class GroupStatsMultiLookup extends AggregateMetric implements JsonSerializable {
+    public static class GroupStatsMultiLookup extends AggregateMetric {
         public final List<String> names;
 
         public GroupStatsMultiLookup(List<String> names) {
@@ -1341,13 +1340,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "groupStatsMultiLookup", "names", names));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            final List<double[]> metrics = new ArrayList<>();
+            for (final String name : names) {
+                metrics.add(namedMetricLookup.apply(name).values);
+            }
+            return new MultiPerGroupConstant(metrics);
         }
 
         @Override
@@ -1401,6 +1399,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1424,7 +1427,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class IfThenElse extends AggregateMetric implements JsonSerializable {
+    public static class IfThenElse extends AggregateMetric {
         public final AggregateFilter condition;
         public final AggregateMetric trueCase;
         public final AggregateMetric falseCase;
@@ -1469,13 +1472,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "ifThenElse", "condition", condition, "trueCase", trueCase, "falseCase", falseCase));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.IfThenElse(
+                    condition.toExecutionFilter(namedMetricLookup, groupKeySet),
+                    trueCase.toExecutionMetric(namedMetricLookup, groupKeySet),
+                    falseCase.toExecutionMetric(namedMetricLookup, groupKeySet)
+            );
         }
 
         @Override
@@ -1531,6 +1533,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1579,6 +1586,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1599,7 +1611,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Min extends AggregateMetric implements JsonSerializable {
+    public static class Min extends AggregateMetric {
         public final List<AggregateMetric> metrics;
 
         public Min(List<AggregateMetric> metrics) {
@@ -1650,13 +1662,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "min", "metrics", metrics));
-        }
-
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Min(
+                    metrics
+                        .stream()
+                        .map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
+                        .collect(Collectors.toList())
+            );
         }
 
         @Override
@@ -1680,7 +1692,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Max extends AggregateMetric implements JsonSerializable {
+    public static class Max extends AggregateMetric {
         public final List<AggregateMetric> metrics;
 
         public Max(List<AggregateMetric> metrics) {
@@ -1731,13 +1743,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeObject(ImmutableMap.of("type", "max", "metrics", metrics));
-        }
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            return new com.indeed.squall.iql2.execution.metrics.aggregate.Max(
+                    metrics
+                        .stream()
+                        .map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
+                        .collect(Collectors.toList())
+            );
 
-        @Override
-        public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-            this.serialize(gen, serializers);
         }
 
         @Override
@@ -1802,6 +1815,11 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public boolean isOrdered() {
             return false;
+        }
+
+        @Override
+        public com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override

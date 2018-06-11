@@ -239,6 +239,7 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
     }
 
     private List<String> rewriteStats(List<String> statNames) {
+        // TODO: This makes me very uncomfortable.
         statNames.replaceAll(this::rewriteStat);
         return statNames;
     }

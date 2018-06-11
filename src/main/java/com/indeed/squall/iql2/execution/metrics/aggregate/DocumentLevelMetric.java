@@ -14,6 +14,7 @@
 
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
+import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
@@ -29,7 +30,7 @@ public class DocumentLevelMetric implements AggregateMetric {
 
     public DocumentLevelMetric(final String sessionName, final List<String> pushes) {
         this.sessionName = sessionName;
-        this.pushes = pushes;
+        this.pushes = Lists.newArrayList(pushes);
     }
 
     @Override

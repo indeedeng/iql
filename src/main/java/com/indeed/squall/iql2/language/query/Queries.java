@@ -14,14 +14,11 @@
 
 package com.indeed.squall.iql2.language.query;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.squall.iql2.language.AggregateFilter;
@@ -69,7 +66,6 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,29 +75,51 @@ import java.util.stream.Collectors;
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
 
-    public static List<Map<String, String>> createDatasetMap(
-            CharStream inputStream, Query query, Map<String, Map<String, String>> datasetToDimensionAliasFields) {
-        final List<Map<String, String>> result = new ArrayList<>();
-        final ObjectMapper objectMapper = new ObjectMapper();
+    public static class QueryDataset {
+        public final String dataset;
+        public final String start;
+        public final String displayName;
+        public final String end;
+        public final String name;
+        public final Map<String, String> fieldAliases;
+        public final Map<String, String> dimensionAliases;
+
+        public QueryDataset(String dataset, String start, String displayName, String end, String name, Map<String, String> fieldAliases, Map<String, String> dimensionAliases) {
+            this.dataset = dataset;
+            this.start = start;
+            this.displayName = displayName;
+            this.end = end;
+            this.name = name;
+            this.fieldAliases = fieldAliases;
+            this.dimensionAliases = dimensionAliases;
+        }
+    }
+
+    public static List<QueryDataset> createDatasetMap(
+            CharStream inputStream,
+            Query query,
+            Map<String, Map<String, String>> datasetToDimensionAliasFields
+    ) {
+        final List<QueryDataset> result = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
-            final Map<String, String> m = new HashMap<>();
-            m.put("dataset", dataset.dataset.unwrap());
-            m.put("start", dataset.startInclusive.unwrap().toString());
-            m.put("displayName", getRawInput(inputStream, dataset.getDisplayName()));
-            m.put("end", dataset.endExclusive.unwrap().toString());
-            m.put("name", dataset.alias.or(dataset.dataset).unwrap());
-            try {
-                final Map<String, String> fieldAliases = dataset.fieldAliases.entrySet().stream().collect(
-                        Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap()));
-                final Map<String, String> dimensionAliases = datasetToDimensionAliasFields.getOrDefault(
-                        dataset.dataset.unwrap(), Collections.emptyMap());
-                m.put("fieldAliases", objectMapper.writeValueAsString(fieldAliases));
-                m.put("dimensionAliases", objectMapper.writeValueAsString(dimensionAliases));
-            } catch (JsonProcessingException e) {
-                // We really shouldn't have a problem serializing a Map<String, String> to a String...
-                throw Throwables.propagate(e);
-            }
-            result.add(m);
+            final Map<String, String> fieldAliases = dataset
+                    .fieldAliases
+                    .entrySet()
+                    .stream()
+                    .collect(
+                        Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap())
+                    );
+            final Map<String, String> dimensionAliases = datasetToDimensionAliasFields
+                    .getOrDefault(dataset.dataset.unwrap(), Collections.emptyMap());
+            result.add(new QueryDataset(
+                    dataset.dataset.unwrap(),
+                    dataset.startInclusive.unwrap().toString(),
+                    getRawInput(inputStream, dataset.getDisplayName()),
+                    dataset.endExclusive.unwrap().toString(),
+                    dataset.alias.or(dataset.dataset).unwrap(),
+                    fieldAliases,
+                    dimensionAliases
+            ));
         }
         return result;
     }

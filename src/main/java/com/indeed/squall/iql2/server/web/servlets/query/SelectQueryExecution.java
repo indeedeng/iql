@@ -14,7 +14,6 @@
 
 package com.indeed.squall.iql2.server.web.servlets.query;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -34,12 +33,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.imhotep.iql.cache.QueryCache;
-import com.indeed.imhotep.web.ClientInfo;
-import com.indeed.imhotep.web.Limits;
-import com.indeed.imhotep.web.RunningQueriesManager;
-import com.indeed.imhotep.web.SelectQuery;
-import com.indeed.util.core.io.Closeables2;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -48,6 +41,11 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
+import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.imhotep.web.ClientInfo;
+import com.indeed.imhotep.web.Limits;
+import com.indeed.imhotep.web.RunningQueriesManager;
+import com.indeed.imhotep.web.SelectQuery;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
@@ -67,6 +65,7 @@ import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
@@ -543,33 +542,26 @@ public class SelectQueryExecution implements Closeable {
                     };
                 }
 
-                final ObjectMapper objectMapper = new ObjectMapper();
-                if (log.isDebugEnabled()) {
-                    log.debug("commands = " + commands);
-                    for (final Command command : commands) {
-                        log.debug("command = " + command);
-                        final String s = objectMapper.writeValueAsString(command);
-                        log.debug("s = " + s);
-                    }
-                    final String commandList = objectMapper.writeValueAsString(commands);
-                    log.debug("commandList = " + commandList);
-                }
-
-                final Map<String, Object> request = new HashMap<>();
-                request.put("datasets", Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields()));
-                request.put("commands", commands);
-                request.put("options", query.options);
-
-                request.put("groupLimit", groupLimit);
-
-                final JsonNode requestJson = OBJECT_MAPPER.valueToTree(request);
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
-                            imhotepClient, datasetToChosenShards, requestJson, closer, out, timer,
-                            compositeProgressCallback, mbToBytes(limits.queryFTGSIQLLimitMB), mbToBytes(limits.queryFTGSImhotepDaemonLimitMB), clientInfo.username);
+                            imhotepClient,
+                            datasetToChosenShards,
+                            groupLimit,
+                            Sets.newHashSet(query.options),
+                            commands,
+                            datasets,
+                            closer,
+                            out,
+                            timer,
+                            compositeProgressCallback,
+                            mbToBytes(limits.queryFTGSIQLLimitMB),
+                            mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
+                            clientInfo.username
+                    );
                     return new SelectExecutionInformation(
                             allShardsUsed,
                             queryCached,

@@ -14,23 +14,21 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class ComputeBootstrap implements Command, JsonSerializable {
+public class ComputeBootstrap implements Command {
     private final Set<String> scope;
     private final String field;
     private final Optional<AggregateFilter> filter;
@@ -50,31 +48,25 @@ public class ComputeBootstrap implements Command, JsonSerializable {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "computeBootstrap");
-        gen.writeObjectField("scope", scope);
-        gen.writeStringField("field", field);
-        gen.writeObjectField("filter", filter.orNull());
-        gen.writeStringField("seed", seed);
-        gen.writeObjectField("metric", metric);
-        gen.writeNumberField("numBootstraps", numBootstraps);
-        gen.writeObjectField("varargs", varargs);
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
-        this.serialize(jsonGenerator, serializerProvider);
-    }
-
-    @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         ValidationUtil.validateField(scope, field, validationHelper, validator, this);
         metric.validate(scope, validationHelper, validator);
         if (filter.isPresent()) {
             filter.get().validate(scope, validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.ComputeBootstrap(
+                scope,
+                field,
+                filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet)),
+                seed,
+                metric.toExecutionMetric(namedMetricLookup, groupKeySet),
+                numBootstraps,
+                varargs
+        );
     }
 
     @Override

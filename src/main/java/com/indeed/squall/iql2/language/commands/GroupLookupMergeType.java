@@ -14,23 +14,21 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 public enum GroupLookupMergeType {
     SumAll,
     TakeTheOneUniqueValue,
     FailIfPresent;
 
-    public static GroupLookupMergeType parseJson(JsonNode jsonNode) {
-        if (!jsonNode.isTextual()) {
-            throw new IllegalArgumentException("GroupLookupMergeType.parseJson argument must be a text node!");
+    public com.indeed.squall.iql2.execution.GroupLookupMergeType toExecution() {
+        switch (this) {
+            case SumAll:
+                return com.indeed.squall.iql2.execution.GroupLookupMergeType.SumAll;
+            case TakeTheOneUniqueValue:
+                return com.indeed.squall.iql2.execution.GroupLookupMergeType.TakeTheOneUniqueValue;
+            case FailIfPresent:
+                return com.indeed.squall.iql2.execution.GroupLookupMergeType.FailIfPresent;
+            default:
+                throw new IllegalStateException("Unknown enum value!");
         }
-        final String jsonText = jsonNode.textValue();
-        for (final GroupLookupMergeType value : GroupLookupMergeType.values()) {
-            if (value.name().equalsIgnoreCase(jsonText)) {
-                return value;
-            }
-        }
-        throw new IllegalArgumentException("Unknown GroupLookupMergeType: [" + jsonText + "]");
     }
 }

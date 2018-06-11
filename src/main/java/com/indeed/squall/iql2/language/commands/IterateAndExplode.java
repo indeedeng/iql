@@ -14,20 +14,19 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
-public class IterateAndExplode implements Command, JsonSerializable {
+public class IterateAndExplode implements Command {
     public final String field;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
@@ -36,27 +35,6 @@ public class IterateAndExplode implements Command, JsonSerializable {
         this.field = field;
         this.fieldOpts = fieldOpts;
         this.explodeDefaultName = explodeDefaultName;
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "iterateAndExplode");
-        gen.writeStringField("field", field);
-        gen.writeArrayFieldStart("iterOpts");
-        gen.writeObject(ImmutableMap.of("type", "defaultedFieldOpts", "opts", fieldOpts));
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("explodeOpts");
-        if (explodeDefaultName.isPresent()) {
-            gen.writeObject(ImmutableMap.of("type", "addDefault", "name", explodeDefaultName.get()));
-        }
-        gen.writeEndArray();
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override
@@ -73,6 +51,17 @@ public class IterateAndExplode implements Command, JsonSerializable {
         if (fieldOpts.filter.isPresent()) {
             fieldOpts.filter.get().validate(validationHelper.datasets(), validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.IterateAndExplode(
+                field,
+                Collections.emptyList(),
+                fieldOpts.toExecution(namedMetricLookup, groupKeySet),
+                explodeDefaultName,
+                null
+        );
     }
 
     @Override

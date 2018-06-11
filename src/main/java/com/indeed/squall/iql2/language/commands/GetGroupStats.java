@@ -14,21 +14,19 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class GetGroupStats implements Command, JsonSerializable {
+public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
     public final List<Optional<String>> formatStrings;
     public final boolean returnGroupKeys;
@@ -40,37 +38,19 @@ public class GetGroupStats implements Command, JsonSerializable {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("command", "getGroupStats");
-        gen.writeObjectField("metrics", metrics);
-        gen.writeArrayFieldStart("opts");
-        if (returnGroupKeys) {
-            gen.writeObject(ImmutableMap.of("type", "returnGroupKeys"));
-        }
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("formatStrings");
-        for (final Optional<String> formatString : formatStrings) {
-            if (formatString.isPresent()) {
-                gen.writeString(formatString.get());
-            } else {
-                gen.writeNull();
-            }
-        }
-        gen.writeEndArray();
-        gen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
-    }
-
-    @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final AggregateMetric metric : metrics) {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.GetGroupStats(
+                metrics.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
+                formatStrings,
+                returnGroupKeys
+        );
     }
 
     @Override

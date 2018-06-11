@@ -14,18 +14,12 @@
 
 package com.indeed.squall.iql2.execution;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-
-import java.io.IOException;
 import java.util.Arrays;
 
 /**
 * @author jwolfe
 */
-public class TermSelects implements JsonSerializable {
+public class TermSelects {
     public final String field;
 
     public boolean isIntTerm;
@@ -44,25 +38,6 @@ public class TermSelects implements JsonSerializable {
         this.selects = selects;
         this.topMetric = topMetric;
         this.group = group;
-    }
-
-    @Override
-    public void serialize(JsonGenerator jgen, SerializerProvider serializers) throws IOException {
-        jgen.writeStartObject();
-        jgen.writeObjectField("field", field);
-        if (isIntTerm) {
-            jgen.writeObjectField("intTerm", intTerm);
-        } else {
-            jgen.writeObjectField("stringTerm", stringTerm);
-        }
-        jgen.writeObjectField("selects", selects);
-        jgen.writeNumberField("group", group);
-        jgen.writeEndObject();
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override

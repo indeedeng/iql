@@ -81,7 +81,7 @@ public abstract class DocMetric extends AbstractPositional {
 
     public abstract DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
-    protected abstract List<String> getPushes(String dataset);
+    public abstract List<String> getPushes(String dataset);
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
@@ -148,7 +148,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             if (!datasetToMetric.containsKey(dataset)) {
                 throw new IllegalArgumentException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
@@ -205,7 +205,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("count()");
         }
 
@@ -245,7 +245,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(final String dataset) {
+        public List<String> getPushes(final String dataset) {
             return Collections.singletonList("docId()");
         }
 
@@ -296,7 +296,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList(field);
         }
 
@@ -388,7 +388,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             final List<String> result = new ArrayList<>(metric.getPushes(dataset));
             result.add("log " + scaleFactor);
             return result;
@@ -447,7 +447,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             final List<String> result = new ArrayList<>(metric.getPushes(dataset));
             result.add("exp " + scaleFactor);
             return result;
@@ -502,7 +502,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return new PushableDocMetric(new Subtract(new Constant(0), m1)).getPushes(dataset);
         }
 
@@ -523,7 +523,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return unop(dataset, "abs()");
         }
 
@@ -544,7 +544,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             final IfThenElse m = new IfThenElse(new DocFilter.MetricGt(m1, new Constant(0)),
                     new Constant(1),
                     new IfThenElse(new DocFilter.MetricLt(m1, new Constant(0)),
@@ -617,7 +617,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "+");
         }
 
@@ -638,7 +638,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "-");
         }
 
@@ -659,7 +659,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "*");
         }
 
@@ -680,7 +680,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "/");
         }
 
@@ -701,7 +701,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "%");
         }
 
@@ -722,7 +722,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "min()");
         }
 
@@ -743,7 +743,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "max()");
         }
 
@@ -764,7 +764,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "=");
         }
 
@@ -785,7 +785,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "!=");
         }
 
@@ -806,7 +806,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "<");
         }
 
@@ -827,7 +827,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, "<=");
         }
 
@@ -848,7 +848,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, ">");
         }
 
@@ -869,7 +869,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return binop(dataset, ">=");
         }
 
@@ -895,7 +895,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("regex " + field.unwrap() + ":" + regex);
         }
 
@@ -949,7 +949,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("fieldequal " + field1.unwrap() + "=" + field2.unwrap());
         }
 
@@ -1008,7 +1008,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("floatscale " + field.unwrap() + "*" + mult + "+" + add);
         }
 
@@ -1062,7 +1062,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList(String.valueOf(value));
         }
 
@@ -1110,7 +1110,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasintfield " + field.unwrap());
         }
 
@@ -1158,7 +1158,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasstrfield " + field.unwrap());
         }
 
@@ -1208,7 +1208,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasint " + field.unwrap() + ":" + term);
         }
 
@@ -1261,7 +1261,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("hasstr " + field.unwrap() + ":" + term);
         }
 
@@ -1317,7 +1317,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             return new PushableDocMetric(new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase))).getPushes(dataset);
         }
@@ -1374,7 +1374,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             if (!dataset.equals(this.dataset)) {
                 throw new IllegalStateException("Qualified DocMetric getting pushes for a different dataset! [" + this.dataset + "] != [" + dataset + "]");
             }
@@ -1434,7 +1434,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(String dataset) {
+        public List<String> getPushes(String dataset) {
             return Collections.singletonList("regexmatch " + field.unwrap() + " " + groupNumber + " " + regex);
         }
 
@@ -1492,7 +1492,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(final String dataset) {
+        public List<String> getPushes(final String dataset) {
             final Query flamdexQuery = ParserUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata);
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(flamdexQuery);
@@ -1545,7 +1545,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(final String dataset) {
+        public List<String> getPushes(final String dataset) {
             return Collections.singletonList("len " + field.unwrap());
         }
 
@@ -1599,7 +1599,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(final String dataset) {
+        public List<String> getPushes(final String dataset) {
             return Collections.singletonList("inttermcount " + field.unwrap());
         }
 
@@ -1653,7 +1653,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        protected List<String> getPushes(final String dataset) {
+        public List<String> getPushes(final String dataset) {
             return Collections.singletonList("strtermcount " + field.unwrap());
         }
 

@@ -16,6 +16,7 @@ package com.indeed.squall.iql2.execution.actions;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
@@ -51,7 +52,7 @@ public class MetricAction implements Action {
                 @Override
                 public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
                     if (scope.contains(name)) {
-                        final List<String> pushes = perDatasetPushes.get(name);
+                        final List<String> pushes = Lists.newArrayList(perDatasetPushes.get(name));
 
                         final int index = Session.pushStatsWithTimer(session, pushes, timer);
 

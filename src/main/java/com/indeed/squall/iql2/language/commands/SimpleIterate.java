@@ -14,24 +14,20 @@
 
 package com.indeed.squall.iql2.language.commands;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
 import com.indeed.squall.iql2.language.util.ValidationUtil;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class SimpleIterate implements Command, JsonSerializable {
+public class SimpleIterate implements Command {
     public final String field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
@@ -47,27 +43,6 @@ public class SimpleIterate implements Command, JsonSerializable {
         if (this.streamResult && opts.topK.isPresent()) {
             throw new IllegalArgumentException("Can't stream results while doing top-k!");
         }
-    }
-
-    @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        final Map<String, Object> obj = new HashMap<>();
-        obj.put("command", "simpleIterate");
-        obj.put("field", field);
-        obj.put("opts", opts);
-        obj.put("selects", selecting);
-        obj.put("streamResult", streamResult);
-        final List<String> serializableFormatStrings = new ArrayList<>(formatStrings.size());
-        for (final Optional<String> opt : formatStrings) {
-            serializableFormatStrings.add(opt.orNull());
-        }
-        obj.put("formatStrings", serializableFormatStrings);
-        gen.writeObject(obj);
-    }
-
-    @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
-        this.serialize(gen, serializers);
     }
 
     @Override
@@ -87,6 +62,18 @@ public class SimpleIterate implements Command, JsonSerializable {
         for (final AggregateMetric metric : selecting) {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
+    }
+
+    @Override
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        return new com.indeed.squall.iql2.execution.commands.SimpleIterate(
+                field,
+                opts.toExecution(namedMetricLookup, groupKeySet),
+                selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
+                formatStrings,
+                streamResult,
+                null
+        );
     }
 
     @Override
