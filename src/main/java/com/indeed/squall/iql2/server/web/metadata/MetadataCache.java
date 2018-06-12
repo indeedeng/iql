@@ -61,7 +61,7 @@ public class MetadataCache {
         this.imhotepClient = imhotepClient;
     }
 
-    @Scheduled(fixedRate = 600000)
+    @Scheduled(fixedRate = 60000)
     public void updateMetadata() {
         log.info("Started updating metadata");
         try {
@@ -70,12 +70,14 @@ public class MetadataCache {
 
             if (imsClient == null) {
                 imsDatasets = Collections.emptyList();
+                log.warn("imsClient was null when updating metadata");
             } else {
                 imsDatasets = Lists.newArrayList(imsClient.getDatasets());
             }
 
             if (imhotepClient == null) {
                 datasetToShardList = Collections.emptyMap();
+                log.warn("imhotepClient was null when updating metadata");
             } else {
                 datasetToShardList = imhotepClient.getDatasetToDatasetInfo();
             }
