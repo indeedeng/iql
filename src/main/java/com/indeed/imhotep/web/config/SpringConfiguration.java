@@ -351,9 +351,9 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return new DefaultWallClock();
     }
 
-    // Is this better than the ThreadPoolExecutor above?
-//    @Bean
-//    public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
-//        return new ScheduledThreadPoolExecutor(4);
-//    }
+    // Used for running @Schedule tasks
+    @Bean
+    public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
+        return new ScheduledThreadPoolExecutor(4);
+    }
 }
