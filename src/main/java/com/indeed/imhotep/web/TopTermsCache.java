@@ -84,7 +84,12 @@ public class TopTermsCache {
         // on further invocations, reload from imhotep
         log.info("Starting TopTerms cache update. This may take a few minutes");
         long started = System.currentTimeMillis();
-        datasetToFieldToTerms = updateTopTermsFromImhotep();
+        try {
+            datasetToFieldToTerms = updateTopTermsFromImhotep();
+        } catch (Exception e) {
+            log.error("Unhandled exception during top terms update", e);
+            return;
+        }
         log.info("TopTerms cache update completed in " + (System.currentTimeMillis()-started)/1000 + "s");
         initialized = true;
 
@@ -134,6 +139,9 @@ public class TopTermsCache {
                     }
                     fieldToTerms.put(field, terms);
                 }
+            } catch (Exception e) {
+                log.warn("Failed to load top terms for " + dataset);
+                continue;
             } finally {
                 Closeables2.closeQuietly(imhotepSession, log);
             }
