@@ -167,12 +167,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // IQL1 metadata cache
     @Bean
     public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClient(), imhotepClient(), env.getProperty("disabled.fields"));
+        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"));
     }
     // IQL2 metadata cache
     @Bean
-    public MetadataCache metadataCacheIQL2(ImsClientInterface imsClient, ImhotepClient imhotepClient) {
-        return new MetadataCache(imsClient, imhotepClient);
+    public MetadataCache metadataCacheIQL2() {
+        return new MetadataCache(imsClientIQL2(), imhotepClient());
     }
     @Bean
     public TopTermsCache topTermsCache() {
@@ -184,8 +184,18 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER, topTermsCacheEnabled);
     }
 
-    @Bean
-    public ImsClientInterface imsClient() {
+    // We need 2 instances to be able to use them concurrently
+    @Bean(name = "imsClientIQL1")
+    public ImsClientInterface imsClientIQL1() {
+        return createIMSClient();
+    }
+
+    @Bean(name = "imsClientIQL2")
+    public ImsClientInterface imsClientIQL2() {
+        return createIMSClient();
+    }
+
+    private ImsClientInterface createIMSClient() {
         final boolean imsEnabled = env.getProperty("ims.enabled", Boolean.class, true);
         try {
             ///A way to get the port from tomcat without a request
