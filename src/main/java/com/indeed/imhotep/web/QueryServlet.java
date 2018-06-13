@@ -398,7 +398,9 @@ public class QueryServlet {
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
+                final long beginSendToClientMillis = System.currentTimeMillis();
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                selectExecutionStats.setPhase("sendToClientMillis", System.currentTimeMillis() - beginSendToClientMillis);
                 if (writeResults.exceedsLimit) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
