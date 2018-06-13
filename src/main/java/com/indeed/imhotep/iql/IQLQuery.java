@@ -90,10 +90,11 @@ public final class IQLQuery implements Closeable {
     private final Closer closer = Closer.create();
     // session used for the current execution
     private EZImhotepSession session;
+    private final List<String> fieldNames;
 
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, ImhotepMetadataCache metadata, final Limits limits) {
+                    final String username, ImhotepMetadataCache metadata, final Limits limits, final List<String> fieldNames) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -103,6 +104,7 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.metadata = metadata;
         this.limits = limits;
+        this.fieldNames = fieldNames;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -657,5 +659,9 @@ public final class IQLQuery implements Closeable {
         }
         close();
         return performanceStats;
+    }
+
+    public List<String> getFieldNames() {
+        return fieldNames;
     }
 }

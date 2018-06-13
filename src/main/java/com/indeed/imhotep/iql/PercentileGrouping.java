@@ -59,6 +59,10 @@ public class PercentileGrouping extends Grouping {
         fieldProjectionPositions.add(fieldProjectionPosition);
     }
 
+    public List<Field> getFields() {
+        return fields;
+    }
+
     @Override
     public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException("Percentiles must be used as the last group");

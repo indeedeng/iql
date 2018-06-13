@@ -90,6 +90,8 @@ import java.util.concurrent.TimeoutException;
 */
 @Controller
 public class QueryServlet {
+    private GroupByClause groupBy;
+
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
@@ -874,6 +876,11 @@ public class QueryServlet {
             logEntry.setProperty("cpuSlotsWaitTimeMs", performanceStats.cpuSlotsWaitTimeMs);
             logEntry.setProperty("ioSlotsExecTimeMs", performanceStats.ioSlotsExecTimeMs);
             logEntry.setProperty("ioSlotsWaitTimeMs", performanceStats.ioSlotsWaitTimeMs);
+        }
+
+        final List<String> fieldNames = ((IQLQuery)(selectQuery.iqlQuery)).getFieldNames();
+        if (fieldNames.size() > 0) {
+            logEntry.setProperty("field", fieldNames);
         }
     }
 

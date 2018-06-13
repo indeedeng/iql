@@ -33,6 +33,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -55,6 +56,7 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
+import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -63,6 +65,7 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.util.FieldExtracter;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
@@ -323,6 +326,59 @@ public class SelectQueryExecution implements Closeable {
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
+
+            final Set<String> rawDatasetFields = Sets.newHashSet();
+            if (parseResult.query.filter.isPresent()) {
+                rawDatasetFields.addAll(FieldExtracter.getFields(parseResult.query.filter.get()));
+            }
+            for (final AggregateMetric aggregateMetric : parseResult.query.selects) {
+                rawDatasetFields.addAll(FieldExtracter.getFields(aggregateMetric));
+            }
+            for (final GroupByEntry groupByEntry : parseResult.query.groupBys) {
+                rawDatasetFields.addAll(FieldExtracter.getFields(groupByEntry.groupBy));
+                if (groupByEntry.filter.isPresent()) {
+                    rawDatasetFields.addAll(FieldExtracter.getFields(groupByEntry.filter.get()));
+                }
+            }
+
+            final Map<String, DatasetInfo> datasetToDatasetInfo = Maps.newHashMap();
+            for (final String dataset : upperCaseToActualDataset.values()) {
+                datasetToDatasetInfo.put(dataset, imhotepClient.getDatasetInfo(dataset));
+            }
+
+            final Set<String> normalizedDatasetFields = Sets.newHashSet();
+            for (final String rawDatasetField : rawDatasetFields) {
+                final String[] parts = rawDatasetField.split("\\.");
+                if (parts.length == 2) {
+                    final String dataset = upperCaseToActualDataset.get(parts[0].toUpperCase());
+                    if (dataset != null) {
+                        final DatasetInfo datasetInfo = datasetToDatasetInfo.get(dataset);
+                        final Collection<String> intFields = datasetInfo.getIntFields();
+                        final Collection<String> StringFields = datasetInfo.getStringFields();
+                        String field;
+                        field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(parts[1]) == 0).findFirst().orElse(null);
+                        if (field == null) {
+                            field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[1]) == 0).findFirst().orElse(null);
+                        }
+                        normalizedDatasetFields.add(dataset + "." + field);
+                    }
+                } else if(parts.length == 1) {
+                    for (final Map.Entry<String, DatasetInfo> entry : datasetToDatasetInfo.entrySet()) {
+                        final Collection<String> intFields = entry.getValue().getIntFields();
+                        final Collection<String> StringFields = entry.getValue().getStringFields();
+                        String field;
+                        field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(parts[0]) == 0).findFirst().orElse(null);
+                        if (field == null) {
+                            field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[0]) == 0).findFirst().orElse(null);
+                        }
+                        if (field != null) {
+                            normalizedDatasetFields.add(entry.getKey() + "." + field);
+                        }
+                    }
+                }
+            }
+            queryInfo.datasetFields = normalizedDatasetFields;
+
         }
 
         final int sessions = parseResult.query.datasets.size();
@@ -718,6 +774,8 @@ public class SelectQueryExecution implements Closeable {
         @Nullable Set<String> cacheHashes;
         @Nullable Integer maxGroups;
         @Nullable Integer maxConcurrentSessions;
+        @Nullable Set<String> datasetFields;
+
     }
 
     private static class SelectExecutionInformation {

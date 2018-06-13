@@ -91,6 +91,8 @@ public final class IQLTranslator {
 
     public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
                                      Limits limits) {
+
+
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -100,28 +102,29 @@ public final class IQLTranslator {
         final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
         final List<Stat> stats = Lists.newArrayList();
 
+        final List<String> fieldNames = Lists.newArrayList();
         final List<Expression> projections = Lists.newArrayList(parse.select.getProjections());
-        final DistinctGrouping distinctGrouping = getDistinctGrouping(projections, datasetMetadata);
-        final PercentileGrouping percentileGrouping = getPercentileGrouping(projections, datasetMetadata, EZImhotepSession.counts());
+        final DistinctGrouping distinctGrouping = getDistinctGrouping(projections, datasetMetadata, fieldNames);
+        final PercentileGrouping percentileGrouping = getPercentileGrouping(projections, datasetMetadata, EZImhotepSession.counts(), fieldNames);
 
         if (distinctGrouping != null && percentileGrouping != null) {
             throw new IllegalArgumentException("Cannot use distinct and percentile in the same query");
         }
 
-        final StatMatcher statMatcher = new StatMatcher(datasetMetadata);
+        final StatMatcher statMatcher = new StatMatcher(datasetMetadata, fieldNames);
         for (Expression expression : projections) {
             stats.add(expression.match(statMatcher));
         }
 
         final List<Condition> conditions;
         if (parse.where != null) {
-            conditions = parse.where.getExpression().match(new ConditionMatcher(datasetMetadata));
+            conditions = parse.where.getExpression().match(new ConditionMatcher(datasetMetadata, fieldNames));
         } else {
             conditions = Collections.emptyList();
         }
 
         final List<Grouping> groupings = Lists.newArrayList();
-        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit, limits);
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit, limits, fieldNames);
         if (parse.groupBy != null) {
             for (Expression groupBy : parse.groupBy.groupings) {
                 groupings.add(groupBy.match(groupByMatcher));
@@ -142,7 +145,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, metadata, limits);
+                conditions, groupings, parse.limit, username, metadata, limits, fieldNames);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
@@ -246,7 +249,7 @@ public final class IQLTranslator {
         }
     }
 
-    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata) {
+    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, List<String> fieldNames) {
         DistinctGrouping distinctGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -264,6 +267,7 @@ public final class IQLTranslator {
 
             String fieldName = getStr(functionProjection.args.get(0));
             final Field field = getField(fieldName, datasetMetadata);
+            fieldNames.add(fieldName);
             projectionsIter.remove();
 
             if(distinctGrouping == null) {
@@ -274,7 +278,7 @@ public final class IQLTranslator {
         return distinctGrouping;
     }
 
-    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat) {
+    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, List<String> fieldNames) {
         PercentileGrouping percentileGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -294,6 +298,7 @@ public final class IQLTranslator {
 
             String fieldName = getStr(functionProjection.args.get(0));
             final Field field = getField(fieldName, datasetMetadata);
+            fieldNames.add(fieldName);
             projectionsIter.remove();
 
             final double percentile = parseInt(functionProjection.args.get(1));
@@ -327,6 +332,8 @@ public final class IQLTranslator {
 
         private final Map<String, Function<List<Expression>, Stat>> statLookup;
 
+        private final List<String> fieldNames;
+
         private Stat[] getStats(final List<Expression> input) {
             List<Stat> stats = Lists.newArrayList();
             for(Expression statString : input) {
@@ -335,8 +342,9 @@ public final class IQLTranslator {
             return stats.toArray(new Stat[stats.size()]);
         }
 
-        private StatMatcher(final DatasetMetadata datasetMetadata) {
+        private StatMatcher(final DatasetMetadata datasetMetadata, final List<String> fieldNames) {
             this.datasetMetadata = datasetMetadata;
+            this.fieldNames = fieldNames;
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
@@ -441,7 +449,9 @@ public final class IQLTranslator {
                     if (input.size() != 1) {
                         throw new UnsupportedOperationException();
                     }
-                    return dynamic(new DynamicMetric(getName(input.get(0))));
+                    String name = getName(input.get(0));
+                    fieldNames.add(name);
+                    return dynamic(new DynamicMetric(name));
                 }
             });
             builder.put("hasstr", new Function<List<Expression>, Stat>() {
@@ -465,6 +475,9 @@ public final class IQLTranslator {
 
                     if(Strings.isNullOrEmpty(field) || value == null) {
                         throw new IllegalArgumentException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
+                    }
+                    if (datasetMetadata.hasField(field)) {
+                        fieldNames.add(field);
                     }
                     return hasString(field, value);
                 }
@@ -496,6 +509,9 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IllegalArgumentException("incorrect usage in hasint(). " + usageExamples);
                     }
+                    if (datasetMetadata.hasField(field)) {
+                        fieldNames.add(field);
+                    }
                     return hasInt(field, value);
                 }
             });
@@ -526,10 +542,13 @@ public final class IQLTranslator {
             builder.put("floatscale", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() == 3) {
+                        fieldNames.add(getName(input.get(0)));
                         return floatScale(getName(input.get(0)), parseLong(input.get(1)), parseLong(input.get(2)));
                     } else if (input.size() == 2) {
+                        fieldNames.add(getName(input.get(0)));
                         return floatScale(getName(input.get(0)), parseLong(input.get(1)), 0);
                     } else if(input.size() == 1) {
+                        fieldNames.add(getName(input.get(0)));
                         return floatScale(getName(input.get(0)), 1, 0);
                     } else {
                         throw new UnsupportedOperationException();
@@ -577,9 +596,11 @@ public final class IQLTranslator {
                             throw new IllegalArgumentException("Field not found: " + fieldName);
                         }
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
+                            fieldNames.add(fieldName);
                             long value = parseLong(right);
                             return hasInt(fieldName, value);
                         } else {
+                            fieldNames.add(fieldName);
                             return hasString(fieldName, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
@@ -639,6 +660,7 @@ public final class IQLTranslator {
             if(!datasetMetadata.hasField(name)) {
                 throw new IllegalArgumentException("Unknown field name in a stat: " + name);
             }
+            fieldNames.add(name);
             return intField(name);
         }
 
@@ -657,9 +679,12 @@ public final class IQLTranslator {
 
         private boolean negation; // keeps track of whether we are inside a negated branch of expression
 
-        private ConditionMatcher(final DatasetMetadata datasetMetadata) {
+        private final List<String> fieldNames;
+
+        private ConditionMatcher(final DatasetMetadata datasetMetadata, final List<String> fieldNames) {
             this.datasetMetadata = datasetMetadata;
-            statMatcher = new StatMatcher(datasetMetadata);
+            this.fieldNames = fieldNames;
+            statMatcher = new StatMatcher(datasetMetadata, fieldNames);
             final ImmutableMap.Builder<String, Function<List<Expression>, Condition>> builder = ImmutableMap.builder();
 
             Function<List<Expression>, Condition> luceneQueryHandler = new Function<List<Expression>, Condition>() {
@@ -694,6 +719,7 @@ public final class IQLTranslator {
                     final NameExpression nameExpression = (NameExpression) arg0;
                     final String fieldName = nameExpression.name;
                     final Field field = getField(fieldName, datasetMetadata);
+                    fieldNames.add(fieldName);
                     final int numerator = Math.max(0, parseInt(input.get(1)));
                     final int denominator = Math.max(1, Math.max(numerator, input.size() >= 3 ? parseInt(input.get(2)) : 100));
                     final String salt;
@@ -725,6 +751,7 @@ public final class IQLTranslator {
                         final TupleExpression values = (TupleExpression) right;
                         if (datasetMetadata.hasStringField(name.name)) {
                             // TODO how do we handle tokenized fields here?
+                            fieldNames.add(name.name);
                             final String[] strings = new String[values.expressions.size()];
                             int index = 0;
                             for (Expression expression : values.expressions) {
@@ -733,6 +760,7 @@ public final class IQLTranslator {
                             Arrays.sort(strings);   // looks like terms being sorted is a pre-requisite of stringOrRegroup()
                             return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
                         } else if (datasetMetadata.hasIntField(name.name)) {
+                            fieldNames.add(name.name);
                             final long[] ints = new long[values.expressions.size()];
                             int index = 0;
                             for (Expression expression : values.expressions) {
@@ -754,6 +782,7 @@ public final class IQLTranslator {
                     if(left instanceof NameExpression) {
                         final NameExpression name = (NameExpression) left;
                         if(datasetMetadata.hasField(name.name)) {
+                            fieldNames.add(name.name);
                             return handleFieldComparison(name, right, usingNegation);
                         }
                     } else if(right instanceof NumberExpression) {
@@ -781,6 +810,7 @@ public final class IQLTranslator {
                         }
                         throw new IllegalArgumentException("Unknown field: " + fieldName);
                     }
+                    fieldNames.add(fieldName);
                     String regexp = getStr(right);
                     // validate the provided regex
                     try {
@@ -924,16 +954,18 @@ public final class IQLTranslator {
         private final int rowLimit;
 
         private final StatMatcher statMatcher;
+        private final List<String> fieldNames;
 
 
         private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end,
-                               final int rowLimit, final Limits limits) {
-            statMatcher = new StatMatcher(datasetMetadata);
+                               final int rowLimit, final Limits limits, final List<String> fieldNames) {
+            statMatcher = new StatMatcher(datasetMetadata, fieldNames);
             this.rowLimit = rowLimit;
             this.datasetMetadata = datasetMetadata;
             this.start = start;
             this.end = end;
             this.limits = limits;
+            this.fieldNames = fieldNames;
             final ImmutableMap.Builder<String, Function<List<Expression>, Grouping>> builder = ImmutableMap.builder();
             builder.put("topterms", new Function<List<Expression>, Grouping>() {
                 public Grouping apply(final List<Expression> input) {
@@ -957,6 +989,7 @@ public final class IQLTranslator {
                     }
 
                     final Field field = getField(fieldName, datasetMetadata);
+                    fieldNames.add(fieldName);
                     return new FieldGrouping(field, topK, stat, bottom, limits);
                 }
             });
@@ -972,6 +1005,7 @@ public final class IQLTranslator {
                     final int topK = parseInt(input.get(3));
 
                     final Field field = getField(fieldName, datasetMetadata);
+                    fieldNames.add(fieldName);
                     return new DiffGrouping(field, statFilter1, statFilter2, topK);
                 }
             });
@@ -1164,6 +1198,7 @@ public final class IQLTranslator {
             } // else // normal simple field grouping
 
             final Field field = getField(name, datasetMetadata);
+            fieldNames.add(name);
             return new FieldGrouping(field, true, rowLimit, limits);
         }
 
@@ -1199,6 +1234,7 @@ public final class IQLTranslator {
                         terms.add(getStr(expression));
                     }
                     final Field field = getField(name.name, datasetMetadata);
+                    fieldNames.add(name.name);
                     return new FieldGrouping(field, true, terms, limits);
                 }
                 default:
@@ -1263,6 +1299,7 @@ public final class IQLTranslator {
             if(arg == null || arg.trim().isEmpty()) {
                 // treat as a request to get all terms but not explode
                 final Field field = getField(fieldName, datasetMetadata);
+                fieldNames.add(fieldName);
                 return new FieldGrouping(field, true, rowLimit, limits);
             }
 
@@ -1290,6 +1327,7 @@ public final class IQLTranslator {
             final boolean bottom = "bottom".equals(matcher.group(1));
 
             final Field field = getField(fieldName, datasetMetadata);
+            fieldNames.add(fieldName);
             return new FieldGrouping(field, topK, stat, bottom, limits);
         }
     }
