@@ -61,6 +61,7 @@ import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import static com.indeed.imhotep.ez.Stats.Stat;
 
@@ -90,11 +91,11 @@ public final class IQLQuery implements Closeable {
     private final Closer closer = Closer.create();
     // session used for the current execution
     private EZImhotepSession session;
-    private final List<String> fieldNames;
+    private final Set<String> fields;
 
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, ImhotepMetadataCache metadata, final Limits limits, final List<String> fieldNames) {
+                    final String username, ImhotepMetadataCache metadata, final Limits limits, final Set<String> fields) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -104,7 +105,7 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.metadata = metadata;
         this.limits = limits;
-        this.fieldNames = fieldNames;
+        this.fields = fields;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -661,7 +662,7 @@ public final class IQLQuery implements Closeable {
         return performanceStats;
     }
 
-    public List<String> getFieldNames() {
-        return fieldNames;
+    public Set<String> getFields() {
+        return fields;
     }
 }

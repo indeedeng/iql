@@ -24,6 +24,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
+import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.SelectExecutionStats;
@@ -84,6 +85,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -220,7 +222,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
+                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, imhotepClient, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -733,6 +735,7 @@ public class QueryServlet {
                                  Throwable errorOccurred,
                                  String remoteAddr,
                                  MetricStatsEmitter metricStatsEmitter,
+                                 ImhotepClient imhotepClient,
                                  @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         final String userName = clientInfo.username;
@@ -785,7 +788,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry);
+        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, imhotepClient, errorOccurred != null);
         logEntry.setProperty("statement", queryType);
 
         if(selectQuery != null) {
@@ -801,14 +804,16 @@ public class QueryServlet {
     // Log to logrepo
     private static String logStatementData(IQLStatement parsedQuery,
                                     SelectQuery selectQuery,
-                                    QueryLogEntry logEntry) {
+                                    QueryLogEntry logEntry,
+                                    ImhotepClient imhotepClient,
+                                    boolean error) {
         if(parsedQuery == null) {
             return "invalid";
         }
         final String queryType;
         if(parsedQuery instanceof SelectStatement) {
             queryType = "select";
-            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry);
+            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry, imhotepClient, error);
         } else if(parsedQuery instanceof DescribeStatement) {
             queryType = "describe";
             final DescribeStatement describeStatement = (DescribeStatement) parsedQuery;
@@ -826,7 +831,9 @@ public class QueryServlet {
 
     private static void logSelectStatementData(SelectStatement selectStatement,
                                         SelectQuery selectQuery,
-                                        QueryLogEntry logEntry) {
+                                        QueryLogEntry logEntry,
+                                        ImhotepClient imhotepClient,
+                                        boolean error) {
         final FromClause from = selectStatement.from;
         final GroupByClause groupBy = selectStatement.groupBy;
         final SelectClause select =  selectStatement.select;
@@ -878,10 +885,28 @@ public class QueryServlet {
             logEntry.setProperty("ioSlotsWaitTimeMs", performanceStats.ioSlotsWaitTimeMs);
         }
 
-        final List<String> fieldNames = ((IQLQuery)(selectQuery.iqlQuery)).getFieldNames();
-        if (fieldNames.size() > 0) {
-            logEntry.setProperty("field", fieldNames);
+        if (!error) {
+            final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
+            final String dataset = imhotepClient.getDatasetNames().stream().filter(datasetName -> from.getDataset().compareToIgnoreCase(datasetName) == 0).findFirst().orElse(null);
+            final Set<String> datasetFields = Sets.newHashSet();
+            if (dataset != null) {
+                final Collection<String> intFields = imhotepClient.getDatasetInfo(dataset).getIntFields();
+                final Collection<String> stringFields = imhotepClient.getDatasetInfo(dataset).getStringFields();
+                for (final String field : fields) {
+                    String actualField = intFields.stream().filter(intField -> field.compareToIgnoreCase(intField) == 0).findFirst().orElse(null);
+                    if (actualField == null) {
+                        actualField = stringFields.stream().filter(stringField -> field.compareToIgnoreCase(stringField) == 0).findFirst().orElse(null);
+                    }
+                    if (actualField != null) {
+                        datasetFields.add(dataset + "." + actualField);
+                    }
+                }
+            }
+            if (datasetFields.size() > 0) {
+                logEntry.setProperty("datasetfield", datasetFields);
+            }
         }
+
     }
 
     private static void logQueryToLog4J(String query, String identification, long timeTaken) {

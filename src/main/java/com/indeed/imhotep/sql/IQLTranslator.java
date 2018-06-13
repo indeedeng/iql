@@ -18,6 +18,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.indeed.imhotep.iql.DiffGrouping;
 import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.metadata.FieldType;
@@ -102,7 +103,7 @@ public final class IQLTranslator {
         final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
         final List<Stat> stats = Lists.newArrayList();
 
-        final List<String> fieldNames = Lists.newArrayList();
+        final Set<String> fieldNames = Sets.newHashSet();
         final List<Expression> projections = Lists.newArrayList(parse.select.getProjections());
         final DistinctGrouping distinctGrouping = getDistinctGrouping(projections, datasetMetadata, fieldNames);
         final PercentileGrouping percentileGrouping = getPercentileGrouping(projections, datasetMetadata, EZImhotepSession.counts(), fieldNames);
@@ -249,7 +250,7 @@ public final class IQLTranslator {
         }
     }
 
-    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, List<String> fieldNames) {
+    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Set<String> fieldNames) {
         DistinctGrouping distinctGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -278,7 +279,7 @@ public final class IQLTranslator {
         return distinctGrouping;
     }
 
-    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, List<String> fieldNames) {
+    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, Set<String> fieldNames) {
         PercentileGrouping percentileGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -332,7 +333,7 @@ public final class IQLTranslator {
 
         private final Map<String, Function<List<Expression>, Stat>> statLookup;
 
-        private final List<String> fieldNames;
+        private final Set<String> fieldNames;
 
         private Stat[] getStats(final List<Expression> input) {
             List<Stat> stats = Lists.newArrayList();
@@ -342,7 +343,7 @@ public final class IQLTranslator {
             return stats.toArray(new Stat[stats.size()]);
         }
 
-        private StatMatcher(final DatasetMetadata datasetMetadata, final List<String> fieldNames) {
+        private StatMatcher(final DatasetMetadata datasetMetadata, final Set<String> fieldNames) {
             this.datasetMetadata = datasetMetadata;
             this.fieldNames = fieldNames;
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
@@ -476,9 +477,7 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field) || value == null) {
                         throw new IllegalArgumentException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
                     }
-                    if (datasetMetadata.hasField(field)) {
-                        fieldNames.add(field);
-                    }
+                    fieldNames.add(field);
                     return hasString(field, value);
                 }
             });
@@ -509,9 +508,7 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IllegalArgumentException("incorrect usage in hasint(). " + usageExamples);
                     }
-                    if (datasetMetadata.hasField(field)) {
-                        fieldNames.add(field);
-                    }
+                    fieldNames.add(field);
                     return hasInt(field, value);
                 }
             });
@@ -524,6 +521,7 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IllegalArgumentException("incorrect usage in hasstrfield(). Example: hasstrfield(\"rcv\")");
                     }
+                    fieldNames.add(field);
                     return hasStringField(field);
                 }
             });
@@ -536,20 +534,24 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IllegalArgumentException("incorrect usage in hasintfield(). Example: hasintfield(\"sjc\")");
                     }
+                    fieldNames.add(field);
                     return hasIntField(field);
                 }
             });
             builder.put("floatscale", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() == 3) {
-                        fieldNames.add(getName(input.get(0)));
-                        return floatScale(getName(input.get(0)), parseLong(input.get(1)), parseLong(input.get(2)));
+                    	final String name = getName(input.get(0));
+                    	fieldNames.add(name);
+                    	return floatScale(name, parseLong(input.get(1)), parseLong(input.get(2)));
                     } else if (input.size() == 2) {
-                        fieldNames.add(getName(input.get(0)));
-                        return floatScale(getName(input.get(0)), parseLong(input.get(1)), 0);
+                    	final String name = getName(input.get(0));
+                    	fieldNames.add(name);
+                    	return floatScale(name, parseLong(input.get(1)), 0);
                     } else if(input.size() == 1) {
-                        fieldNames.add(getName(input.get(0)));
-                        return floatScale(getName(input.get(0)), 1, 0);
+                    	final String name = getName(input.get(0));
+                    	fieldNames.add(name);
+                    	return floatScale(name, 1, 0);
                     } else {
                         throw new UnsupportedOperationException();
                     }
@@ -679,9 +681,9 @@ public final class IQLTranslator {
 
         private boolean negation; // keeps track of whether we are inside a negated branch of expression
 
-        private final List<String> fieldNames;
+        private final Set<String> fieldNames;
 
-        private ConditionMatcher(final DatasetMetadata datasetMetadata, final List<String> fieldNames) {
+        private ConditionMatcher(final DatasetMetadata datasetMetadata, final Set<String> fieldNames) {
             this.datasetMetadata = datasetMetadata;
             this.fieldNames = fieldNames;
             statMatcher = new StatMatcher(datasetMetadata, fieldNames);
@@ -954,11 +956,11 @@ public final class IQLTranslator {
         private final int rowLimit;
 
         private final StatMatcher statMatcher;
-        private final List<String> fieldNames;
+        private final Set<String> fieldNames;
 
 
         private GroupByMatcher(final DatasetMetadata datasetMetadata, final DateTime start, final DateTime end,
-                               final int rowLimit, final Limits limits, final List<String> fieldNames) {
+                               final int rowLimit, final Limits limits, final Set<String> fieldNames) {
             statMatcher = new StatMatcher(datasetMetadata, fieldNames);
             this.rowLimit = rowLimit;
             this.datasetMetadata = datasetMetadata;
