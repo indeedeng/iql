@@ -346,7 +346,8 @@ public class SelectQueryExecution implements Closeable {
                 datasetToDatasetInfo.put(dataset, imhotepClient.getDatasetInfo(dataset));
             }
 
-            final Set<String> normalizedDatasetFields = Sets.newHashSet();
+
+            queryInfo.datasetFields = Sets.newHashSet();
             for (final String rawDatasetField : rawDatasetFields) {
                 final String[] parts = rawDatasetField.split("\\.");
                 if (parts.length == 2) {
@@ -360,7 +361,9 @@ public class SelectQueryExecution implements Closeable {
                         if (field == null) {
                             field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[1]) == 0).findFirst().orElse(null);
                         }
-                        normalizedDatasetFields.add(dataset + "." + field);
+                        if (field != null) {
+                            queryInfo.datasetFields.add(dataset + "." + field);
+                        }
                     }
                 } else if(parts.length == 1) {
                     for (final Map.Entry<String, DatasetInfo> entry : datasetToDatasetInfo.entrySet()) {
@@ -372,12 +375,11 @@ public class SelectQueryExecution implements Closeable {
                             field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[0]) == 0).findFirst().orElse(null);
                         }
                         if (field != null) {
-                            normalizedDatasetFields.add(entry.getKey() + "." + field);
+                            queryInfo.datasetFields.add(entry.getKey() + "." + field);
                         }
                     }
                 }
             }
-            queryInfo.datasetFields = normalizedDatasetFields;
 
         }
 

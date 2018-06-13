@@ -204,7 +204,7 @@ public class FieldExtracter {
 				final Set<String> set = Sets.newHashSet();
  				for (final DocMetric metric : perDatasetDocMetric.datasetToMetric.values()) {
 					set.addAll(getFields(metric));
-				}//TODO: What is PerDatasetDocMetric
+				}//TODO: Is this dataset specific?
 				return set;
 			}
 
@@ -428,8 +428,15 @@ public class FieldExtracter {
 
 			@Override
 			public Set<String> visit(final GroupBy.GroupByField groupByField) throws RuntimeException {
-				return ImmutableSet.of(groupByField.field.unwrap());
-				//TODO: get fields from aggregationMetric and aggregationFilter
+				final Set<String> set = Sets.newHashSet();
+				set.add(groupByField.field.unwrap());
+				if (groupByField.filter.isPresent()) {
+					set.addAll(getFields(groupByField.filter.get()));
+				}
+				if (groupByField.metric.isPresent()) {
+					set.addAll(getFields(groupByField.metric.get()));
+				}
+				return set;
 			}
 
 			@Override
@@ -548,7 +555,7 @@ public class FieldExtracter {
 
 			@Override
 			public Set<String> visit(final AggregateMetric.DocStatsPushes docStatsPushes) throws RuntimeException {
-				//TODO: What is docStatsPushes?
+				//TODO: Is this dataset specific?
 				return getFields(docStatsPushes.pushes);
 			}
 
@@ -582,19 +589,16 @@ public class FieldExtracter {
 
 			@Override
 			public Set<String> visit(final AggregateMetric.Named named) throws RuntimeException {
-				//TODO: What is named.name?
 				return getFields(named.metric);
 			}
 
 			@Override
 			public Set<String> visit(final AggregateMetric.GroupStatsLookup groupStatsLookup) throws RuntimeException {
-				//TODO: What is groupStatsLookup.name?
 				return ImmutableSet.of();
 			}
 
 			@Override
 			public Set<String> visit(final AggregateMetric.GroupStatsMultiLookup groupStatsMultiLookup) throws RuntimeException {
-				//TODO: What is groupStatsMultiLookup.names?
 				return ImmutableSet.of();
 			}
 
