@@ -83,6 +83,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -882,21 +883,7 @@ public class QueryServlet {
 
         if (!error) {
             final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
-            final String dataset = imhotepClient.getDatasetNames().stream().filter(datasetName -> from.getDataset().compareToIgnoreCase(datasetName) == 0).findFirst().orElse(null);
-            final Set<String> datasetFields = Sets.newHashSet();
-            if (dataset != null) {
-                final Collection<String> intFields = imhotepClient.getDatasetInfo(dataset).getIntFields();
-                final Collection<String> stringFields = imhotepClient.getDatasetInfo(dataset).getStringFields();
-                for (final String field : fields) {
-                    String actualField = intFields.stream().filter(intField -> field.compareToIgnoreCase(intField) == 0).findFirst().orElse(null);
-                    if (actualField == null) {
-                        actualField = stringFields.stream().filter(stringField -> field.compareToIgnoreCase(stringField) == 0).findFirst().orElse(null);
-                    }
-                    if (actualField != null) {
-                        datasetFields.add(dataset + "." + actualField);
-                    }
-                }
-            }
+            final Set<String> datasetFields = fields.stream().map(field -> from.getDataset() + "." + field).collect(Collectors.toSet());
             if (datasetFields.size() > 0) {
                 logEntry.setProperty("datasetfield", datasetFields);
             }
