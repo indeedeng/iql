@@ -92,8 +92,6 @@ public final class IQLTranslator {
 
     public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
                                      Limits limits) {
-
-
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
