@@ -24,7 +24,6 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
-import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.iql.GroupStats;
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.SelectExecutionStats;
@@ -44,7 +43,6 @@ import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -85,15 +83,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
 * @author dwahler
 */
 @Controller
 public class QueryServlet {
-    private GroupByClause groupBy;
-
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));

@@ -595,12 +595,11 @@ public final class IQLTranslator {
                         if(field == null) {
                             throw new IllegalArgumentException("Field not found: " + fieldName);
                         }
+                        fieldNames.add(fieldName);
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
-                            fieldNames.add(fieldName);
                             long value = parseLong(right);
                             return hasInt(fieldName, value);
                         } else {
-                            fieldNames.add(fieldName);
                             return hasString(fieldName, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
