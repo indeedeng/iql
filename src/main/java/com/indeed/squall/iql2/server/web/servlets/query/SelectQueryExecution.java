@@ -64,8 +64,8 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.util.FieldExtracter;
-import com.indeed.squall.iql2.language.util.FieldExtracter.DatasetField;
+import com.indeed.squall.iql2.language.util.FieldExtractor;
+import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
@@ -327,22 +327,17 @@ public class SelectQueryExecution implements Closeable {
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
 
-            final Set<DatasetField> datasetFields = FieldExtracter.getDatasetFields(parseResult.query);
+            final Set<DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
-
-            final Map<String, DatasetInfo> datasetToDatasetInfo = Maps.newHashMap();
-            for (final String dataset : queryInfo.datasets) {
-                datasetToDatasetInfo.put(dataset, imhotepClient.getDatasetInfo(dataset));
-            }
 
             for (final DatasetField datasetField : datasetFields) {
                 datasetField.dataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
-                final DatasetInfo datasetInfo = datasetToDatasetInfo.get(datasetField.dataset);
+                final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
                 final Collection<String> intFields = datasetInfo.getIntFields();
-                final Collection<String> StringFields = datasetInfo.getStringFields();
+                final Collection<String> stringFields = datasetInfo.getStringFields();
                 String field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
                 if (field == null) {
-                    field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
+                    field = stringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);

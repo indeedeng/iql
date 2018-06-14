@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * @author jessec
  */
 
-public class FieldExtracter {
+public class FieldExtractor {
 
 	public static class DatasetField {
 		@Nullable public String dataset;
@@ -40,16 +40,22 @@ public class FieldExtracter {
 		}
 
 		@Override
-		public boolean equals(Object o) {
-			if (this == o) return true;
-			if (o == null || getClass() != o.getClass()) return false;
-			final DatasetField other = (DatasetField)o;
-			return (dataset == null ? other.dataset == null : dataset.equals(other.dataset)) && field.equals(other.field) && aliasResolved == other.aliasResolved;
+		public boolean equals(final Object o) {
+			if (this == o) {
+				return true;
+			}
+			if (o == null || getClass() != o.getClass()) {
+				return false;
+			}
+			final DatasetField that = (DatasetField) o;
+			return aliasResolved == that.aliasResolved &&
+					Objects.equal(dataset, that.dataset) &&
+					Objects.equal(field, that.field);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(dataset) + Objects.hashCode(field) + Boolean.hashCode(aliasResolved);
+			return Objects.hashCode(dataset, field, aliasResolved);
 		}
 	}
 
@@ -62,15 +68,15 @@ public class FieldExtracter {
 	public static Set<DatasetField> getDatasetFields(final Query query) {
 		final Set<DatasetField> fields = Sets.newHashSet();
 		if (query.filter.isPresent()) {
-			fields.addAll(FieldExtracter.getDatasetFields(query.filter.get()));
+			fields.addAll(FieldExtractor.getDatasetFields(query.filter.get()));
 		}
 		for (final AggregateMetric aggregateMetric : query.selects) {
-			fields.addAll(FieldExtracter.getDatasetFields(aggregateMetric));
+			fields.addAll(FieldExtractor.getDatasetFields(aggregateMetric));
 		}
 		for (final GroupByEntry groupByEntry : query.groupBys) {
-			fields.addAll(FieldExtracter.getDatasetFields(groupByEntry.groupBy));
+			fields.addAll(FieldExtractor.getDatasetFields(groupByEntry.groupBy));
 			if (groupByEntry.filter.isPresent()) {
-				fields.addAll(FieldExtracter.getDatasetFields(groupByEntry.filter.get()));
+				fields.addAll(FieldExtractor.getDatasetFields(groupByEntry.filter.get()));
 			}
 		}
 
