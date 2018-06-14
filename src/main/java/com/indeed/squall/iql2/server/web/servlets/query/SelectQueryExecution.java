@@ -56,7 +56,6 @@ import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
-import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.commands.Command;
@@ -66,6 +65,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.util.FieldExtracter;
+import com.indeed.squall.iql2.language.util.FieldExtracter.DatasetField;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
@@ -327,60 +327,27 @@ public class SelectQueryExecution implements Closeable {
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
 
-            final Set<String> rawDatasetFields = Sets.newHashSet();
-            if (parseResult.query.filter.isPresent()) {
-                rawDatasetFields.addAll(FieldExtracter.getFields(parseResult.query.filter.get()));
-            }
-            for (final AggregateMetric aggregateMetric : parseResult.query.selects) {
-                rawDatasetFields.addAll(FieldExtracter.getFields(aggregateMetric));
-            }
-            for (final GroupByEntry groupByEntry : parseResult.query.groupBys) {
-                rawDatasetFields.addAll(FieldExtracter.getFields(groupByEntry.groupBy));
-                if (groupByEntry.filter.isPresent()) {
-                    rawDatasetFields.addAll(FieldExtracter.getFields(groupByEntry.filter.get()));
-                }
-            }
+            final Set<DatasetField> datasetFields = FieldExtracter.getDatasetFields(parseResult.query);
+            queryInfo.datasetFields = Sets.newHashSet();
 
             final Map<String, DatasetInfo> datasetToDatasetInfo = Maps.newHashMap();
-            for (final String dataset : upperCaseToActualDataset.values()) {
+            for (final String dataset : queryInfo.datasets) {
                 datasetToDatasetInfo.put(dataset, imhotepClient.getDatasetInfo(dataset));
             }
 
-
-            queryInfo.datasetFields = Sets.newHashSet();
-            for (final String rawDatasetField : rawDatasetFields) {
-                final String[] parts = rawDatasetField.split("\\.");
-                if (parts.length == 2) {
-                    final String dataset = upperCaseToActualDataset.get(parts[0].toUpperCase());
-                    if (dataset != null) {
-                        final DatasetInfo datasetInfo = datasetToDatasetInfo.get(dataset);
-                        final Collection<String> intFields = datasetInfo.getIntFields();
-                        final Collection<String> StringFields = datasetInfo.getStringFields();
-                        String field;
-                        field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(parts[1]) == 0).findFirst().orElse(null);
-                        if (field == null) {
-                            field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[1]) == 0).findFirst().orElse(null);
-                        }
-                        if (field != null) {
-                            queryInfo.datasetFields.add(dataset + "." + field);
-                        }
-                    }
-                } else if(parts.length == 1) {
-                    for (final Map.Entry<String, DatasetInfo> entry : datasetToDatasetInfo.entrySet()) {
-                        final Collection<String> intFields = entry.getValue().getIntFields();
-                        final Collection<String> StringFields = entry.getValue().getStringFields();
-                        String field;
-                        field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(parts[0]) == 0).findFirst().orElse(null);
-                        if (field == null) {
-                            field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(parts[0]) == 0).findFirst().orElse(null);
-                        }
-                        if (field != null) {
-                            queryInfo.datasetFields.add(entry.getKey() + "." + field);
-                        }
-                    }
+            for (final DatasetField datasetField : datasetFields) {
+                datasetField.dataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
+                final DatasetInfo datasetInfo = datasetToDatasetInfo.get(datasetField.dataset);
+                final Collection<String> intFields = datasetInfo.getIntFields();
+                final Collection<String> StringFields = datasetInfo.getStringFields();
+                String field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
+                if (field == null) {
+                    field = StringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
+                }
+                if (field != null) {
+                    queryInfo.datasetFields.add(datasetField.dataset + "." + field);
                 }
             }
-
         }
 
         final int sessions = parseResult.query.datasets.size();

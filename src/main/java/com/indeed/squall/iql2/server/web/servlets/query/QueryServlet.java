@@ -411,7 +411,7 @@ public class QueryServlet {
 
         logBoolean(logEntry, "cached", queryInfo.cached);
         logSet(logEntry, "dataset", queryInfo.datasets);
-        if (queryInfo.datasetFields.size() > 0) {
+        if (errorOccurred == null && queryInfo.datasetFields.size() > 0) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
         }
         if (queryInfo.totalDatasetRange != null) {
