@@ -16,6 +16,7 @@ import com.indeed.squall.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -70,28 +71,50 @@ public class FieldExtractor {
 	};
 
 	public static Set<DatasetField> getDatasetFields(final Query query) {
-		final Set<DatasetField> fields = Sets.newHashSet();
+
+		Set<DatasetField> datasetFields = Sets.newHashSet();
 		if (query.filter.isPresent()) {
-			fields.addAll(FieldExtractor.getDatasetFields(query.filter.get()));
+			datasetFields.addAll(FieldExtractor.getDatasetFields(query.filter.get()));
 		}
 		for (final AggregateMetric aggregateMetric : query.selects) {
-			fields.addAll(FieldExtractor.getDatasetFields(aggregateMetric));
+			datasetFields.addAll(FieldExtractor.getDatasetFields(aggregateMetric));
 		}
 		for (final GroupByEntry groupByEntry : query.groupBys) {
-			fields.addAll(FieldExtractor.getDatasetFields(groupByEntry.groupBy));
+			datasetFields.addAll(FieldExtractor.getDatasetFields(groupByEntry.groupBy));
 			if (groupByEntry.filter.isPresent()) {
-				fields.addAll(FieldExtractor.getDatasetFields(groupByEntry.filter.get()));
+				datasetFields.addAll(FieldExtractor.getDatasetFields(groupByEntry.filter.get()));
 			}
 		}
 
+		datasetFields = fillMissingDatasets(datasetFields, query.datasets);
+		datasetFields = resolveAliases(datasetFields, query.datasets);
+
+		return datasetFields;
+	}
+
+	private static Set<DatasetField> fillMissingDatasets(final Set<DatasetField> datasetFields, final List<Dataset> datasets) {
+		final Set<DatasetField> newDatasetFields  = Sets.newHashSet();
+		for (final DatasetField unfilledDatasetField : datasetFields) {
+			if (unfilledDatasetField.aliasResolved || unfilledDatasetField.dataset != null) {
+				newDatasetFields.add(unfilledDatasetField);
+			} else {
+				for (final Dataset dataset : datasets) {
+					newDatasetFields.add(new DatasetField(unfilledDatasetField.field, dataset.dataset.unwrap()));
+				}
+			}
+		}
+		return newDatasetFields;
+	}
+
+	private static Set<DatasetField> resolveAliases(final Set<DatasetField> unresolvedDatasetFields, final List<Dataset> datasets) {
+
 		final Map<String, String> aliasToAcutalDataset = Maps.newHashMap();
-		for (final Dataset dataset : query.datasets) {
+		final Map<String, Map<String, String>> datasetToFieldAliases = Maps.newHashMap();
+
+		for (final Dataset dataset : datasets) {
 			if (dataset.alias.isPresent()) {
 				aliasToAcutalDataset.put(dataset.alias.get().unwrap(), dataset.dataset.unwrap());
 			}
-		}
-		final Map<String, Map<String, String>> datasetToFieldAliases = Maps.newHashMap();
-		for (final Dataset dataset : query.datasets) {
 			final Map<String, String> fieldAliases = Maps.newHashMap();
 			dataset.fieldAliases.forEach(
 					(field, alias) -> {
@@ -101,23 +124,8 @@ public class FieldExtractor {
 			datasetToFieldAliases.put(dataset.dataset.unwrap(), fieldAliases);
 		}
 
-		final Set<DatasetField> datasetFields  = Sets.newHashSet();
-		for (final DatasetField unresolvedField : fields) {
-			if (unresolvedField.aliasResolved) {
-				datasetFields.add(unresolvedField);
-				continue;
-			}
 
-			if (unresolvedField.dataset != null) {
-				datasetFields.add(unresolvedField);
-			} else {
-				for (final Dataset dataset : query.datasets) {
-					datasetFields.add(new DatasetField(unresolvedField.field, dataset.dataset.unwrap()));
-				}
-			}
-		}
-
-		for (final DatasetField unresolvedDatasetField : datasetFields) {
+		for (final DatasetField unresolvedDatasetField : unresolvedDatasetFields) {
 
 			if (unresolvedDatasetField.aliasResolved) {
 				continue;
@@ -138,7 +146,7 @@ public class FieldExtractor {
 			unresolvedDatasetField.aliasResolved = true;
 		}
 
-		return datasetFields;
+		return unresolvedDatasetFields;
 	}
 
 	@Nonnull
