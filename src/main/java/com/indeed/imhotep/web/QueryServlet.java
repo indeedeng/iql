@@ -218,7 +218,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, imhotepClient, selectQuery);
+                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -731,7 +731,6 @@ public class QueryServlet {
                                  Throwable errorOccurred,
                                  String remoteAddr,
                                  MetricStatsEmitter metricStatsEmitter,
-                                 ImhotepClient imhotepClient,
                                  @Nullable SelectQuery selectQuery) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         final String userName = clientInfo.username;
@@ -784,7 +783,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, imhotepClient, errorOccurred != null);
+        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, errorOccurred != null);
         logEntry.setProperty("statement", queryType);
 
         if(selectQuery != null) {
@@ -801,7 +800,6 @@ public class QueryServlet {
     private static String logStatementData(IQLStatement parsedQuery,
                                     SelectQuery selectQuery,
                                     QueryLogEntry logEntry,
-                                    ImhotepClient imhotepClient,
                                     boolean error) {
         if(parsedQuery == null) {
             return "invalid";
@@ -809,7 +807,7 @@ public class QueryServlet {
         final String queryType;
         if(parsedQuery instanceof SelectStatement) {
             queryType = "select";
-            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry, imhotepClient, error);
+            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry, error);
         } else if(parsedQuery instanceof DescribeStatement) {
             queryType = "describe";
             final DescribeStatement describeStatement = (DescribeStatement) parsedQuery;
@@ -828,7 +826,6 @@ public class QueryServlet {
     private static void logSelectStatementData(SelectStatement selectStatement,
                                         SelectQuery selectQuery,
                                         QueryLogEntry logEntry,
-                                        ImhotepClient imhotepClient,
                                         boolean error) {
         final FromClause from = selectStatement.from;
         final GroupByClause groupBy = selectStatement.groupBy;
