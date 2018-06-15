@@ -17,8 +17,6 @@ package com.indeed.squall.iql2.execution;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -960,7 +958,7 @@ public class Session {
         }
         iterator.nextLong();
         // extracting result for other groups
-        final int size = iterator.getNumGroups() - 1;
+        final int size = Math.min(iterator.getNumGroups() - 1, result.length);
         for (int i = 0; i < size; i++) {
             result[i] += iterator.nextLong();
         }
