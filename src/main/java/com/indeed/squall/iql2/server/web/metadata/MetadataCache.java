@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
@@ -55,10 +56,12 @@ public class MetadataCache {
     @Nullable
     private final ImsClientInterface imsClient;
     private final ImhotepClient imhotepClient;
+    private final FieldFrequencyCache fieldFrequencyCache;
 
-    public MetadataCache(ImsClientInterface imsClient, ImhotepClient imhotepClient) {
+    public MetadataCache(ImsClientInterface imsClient, ImhotepClient imhotepClient, FieldFrequencyCache fieldFrequencyCache) {
         this.imsClient = imsClient;
         this.imhotepClient = imhotepClient;
+        this.fieldFrequencyCache = fieldFrequencyCache;
     }
 
     @Scheduled(fixedRate = 60000)

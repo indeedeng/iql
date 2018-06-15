@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class MetadataCacheTest {
     @Test
     public void testParseMetric() {
-        final MetadataCache metadataCache = new MetadataCache(null, null);
+        final MetadataCache metadataCache = new MetadataCache(null, null, null);
 
         final List<String> options = Collections.emptyList();
 
@@ -116,7 +116,7 @@ public class MetadataCacheTest {
         final ImhotepClient imhotepClient = new ImhotepClient("***REMOVED***",
                 "/imhotep/interactive-daemons", true);
         final ImsClientInterface realIMSClient = ImsClient.build("***REMOVED***");
-        final MetadataCache metadataCache = new MetadataCache(realIMSClient, imhotepClient);
+        final MetadataCache metadataCache = new MetadataCache(realIMSClient, imhotepClient, null);
         // check if all existed dimensions can be parsed correctly
         metadataCache.updateMetadata();
         // validate all dimensions
@@ -153,7 +153,7 @@ public class MetadataCacheTest {
 
     @Test
     public void testParseDataset() {
-        final MetadataCache metadataCache = new MetadataCache(null, null);
+        final MetadataCache metadataCache = new MetadataCache(null, null, null);
         final DatasetYaml imhotepDataset = new DatasetYaml();
         imhotepDataset.setName("imhotep");
         imhotepDataset.setType("Imhotep");

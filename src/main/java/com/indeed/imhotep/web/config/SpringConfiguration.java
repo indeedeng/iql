@@ -26,6 +26,7 @@ import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.CORSInterceptor;
 import com.indeed.imhotep.web.DataSourceLoader;
+import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.ImhotepClientPinger;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
@@ -124,6 +125,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return QueryCacheFactory.newQueryCache(env);
     }
 
+    @Bean
+    FieldFrequencyCache fieldFrequencyCache(final IQLDB iqldb) {
+        return new FieldFrequencyCache(iqldb);
+    }
+
     @Bean(destroyMethod = "close")
     public ImhotepClient imhotepClient() {
         if(env.getProperty("imhotep.daemons.localmode", Boolean.class, false)) {
@@ -166,13 +172,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // TODO: merge!
     // IQL1 metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"));
+    public ImhotepMetadataCache metadataCacheIQL1(final FieldFrequencyCache fieldFrequencyCache) {
+        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache);
     }
     // IQL2 metadata cache
     @Bean
-    public MetadataCache metadataCacheIQL2() {
-        return new MetadataCache(imsClientIQL2(), imhotepClient());
+    public MetadataCache metadataCacheIQL2(final FieldFrequencyCache fieldFrequencyCache) {
+        return new MetadataCache(imsClientIQL2(), imhotepClient(), fieldFrequencyCache);
     }
     @Bean
     public TopTermsCache topTermsCache() {
