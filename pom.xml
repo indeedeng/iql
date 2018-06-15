@@ -96,18 +96,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.indeed</groupId>
-            <artifactId>ims-rest-server</artifactId>
-            <version>${ims.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.indeed</groupId>
-            <artifactId>ims-rest-client</artifactId>
-            <version>${ims.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
         </dependency>
@@ -392,8 +380,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.101</imhotep.version>
-        <ims.version>4.0.4</ims.version>
+        <imhotep.version>9999-SNAPSHOT</imhotep.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>

@@ -28,7 +28,6 @@ import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
-import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
@@ -52,7 +51,7 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
 
-        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient);
+        final MetadataCache metadataCache = new MetadataCache(imhotepClient);
         metadataCache.updateMetadata();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
@@ -151,7 +150,6 @@ public class QueryServletTestUtils extends BasicTest {
     public static class Options {
         private Long subQueryTermLimit = -1L;
         private QueryCache queryCache = new NoOpQueryCache();
-        private ImsClientInterface imsClient;
         private boolean skipTestDimension = false;
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
@@ -166,11 +164,6 @@ public class QueryServletTestUtils extends BasicTest {
             final Options options = create();
             options.skipTestDimension = skipTestDimension;
             return options;
-        }
-
-        public Options setImsClient(ImsClientInterface imsClient) {
-            this.imsClient = imsClient;
-            return this;
         }
 
         public Options setSkipTestDimension(boolean skipTestDimension) {
@@ -223,9 +216,6 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL1(dataset.getShards(), expected, query, options);
-        if (!options.skipTestDimension) {
-            testIQL1(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
-        }
     }
 
     static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
@@ -243,9 +233,6 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL2(dataset.getShards(), expected, query, options);
-        if (!options.skipTestDimension) {
-            testIQL2(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
-        }
     }
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
@@ -292,9 +279,6 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testAll(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testAll(dataset.getShards(), expected, query, options);
-        if (!options.skipTestDimension) {
-            testAll(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
-        }
     }
 
 

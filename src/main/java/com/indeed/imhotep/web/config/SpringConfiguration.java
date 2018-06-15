@@ -33,9 +33,6 @@ import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryServlet;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
-import com.indeed.ims.client.ImsClient;
-import com.indeed.ims.client.ImsClientInterface;
-import com.indeed.ims.server.SpringContextAware;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.squall.iql2.server.web.servlets.query.QueryServletPackageMarker;
@@ -95,10 +92,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Autowired
     Environment env;
 
-    @Bean
-    SpringContextAware springContextAware(){
-        return new SpringContextAware();
-    }
     @Bean(destroyMethod = "shutdown")
     public ExecutorService executorService()  {
         return new ThreadPoolExecutor(
@@ -167,12 +160,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // IQL1 metadata cache
     @Bean
     public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"));
+        return new ImhotepMetadataCache(imhotepClient(), env.getProperty("disabled.fields"));
     }
     // IQL2 metadata cache
     @Bean
     public MetadataCache metadataCacheIQL2() {
-        return new MetadataCache(imsClientIQL2(), imhotepClient());
+        return new MetadataCache(imhotepClient());
     }
     @Bean
     public TopTermsCache topTermsCache() {
@@ -182,45 +175,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
         return new TopTermsCache(imhotepClient(), env.getProperty("topterms.cache.dir"),
                 IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER, topTermsCacheEnabled);
-    }
-
-    // We need 2 instances to be able to use them concurrently
-    @Bean(name = "imsClientIQL1")
-    public ImsClientInterface imsClientIQL1() {
-        return createIMSClient();
-    }
-
-    @Bean(name = "imsClientIQL2")
-    public ImsClientInterface imsClientIQL2() {
-        return createIMSClient();
-    }
-
-    private ImsClientInterface createIMSClient() {
-        final boolean imsEnabled = env.getProperty("ims.enabled", Boolean.class, true);
-        try {
-            ///A way to get the port from tomcat without a request
-            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
-                    Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
-            ArrayList<String> ports = new ArrayList<String>();
-            for (ObjectName obj : objs) {
-                String port = obj.getKeyProperty("port");
-                ports.add(port);
-            }
-            String url = "http://localhost:" + ports.get(0) + servletContext.getContextPath() + "/";
-            if(imsEnabled) {
-                return ImsClient.build(url);
-            } else {
-                log.info("IMS disabled by the ims.enabled setting");
-                return null;
-            }
-        } catch (URISyntaxException e) {
-            log.error("Failed to connect to the metadata service",e);
-        }
-        catch (Exception e) {
-            log.error(e);
-        }
-        return null;
     }
 
     @Bean

@@ -17,17 +17,10 @@ package com.indeed.squall.iql2.server.web.servlets.dataset;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.ims.client.DatasetInterface;
-import com.indeed.ims.client.ImsClientInterface;
-import com.indeed.ims.client.yamlFile.DatasetYaml;
-import com.indeed.ims.client.yamlFile.MetricsYaml;
 import it.unimi.dsi.fastutil.longs.LongList;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * dataset for normal and dimension shards
@@ -41,17 +34,11 @@ import java.util.Set;
 public class Dataset {
 
     public final List<DatasetShard> shards;
-    private final ImsClientInterface dimensionImsClient;
 
     private static final String DIMENSION_PREFIX = "_DIMENSION_";
 
     public Dataset(List<DatasetShard> shards) {
         this.shards = shards;
-        dimensionImsClient = new AliasDimensionClient(getShards());
-    }
-
-    public ImsClientInterface getDimensionImsClient() {
-        return dimensionImsClient;
     }
 
     public List<Shard> getShards() {
@@ -119,41 +106,6 @@ public class Dataset {
                 dimensionDoc.addStringTerms(stringFieldEntry.getKey(), stringFieldEntry.getValue());
             }
             return dimensionDoc;
-        }
-    }
-
-    private class AliasDimensionClient implements ImsClientInterface {
-        private final Map<String, DatasetYaml> datasetMap;
-        public AliasDimensionClient(final List<Shard> shards) {
-            datasetMap = new HashMap<>();
-            for (final Shard shard : shards) {
-                if (datasetMap.containsKey(shard.dataset)) {
-                    continue;
-                }
-                DatasetYaml dataset = new DatasetYaml();
-                dataset.setType("Imhotep");
-                dataset.setName(shard.dataset);
-
-                List<MetricsYaml> metrics = Lists.newArrayList();
-                final MemoryFlamdex flamdex = shard.flamdex;
-                for (String intField : flamdex.getIntFields()) {
-                    final MetricsYaml metric = new MetricsYaml();
-                    metric.setName(intField);
-                    metric.setExpr(DIMENSION_PREFIX +intField+"+0");
-                    metrics.add(metric);
-                }
-                dataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
-                datasetMap.put(shard.dataset, dataset);
-            }
-        }
-        @Override
-        public DatasetYaml[] getDatasets() {
-            return datasetMap.values().toArray(new DatasetYaml[datasetMap.size()]);
-        }
-
-        @Override
-        public DatasetInterface getDataset(final String s) {
-            throw new UnsupportedOperationException("You need to implement this");
         }
     }
 }
