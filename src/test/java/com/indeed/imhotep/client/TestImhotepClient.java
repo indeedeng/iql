@@ -137,10 +137,6 @@ public class TestImhotepClient extends ImhotepClient {
                     return new MTImhotepLocalMultiSession("TestSession", sessions.toArray(new ImhotepLocalSession[sessions.size()]),
                             new MemoryReservationContext(new ImhotepMemoryPool(Long.MAX_VALUE)),
                             new AtomicLong(Long.MAX_VALUE), "", "") {
-                        @Override
-                        protected void postClose() {
-
-                        }
 
                         //Workaround for regroupWithProtos to work in local (unit tests)
                         @Override
