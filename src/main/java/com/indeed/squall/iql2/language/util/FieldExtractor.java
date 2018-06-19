@@ -10,6 +10,7 @@ import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocMetric;
 import com.indeed.squall.iql2.language.GroupByEntry;
 import com.indeed.squall.iql2.language.Positioned;
+import com.indeed.squall.iql2.language.ScopedField;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Query;
@@ -64,6 +65,14 @@ public class FieldExtractor {
 		public int hashCode() {
 			return Objects.hashCode(dataset, field, aliasResolved);
 		}
+
+		static Set<DatasetField> fromScopedField(final ScopedField scopedField){
+			if (scopedField.scope.size() > 0) {
+				return scopedField.scope.stream().map(singleScope -> new DatasetField(scopedField.field.unwrap(), singleScope)).collect(Collectors.toSet());
+			} else {
+				return ImmutableSet.of(new DatasetField(scopedField.field));
+			}
+		}
 	}
 
 	private static Set<DatasetField> union(final Set<DatasetField> set1, final Set<DatasetField> set2) {
@@ -108,12 +117,12 @@ public class FieldExtractor {
 
 	private static Set<DatasetField> resolveAliases(final Set<DatasetField> unresolvedDatasetFields, final List<Dataset> datasets) {
 
-		final Map<String, String> aliasToAcutalDataset = Maps.newHashMap();
+		final Map<String, String> aliasToActualDataset = Maps.newHashMap();
 		final Map<String, Map<String, String>> datasetToFieldAliases = Maps.newHashMap();
 
 		for (final Dataset dataset : datasets) {
 			if (dataset.alias.isPresent()) {
-				aliasToAcutalDataset.put(dataset.alias.get().unwrap(), dataset.dataset.unwrap());
+				aliasToActualDataset.put(dataset.alias.get().unwrap(), dataset.dataset.unwrap());
 			}
 			final Map<String, String> fieldAliases = Maps.newHashMap();
 			dataset.fieldAliases.forEach(
@@ -131,16 +140,15 @@ public class FieldExtractor {
 				continue;
 			}
 
-			if (aliasToAcutalDataset.containsKey(unresolvedDatasetField.dataset)) {
-				unresolvedDatasetField.dataset = aliasToAcutalDataset.get(unresolvedDatasetField.dataset);
+			if (aliasToActualDataset.containsKey(unresolvedDatasetField.dataset)) {
+				unresolvedDatasetField.dataset = aliasToActualDataset.get(unresolvedDatasetField.dataset);
 			}
 
-			final Map<String, String> fieldAliases = datasetToFieldAliases.get(unresolvedDatasetField.dataset);
-			if (fieldAliases == null) {
-				throw new IllegalArgumentException("");
-			}
-			if (fieldAliases.containsKey(unresolvedDatasetField.field)) {
-				unresolvedDatasetField.field = fieldAliases.get(unresolvedDatasetField.field);
+			if (datasetToFieldAliases.containsKey(unresolvedDatasetField.dataset)) {
+				final Map<String, String> fieldAliases = datasetToFieldAliases.get(unresolvedDatasetField.dataset);
+				if (fieldAliases.containsKey(unresolvedDatasetField.field)) {
+					unresolvedDatasetField.field = fieldAliases.get(unresolvedDatasetField.field);
+				}
 			}
 
 			unresolvedDatasetField.aliasResolved = true;
@@ -175,15 +183,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.FieldInQuery fieldInQuery) throws RuntimeException {
-
-				final Set<DatasetField> set = Sets.newHashSet();
-				if (fieldInQuery.field.scope.size() > 0) {
-					set.addAll(fieldInQuery.field.scope.stream().map(singleScope -> new DatasetField(fieldInQuery.field.field.unwrap(), singleScope)).collect(Collectors.toSet()));
-				} else {
-					set.add(new DatasetField(fieldInQuery.field.field));
-				}
-				set.addAll(getDatasetFields(fieldInQuery.query));
-				return set;
+				return union(DatasetField.fromScopedField(fieldInQuery.field), getDatasetFields(fieldInQuery.query));
 			}
 
 			@Override
