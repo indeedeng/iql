@@ -43,6 +43,12 @@ public class FieldExtractor {
 			this.dataset = dataset;
 		}
 
+		public DatasetField(final String field, final String dataset, final boolean aliasResolved) {
+			this.field = field;
+			this.dataset = dataset;
+			this.aliasResolved = aliasResolved;
+		}
+
 		DatasetField(final Positioned<String> positionedField) {
 			this.field = positionedField.unwrap();
 		}
@@ -59,6 +65,15 @@ public class FieldExtractor {
 			return aliasResolved == that.aliasResolved &&
 					Objects.equal(dataset, that.dataset) &&
 					Objects.equal(field, that.field);
+		}
+
+		@Override
+		public String toString() {
+			return "DatasetField{" +
+					"dataset='" + dataset + '\'' +
+					", field='" + field + '\'' +
+					", aliasResolved=" + aliasResolved +
+					'}';
 		}
 
 		@Override
