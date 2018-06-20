@@ -148,28 +148,29 @@ public class FieldExtractor {
 			datasetToFieldAliases.put(dataset.dataset.unwrap(), fieldAliases);
 		}
 
+		final Set<DatasetField> resolvedDatasetFields  = Sets.newHashSet();
 
 		for (final DatasetField unresolvedDatasetField : unresolvedDatasetFields) {
 
-			if (unresolvedDatasetField.aliasResolved) {
-				continue;
-			}
-
-			if (aliasToActualDataset.containsKey(unresolvedDatasetField.dataset)) {
-				unresolvedDatasetField.dataset = aliasToActualDataset.get(unresolvedDatasetField.dataset);
-			}
-
-			if (datasetToFieldAliases.containsKey(unresolvedDatasetField.dataset)) {
-				final Map<String, String> fieldAliases = datasetToFieldAliases.get(unresolvedDatasetField.dataset);
-				if (fieldAliases.containsKey(unresolvedDatasetField.field)) {
-					unresolvedDatasetField.field = fieldAliases.get(unresolvedDatasetField.field);
+			if (!unresolvedDatasetField.aliasResolved) {
+				if (aliasToActualDataset.containsKey(unresolvedDatasetField.dataset)) {
+					unresolvedDatasetField.dataset = aliasToActualDataset.get(unresolvedDatasetField.dataset);
 				}
-			}
 
-			unresolvedDatasetField.aliasResolved = true;
+				if (datasetToFieldAliases.containsKey(unresolvedDatasetField.dataset)) {
+					final Map<String, String> fieldAliases = datasetToFieldAliases.get(unresolvedDatasetField.dataset);
+					if (fieldAliases.containsKey(unresolvedDatasetField.field)) {
+						unresolvedDatasetField.field = fieldAliases.get(unresolvedDatasetField.field);
+					}
+				}
+
+				unresolvedDatasetField.aliasResolved = true;
+			}
+			resolvedDatasetFields.add(unresolvedDatasetField);
+
 		}
 
-		return unresolvedDatasetFields;
+		return resolvedDatasetFields;
 	}
 
 	@Nonnull
@@ -723,7 +724,6 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.DocStatsPushes docStatsPushes) throws RuntimeException {
-				//TODO: Is this dataset specific?
 				return getDatasetFields(docStatsPushes.pushes);
 			}
 

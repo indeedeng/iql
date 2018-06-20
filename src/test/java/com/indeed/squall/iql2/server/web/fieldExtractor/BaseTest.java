@@ -26,6 +26,8 @@ public class BaseTest {
 
 	protected static final DatasetField ORGANIC_UNIXTIME = new DatasetField("UNIXTIME", "ORGANIC", true);
 
+	protected static final DatasetField JOBSEARCH_UNIXTIME = new DatasetField("UNIXTIME", "JOBSEARCH", true);
+
 	protected static final DatasetField JOBSEARCH_CTKRCVD = new DatasetField("CTKRCVD", "JOBSEARCH", true);
 
 	private static final WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
