@@ -172,21 +172,20 @@ public class ImhotepMetadataCache {
             }
         }
 
-        if (fieldFrequencyCache != null) {
-            final Map<String, Map<String, Integer>> fieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
-            if (fieldFrequencies != null) {
-                for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
-                    if (fieldFrequencies.containsKey(datasetMetadata.getName())) {
-                        final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.getName());
-                        for (final Map.Entry<String, Integer> entry : fieldToFrequency.entrySet()) {
-                            if (datasetMetadata.getFields().containsKey(entry.getKey())) {
-                                datasetMetadata.getFields().get(entry.getKey()).setFrequency(entry.getValue());
-                            }
+        final Map<String, Map<String, Integer>> fieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
+        if (fieldFrequencies != null) {
+            for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
+                if (fieldFrequencies.containsKey(datasetMetadata.getName())) {
+                    final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.getName());
+                    for (final Map.Entry<String, Integer> entry : fieldToFrequency.entrySet()) {
+                        if (datasetMetadata.getFields().containsKey(entry.getKey())) {
+                            datasetMetadata.getFields().get(entry.getKey()).setFrequency(entry.getValue());
                         }
                     }
                 }
             }
         }
+
 
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
             addStandardAliases(datasetMetadata);

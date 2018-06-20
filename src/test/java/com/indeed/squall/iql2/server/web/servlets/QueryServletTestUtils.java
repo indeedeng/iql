@@ -53,7 +53,7 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
 
-        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient, null);
+        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient, new FieldFrequencyCache(null));
         metadataCache.updateMetadata();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 

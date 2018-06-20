@@ -222,7 +222,7 @@ public class IQLDB {
 
     private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfields GROUP BY dataset, field";
 
-    public void deleteOutdatedFields() {
+    private void deleteOutdatedFields() {
         jdbcTemplate.execute(SQL_STATEMENT_DELETE_OUTDATED_RECORDS);
     }
 
