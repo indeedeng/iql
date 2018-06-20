@@ -15,9 +15,11 @@
 package com.indeed.imhotep.web;
 
 import com.google.common.collect.Maps;
+import com.indeed.util.core.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -27,7 +29,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -222,6 +223,8 @@ public class IQLDB {
 
     private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfields GROUP BY dataset, field";
 
+    private final static String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfields (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
+
     private void deleteOutdatedFields() {
         jdbcTemplate.execute(SQL_STATEMENT_DELETE_OUTDATED_RECORDS);
     }
@@ -240,5 +243,20 @@ public class IQLDB {
         return datasetFieldFrequencies;
     }
 
+    //TODO: Switch Pair<String, String> to DatasetField type after rebasing on IQL-601
+    public void incrementFieldFrequencies(final List<Pair<String, String>> datasetFields) {
+        jdbcTemplate.batchUpdate(SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY,
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(final PreparedStatement preparedStatement, final int i) throws SQLException {
+                        preparedStatement.setString(1, datasetFields.get(i).getFirst());
+                        preparedStatement.setString(2, datasetFields.get(i).getSecond());
+                    }
+                    @Override
+                    public int getBatchSize() {
+                        return datasetFields.size();
+                    }
+                });
+    }
 
 }
