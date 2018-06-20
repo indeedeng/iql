@@ -62,6 +62,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -126,7 +127,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    FieldFrequencyCache fieldFrequencyCache(final IQLDB iqldb) {
+    FieldFrequencyCache fieldFrequencyCache(@Nullable final IQLDB iqldb) {
         return new FieldFrequencyCache(iqldb);
     }
 

@@ -18,6 +18,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.web.FieldFrequencyCache;
@@ -110,6 +111,8 @@ public class MetadataCache {
             datasetToDatasetYaml.put(imsDataset.getName(), imsDataset);
         }
 
+        final Map<String, Map<String, Integer>> datasetToFieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
+
         for (final Map.Entry<String, DatasetInfo> entry : datasetToShardList.entrySet()) {
             final Set<FieldMetadata> intFields = new HashSet<>();
             final Set<FieldMetadata> strFields = new HashSet<>();
@@ -121,11 +124,13 @@ public class MetadataCache {
             final Set<String> metrics = datasetToMetrics.getOrDefault(dataset, Collections.emptySet());
             final ImmutableFieldMetadata.Builder integerBuilder = ImmutableFieldMetadata.builder().setType(FieldMetadata.Type.Integer);
             final ImmutableFieldMetadata.Builder stringBuilder = ImmutableFieldMetadata.builder().setType(FieldMetadata.Type.String);
+            final Map<String, Integer> fieldFrequencies = datasetToFieldFrequencies.getOrDefault(dataset, Maps.newHashMap());
+
             for (String intField: datasetInfo.getIntFields()) {
                 final DatasetYaml datasetYaml = datasetToDatasetYaml.get(dataset);
                 final String description = (datasetYaml == null || datasetYaml.getFieldsMap().get(intField) == null)
                                 ? null : datasetYaml.getFieldsMap().get(intField).getDescription();
-                intFields.add(integerBuilder.setName(intField).setDescription(Strings.nullToEmpty(description)).build());
+                intFields.add(integerBuilder.setName(intField).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(intField, 0)).build());
             }
             for (String strField : datasetInfo.getStringFields()) {
                 final DatasetYaml datasetYaml = datasetToDatasetYaml.get(dataset);
@@ -134,7 +139,7 @@ public class MetadataCache {
                 if (metrics.contains(strField)) {
                     intFields.add(integerBuilder.setName(strField).setDescription(Strings.nullToEmpty(description)).build());
                 }
-                strFields.add(stringBuilder.setName(strField).setDescription(Strings.nullToEmpty(description)).build());
+                strFields.add(stringBuilder.setName(strField).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(strField, 0)).build());
             }
             if (entry.getValue().getIntFields().isEmpty()) {
                 log.trace(dataset + " is ramses index");
