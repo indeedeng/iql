@@ -51,10 +51,11 @@ public class GetGroupDistincts implements Command {
     }
 
     @Override
-    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        // TODO: delete 'options.contains("useSimpleDistinct")' check when new functionality is tested.
-        if (options.contains("useSimpleDistinct")
-                && (windowSize == 1)
+    public com.indeed.squall.iql2.execution.commands.Command toExecutionCommand(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet,
+            final List<String> options) {
+        if ((windowSize == 1)
                 && !filter.isPresent()
                 && (scope.size() == 1)) {
             return new GetSimpleGroupDistincts(Iterables.getOnlyElement(scope), field);

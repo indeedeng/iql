@@ -21,8 +21,6 @@ import com.indeed.squall.iql2.server.web.servlets.dataset.Dataset;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,20 +28,7 @@ import java.util.List;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.squall.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
-@RunWith(Parameterized.class)
 public class DistinctTest extends BasicTest {
-
-    @Parameterized.Parameters
-    public static Iterable<String[]> options() {
-        // running queries with old and new distinct calculation functionality
-        return Lists.newArrayList(new String[]{""}, new String[]{" OPTIONS['useSimpleDistinct']"});
-    }
-
-    private final String options;
-
-    public DistinctTest(final String options) {
-        this.options = options;
-    }
 
     static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = Lists.newArrayList();
@@ -80,7 +65,7 @@ public class DistinctTest extends BasicTest {
 
     @Test
     public void basicDistinct() throws Exception {
-        testAll(createDataset(), ImmutableList.of(ImmutableList.of("", "4")), "from distinct yesterday 2015-01-10 select distinct(tk)" + options);
+        testAll(createDataset(), ImmutableList.of(ImmutableList.of("", "4")), "from distinct yesterday 2015-01-10 select distinct(tk)");
     }
 
     @Test
@@ -95,7 +80,7 @@ public class DistinctTest extends BasicTest {
                 ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "2"),
                 ImmutableList.of("[2015-01-08 00:00:00, 2015-01-09 00:00:00)", "0"),
                 ImmutableList.of("[2015-01-09 00:00:00, 2015-01-10 00:00:00)", "0")
-        ), "from distinct yesterday 2015-01-10 group by time(1d) select distinct(tk)" + options);
+        ), "from distinct yesterday 2015-01-10 group by time(1d) select distinct(tk)");
     }
 
     @Test
