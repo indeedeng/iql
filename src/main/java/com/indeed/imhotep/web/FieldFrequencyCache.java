@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * @author jessec
+ * @author jessec@indeed.com (Jesse Chen)
  */
 
 public class FieldFrequencyCache {

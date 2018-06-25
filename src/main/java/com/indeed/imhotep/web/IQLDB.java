@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -219,11 +220,11 @@ public class IQLDB {
         }
     }
 
-    private final static String SQL_STATEMENT_DELETE_OUTDATED_RECORDS = "DELETE FROM tblfields WHERE used_date < CURDATE() - INTERVAL 60 DAY";
+    private final static String SQL_STATEMENT_DELETE_OUTDATED_RECORDS = "DELETE FROM tblfieldfreq WHERE used_date < CURDATE() - INTERVAL 60 DAY";
 
-    private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfields GROUP BY dataset, field";
+    private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfieldfreq GROUP BY dataset, field";
 
-    private final static String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfields (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
+    private final static String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfieldfreq (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
 
     private void deleteOutdatedFields() {
         jdbcTemplate.execute(SQL_STATEMENT_DELETE_OUTDATED_RECORDS);
@@ -231,15 +232,17 @@ public class IQLDB {
 
     public Map<String, Map<String, Integer>> getDatasetFieldFrequencies() {
         deleteOutdatedFields();
-        final List<Map<String, Object>> rows = jdbcTemplate.queryForList(SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY);
+
+        final SqlRowSet srs = jdbcTemplate.queryForRowSet(SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY);
         final Map<String, Map<String, Integer>> datasetFieldFrequencies = Maps.newHashMap();
-        for(final Map<String, Object> row : rows) {
-            final String dataset = (String) row.get("dataset");
+        while (srs.next()) {
+            final String dataset = srs.getString("dataset");
             final Map<String, Integer> fieldToFrequency = datasetFieldFrequencies.computeIfAbsent(dataset, key -> Maps.newHashMap());
-            final String field = (String) row.get("field");
-            final Integer frequency = ((BigDecimal) row.get("frequency")).intValue();
+            final String field = srs.getString("field");
+            final Integer frequency = srs.getInt("frequency");
             fieldToFrequency.put(field, frequency);
         }
+
         return datasetFieldFrequencies;
     }
 
