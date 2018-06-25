@@ -152,6 +152,6 @@ public class AggregateMetricTest extends BaseTest{
 
 	@Test
 	public void testDivideByCount() {
-		//TODO
+		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select variance(oji/count())");
 	}
 }
