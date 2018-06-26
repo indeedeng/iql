@@ -14,6 +14,7 @@
 
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.primitives.Booleans;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
@@ -71,12 +72,7 @@ public class ApplyGroupFilter implements Command {
             }
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
-        int keepCount = 0;
-        for (final boolean b : keep) {
-            if (b) {
-                keepCount++;
-            }
-        }
+        final int keepCount = Booleans.countTrue(keep);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keepCount];
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
