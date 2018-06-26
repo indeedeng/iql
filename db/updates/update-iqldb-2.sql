@@ -8,7 +8,7 @@ CREATE TABLE `tbllimits` (
   `query_ftgs_imhotep_daemon_limit_mb` int(11) DEFAULT NULL,
   `concurrent_queries_limit` int(11) DEFAULT NULL,
   `concurrent_imhotep_sessions_limit` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Contains custom limits for specific users and clients';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Contains custom limits for specific users and clients';
 
 ALTER TABLE `tbllimits`
   ADD PRIMARY KEY (`id`),
