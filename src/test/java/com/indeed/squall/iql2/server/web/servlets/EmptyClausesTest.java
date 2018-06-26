@@ -41,7 +41,20 @@ public class EmptyClausesTest extends BasicTest {
         testAll(OrganicDataset.create(), expected, "from organic yesterday today where select");
         testAll(OrganicDataset.create(), expected, "from organic yesterday today where group by select");
         testAll(OrganicDataset.create(), expected, "from organic yesterday today group by select");
+        testAll(OrganicDataset.create(), expected, "select from organic yesterday today");
+        testAll(OrganicDataset.create(), expected, "select from organic yesterday today where");
+        testAll(OrganicDataset.create(), expected, "select from organic yesterday today where group by");
    }
+
+    @Test
+    public void selectFromAliased() throws Exception {
+        // This test is not strictly about empty clauses, but
+        // about disambiguating between empty select (select from)
+        // and select from where from is an aliased field name
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "2653"));
+        testAll(OrganicDataset.create(), expected, "select from from organic yesterday today aliasing (oji as from)", true);
+    }
 
     @Test
     public void emptySelectIsCountWithGroupBy() throws Exception {

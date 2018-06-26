@@ -111,11 +111,11 @@ public class Query extends AbstractPositional {
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
             final int numFormattedAggregateMetrics = selectSet.formattedAggregateMetric().size();
-            final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(numFormattedAggregateMetrics);
             if (numFormattedAggregateMetrics == 0) {
                 selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
                 formatStrings = Collections.singletonList(Optional.<String>absent());
             } else {
+                final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(numFormattedAggregateMetrics);
                 formatStrings = new ArrayList<>();
                 Optional<String> formatString;
                 for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
