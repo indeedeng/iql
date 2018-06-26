@@ -17,8 +17,10 @@ import com.google.common.base.Joiner;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class QueryLogEntry implements Iterable<Entry<String,String>> {
     private Map<String, String> propertyMap;
@@ -37,6 +39,10 @@ public class QueryLogEntry implements Iterable<Entry<String,String>> {
 
     public void setProperty(String key, int val) {
         propertyMap.put(key, Integer.toString(val));
+    }
+
+    public void setProperty(String key, Set<String> val) {
+        propertyMap.put(key, Joiner.on(",").join(val));
     }
 
     @Override

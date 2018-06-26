@@ -43,7 +43,6 @@ import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -84,6 +83,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -783,7 +783,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry);
+        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, errorOccurred != null);
         logEntry.setProperty("statement", queryType);
 
         if(selectQuery != null) {
@@ -799,14 +799,15 @@ public class QueryServlet {
     // Log to logrepo
     private static String logStatementData(IQLStatement parsedQuery,
                                     SelectQuery selectQuery,
-                                    QueryLogEntry logEntry) {
+                                    QueryLogEntry logEntry,
+                                    boolean error) {
         if(parsedQuery == null) {
             return "invalid";
         }
         final String queryType;
         if(parsedQuery instanceof SelectStatement) {
             queryType = "select";
-            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry);
+            logSelectStatementData((SelectStatement) parsedQuery, selectQuery, logEntry, error);
         } else if(parsedQuery instanceof DescribeStatement) {
             queryType = "describe";
             final DescribeStatement describeStatement = (DescribeStatement) parsedQuery;
@@ -824,7 +825,8 @@ public class QueryServlet {
 
     private static void logSelectStatementData(SelectStatement selectStatement,
                                         SelectQuery selectQuery,
-                                        QueryLogEntry logEntry) {
+                                        QueryLogEntry logEntry,
+                                        boolean error) {
         final FromClause from = selectStatement.from;
         final GroupByClause groupBy = selectStatement.groupBy;
         final SelectClause select =  selectStatement.select;
@@ -875,6 +877,15 @@ public class QueryServlet {
             logEntry.setProperty("ioSlotsExecTimeMs", performanceStats.ioSlotsExecTimeMs);
             logEntry.setProperty("ioSlotsWaitTimeMs", performanceStats.ioSlotsWaitTimeMs);
         }
+
+        if (!error) {
+            final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
+            final Set<String> datasetFields = fields.stream().map(field -> from.getDataset() + "." + field).collect(Collectors.toSet());
+            if (datasetFields.size() > 0) {
+                logEntry.setProperty("datasetfield", datasetFields);
+            }
+        }
+
     }
 
     private static void logQueryToLog4J(String query, String identification, long timeTaken) {

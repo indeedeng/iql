@@ -33,6 +33,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -63,6 +64,8 @@ import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
+import com.indeed.squall.iql2.language.util.FieldExtractor;
+import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
@@ -323,6 +326,23 @@ public class SelectQueryExecution implements Closeable {
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
+
+            final Set<DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
+            queryInfo.datasetFields = Sets.newHashSet();
+
+            for (final DatasetField datasetField : datasetFields) {
+                datasetField.dataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
+                final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
+                final Collection<String> intFields = datasetInfo.getIntFields();
+                final Collection<String> stringFields = datasetInfo.getStringFields();
+                String field = intFields.stream().filter(intField -> intField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
+                if (field == null) {
+                    field = stringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
+                }
+                if (field != null) {
+                    queryInfo.datasetFields.add(datasetField.dataset + "." + field);
+                }
+            }
         }
 
         final int sessions = parseResult.query.datasets.size();
@@ -718,6 +738,8 @@ public class SelectQueryExecution implements Closeable {
         @Nullable Set<String> cacheHashes;
         @Nullable Integer maxGroups;
         @Nullable Integer maxConcurrentSessions;
+        @Nullable Set<String> datasetFields;
+
     }
 
     private static class SelectExecutionInformation {

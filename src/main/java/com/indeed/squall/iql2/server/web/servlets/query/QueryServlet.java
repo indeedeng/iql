@@ -32,7 +32,6 @@ import com.indeed.imhotep.web.QueryLogEntry;
 import com.indeed.imhotep.web.QueryMetrics;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -412,6 +411,9 @@ public class QueryServlet {
 
         logBoolean(logEntry, "cached", queryInfo.cached);
         logSet(logEntry, "dataset", queryInfo.datasets);
+        if (errorOccurred == null && queryInfo.datasetFields.size() > 0) {
+            logSet(logEntry, "datasetfield", queryInfo.datasetFields);
+        }
         if (queryInfo.totalDatasetRange != null) {
             logInteger(logEntry, "days", queryInfo.totalDatasetRange.toStandardDays().getDays());
         }
