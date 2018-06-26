@@ -15,6 +15,7 @@
 package com.indeed.imhotep.web;
 
 import com.google.common.collect.Maps;
+import com.indeed.squall.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -246,14 +247,13 @@ public class IQLDB {
         return datasetFieldFrequencies;
     }
 
-    //TODO: Switch Pair<String, String> to DatasetField type after rebasing on IQL-601
-    public void incrementFieldFrequencies(final List<Pair<String, String>> datasetFields) {
+    public void incrementFieldFrequencies(final List<FieldExtractor.DatasetField> datasetFields) {
         jdbcTemplate.batchUpdate(SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY,
                 new BatchPreparedStatementSetter() {
                     @Override
                     public void setValues(final PreparedStatement preparedStatement, final int i) throws SQLException {
-                        preparedStatement.setString(1, datasetFields.get(i).getFirst());
-                        preparedStatement.setString(2, datasetFields.get(i).getSecond());
+                        preparedStatement.setString(1, datasetFields.get(i).dataset);
+                        preparedStatement.setString(2, datasetFields.get(i).field);
                     }
                     @Override
                     public int getBatchSize() {

@@ -41,6 +41,7 @@ import com.indeed.imhotep.sql.ast2.SelectClause;
 import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
+import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.util.core.io.Closeables2;
@@ -119,6 +120,7 @@ public class QueryServlet {
     private final AccessControl accessControl;
     private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
+    private final IQLDB iqldb;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -129,7 +131,8 @@ public class QueryServlet {
                         ExecutorService executorService,
                         AccessControl accessControl,
                         com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2,
-                        MetricStatsEmitter metricStatsEmitter) {
+                        MetricStatsEmitter metricStatsEmitter,
+                        @Nullable IQLDB iqldb) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
@@ -139,6 +142,7 @@ public class QueryServlet {
         this.accessControl = accessControl;
         this.queryServletV2 = queryServletV2;
         this.metricStatsEmitter = metricStatsEmitter;
+        this.iqldb = iqldb;
     }
 
     @RequestMapping("/query")
@@ -197,6 +201,7 @@ public class QueryServlet {
                     if(!selectQuery.isAsynchronousRelease()) {
                         Closeables2.closeQuietly(selectQuery, log);
                     }
+
                 }
             } else if(parsedQuery instanceof DescribeStatement) {
                 handleDescribeStatement(req, resp, (DescribeStatement)parsedQuery);
@@ -219,6 +224,7 @@ public class QueryServlet {
                     remoteAddr = req.getRemoteAddr();
                 }
                 logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
+                logSelectQueryFieldFrequencies(parsedQuery, selectQuery, errorOccurred != null);
             } catch (Throwable ignored) { }
         }
     }
@@ -714,6 +720,18 @@ public class QueryServlet {
             final ServletOutputStream outputStream = resp.getOutputStream();
             jsonMapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, error);
             outputStream.close();
+        }
+    }
+
+    private void logSelectQueryFieldFrequencies(final IQLStatement parsedQuery, final SelectQuery selectQuery, final boolean error) {
+        if (!(parsedQuery instanceof SelectStatement) || error || iqldb == null) {
+            return;
+        }
+        final String dataset = ((SelectStatement) parsedQuery).from.getDataset();
+        final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
+        final List<DatasetField> datasetFields = fields.stream().map(field -> new DatasetField(field, dataset, true)).collect(Collectors.toList());
+        if (datasetFields.size() > 0) {
+            iqldb.incrementFieldFrequencies(datasetFields);
         }
     }
 

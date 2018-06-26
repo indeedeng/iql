@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.iql.cache.QueryCache;
@@ -27,11 +28,13 @@ import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.ErrorResult;
 import com.indeed.imhotep.web.GlobalUncaughtExceptionHandler;
+import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
 import com.indeed.imhotep.web.QueryMetrics;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
+import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -69,9 +72,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Controller("QueryServletV2")
 public class QueryServlet {
@@ -100,6 +106,9 @@ public class QueryServlet {
     private final TopTermsCache topTermsCache;
     private final MetricStatsEmitter metricStatsEmitter;
     private final WallClock clock;
+    private final IQLDB iqldb;
+    private final ExecutorService executorService;
+
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
@@ -113,8 +122,9 @@ public class QueryServlet {
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final MetricStatsEmitter metricStatsEmitter,
-            final WallClock clock
-    ) {
+            final WallClock clock,
+            @Nullable final IQLDB iqldb,
+            final ExecutorService executorService) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
@@ -123,6 +133,8 @@ public class QueryServlet {
         this.topTermsCache = topTermsCache;
         this.metricStatsEmitter = metricStatsEmitter;
         this.clock = clock;
+        this.iqldb = iqldb;
+        this.executorService = executorService;
     }
 
     public static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -239,6 +251,9 @@ public class QueryServlet {
                     remoteAddr = request.getRemoteAddr();
                 }
                 logQuery(request, query, queryStartTimestamp, errorOccurred, remoteAddr, queryInfo, clientInfo);
+                if (errorOccurred == null) {
+                    logSelectQueryFieldFrequencies(queryInfo.datasetFields);
+                }
             } catch (Throwable ignored) {
                 // Do nothing
             }
@@ -382,6 +397,19 @@ public class QueryServlet {
         }
     }
 
+    private void logSelectQueryFieldFrequencies(final Set<DatasetField> datasetFields) {
+        if (datasetFields.size() == 0 || iqldb == null) {
+            return;
+        }
+        executorService.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                iqldb.incrementFieldFrequencies(ImmutableList.copyOf(datasetFields));
+                return null;
+            }
+        });
+    }
+
     private void logQuery(HttpServletRequest req,
                           String query,
                           long queryStartTimestamp,
@@ -412,7 +440,7 @@ public class QueryServlet {
         logBoolean(logEntry, "cached", queryInfo.cached);
         logSet(logEntry, "dataset", queryInfo.datasets);
         if (errorOccurred == null && queryInfo.datasetFields.size() > 0) {
-            logSet(logEntry, "datasetfield", queryInfo.datasetFields);
+            logSet(logEntry, "datasetfield", queryInfo.datasetFields.stream().map(datasetField -> datasetField.dataset + "." + datasetField.field).collect(Collectors.toSet()));
         }
         if (queryInfo.totalDatasetRange != null) {
             logInteger(logEntry, "days", queryInfo.totalDatasetRange.toStandardDays().getDays());
