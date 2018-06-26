@@ -562,6 +562,7 @@ public class FieldExtractor {
 				if (groupByTime.field.isPresent()) {
 					return ImmutableSet.of(new DatasetField(groupByTime.field.get()));
 				}
+				//"unixtime" might be implicitly used here.
 				return ImmutableSet.of();
 			}
 
@@ -601,6 +602,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByDayOfWeek groupByDayOfWeek) throws RuntimeException {
+				//"unixtime" is implicitly used here.
 				return ImmutableSet.of();
 			}
 
