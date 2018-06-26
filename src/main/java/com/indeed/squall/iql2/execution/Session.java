@@ -61,7 +61,6 @@ import com.indeed.squall.iql2.execution.groupkeys.sets.MaskingGroupKeySet;
 import com.indeed.squall.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.squall.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
-import com.indeed.squall.iql2.execution.workarounds.GroupMultiRemapRuleRewriter;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -399,8 +398,7 @@ public class Session {
     private static ImhotepSession wrapSession(Map<String, String> fieldAliases, ImhotepSession build, Set<String> fieldNames) {
         final CaseInsensitiveImhotepSession caseInsensitive = new CaseInsensitiveImhotepSession(build, fieldNames);
         final FieldAliasingImhotepSession aliased = new FieldAliasingImhotepSession(caseInsensitive, fieldAliases);
-        final GroupMultiRemapRuleRewriter groupMultiRemapRuleRewriter = new GroupMultiRemapRuleRewriter(aliased);
-        return groupMultiRemapRuleRewriter;
+        return aliased;
     }
 
     // this datetime is serialized by standard Datetime by iql2-language

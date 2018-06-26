@@ -22,6 +22,7 @@ import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
@@ -77,6 +78,12 @@ public class LoggingImhotepSession implements ImhotepSession {
     public FTGSIterator getSubsetFTGSIterator(Map<String, long[]> intFields, Map<String, String[]> stringFields) {
         log.info("LoggingImhotepSession.getSubsetFTGSIterator: " + "intFields = [" + intFields + "], stringFields = [" + stringFields + "]");
         return wrapped.getSubsetFTGSIterator(intFields, stringFields);
+    }
+
+    @Override
+    public FTGSIterator getFTGSIterator(final FTGSParams params) {
+        log.info("LoggingImhotepSession.getFTGSIterator: " + "params = [" + params + "]");
+        return wrapped.getFTGSIterator(params);
     }
 
     @Override

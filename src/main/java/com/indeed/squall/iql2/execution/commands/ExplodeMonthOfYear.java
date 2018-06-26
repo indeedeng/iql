@@ -17,7 +17,6 @@ package com.indeed.squall.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -62,12 +61,6 @@ public class ExplodeMonthOfYear implements Command {
 
         session.timer.push("compute month remapping");
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[oldNumGroups * numBuckets];
-        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                .setField("fakeField")
-                .setIntType(true)
-                .setIntTerm(0)
-                .setInequality(false)
-                .build();
         int index = 0;
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
@@ -80,8 +73,6 @@ public class ExplodeMonthOfYear implements Command {
                 rules[index++] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(base)
                         .setNegativeGroup(newGroup)
-                        .addCondition(fakeCondition)
-                        .addPositiveGroup(newGroup)
                         .build();
             }
         }

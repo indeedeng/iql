@@ -17,7 +17,6 @@ package com.indeed.squall.iql2.execution.commands;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.GroupLookupMergeType;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -78,19 +77,11 @@ public class RegroupIntoParent implements Command {
 
         session.timer.push("create rules");
         final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
-        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                .setField("fakeField")
-                .setIntType(true)
-                .setIntTerm(1)
-                .setInequality(false)
-                .build();
         for (int group = 1; group <= session.numGroups; group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
             messages[group - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
                     .setNegativeGroup(newGroup)
-                    .addCondition(fakeCondition)
-                    .addPositiveGroup(newGroup)
                     .build();
         }
         session.timer.pop();

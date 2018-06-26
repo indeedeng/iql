@@ -14,10 +14,10 @@
 
 package com.indeed.squall.iql2.execution.commands;
 
+import com.google.common.primitives.Booleans;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.AggregateFilter;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.Session;
@@ -42,21 +42,21 @@ public class ApplyGroupFilter implements Command {
 
     private final AggregateFilter filter;
 
-    public ApplyGroupFilter(AggregateFilter filter) {
+    public ApplyGroupFilter(final AggregateFilter filter) {
         this.filter = filter;
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session, final Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final Set<QualifiedPush> requires = filter.requires();
-        final HashMap<QualifiedPush, Integer> metricIndexes = new HashMap<>();
-        final HashMap<String, IntList> sessionMetricIndexes = new HashMap<>();
+        final Map<QualifiedPush, Integer> metricIndexes = new HashMap<>();
+        final Map<String, IntList> sessionMetricIndexes = new HashMap<>();
         session.pushMetrics(requires, metricIndexes, sessionMetricIndexes, true);
         filter.register(metricIndexes, session.groupKeySet);
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;
@@ -72,33 +72,28 @@ public class ApplyGroupFilter implements Command {
             }
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
-        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keep.length - 1];
-        final RegroupConditionMessage fakeCondition =RegroupConditionMessage.newBuilder()
-                .setField("fakeField")
-                .setIntType(true)
-                .setIntTerm(0)
-                .setInequality(false)
-                .build();
+        final int keepCount = Booleans.countTrue(keep);
+        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keepCount];
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
         final IntList newGroupParents = new IntArrayList();
         newGroupParents.add(-1);
+        int ruleIndex = 0;
         for (int i = 1; i < keep.length; i++) {
-            final int newGroup = keep[i] ? newGroupParents.size() : 0;
-            rules[i - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(i)
-                    .setNegativeGroup(newGroup)
-                    .addCondition(fakeCondition)
-                    .addPositiveGroup(newGroup)
-                    .build();
             if (keep[i]) {
+                final int newGroup = newGroupParents.size();
+                rules[ruleIndex] = GroupMultiRemapMessage.newBuilder()
+                        .setTargetGroup(i)
+                        .setNegativeGroup(newGroup)
+                        .build();
+                ruleIndex++;
                 newGroupKeys.add(session.groupKeySet.groupKey(i));
                 newGroupParents.add(session.groupKeySet.parentGroup(i));
             }
         }
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 session.regroupWithProtos(rules, true);
             }
         });

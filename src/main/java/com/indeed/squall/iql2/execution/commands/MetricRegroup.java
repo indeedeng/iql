@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -88,12 +87,6 @@ public class MetricRegroup implements Command {
                 if (withDefaultBucket) {
                     timer.push("merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
                     final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[intermediateBuckets * groupsBefore];
-                    final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                            .setField("fakeField")
-                            .setIntType(true)
-                            .setIntTerm(0)
-                            .setInequality(false)
-                            .build();
                     for (int i = 0; i < rules.length; i++) {
                         final int group = i + 1;
                         final int groupOffset = (group - 1) % intermediateBuckets;
@@ -107,8 +100,6 @@ public class MetricRegroup implements Command {
                         rules[i] = GroupMultiRemapMessage.newBuilder()
                                 .setTargetGroup(group)
                                 .setNegativeGroup(newGroup)
-                                .addCondition(fakeCondition)
-                                .addPositiveGroup(newGroup)
                                 .build();
                     }
                     session.regroupWithProtos(rules, true);

@@ -17,7 +17,6 @@ package com.indeed.squall.iql2.execution.commands;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.groupkeys.sets.SessionNameGroupKeySet;
@@ -28,13 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ExplodeSessionNames implements Command {
-    private final RegroupConditionMessage FAKE_CONDITION = RegroupConditionMessage.newBuilder()
-            .setField("fakeField")
-            .setIntType(true)
-            .setIntTerm(0L)
-            .setInequality(false)
-            .build();
-
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final int numSessions = session.sessions.size();
@@ -54,8 +46,6 @@ public class ExplodeSessionNames implements Command {
                 messages[i] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(target)
                         .setNegativeGroup(newGroup)
-                        .addPositiveGroup(newGroup)
-                        .addCondition(FAKE_CONDITION)
                         .build();
             }
             session.timer.pop();

@@ -64,17 +64,11 @@ public class ExplodePerGroup implements Command {
 
             final List<Term> terms = termsWithExplodeOpts.terms;
             if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
-                RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                        .setField("fakeField")
-                        .setIntType(true)
-                        .setIntTerm(0L)
-                        .setInequality(false)
-                        .build();
+                // TODO: don't create this dummy message.
+                // count message count upfront and create only nontrivial messages
                 messages[group - 1] = GroupMultiRemapMessage.newBuilder()
                         .setTargetGroup(group)
                         .setNegativeGroup(0)
-                        .addPositiveGroup(0)
-                        .addCondition(fakeCondition)
                         .build();
                 continue;
             }
