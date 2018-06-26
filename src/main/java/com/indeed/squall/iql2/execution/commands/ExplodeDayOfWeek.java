@@ -17,7 +17,6 @@ package com.indeed.squall.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.TimeUnit;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -49,12 +48,6 @@ public class ExplodeDayOfWeek implements Command {
         session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups];
-        final RegroupConditionMessage fakeCondition = RegroupConditionMessage.newBuilder()
-                .setField("fakeField")
-                .setIntType(true)
-                .setIntTerm(0)
-                .setInequality(false)
-                .build();
         for (int group = 1; group <= numGroups; group++) {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
@@ -63,8 +56,6 @@ public class ExplodeDayOfWeek implements Command {
             rules[group - 1] = GroupMultiRemapMessage.newBuilder()
                     .setTargetGroup(group)
                     .setNegativeGroup(newGroup)
-                    .addCondition(fakeCondition)
-                    .addPositiveGroup(newGroup)
                     .build();
         }
         session.timer.pop();
