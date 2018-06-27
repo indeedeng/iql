@@ -67,7 +67,7 @@ public class QueryServletTestUtils extends BasicTest {
                 new TopTermsCache(imhotepClient, "", true, false),
                 MetricStatsEmitter.NULL_EMITTER,
                 options.wallClock,
-				iqldb, null);
+				new FieldFrequencyCache(null));
     }
 
     @SuppressWarnings("WeakerAccess")

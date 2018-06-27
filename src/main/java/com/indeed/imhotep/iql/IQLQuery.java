@@ -62,6 +62,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.indeed.imhotep.ez.Stats.Stat;
 
@@ -92,6 +93,7 @@ public final class IQLQuery implements Closeable {
     // session used for the current execution
     private EZImhotepSession session;
     private final Set<String> fields;
+    private final Set<String> datasetFields;
 
     public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
                     final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
@@ -106,6 +108,7 @@ public final class IQLQuery implements Closeable {
         this.metadata = metadata;
         this.limits = limits;
         this.fields = fields;
+        this.datasetFields = fields.stream().map(field -> dataset + "." + field).collect(Collectors.toSet());
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -662,7 +665,7 @@ public final class IQLQuery implements Closeable {
         return performanceStats;
     }
 
-    public Set<String> getFields() {
-        return fields;
+    public Set<String> getDatasetFields() {
+        return this.datasetFields;
     }
 }

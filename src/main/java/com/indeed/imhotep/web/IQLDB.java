@@ -38,7 +38,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
+import java.util.regex.Pattern;
 
 /**
  * @author vladimir
@@ -247,13 +247,14 @@ public class IQLDB {
         return datasetFieldFrequencies;
     }
 
-    public void incrementFieldFrequencies(final List<FieldExtractor.DatasetField> datasetFields) {
+    public void incrementFieldFrequencies(final List<String> datasetFields) {
         jdbcTemplate.batchUpdate(SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY,
                 new BatchPreparedStatementSetter() {
                     @Override
                     public void setValues(final PreparedStatement preparedStatement, final int i) throws SQLException {
-                        preparedStatement.setString(1, datasetFields.get(i).dataset);
-                        preparedStatement.setString(2, datasetFields.get(i).field);
+                        final String[] pair = datasetFields.get(i).split(Pattern.quote("."));
+                        preparedStatement.setString(1, pair[0]);
+                        preparedStatement.setString(2, pair[1]);
                     }
                     @Override
                     public int getBatchSize() {

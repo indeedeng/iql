@@ -17,6 +17,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
@@ -41,7 +42,6 @@ import com.indeed.imhotep.sql.ast2.SelectClause;
 import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.StatementParser;
-import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
 import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.util.core.io.Closeables2;
@@ -84,7 +84,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -120,7 +119,7 @@ public class QueryServlet {
     private final AccessControl accessControl;
     private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
-    private final IQLDB iqldb;
+    private final FieldFrequencyCache fieldFrequencyCache;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -132,7 +131,7 @@ public class QueryServlet {
                         AccessControl accessControl,
                         com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2,
                         MetricStatsEmitter metricStatsEmitter,
-                        @Nullable IQLDB iqldb) {
+                        FieldFrequencyCache fieldFrequencyCache) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
@@ -142,7 +141,7 @@ public class QueryServlet {
         this.accessControl = accessControl;
         this.queryServletV2 = queryServletV2;
         this.metricStatsEmitter = metricStatsEmitter;
-        this.iqldb = iqldb;
+        this.fieldFrequencyCache = fieldFrequencyCache;
     }
 
     @RequestMapping("/query")
@@ -224,7 +223,6 @@ public class QueryServlet {
                     remoteAddr = req.getRemoteAddr();
                 }
                 logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
-                logSelectQueryFieldFrequencies(parsedQuery, selectQuery, errorOccurred != null);
             } catch (Throwable ignored) { }
         }
     }
@@ -502,6 +500,7 @@ public class QueryServlet {
             outputStream.close();
             // we don't know number of rows as it's handled asynchronously
         }
+        fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
     }
 
     private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata) throws IOException {
@@ -723,18 +722,6 @@ public class QueryServlet {
         }
     }
 
-    private void logSelectQueryFieldFrequencies(final IQLStatement parsedQuery, final SelectQuery selectQuery, final boolean error) {
-        if (!(parsedQuery instanceof SelectStatement) || error || iqldb == null) {
-            return;
-        }
-        final String dataset = ((SelectStatement) parsedQuery).from.getDataset();
-        final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
-        final List<DatasetField> datasetFields = fields.stream().map(field -> new DatasetField(field, dataset, true)).collect(Collectors.toList());
-        if (datasetFields.size() > 0) {
-            iqldb.incrementFieldFrequencies(datasetFields);
-        }
-    }
-
     // Logging code below
 
     // trying to not cause the logentry to overflow from being larger than 2^16
@@ -897,8 +884,7 @@ public class QueryServlet {
         }
 
         if (!error) {
-            final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
-            final Set<String> datasetFields = fields.stream().map(field -> from.getDataset() + "." + field).collect(Collectors.toSet());
+            final Set<String> datasetFields = ((IQLQuery)(selectQuery.iqlQuery)).getDatasetFields();
             if (datasetFields.size() > 0) {
                 logEntry.setProperty("datasetfield", datasetFields);
             }

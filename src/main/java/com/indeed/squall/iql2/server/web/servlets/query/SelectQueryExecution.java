@@ -340,7 +340,7 @@ public class SelectQueryExecution implements Closeable {
                     field = stringFields.stream().filter(stringField -> stringField.compareToIgnoreCase(datasetField.field) == 0).findFirst().orElse(null);
                 }
                 if (field != null) {
-                    queryInfo.datasetFields.add(new DatasetField(field, datasetField.dataset, true));
+                    queryInfo.datasetFields.add(datasetField.dataset + "." + field);
                 }
             }
         }
@@ -738,7 +738,7 @@ public class SelectQueryExecution implements Closeable {
         @Nullable Set<String> cacheHashes;
         @Nullable Integer maxGroups;
         @Nullable Integer maxConcurrentSessions;
-        @Nullable Set<DatasetField> datasetFields;
+        @Nullable Set<String> datasetFields;
 
     }
 

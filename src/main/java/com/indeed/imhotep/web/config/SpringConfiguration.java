@@ -127,8 +127,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-    FieldFrequencyCache fieldFrequencyCache(@Nullable final IQLDB iqldb) {
-        return new FieldFrequencyCache(iqldb);
+    FieldFrequencyCache fieldFrequencyCache() {
+        return new FieldFrequencyCache(iqldb());
     }
 
     @Bean(destroyMethod = "close")
@@ -173,13 +173,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // TODO: merge!
     // IQL1 metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL1(final FieldFrequencyCache fieldFrequencyCache) {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache);
+    public ImhotepMetadataCache metadataCacheIQL1() {
+        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
     }
     // IQL2 metadata cache
     @Bean
-    public MetadataCache metadataCacheIQL2(final FieldFrequencyCache fieldFrequencyCache) {
-        return new MetadataCache(imsClientIQL2(), imhotepClient(), fieldFrequencyCache);
+    public MetadataCache metadataCacheIQL2() {
+        return new MetadataCache(imsClientIQL2(), imhotepClient(), fieldFrequencyCache());
     }
     @Bean
     public TopTermsCache topTermsCache() {
