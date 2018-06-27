@@ -62,7 +62,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -320,6 +319,11 @@ public class QueryServlet {
 
         ArrayList<String> warningList = new ArrayList<>();
 
+        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadata.get().getTypeConflictFieldNames());
+        if (conflictFieldsUsed.size() > 0) {
+            final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
+            warningList.add(conflictWarning);
+        }
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             long millisMissing = 0;

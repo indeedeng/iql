@@ -15,11 +15,16 @@
 package com.indeed.iql.metadata;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.indeed.iql.web.DatasetTypeConflictFields;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -29,11 +34,27 @@ import java.util.stream.Collectors;
 public class DatasetsMetadata {
     private final Map<String, DatasetMetadata> metadata;
     private final Map<String, Map<String, String>> datasetToDimensionAliasFields;
+    private final Set<String> typeConflictFieldNames;
     private static final DatasetsMetadata EMPTY_META = new DatasetsMetadata();
 
     private DatasetsMetadata() {
         metadata = Collections.emptyMap();
         datasetToDimensionAliasFields = Collections.emptyMap();
+        typeConflictFieldNames = Collections.emptySet();
+    }
+
+    public Set<String> getTypeConflictFieldNames() {
+        return typeConflictFieldNames;
+    }
+
+    public List<DatasetTypeConflictFields> getTypeConflictFields() {
+        final List<DatasetTypeConflictFields> result = Lists.newArrayList();
+        for (DatasetMetadata datasetMetadata : metadata.values()) {
+            if (datasetMetadata.conflictFieldNames.size() > 0) {
+                result.add(new DatasetTypeConflictFields(datasetMetadata.name, datasetMetadata.conflictFieldNames));
+            }
+        }
+        return result;
     }
 
     public DatasetsMetadata(final boolean caseInsensitiveNames, final Map<String, DatasetMetadata> metadata) {
@@ -45,6 +66,12 @@ public class DatasetsMetadata {
             datasetToDimensionAliasFields.put(dataset, meta.fieldToDimension.entrySet()
                     .stream().filter(dimension -> dimension.getValue().isAlias)
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasActualField().get())));
+        });
+        typeConflictFieldNames = new HashSet<>();
+        metadata.forEach((dataset, meta) -> {
+            for (final String conflictFieldName : meta.conflictFieldNames) {
+                typeConflictFieldNames.add(meta.name + "." + conflictFieldName);
+            }
         });
     }
 
