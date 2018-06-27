@@ -14,6 +14,7 @@
  package com.indeed.imhotep.iql;
 
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
@@ -27,6 +28,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.LongIterators;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -109,11 +111,12 @@ public class DistinctGrouping extends Grouping {
             final Field field = fields.get(i);
             final int projectionPosition = distinctProjectionPositions.get(i);
 
-            final DistinctFTGSCallback callback = new DistinctFTGSCallback(session.getStackDepth(), groupKeys);
-            session.ftgsIterate(Lists.newArrayList(field), callback);
-            final Int2IntMap distinctResults = callback.getResults();
+            final GroupStatsIterator distinctIter = session.getDistrinct(field);
+            final long[] distinctResults = LongIterators.unwrap(distinctIter, distinctIter.getNumGroups());
             for(int groupNum : groupKeys.keySet()) {
-                final int distinctResult = distinctResults.get(groupNum);
+                final int distinctResult =
+                        (groupNum < distinctResults.length) ?
+                                (int) distinctResults[groupNum] : 0;
 
                 Int2IntMap groupDistinctData = distinctData.get(groupNum);
                 if(groupDistinctData == null) {

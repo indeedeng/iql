@@ -16,22 +16,22 @@
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.TermCount;
+import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.iql.ScoredLong;
+import com.indeed.imhotep.iql.ScoredObject;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.imhotep.web.Limits;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
-import com.indeed.flamdex.query.Query;
-import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.TermCount;
-import com.indeed.imhotep.api.FTGSIterator;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.iql.ScoredLong;
-import com.indeed.imhotep.iql.ScoredObject;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -65,12 +65,12 @@ import static com.indeed.imhotep.ez.Stats.ConstantStat;
 import static com.indeed.imhotep.ez.Stats.CountStat;
 import static com.indeed.imhotep.ez.Stats.DynamicMetricStat;
 import static com.indeed.imhotep.ez.Stats.ExpStat;
-import static com.indeed.imhotep.ez.Stats.LogStat;
+import static com.indeed.imhotep.ez.Stats.HasIntFieldStat;
 import static com.indeed.imhotep.ez.Stats.HasIntStat;
+import static com.indeed.imhotep.ez.Stats.HasStringFieldStat;
 import static com.indeed.imhotep.ez.Stats.HasStringStat;
 import static com.indeed.imhotep.ez.Stats.IntFieldStat;
-import static com.indeed.imhotep.ez.Stats.HasStringFieldStat;
-import static com.indeed.imhotep.ez.Stats.HasIntFieldStat;
+import static com.indeed.imhotep.ez.Stats.LogStat;
 import static com.indeed.imhotep.ez.Stats.Stat;
 import static com.indeed.imhotep.ez.Stats.StatRefStat;
 import static com.indeed.imhotep.ez.Stats.requireValid;
@@ -162,6 +162,10 @@ public class EZImhotepSession implements Closeable {
 
     long[] getGroupStats(int depth) {
         return session.getGroupStats(depth);
+    }
+
+    public GroupStatsIterator getDistrinct(final Field field) {
+        return session.getDistinct(field.getFieldName(), field.isIntField());
     }
 
     /**
