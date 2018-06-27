@@ -110,23 +110,29 @@ public class Query extends AbstractPositional {
             formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
-            final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(selectSet.formattedAggregateMetric().size());
-            formatStrings = new ArrayList<>();
-            Optional<String> formatString;
-            for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
-                metrics.add(formattedMetric.aggregateMetric());
-                if (formattedMetric.STRING_LITERAL() != null) {
-                    formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
-                } else if (selectSet.precision != null) {
-                    formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
-                } else  {
-                    formatString = Optional.absent();
+            final int numFormattedAggregateMetrics = selectSet.formattedAggregateMetric().size();
+            if (numFormattedAggregateMetrics == 0) {
+                selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+                formatStrings = Collections.singletonList(Optional.<String>absent());
+            } else {
+                final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(numFormattedAggregateMetrics);
+                formatStrings = new ArrayList<>();
+                Optional<String> formatString;
+                for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
+                    metrics.add(formattedMetric.aggregateMetric());
+                    if (formattedMetric.STRING_LITERAL() != null) {
+                        formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
+                    } else if (selectSet.precision != null) {
+                        formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
+                    } else {
+                        formatString = Optional.absent();
+                    }
+                    formatStrings.add(formatString);
                 }
-                formatStrings.add(formatString);
-            }
-            selectedMetrics = new ArrayList<>();
-            for (final JQLParser.AggregateMetricContext metric : metrics) {
-                selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, options, datasetsMetadata, warn, clock));
+                selectedMetrics = new ArrayList<>();
+                for (final JQLParser.AggregateMetricContext metric : metrics) {
+                    selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, options, datasetsMetadata, warn, clock));
+                }
             }
         } else {
             throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + selects.size());
