@@ -102,7 +102,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Bean(destroyMethod = "shutdown")
     public ExecutorService executorService()  {
         return new ThreadPoolExecutor(
-                3, 10, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100),
+                3, 20, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
                 new NamedThreadFactory("IQL-Worker")
         );
     }
