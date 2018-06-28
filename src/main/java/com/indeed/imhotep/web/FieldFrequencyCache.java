@@ -44,14 +44,16 @@ public class FieldFrequencyCache {
 	}
 
 	public void acceptDatasetFields(final Set<String> newDatasetFields) {
-		datasetFieldToBatchUpdate.addAll(newDatasetFields);
+		if (iqldb != null) {
+			datasetFieldToBatchUpdate.addAll(newDatasetFields);
+		}
 	}
 
 	@Scheduled(fixedRate = MYSQL_BATCH_UPDATE_RATE)
 	public void batchUpdateDatasetFieldFrequencies() {
 		if (iqldb != null) {
 			iqldb.incrementFieldFrequencies(ImmutableList.copyOf(datasetFieldToBatchUpdate));
+			datasetFieldToBatchUpdate.clear();
 		}
-		datasetFieldToBatchUpdate.clear();
 	}
 }

@@ -379,6 +379,7 @@ public class QueryServlet {
                 }
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
+                fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
                 return;
             }
             final IQLQuery.WriteResults writeResults;
