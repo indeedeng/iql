@@ -15,17 +15,22 @@
 package com.indeed.imhotep.web;
 
 import com.google.common.collect.Maps;
+import com.indeed.squall.iql2.language.util.FieldExtractor;
+import com.indeed.util.core.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -33,7 +38,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
+import java.util.regex.Pattern;
 
 /**
  * @author vladimir
@@ -215,4 +220,47 @@ public class IQLDB {
             this.limits = limits;
         }
     }
+
+    private final static String SQL_STATEMENT_DELETE_OUTDATED_RECORDS = "DELETE FROM tblfieldfreq WHERE used_date < CURDATE() - INTERVAL 60 DAY";
+
+    private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfieldfreq GROUP BY dataset, field";
+
+    private final static String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfieldfreq (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
+
+    private void deleteOutdatedFields() {
+        jdbcTemplate.execute(SQL_STATEMENT_DELETE_OUTDATED_RECORDS);
+    }
+
+    public Map<String, Map<String, Integer>> getDatasetFieldFrequencies() {
+        deleteOutdatedFields();
+
+        final SqlRowSet srs = jdbcTemplate.queryForRowSet(SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY);
+        final Map<String, Map<String, Integer>> datasetFieldFrequencies = Maps.newHashMap();
+        while (srs.next()) {
+            final String dataset = srs.getString("dataset");
+            final Map<String, Integer> fieldToFrequency = datasetFieldFrequencies.computeIfAbsent(dataset, key -> Maps.newHashMap());
+            final String field = srs.getString("field");
+            final Integer frequency = srs.getInt("frequency");
+            fieldToFrequency.put(field, frequency);
+        }
+
+        return datasetFieldFrequencies;
+    }
+
+    public void incrementFieldFrequencies(final List<String> datasetFields) {
+        jdbcTemplate.batchUpdate(SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY,
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(final PreparedStatement preparedStatement, final int i) throws SQLException {
+                        final String[] pair = datasetFields.get(i).split(Pattern.quote("."));
+                        preparedStatement.setString(1, pair[0]);
+                        preparedStatement.setString(2, pair[1]);
+                    }
+                    @Override
+                    public int getBatchSize() {
+                        return datasetFields.size();
+                    }
+                });
+    }
+
 }

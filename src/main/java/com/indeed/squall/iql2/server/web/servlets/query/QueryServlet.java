@@ -26,7 +26,9 @@ import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
 import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.ErrorResult;
+import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.imhotep.web.GlobalUncaughtExceptionHandler;
+import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
 import com.indeed.imhotep.web.QueryMetrics;
@@ -69,6 +71,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -100,6 +103,8 @@ public class QueryServlet {
     private final TopTermsCache topTermsCache;
     private final MetricStatsEmitter metricStatsEmitter;
     private final WallClock clock;
+    private final FieldFrequencyCache fieldFrequencyCache;
+
 
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
@@ -113,8 +118,8 @@ public class QueryServlet {
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final MetricStatsEmitter metricStatsEmitter,
-            final WallClock clock
-    ) {
+            final WallClock clock,
+            final FieldFrequencyCache fieldFrequencyCache) {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
@@ -123,6 +128,7 @@ public class QueryServlet {
         this.topTermsCache = topTermsCache;
         this.metricStatsEmitter = metricStatsEmitter;
         this.clock = clock;
+        this.fieldFrequencyCache = fieldFrequencyCache;
     }
 
     public static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
@@ -222,6 +228,7 @@ public class QueryServlet {
                         metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
+                fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields);
             }
         } catch (Throwable e) {
             if (e instanceof Exception) {

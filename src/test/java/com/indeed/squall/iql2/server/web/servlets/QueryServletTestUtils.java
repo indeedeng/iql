@@ -24,6 +24,7 @@ import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
+import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.RunningQueriesManager;
@@ -52,7 +53,7 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
 
-        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient);
+        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient, new FieldFrequencyCache(null));
         metadataCache.updateMetadata();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
@@ -65,8 +66,8 @@ public class QueryServletTestUtils extends BasicTest {
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
                 new TopTermsCache(imhotepClient, "", true, false),
                 MetricStatsEmitter.NULL_EMITTER,
-                options.wallClock
-        );
+                options.wallClock,
+				new FieldFrequencyCache(null));
     }
 
     @SuppressWarnings("WeakerAccess")

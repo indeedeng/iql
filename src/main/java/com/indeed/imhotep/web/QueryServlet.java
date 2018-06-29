@@ -17,6 +17,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
@@ -83,7 +84,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -119,6 +119,7 @@ public class QueryServlet {
     private final AccessControl accessControl;
     private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
+    private final FieldFrequencyCache fieldFrequencyCache;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -129,7 +130,8 @@ public class QueryServlet {
                         ExecutorService executorService,
                         AccessControl accessControl,
                         com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2,
-                        MetricStatsEmitter metricStatsEmitter) {
+                        MetricStatsEmitter metricStatsEmitter,
+                        FieldFrequencyCache fieldFrequencyCache) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadata;
         this.topTermsCache = topTermsCache;
@@ -139,6 +141,7 @@ public class QueryServlet {
         this.accessControl = accessControl;
         this.queryServletV2 = queryServletV2;
         this.metricStatsEmitter = metricStatsEmitter;
+        this.fieldFrequencyCache = fieldFrequencyCache;
     }
 
     @RequestMapping("/query")
@@ -197,6 +200,7 @@ public class QueryServlet {
                     if(!selectQuery.isAsynchronousRelease()) {
                         Closeables2.closeQuietly(selectQuery, log);
                     }
+
                 }
             } else if(parsedQuery instanceof DescribeStatement) {
                 handleDescribeStatement(req, resp, (DescribeStatement)parsedQuery);
@@ -375,6 +379,7 @@ public class QueryServlet {
                 }
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
+                fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
                 return;
             }
             final IQLQuery.WriteResults writeResults;
@@ -496,6 +501,7 @@ public class QueryServlet {
             outputStream.close();
             // we don't know number of rows as it's handled asynchronously
         }
+        fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
     }
 
     private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata) throws IOException {
@@ -879,8 +885,7 @@ public class QueryServlet {
         }
 
         if (!error) {
-            final Set<String> fields = ((IQLQuery)(selectQuery.iqlQuery)).getFields();
-            final Set<String> datasetFields = fields.stream().map(field -> from.getDataset() + "." + field).collect(Collectors.toSet());
+            final Set<String> datasetFields = ((IQLQuery)(selectQuery.iqlQuery)).getDatasetFields();
             if (datasetFields.size() > 0) {
                 logEntry.setProperty("datasetfield", datasetFields);
             }

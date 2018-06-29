@@ -24,32 +24,24 @@ import com.indeed.imhotep.metadata.FieldMetadata;
 import com.indeed.imhotep.metadata.FieldType;
 import com.indeed.imhotep.metadata.MetricMetadata;
 import com.indeed.imhotep.metadata.YamlMetadataConverter;
-import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.management.Query;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -71,11 +63,12 @@ public class ImhotepMetadataCache {
     private final List<Pattern> disabledFields = Lists.newArrayList();
     @Nullable
     private ImsClientInterface metadataClient;
+    private final FieldFrequencyCache fieldFrequencyCache;
 
-
-    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields) {
+    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache) {
         metadataClient = imsClient;
         imhotepClient = client;
+        this.fieldFrequencyCache = fieldFrequencyCache;
         if(!Strings.isNullOrEmpty(disabledFields)) {
             for(String field : disabledFields.split(",")) {
                 try {
@@ -179,6 +172,21 @@ public class ImhotepMetadataCache {
             }
         }
 
+        final Map<String, Map<String, Integer>> fieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
+        if (fieldFrequencies != null) {
+            for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
+                if (fieldFrequencies.containsKey(datasetMetadata.getName())) {
+                    final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.getName());
+                    for (final Map.Entry<String, Integer> entry : fieldToFrequency.entrySet()) {
+                        if (datasetMetadata.getFields().containsKey(entry.getKey())) {
+                            datasetMetadata.getFields().get(entry.getKey()).setFrequency(entry.getValue());
+                        }
+                    }
+                }
+            }
+        }
+
+
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
             addStandardAliases(datasetMetadata);
             datasetMetadata.finishLoading();
@@ -189,7 +197,6 @@ public class ImhotepMetadataCache {
 
         log.debug("Finished metadata update");
     }
-
 
     private void removeDisabledFields(List<String> fields) {
         Iterator<String> iterator = fields.iterator();

@@ -29,6 +29,10 @@ public abstract class FieldMetadata {
     public abstract String getName();
     @Nullable public abstract String getDescription();
     public abstract Type getType();
+    @Value.Default
+    public int getFrequency() {
+        return 0;
+    }
 
     public enum Type {
         String,

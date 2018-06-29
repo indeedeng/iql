@@ -13,6 +13,7 @@
  */
  package com.indeed.imhotep.metadata;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -29,6 +30,7 @@ public class FieldMetadata {
     @Nullable String description;
     @Nonnull FieldType type;
     @Nonnull final FieldType imhotepType;
+    int frequency;
     boolean isHidden;
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType imhotepType) {
@@ -80,6 +82,14 @@ public class FieldMetadata {
         isHidden = hidden;
     }
 
+    public int getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(final int frequency) {
+        this.frequency = frequency;
+    }
+
     public boolean isIntImhotepField() {
         return imhotepType == FieldType.Integer;
     }
@@ -96,5 +106,7 @@ public class FieldMetadata {
         if(getType() != getImhotepType()) {
             jsonNode.put("imhotepType", getImhotepType().toString());
         }
+        jsonNode.put("frequency", getFrequency());
+
     }
 }

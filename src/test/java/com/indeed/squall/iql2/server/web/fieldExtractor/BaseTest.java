@@ -1,5 +1,6 @@
 package com.indeed.squall.iql2.server.web.fieldExtractor;
 
+import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.util.FieldExtractor;
 import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;
@@ -36,7 +37,7 @@ public class BaseTest {
 		final Queries.ParseResult parseResult = Queries.parseQuery(
 				query,
 				false,
-				new MetadataCache(null, null).get(),
+				new MetadataCache(null, null, new FieldFrequencyCache(null)).get(),
 				new com.indeed.squall.iql2.language.compat.Consumer<String>() {
 					@Override
 					public void accept(String s) {}
