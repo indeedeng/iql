@@ -75,6 +75,7 @@ import java.lang.management.ManagementFactory;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -128,7 +129,9 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     FieldFrequencyCache fieldFrequencyCache() {
-        return new FieldFrequencyCache(iqldb());
+        @SuppressWarnings("unchecked")
+        final List<String> allowedClients = (List<String>)env.getProperty("field.frequency.cache.allowed.clients", List.class, Collections.emptyList());
+        return new FieldFrequencyCache(iqldb(), new HashSet<>(allowedClients));
     }
 
     @Bean(destroyMethod = "close")

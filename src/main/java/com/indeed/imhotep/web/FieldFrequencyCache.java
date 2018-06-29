@@ -22,14 +22,22 @@ public class FieldFrequencyCache {
 
 	private static final int MYSQL_BATCH_UPDATE_RATE = 3 * 60 * 1000;
 
-	private final AtomicReference<Map<String, Map<String, Integer>>> atomDatasetToFieldFrequencies = new AtomicReference(Maps.newHashMap());
+	private final AtomicReference<Map<String, Map<String, Integer>>> atomDatasetToFieldFrequencies = new AtomicReference<>(Maps.newHashMap());
 
 	private final List<String> datasetFieldToBatchUpdate = Collections.synchronizedList(Lists.newArrayList());
 
+	@Nullable
 	private final IQLDB iqldb;
+	@Nullable
+	private final Set<String> allowedClients;
 
-	public FieldFrequencyCache(@Nullable final IQLDB iqldb) {
+    public FieldFrequencyCache(@Nullable final IQLDB iqldb) {
+        this(iqldb, null);
+    }
+
+	public FieldFrequencyCache(@Nullable final IQLDB iqldb, @Nullable Set<String> allowedClients) {
 		this.iqldb = iqldb;
+		this.allowedClients = allowedClients;
 	}
 
 	@Scheduled(fixedRate = DATASET_FIELD_FREQUENCIES_UPDATE_RATE)
@@ -43,9 +51,12 @@ public class FieldFrequencyCache {
 		return atomDatasetToFieldFrequencies.get();
 	}
 
-	public void acceptDatasetFields(final Set<String> newDatasetFields) {
+	public void acceptDatasetFields(final Set<String> newDatasetFields, ClientInfo clientInfo) {
 		if (iqldb != null) {
-			datasetFieldToBatchUpdate.addAll(newDatasetFields);
+			if(allowedClients == null || allowedClients.size() == 0 ||
+					allowedClients.contains(clientInfo.client)) {
+				datasetFieldToBatchUpdate.addAll(newDatasetFields);
+			}
 		}
 	}
 

@@ -17,7 +17,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
@@ -379,7 +378,7 @@ public class QueryServlet {
                 }
                 outputStream.close();
                 selectExecutionStats.rowsWritten = rowsWritten;
-                fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
+                fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields(), selectQuery.clientInfo);
                 return;
             }
             final IQLQuery.WriteResults writeResults;
@@ -501,7 +500,7 @@ public class QueryServlet {
             outputStream.close();
             // we don't know number of rows as it's handled asynchronously
         }
-        fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields());
+        fieldFrequencyCache.acceptDatasetFields(iqlQuery.getDatasetFields(), selectQuery.clientInfo);
     }
 
     private void completeStream(ServletOutputStream outputStream, QueryMetadata queryMetadata) throws IOException {

@@ -228,7 +228,7 @@ public class QueryServlet {
                         metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
-                fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields);
+                fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
             }
         } catch (Throwable e) {
             if (e instanceof Exception) {
