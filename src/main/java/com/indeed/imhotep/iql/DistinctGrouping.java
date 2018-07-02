@@ -14,7 +14,6 @@
  package com.indeed.imhotep.iql;
 
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
@@ -28,7 +27,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.longs.LongIterators;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -111,8 +109,7 @@ public class DistinctGrouping extends Grouping {
             final Field field = fields.get(i);
             final int projectionPosition = distinctProjectionPositions.get(i);
 
-            final GroupStatsIterator distinctIter = session.getDistrinct(field);
-            final long[] distinctResults = LongIterators.unwrap(distinctIter, distinctIter.getNumGroups());
+            final long[] distinctResults = session.getDistinct(field);
             for(int groupNum : groupKeys.keySet()) {
                 final int distinctResult =
                         (groupNum < distinctResults.length) ?

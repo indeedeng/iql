@@ -39,6 +39,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -47,6 +48,7 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -164,8 +166,12 @@ public class EZImhotepSession implements Closeable {
         return session.getGroupStats(depth);
     }
 
-    public GroupStatsIterator getDistrinct(final Field field) {
-        return session.getDistinct(field.getFieldName(), field.isIntField());
+    public long[] getDistinct(final Field field) {
+        try (final GroupStatsIterator distinct = session.getDistinct(field.getFieldName(), field.isIntField())) {
+            return LongIterators.unwrap(distinct, distinct.getNumGroups());
+        } catch(final IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
