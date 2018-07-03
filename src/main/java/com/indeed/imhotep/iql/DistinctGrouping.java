@@ -109,11 +109,11 @@ public class DistinctGrouping extends Grouping {
             final Field field = fields.get(i);
             final int projectionPosition = distinctProjectionPositions.get(i);
 
-            final DistinctFTGSCallback callback = new DistinctFTGSCallback(session.getStackDepth(), groupKeys);
-            session.ftgsIterate(Lists.newArrayList(field), callback);
-            final Int2IntMap distinctResults = callback.getResults();
+            final long[] distinctResults = session.getDistinct(field);
             for(int groupNum : groupKeys.keySet()) {
-                final int distinctResult = distinctResults.get(groupNum);
+                final int distinctResult =
+                        (groupNum < distinctResults.length) ?
+                                (int) distinctResults[groupNum] : 0;
 
                 Int2IntMap groupDistinctData = distinctData.get(groupNum);
                 if(groupDistinctData == null) {

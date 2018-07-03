@@ -16,22 +16,22 @@
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.TermCount;
+import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.GroupStatsIterator;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.iql.ScoredLong;
+import com.indeed.imhotep.iql.ScoredObject;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.imhotep.web.Limits;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
-import com.indeed.flamdex.query.Query;
-import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.TermCount;
-import com.indeed.imhotep.api.FTGSIterator;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.iql.ScoredLong;
-import com.indeed.imhotep.iql.ScoredObject;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -39,6 +39,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -47,6 +48,7 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,12 +67,12 @@ import static com.indeed.imhotep.ez.Stats.ConstantStat;
 import static com.indeed.imhotep.ez.Stats.CountStat;
 import static com.indeed.imhotep.ez.Stats.DynamicMetricStat;
 import static com.indeed.imhotep.ez.Stats.ExpStat;
-import static com.indeed.imhotep.ez.Stats.LogStat;
+import static com.indeed.imhotep.ez.Stats.HasIntFieldStat;
 import static com.indeed.imhotep.ez.Stats.HasIntStat;
+import static com.indeed.imhotep.ez.Stats.HasStringFieldStat;
 import static com.indeed.imhotep.ez.Stats.HasStringStat;
 import static com.indeed.imhotep.ez.Stats.IntFieldStat;
-import static com.indeed.imhotep.ez.Stats.HasStringFieldStat;
-import static com.indeed.imhotep.ez.Stats.HasIntFieldStat;
+import static com.indeed.imhotep.ez.Stats.LogStat;
 import static com.indeed.imhotep.ez.Stats.Stat;
 import static com.indeed.imhotep.ez.Stats.StatRefStat;
 import static com.indeed.imhotep.ez.Stats.requireValid;
@@ -162,6 +164,14 @@ public class EZImhotepSession implements Closeable {
 
     long[] getGroupStats(int depth) {
         return session.getGroupStats(depth);
+    }
+
+    public long[] getDistinct(final Field field) {
+        try (final GroupStatsIterator distinct = session.getDistinct(field.getFieldName(), field.isIntField())) {
+            return LongIterators.unwrap(distinct, distinct.getNumGroups());
+        } catch(final IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
