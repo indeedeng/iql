@@ -948,17 +948,20 @@ public class Session {
             return result; // or error?
         }
         timer.push("getSimpleDistinct session:" + info.displayName);
-        final GroupStatsIterator iterator = session.getDistinct(field, isIntField);
-        timer.pop();
-        // skipping group zero
-        if (!iterator.hasNext()) {
-            return result;
-        }
-        iterator.nextLong();
-        // extracting result for other groups
-        final int size = Math.min(iterator.getNumGroups() - 1, result.length);
-        for (int i = 0; i < size; i++) {
-            result[i] += iterator.nextLong();
+        try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
+            timer.pop();
+            // skipping group zero
+            if (!iterator.hasNext()) {
+                return result;
+            }
+            iterator.nextLong();
+            // extracting result for other groups
+            final int size = Math.min(iterator.getNumGroups() - 1, result.length);
+            for (int i = 0; i < size; i++) {
+                result[i] += iterator.nextLong();
+            }
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
         }
         return result;
     }
