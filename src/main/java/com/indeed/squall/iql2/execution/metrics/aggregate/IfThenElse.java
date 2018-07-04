@@ -86,6 +86,11 @@ public class IfThenElse implements AggregateMetric {
     }
 
     @Override
+    public boolean needSorted() {
+        return condition.needSorted() || trueCase.needSorted() || falseCase.needSorted();
+    }
+
+    @Override
     public boolean needGroup() {
         return condition.needGroup() || trueCase.needGroup() || falseCase.needGroup();
     }

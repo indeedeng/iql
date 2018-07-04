@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// TODO: PerGroupConstants, SumChildren, IfThenElse ????
+// TODO: PerGroupConstants, IfThenElse ????
 public abstract class AggregateMetric extends AbstractPositional {
 
     public static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";

@@ -30,6 +30,8 @@ public interface AggregateMetric extends Pushable {
 
     double apply(String term, long[] stats, int group);
     double apply(long term, long[] stats, int group);
+    // return true if terms are expected in sorted order
+    boolean needSorted();
     // if needGroup() returns false then group value is ignored inside apply(...) methods
     // and it's valid to pass any value as group
     boolean needGroup();
@@ -75,6 +77,11 @@ public interface AggregateMetric extends Pushable {
         @Override
         public double apply(final long term, final long[] stats, final int group) {
             return eval(operand.apply(term, stats, group));
+        }
+
+        @Override
+        public boolean needSorted() {
+            return operand.needSorted();
         }
 
         @Override
@@ -130,6 +137,11 @@ public interface AggregateMetric extends Pushable {
         @Override
         public double apply(final long term, final long[] stats, final int group) {
             return eval(left.apply(term, stats, group), right.apply(term, stats, group));
+        }
+
+        @Override
+        public boolean needSorted() {
+            return left.needSorted() || right.needSorted();
         }
 
         @Override

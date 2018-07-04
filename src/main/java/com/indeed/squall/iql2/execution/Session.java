@@ -1012,6 +1012,8 @@ public class Session {
 
     public interface IntIterateCallback {
         void term(long term, long[] stats, int group);
+        // return true if terms are expected in sorted order
+        boolean needSorted();
         // if needGroup() returns false then group value is ignored inside term(...) method
         // and it's valid to pass any value as group
         boolean needGroup();
@@ -1160,6 +1162,8 @@ public class Session {
 
     public interface StringIterateCallback {
         void term(String term, long[] stats, int group);
+        // return true if terms are expected in sorted order
+        boolean needSorted();
         // if needGroup() returns false then group value is ignored inside term(...) method
         // and it's valid to pass any value as group
         boolean needGroup();

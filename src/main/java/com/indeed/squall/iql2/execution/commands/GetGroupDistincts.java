@@ -126,6 +126,11 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             }
 
             @Override
+            public boolean needSorted() {
+                return filter.isPresent() && filter.get().needSorted();
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }
@@ -157,6 +162,12 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                     groupCounts[group - 1]++;
                 }
             }
+
+            @Override
+            public boolean needSorted() {
+                return filter.isPresent() && filter.get().needSorted();
+            }
+
             @Override
             public boolean needGroup() {
                 return true;

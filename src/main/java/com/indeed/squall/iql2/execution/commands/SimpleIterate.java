@@ -304,6 +304,17 @@ public class SimpleIterate implements Command {
             }
 
             @Override
+            public boolean needSorted() {
+                // TODO: investigate what is better here
+                // We have several options what to do:
+                // 1. Leave as is (sorted) for backward compatibility.
+                // 2. Request unsorted and sort after processing
+                // 3. Return to cliend in unsorted order.
+                // 4. Add param so client can claim sorted or unsorted result.
+                return true;
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }
@@ -359,6 +370,11 @@ public class SimpleIterate implements Command {
             }
 
             @Override
+            public boolean needSorted() {
+                return true;
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }
@@ -386,6 +402,12 @@ public class SimpleIterate implements Command {
                 }
                 out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
             }
+
+            @Override
+            public boolean needSorted() {
+                return true;
+            }
+
             @Override
             public boolean needGroup() {
                 return true;
@@ -428,6 +450,11 @@ public class SimpleIterate implements Command {
                 }
                 ++createdGroupCount;
                 session.checkGroupLimitWithoutLog(createdGroupCount);
+            }
+
+            @Override
+            public boolean needSorted() {
+                return true;
             }
 
             @Override

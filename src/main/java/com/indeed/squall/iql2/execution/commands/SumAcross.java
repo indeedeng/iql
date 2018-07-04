@@ -142,6 +142,11 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
             }
 
             @Override
+            public boolean needSorted() {
+                return metric.needSorted() || (filter.isPresent() && filter.get().needSorted());
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }

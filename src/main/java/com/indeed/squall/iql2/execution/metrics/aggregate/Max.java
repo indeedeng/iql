@@ -60,6 +60,11 @@ public class Max implements AggregateMetric {
     }
 
     @Override
+    public boolean needSorted() {
+        return metrics.stream().anyMatch(AggregateMetric::needSorted);
+    }
+
+    @Override
     public boolean needGroup() {
         return metrics.stream().anyMatch(AggregateMetric::needGroup);
     }

@@ -33,6 +33,8 @@ public interface AggregateFilter extends Pushable {
 
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
+    // return true if terms are expected in sorted order
+    boolean needSorted();
     // if needGroup() returns false then group value is ignored inside allow(...) methods
     // and it's valid to pass any value as group
     boolean needGroup();
@@ -55,6 +57,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
             operand.register(metricIndexes, groupKeySet);
+        }
+
+        @Override
+        public boolean needSorted() {
+            return operand.needSorted();
         }
 
         @Override
@@ -112,6 +119,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public boolean needSorted() {
+            return left.needSorted() || right.needSorted();
+        }
+
+        @Override
         public boolean needGroup() {
             return left.needGroup() || right.needGroup();
         }
@@ -166,6 +178,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public boolean needSorted() {
+            return left.needSorted() || right.needSorted();
+        }
+
+        @Override
         public boolean needGroup() {
             return left.needGroup() || right.needGroup();
         }
@@ -209,6 +226,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public boolean needSorted() {
+            return false;
+        }
+
+        @Override
         public boolean needGroup() {
             return false;
         }
@@ -249,6 +271,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
             return term == value.intTerm;
+        }
+
+        @Override
+        public boolean needSorted() {
+            return false;
         }
 
         @Override
@@ -409,6 +436,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public boolean needSorted() {
+            return false;
+        }
+
+        @Override
         public boolean needGroup() {
             return false;
         }
@@ -453,6 +485,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public boolean needSorted() {
+            return false;
+        }
+
+        @Override
         public boolean needGroup() {
             return false;
         }
@@ -487,6 +524,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
             return keySet.groupKey(group).isDefault();
+        }
+
+        @Override
+        public boolean needSorted() {
+            return false;
         }
 
         @Override

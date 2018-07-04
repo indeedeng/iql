@@ -97,6 +97,12 @@ public class ExplodePerDocPercentile implements Command {
                 }
                 soFar[group] = Math.max(soFar[group], fraction);
             }
+
+            @Override
+            public boolean needSorted() {
+                return true;
+            }
+
             @Override
             public boolean needGroup() { return true; }
             @Override

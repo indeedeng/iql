@@ -139,6 +139,11 @@ public class IterateHandlers {
         }
 
         @Override
+        public boolean needSorted() {
+            return Arrays.stream(callbacks).anyMatch(Session.IntIterateCallback::needSorted);
+        }
+
+        @Override
         public boolean needGroup() {
             return Arrays.stream(callbacks).anyMatch(Session.IntIterateCallback::needGroup);
         }
@@ -161,6 +166,11 @@ public class IterateHandlers {
             for (final Session.StringIterateCallback callback : callbacks) {
                 callback.term(term, stats, group);
             }
+        }
+
+        @Override
+        public boolean needSorted() {
+            return Arrays.stream(callbacks).anyMatch(Session.StringIterateCallback::needSorted);
         }
 
         @Override
