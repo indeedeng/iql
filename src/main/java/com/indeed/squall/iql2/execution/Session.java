@@ -42,6 +42,7 @@ import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
@@ -1037,6 +1038,10 @@ public class Session {
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
             Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer) throws IOException
     {
+        if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, termSubset, callback, timer)) {
+            return;
+        }
+
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1125,6 +1130,122 @@ public class Session {
         }
     }
 
+    // do simple processing if possible
+    public static boolean iterateSimpleInt(
+            final Map<String, ImhotepSession> sessions,
+            final Map<String, IntList> metricIndexes,
+            final Map<String, Integer> presenceIndexes,
+            final String field,
+            final Optional<RemoteTopKParams> topKParams,
+            final Optional<Integer> ftgsRowLimit,
+            final Optional<long[]> termSubset,
+            final IntIterateCallback callback,
+            final TreeTimer timer)
+    {
+        if (!isSimple(sessions, metricIndexes, presenceIndexes)) {
+            return false;
+        }
+
+        final ImhotepSession session = sessions.values().iterator().next();
+        final String sessionName = sessions.keySet().iterator().next();
+        timer.push("request remote FTGS iterator for single session:"+sessionName);
+
+        try (final FTGSIterator ftgs =
+                     createFTGSIterator(session, field, true,
+                             topKParams, ftgsRowLimit,
+                             termSubset, Optional.absent(), callback.needSorted())) {
+            timer.pop();
+
+            timer.push("consume FTGS iterator");
+
+            if (!ftgs.nextField()) {
+                throw new IllegalStateException("At least one field expected");
+            }
+
+            if (!ftgs.fieldIsIntType()) {
+                throw new IllegalStateException("Field type mismatch");
+            }
+
+            final boolean needStats = callback.needStats();
+            final long[] stats = needStats ? new long[ftgs.getNumStats()] : null;
+            while (ftgs.nextTerm()) {
+                final long term = ftgs.termIntVal();
+                while (ftgs.nextGroup()) {
+                    final int group = ftgs.group();
+                    if (needStats) {
+                        ftgs.groupStats(stats);
+                    }
+                    callback.term(term, stats, group);
+                }
+            }
+
+            if (ftgs.nextField()) {
+                throw new IllegalStateException("Exactly one field expected");
+            }
+
+            timer.pop();
+        }
+        return true;
+    }
+
+    // check if simple processing is possible
+    // simple means one ImhotepSession, no presence indexes and stat indexes are the same as in session's FTGSIterator
+    private static boolean isSimple(
+            final Map<String, ImhotepSession> sessions,
+            final Map<String, IntList> metricIndexes,
+            final Map<String, Integer> presenceIndexes
+    ) {
+
+        if ((sessions.size() != 1) || (metricIndexes.size() != 1) || !presenceIndexes.isEmpty()) {
+            return false;
+        }
+
+        if (!sessions.keySet().iterator().next().equals(metricIndexes.keySet().iterator().next())) {
+            throw new IllegalStateException("Names for session and metric indexes don't match");
+        }
+
+        final IntList metricIndex = metricIndexes.values().iterator().next();
+        for (int i = 0; i < metricIndex.size(); i++) {
+            if (metricIndex.getInt(i) != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static FTGSIterator createFTGSIterator(
+            final ImhotepSession session,
+            final String field,
+            final boolean isIntField,
+            final Optional<RemoteTopKParams> topKParams,
+            final Optional<Integer> ftgsRowLimit,
+            final Optional<long[]> intTerms,
+            final Optional<String[]> stringTerms,
+            final boolean isSorted
+    ) {
+        if (isIntField && intTerms.isPresent()) {
+            return session.getSubsetFTGSIterator(Collections.singletonMap(field, intTerms.get()), Collections.emptyMap());
+        } else if(!isIntField && stringTerms.isPresent()) {
+            return session.getSubsetFTGSIterator(Collections.emptyMap(), Collections.singletonMap(field, stringTerms.get()));
+        }
+
+        final String[] intFields = isIntField ? new String[]{field} : new String[0];
+        final String[] stringFields = isIntField ? new String[0] : new String[]{field};
+        final FTGSParams params;
+        if (topKParams.isPresent()) {
+            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted);
+        } else if(ftgsRowLimit.isPresent()) {
+            // TODO: can term limited request be unsorted?
+            // Check if calling side expects first terms in sorted order.
+            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true);
+        } else {
+            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted);
+        }
+
+        return session.getFTGSIterator(params);
+    }
+
     private static class SessionStringIterationState {
         public final FTGSIterator iterator;
         private final IntList metricIndexes;
@@ -1185,6 +1306,11 @@ public class Session {
     public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer) throws IOException {
+
+        if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, termSubset, callback, timer)) {
+            return;
+        }
+
         int numMetrics = 0;
         for (final IntList metrics : metricIndexes.values()) {
             numMetrics += metrics.size();
@@ -1236,6 +1362,63 @@ public class Session {
             }
             timer.pop();
         }
+    }
+
+    public static boolean iterateSimpleString(
+            final Map<String, ImhotepSession> sessions,
+            final Map<String, IntList> metricIndexes,
+            final Map<String, Integer> presenceIndexes,
+            final String field,
+            final Optional<RemoteTopKParams> topKParams,
+            final Optional<Integer> ftgsRowLimit,
+            final Optional<String[]> termSubset,
+            final StringIterateCallback callback,
+            final TreeTimer timer)
+    {
+        if (!isSimple(sessions, metricIndexes, presenceIndexes)) {
+            return false;
+        }
+
+        final ImhotepSession session = sessions.values().iterator().next();
+        final String sessionName = sessions.keySet().iterator().next();
+        timer.push("request remote FTGS iterator for single session:"+sessionName);
+
+        try (final FTGSIterator ftgs =
+                     createFTGSIterator(session, field, false,
+                             topKParams, ftgsRowLimit,
+                             Optional.absent(), termSubset, callback.needSorted())) {
+            timer.pop();
+
+            timer.push("consume FTGS iterator");
+
+            if (!ftgs.nextField()) {
+                throw new IllegalStateException("At least one field expected");
+            }
+
+            if (ftgs.fieldIsIntType()) {
+                throw new IllegalStateException("Field type mismatch");
+            }
+
+            final boolean needStats = callback.needStats();
+            final long[] stats = needStats ? new long[ftgs.getNumStats()] : null;
+            while (ftgs.nextTerm()) {
+                final String term = ftgs.termStringVal();
+                while (ftgs.nextGroup()) {
+                    final int group = ftgs.group();
+                    if (needStats) {
+                        ftgs.groupStats(stats);
+                    }
+                    callback.term(term, stats, group);
+                }
+            }
+
+            if (ftgs.nextField()) {
+                throw new IllegalStateException("Exactly one field expected");
+            }
+
+            timer.pop();
+        }
+        return true;
     }
 
     private static FTGSIterator getFTGSIterator(
