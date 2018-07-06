@@ -277,7 +277,14 @@ public class FieldAliasingImhotepSession extends WrappingImhotepSession implemen
 
     @Override
     public FTGSIterator getFTGSIterator(final FTGSParams params) {
-        return wrapped.getFTGSIterator(params);
+        final FTGSParams fixedParams =
+                new FTGSParams(
+                        rewriteFields(params.intFields),
+                        rewriteFields(params.stringFields),
+                        params.termLimit,
+                        params.sortStat,
+                        params.sorted);
+        return wrapped.getFTGSIterator(fixedParams);
     }
 
     @Override
