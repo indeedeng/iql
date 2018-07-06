@@ -110,6 +110,7 @@ public class Session {
     private final ProgressCallback progressCallback;
     public final int groupLimit;
     private final long firstStartTimeMillis;
+    public final Set<String> options;
 
     public int numGroups = 1;
 
@@ -133,14 +134,15 @@ public class Session {
             TreeTimer timer,
             ProgressCallback progressCallback,
             @Nullable Integer groupLimit,
-            long firstStartTimeMillis
-
+            long firstStartTimeMillis,
+            final Set<String> options
     ) {
         this.sessions = sessions;
         this.timer = timer;
         this.progressCallback = progressCallback;
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
         this.firstStartTimeMillis = firstStartTimeMillis;
+        this.options = options;
     }
 
     public static class CreateSessionResult {
@@ -185,7 +187,7 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.squall.iql2.language.commands.Command command = commands.get(i);
             final boolean isLast = i == commands.size() - 1;
