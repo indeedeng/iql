@@ -15,17 +15,17 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.squall.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
 import com.indeed.squall.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.squall.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.core.time.StoppedClock;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -91,9 +91,9 @@ public class CacheTest extends BasicTest {
             final InMemoryQueryCache queryCache = new InMemoryQueryCache();
             options.setQueryCache(queryCache);
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            final List<List<String>> result1 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options);
+            final List<List<String>> result1 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            final List<List<String>> result2 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options);
+            final List<List<String>> result2 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
             Assert.assertEquals(1, queryCache.getReadsTracked().size());
             Assert.assertEquals(result1, result2);
         }
