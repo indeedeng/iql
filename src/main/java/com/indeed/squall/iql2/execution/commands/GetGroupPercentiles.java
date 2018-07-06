@@ -147,6 +147,11 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
             }
 
             @Override
+            public boolean needSorted() {
+                return true;
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }

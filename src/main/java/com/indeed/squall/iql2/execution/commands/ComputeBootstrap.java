@@ -279,6 +279,11 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
             }
 
             @Override
+            public boolean needSorted() {
+                return filter.isPresent() && filter.get().needSorted();
+            }
+
+            @Override
             public boolean needGroup() {
                 return true;
             }

@@ -73,6 +73,11 @@ public class ParentLag implements AggregateMetric {
     }
 
     @Override
+    public boolean needSorted() {
+        return true;
+    }
+
+    @Override
     public boolean needGroup() {
         return true;
     }

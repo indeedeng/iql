@@ -74,6 +74,11 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
                 }
 
                 @Override
+                public boolean needSorted() {
+                    return false;
+                }
+
+                @Override
                 public boolean needGroup() {
                     return true;
                 }
@@ -92,10 +97,14 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
                 public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
-                        // Can't assume that earlier values are smaller, because String sort order.
                         min[group - 1] = Math.min(min[group - 1], v);
                     } catch (NumberFormatException ignored) {
                     }
+                }
+
+                @Override
+                public boolean needSorted() {
+                    return false;
                 }
 
                 @Override

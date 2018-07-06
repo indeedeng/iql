@@ -70,8 +70,12 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
             return new Session.IntIterateCallback() {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
-                    // Relying on the assumption of FTGS sort order -- last term in each group will be the highest.
-                    max[group - 1] = term;
+                    max[group - 1] = Math.max(max[group - 1], term);
+                }
+
+                @Override
+                public boolean needSorted() {
+                    return false;
                 }
 
                 @Override
@@ -93,10 +97,14 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
                 public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
-                        // Can't assume that later values are larger, because String sort order.
                         max[group - 1] = Math.max(max[group - 1], v);
                     } catch (final NumberFormatException ignored) {
                     }
+                }
+
+                @Override
+                public boolean needSorted() {
+                    return false;
                 }
 
                 @Override

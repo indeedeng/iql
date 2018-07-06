@@ -63,6 +63,11 @@ public class DocumentLevelMetric implements AggregateMetric {
     }
 
     @Override
+    public boolean needSorted() {
+        return false;
+    }
+
+    @Override
     public boolean needGroup() {
         return false;
     }
