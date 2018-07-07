@@ -59,6 +59,18 @@ public class AggregateMetricsTest extends BasicTest {
     }
 
     @Test
+    public void testIfThenElseBothBranches() throws Exception {
+        // Testing that both branches of 'if' statement are processed during execution
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("a", "4", "0", "0"));
+        expected.add(ImmutableList.of("b", "2", "4", "4"));
+        expected.add(ImmutableList.of("c", "4", "2", "2"));
+        expected.add(ImmutableList.of("d", "141", "4", "4"));
+        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+                "from organic yesterday today group by tk select count(), lag(1, count()), if (tk=\"a\"+tk=\"c\") > 0 then lag(1, count()) else lag(1, count())");
+    }
+
+    @Test
     public void testNamed() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "156", String.valueOf(151 * 151)));
@@ -125,7 +137,7 @@ public class AggregateMetricsTest extends BasicTest {
     public void testIterateLagInt() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("3", "1", "0"));
-        expected.add(ImmutableList.of("5", "1", "500")); // todo: this is wrong! See IQL-549
+        expected.add(ImmutableList.of("5", "1", "499"));
         expected.add(ImmutableList.of("7", "1", "699"));
         expected.add(ImmutableList.of("100", "1", "9999"));
         expected.add(ImmutableList.of("1000", "1", "99999"));

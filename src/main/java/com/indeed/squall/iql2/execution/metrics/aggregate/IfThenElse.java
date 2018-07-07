@@ -68,20 +68,24 @@ public class IfThenElse implements AggregateMetric {
     @Override
     public double apply(final String term, final long[] stats, final int group) {
         final boolean cond = condition.allow(term, stats, group);
+        final double trueResult = trueCase.apply(term, stats, group);
+        final double falseResult = falseCase.apply(term, stats, group);
         if (cond) {
-            return trueCase.apply(term, stats, group);
+            return trueResult;
         } else {
-            return falseCase.apply(term, stats, group);
+            return falseResult;
         }
     }
 
     @Override
     public double apply(final long term, final long[] stats, final int group) {
         final boolean cond = condition.allow(term, stats, group);
+        final double trueResult = trueCase.apply(term, stats, group);
+        final double falseResult = falseCase.apply(term, stats, group);
         if (cond) {
-            return trueCase.apply(term, stats, group);
+            return trueResult;
         } else {
-            return falseCase.apply(term, stats, group);
+            return falseResult;
         }
     }
 
