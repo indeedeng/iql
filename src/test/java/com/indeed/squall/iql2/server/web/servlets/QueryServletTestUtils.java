@@ -46,6 +46,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.indeed.squall.iql2.execution.ExperimentalFeatures.SIMPLE_PROSESSING;
+import static com.indeed.squall.iql2.execution.ExperimentalFeatures.UNSORTED_FTGS;
+
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static IQLDB iqldb;
@@ -53,8 +56,13 @@ public class QueryServletTestUtils extends BasicTest {
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
     // Each tested query will run with each option from this list.
-    // Be sure not to delete empty string (no options) from list.
-    private static final List<String> OPTIONS_TO_TEST = Lists.newArrayList("");
+    // Be sure not to delete empty string (no options) from the list to test main execution path.
+    private static final String[] OPTIONS_TO_TEST =
+            {
+                    "",// no options
+                    "OPTIONS['" + SIMPLE_PROSESSING + "']", // simple processing, sorted ftgs
+                    "OPTIONS['" + SIMPLE_PROSESSING + "', '" + UNSORTED_FTGS + "']" // simple processing, unsorted ftgs
+            };
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
@@ -81,8 +89,8 @@ public class QueryServletTestUtils extends BasicTest {
         IQL1, IQL2
     }
 
-    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options, String optionToTest) throws Exception {
-        final String queryWithOptions = optionToTest.isEmpty() ? query : (query + " OPTIONS['" + optionToTest + "']");
+    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options, String optionsToTest) throws Exception {
+        final String queryWithOptions = optionsToTest.isEmpty() ? query : (query + " " + optionsToTest);
         return run(shards, queryWithOptions, version, stream, options).data;
     }
 

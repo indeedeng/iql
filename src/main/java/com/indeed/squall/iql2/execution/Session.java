@@ -1028,8 +1028,9 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer);
+    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer,
+                                       final Set<String> options) throws IOException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, options);
     }
 
     /**
@@ -1038,9 +1039,10 @@ public class Session {
     public static void iterateMultiInt(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
-            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer) throws IOException
+            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer,
+            final Set<String> options) throws IOException
     {
-        if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, termSubset, callback, timer)) {
+        if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, termSubset, callback, timer, options)) {
             return;
         }
 
@@ -1142,9 +1144,10 @@ public class Session {
             final Optional<Integer> ftgsRowLimit,
             final Optional<long[]> termSubset,
             final IntIterateCallback callback,
-            final TreeTimer timer)
+            final TreeTimer timer,
+            final Set<String> options)
     {
-        if (!isSimple(sessions, metricIndexes, presenceIndexes)) {
+        if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
             return false;
         }
 
@@ -1152,10 +1155,11 @@ public class Session {
         final String sessionName = sessions.keySet().iterator().next();
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
+        final boolean mustBeSorted = !options.contains(ExperimentalFeatures.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
                              topKParams, ftgsRowLimit,
-                             termSubset, Optional.absent(), callback.needSorted())) {
+                             termSubset, Optional.absent(), mustBeSorted || callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
@@ -1195,8 +1199,12 @@ public class Session {
     private static boolean isSimple(
             final Map<String, ImhotepSession> sessions,
             final Map<String, IntList> metricIndexes,
-            final Map<String, Integer> presenceIndexes
+            final Map<String, Integer> presenceIndexes,
+            final Set<String> options
     ) {
+        if (!options.contains(ExperimentalFeatures.SIMPLE_PROSESSING)) {
+            return false;
+        }
 
         if ((sessions.size() != 1) || (metricIndexes.size() != 1) || !presenceIndexes.isEmpty()) {
             return false;
@@ -1298,8 +1306,9 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer);
+    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer,
+                                          final Set<String> options) throws IOException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, options);
     }
 
     /**
@@ -1307,9 +1316,10 @@ public class Session {
      */
     public static void iterateMultiString(
             Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer) throws IOException {
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer,
+            final Set<String> options) throws IOException {
 
-        if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, termSubset, callback, timer)) {
+        if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, termSubset, callback, timer, options)) {
             return;
         }
 
@@ -1375,9 +1385,10 @@ public class Session {
             final Optional<Integer> ftgsRowLimit,
             final Optional<String[]> termSubset,
             final StringIterateCallback callback,
-            final TreeTimer timer)
+            final TreeTimer timer,
+            final Set<String> options)
     {
-        if (!isSimple(sessions, metricIndexes, presenceIndexes)) {
+        if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
             return false;
         }
 
@@ -1385,10 +1396,11 @@ public class Session {
         final String sessionName = sessions.keySet().iterator().next();
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
+        final boolean mustBeSorted = !options.contains(ExperimentalFeatures.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
                              topKParams, ftgsRowLimit,
-                             Optional.absent(), termSubset, callback.needSorted())) {
+                             Optional.absent(), termSubset, mustBeSorted || callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
