@@ -177,7 +177,7 @@ public class Session {
 
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
-        final boolean requestRust = optionsSet.contains("rust");
+        final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
 
         progressCallback.startSession(Optional.of(commands.size()));
 
@@ -1155,7 +1155,7 @@ public class Session {
         final String sessionName = sessions.keySet().iterator().next();
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(ExperimentalFeatures.UNSORTED_FTGS);
+        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
                              topKParams, ftgsRowLimit,
@@ -1202,7 +1202,7 @@ public class Session {
             final Map<String, Integer> presenceIndexes,
             final Set<String> options
     ) {
-        if (!options.contains(ExperimentalFeatures.SIMPLE_PROSESSING)) {
+        if (!options.contains(QueryOptions.Experimental.SIMPLE_PROSESSING)) {
             return false;
         }
 
@@ -1396,7 +1396,7 @@ public class Session {
         final String sessionName = sessions.keySet().iterator().next();
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(ExperimentalFeatures.UNSORTED_FTGS);
+        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
                              topKParams, ftgsRowLimit,

@@ -46,8 +46,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.indeed.squall.iql2.execution.ExperimentalFeatures.SIMPLE_PROSESSING;
-import static com.indeed.squall.iql2.execution.ExperimentalFeatures.UNSORTED_FTGS;
+import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.SIMPLE_PROSESSING;
+import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.UNSORTED_FTGS;
 
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
