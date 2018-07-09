@@ -1151,8 +1151,8 @@ public class Session {
             return false;
         }
 
-        final ImhotepSession session = sessions.values().iterator().next();
-        final String sessionName = sessions.keySet().iterator().next();
+        final ImhotepSession session = Iterables.getOnlyElement(sessions.values());
+        final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
         final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
@@ -1210,11 +1210,11 @@ public class Session {
             return false;
         }
 
-        if (!sessions.keySet().iterator().next().equals(metricIndexes.keySet().iterator().next())) {
+        if (!Iterables.getOnlyElement(sessions.keySet()).equals(Iterables.getOnlyElement(metricIndexes.keySet()))) {
             throw new IllegalStateException("Names for session and metric indexes don't match");
         }
 
-        final IntList metricIndex = metricIndexes.values().iterator().next();
+        final IntList metricIndex = Iterables.getOnlyElement(metricIndexes.values());
         for (int i = 0; i < metricIndex.size(); i++) {
             if (metricIndex.getInt(i) != 0) {
                 return false;
@@ -1392,8 +1392,8 @@ public class Session {
             return false;
         }
 
-        final ImhotepSession session = sessions.values().iterator().next();
-        final String sessionName = sessions.keySet().iterator().next();
+        final ImhotepSession session = Iterables.getOnlyElement(sessions.values());
+        final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
         final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
