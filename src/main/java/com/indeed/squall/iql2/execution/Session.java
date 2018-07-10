@@ -963,6 +963,11 @@ public class Session {
             for (int i = 0; i < size; i++) {
                 result[i] += iterator.nextLong();
             }
+            // exhaust iterator in case there is trailing data
+            while (iterator.hasNext()) {
+                iterator.nextLong();
+            }
+
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
