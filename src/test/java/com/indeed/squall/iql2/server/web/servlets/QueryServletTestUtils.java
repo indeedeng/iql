@@ -46,9 +46,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.SIMPLE_PROSESSING;
+import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.UNSORTED_FTGS;
+
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static IQLDB iqldb;
+
+    // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
+    // Add here features you want to test.
+    // Each tested query will run with each option from this list.
+    // Be sure not to delete empty string (no options) from the list to test main execution path.
+    private static final String[] OPTIONS_TO_TEST =
+            {
+                    "",// no options
+                    "OPTIONS['" + SIMPLE_PROSESSING + "']", // simple processing, sorted ftgs
+                    "OPTIONS['" + SIMPLE_PROSESSING + "', '" + UNSORTED_FTGS + "']" // simple processing, unsorted ftgs
+            };
 
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
@@ -75,10 +89,10 @@ public class QueryServletTestUtils extends BasicTest {
         IQL1, IQL2
     }
 
-    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
-        return run(shards, query, version, stream, options).data;
+    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options, String optionsToTest) throws Exception {
+        final String queryWithOptions = optionsToTest.isEmpty() ? query : (query + " " + optionsToTest);
+        return run(shards, queryWithOptions, version, stream, options).data;
     }
-
 
     static JsonNode getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
         return run(shards, query, version, true, options).header;
@@ -230,8 +244,10 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options));
+        for (final String queryOptions : OPTIONS_TO_TEST) {
+            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options, queryOptions));
+        }
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
@@ -250,8 +266,10 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options));
-        Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options));
+        for (final String queryOptions : OPTIONS_TO_TEST) {
+            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options, queryOptions));
+        }
     }
 
     static void runIQL2(List<Shard> shards, String query) throws Exception {
@@ -259,8 +277,10 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void runIQL2(List<Shard> shards, String query, Options options) throws Exception {
-        runQuery(shards, query, LanguageVersion.IQL2, false, options);
-        runQuery(shards, query, LanguageVersion.IQL2, true, options);
+        for (final String queryOptions : OPTIONS_TO_TEST) {
+            runQuery(shards, query, LanguageVersion.IQL2, false, options, queryOptions);
+            runQuery(shards, query, LanguageVersion.IQL2, true, options, queryOptions);
+        }
     }
 
     static void runIQL1(List<Shard> shards, String query) throws Exception {
@@ -269,8 +289,10 @@ public class QueryServletTestUtils extends BasicTest {
 
 
     static void runIQL1(List<Shard> shards, String query, Options options) throws Exception {
-        runQuery(shards, query, LanguageVersion.IQL1, false, options);
-        runQuery(shards, query, LanguageVersion.IQL1, true, options);
+        for (final String queryOptions : OPTIONS_TO_TEST) {
+            runQuery(shards, query, LanguageVersion.IQL1, false, options, queryOptions);
+            runQuery(shards, query, LanguageVersion.IQL1, true, options, queryOptions);
+        }
     }
 
     static void runAll(List<Shard> shards, String query) throws Exception {

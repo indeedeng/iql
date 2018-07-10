@@ -107,7 +107,7 @@ public class ExplodePerDocPercentile implements Command {
             public boolean needGroup() { return true; }
             @Override
             public boolean needStats() { return true; }
-        }, session.timer);
+        }, session.timer, session.options);
         session.timer.pop();
 
         for (int group = 1; group <= session.numGroups; group++) {

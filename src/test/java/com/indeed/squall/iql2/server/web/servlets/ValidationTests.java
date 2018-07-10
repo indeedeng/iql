@@ -86,7 +86,7 @@ public class ValidationTests extends BasicTest {
                 "FROM organic 2015-01-01 2015-01-02, sponsored " +
                 "SELECT [organic.clicked + sponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(new Dataset(shards).getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, Options.create());
+            QueryServletTestUtils.runQuery(new Dataset(shards).getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, Options.create(), "");
             Assert.fail();
         } catch (Exception ignored) {
         }

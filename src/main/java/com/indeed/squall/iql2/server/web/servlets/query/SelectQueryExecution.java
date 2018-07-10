@@ -47,6 +47,7 @@ import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.SelectQuery;
+import com.indeed.squall.iql2.execution.QueryOptions;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
 import com.indeed.squall.iql2.execution.progress.CompositeProgressCallback;
@@ -493,7 +494,7 @@ public class SelectQueryExecution implements Closeable {
 
             Consumer<String> out = externalOutput;
 
-            final boolean skipCache = query.options.contains("nocache");
+            final boolean skipCache = query.options.contains(QueryOptions.NO_CACHE);
 
             try (final Closer closer = Closer.create()) {
                 if (queryCache.isEnabled() && !skipCache) {

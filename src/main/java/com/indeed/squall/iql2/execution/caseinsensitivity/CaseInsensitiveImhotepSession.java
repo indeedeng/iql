@@ -311,7 +311,14 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
 
     @Override
     public FTGSIterator getFTGSIterator(final FTGSParams params) {
-        return wrapped.getFTGSIterator(params);
+        final FTGSParams fixedParams =
+                new FTGSParams(
+                        rewriteArray(params.intFields),
+                        rewriteArray(params.stringFields),
+                        params.termLimit,
+                        params.sortStat,
+                        params.sorted);
+        return wrapped.getFTGSIterator(fixedParams);
     }
 
     @Override
