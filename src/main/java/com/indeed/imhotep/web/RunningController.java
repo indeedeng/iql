@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -78,6 +79,9 @@ public class RunningController {
     @RequestMapping("/allrunning")
     @ResponseBody
     public RunningQueriesState handleAllRunning() {
+        if (iqldb == null) {
+            return new RunningQueriesState(new ArrayList<>());
+        }
         return new RunningQueriesState(iqldb.getRunningQueries());
     }
 
