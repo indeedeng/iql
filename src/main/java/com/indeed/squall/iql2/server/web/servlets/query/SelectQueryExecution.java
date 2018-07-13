@@ -521,6 +521,7 @@ public class SelectQueryExecution implements Closeable {
                             @Override
                             public void close() throws IOException {
                                 // TODO: Do this stuff asynchronously
+                                timer.push("Cache upload");
                                 cacheWriter.close();
                                 if (!errorOccurred.get()) {
                                     queryCache.writeFromFile(computeCacheKey.cacheFileName, cacheFile);
@@ -528,6 +529,7 @@ public class SelectQueryExecution implements Closeable {
                                 if (!cacheFile.delete()) {
                                     log.warn("Failed to delete  " + cacheFile);
                                 }
+                                timer.pop();
                             }
                         });
                         out = new Consumer<String>() {
