@@ -219,7 +219,7 @@ public class ExtractPrecomputed {
                 final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
                 final Set<String> newScope = Sets.newHashSet(qualified.scope);
                 if (!oldScope.containsAll(newScope)) {
-                    throw new IllegalStateException("Cannot have a sub-scope that is a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
+                    throw new IllegalStateException("Cannot have a sub-scope that is not a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
                 }
                 setScope(newScope);
                 final AggregateMetric result = apply(qualified.metric);
