@@ -46,19 +46,27 @@ public abstract class Grouping {
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = statRefs.get(i).getGroupStats();
         }
-        final int groupCount = statGroupValues[0].length;
-        final List<GroupStats> ret = Lists.newArrayListWithCapacity(groupCount);
+        final int groupCount = getGroupCount(statGroupValues);
+        final List<GroupStats> ret = Lists.newArrayListWithCapacity(Math.max(groupCount, groupKeys.size()));
         for (int group = 1; group < groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {
-                groupStats[statNum] = statGroupValues[statNum][group];
+                groupStats[statNum] = (statGroupValues[statNum].length > group) ? statGroupValues[statNum][group] : 0;
             }
             ret.add(new GroupStats(groupKeys.get(group), groupStats));
         }
         final double[] emptyGroupStats = new double[statCount];
-        for(int group = groupCount; group < groupKeys.size()+1; group++) {
+        for(int group = Math.max(groupCount, 1); group < (groupKeys.size() + 1); group++) {
             ret.add(new GroupStats(groupKeys.get(group), emptyGroupStats));
         }
         return ret.iterator();
+    }
+
+    private int getGroupCount(final double[][] statGroupValues) {
+        int groupCount = 0;
+        for (final double[] groupValue : statGroupValues) {
+            groupCount = Math.max(groupCount, groupValue.length);
+        }
+        return groupCount;
     }
 }
