@@ -78,24 +78,25 @@ public class GroupIterations {
     }
 
     private static List<Grouping> findGroupings(List<ExecutionStep.ComputePrecomputed> precomputeds) {
-        final ArrayList<List<Grouping>> resultStore = new ArrayList<>();
-        recursivleyConsiderAllOrders(new ArrayList<Grouping>(), new HashSet<String>(), precomputeds, resultStore);
-        if (resultStore.isEmpty()) {
+        final List<Grouping>[] bestGrouping = new List[1];
+        recursivelyConsiderAllOrders(new ArrayList<>(), precomputeds, bestGrouping);
+        if (bestGrouping[0] == null) {
             throw new IllegalStateException("No groupings?!");
         }
-        List<Grouping> bestGrouping = resultStore.get(0);
-        for (final List<Grouping> grouping : resultStore) {
-            if (grouping.size() < bestGrouping.size()) {
-                bestGrouping = grouping;
-            }
-        }
-        return bestGrouping;
+        return bestGrouping[0];
     }
 
-    private static void recursivleyConsiderAllOrders(List<Grouping> soFar, Set<String> handledDeps, List<ExecutionStep.ComputePrecomputed> precomputeds, List<List<Grouping>> resultStore) {
+    private static void recursivelyConsiderAllOrders(List<Grouping> soFar, List<ExecutionStep.ComputePrecomputed> precomputeds, List<Grouping>[] bestGrouping) {
+        final int bestGroupingSize = (bestGrouping[0] == null) ? Integer.MAX_VALUE : bestGrouping[0].size();
         if (precomputeds.isEmpty()) {
-            resultStore.add(new ArrayList<>(soFar));
+            if (soFar.size() < bestGroupingSize) {
+                bestGrouping[0] = new ArrayList<>(soFar);
+            }
         } else {
+            if ((soFar.size() + 1) >= bestGroupingSize) {
+                // no sense to iterate further.
+                return;
+            }
             final List<ExecutionStep.ComputePrecomputed> usable = new ArrayList<>();
             for (final ExecutionStep.ComputePrecomputed precomputed : precomputeds) {
                 if (soFar.containsAll(findNamedDependencies(precomputed.computation))) {
@@ -116,16 +117,13 @@ public class GroupIterations {
 
             for (final Map.Entry<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> entry : contextMembers.entrySet()) {
                 final Grouping grouping = Grouping.from(entry.getKey(), entry.getValue());
-                final Set<String> depsAdded = grouping.names();
                 soFar.add(grouping);
-                handledDeps.addAll(depsAdded);
-                recursivleyConsiderAllOrders(soFar, handledDeps, Lists.newArrayList(Iterables.filter(precomputeds, new Predicate<ExecutionStep.ComputePrecomputed>() {
+                recursivelyConsiderAllOrders(soFar, Lists.newArrayList(Iterables.filter(precomputeds, new Predicate<ExecutionStep.ComputePrecomputed>() {
                     @Override
                     public boolean apply(ExecutionStep.ComputePrecomputed input) {
                         return !entry.getValue().contains(input);
                     }
-                })), resultStore);
-                handledDeps.removeAll(depsAdded);
+                })), bestGrouping);
                 soFar.remove(soFar.size() - 1);
             }
         }
