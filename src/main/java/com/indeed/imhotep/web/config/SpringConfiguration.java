@@ -140,6 +140,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             // when running an imhotep daemon instance in process
             final String shardsDir = env.getProperty("imhotep.shards.directory");
             if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
+                // TODO: replace this with a LocalShardMaster
                 final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
                 return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
             } else {
@@ -147,11 +148,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                         "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
             }
         }
-        // connect to an externally running Imhotep Daemon
+        // connect to an externally running ShardMaster
         return getImhotepClient(
-                env.getProperty("imhotep.daemons.zookeeper.quorum"),
-                env.getProperty("imhotep.daemons.zookeeper.path"),
-                env.getProperty("imhotep.daemons.host"),
+                env.getProperty("imhotep.shardmaster.zookeeper.quorum"),
+                env.getProperty("imhotep.shardmaster.zookeeper.path"),
+                env.getProperty("imhotep.shardmaster.host"),
                 false);
     }
 

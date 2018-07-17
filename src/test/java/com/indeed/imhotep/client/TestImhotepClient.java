@@ -61,8 +61,8 @@ public class TestImhotepClient extends ImhotepClient {
 
             DatasetInfo datasetInfo = datasetToDatasetInfo.get(dataset);
             if(datasetInfo == null) {
-                datasetInfo = new DatasetInfo(dataset, ((Collection<ShardInfo>)null),
-                        Sets.newHashSet(), Sets.newHashSet(), 0L);
+                datasetInfo = new DatasetInfo(dataset,
+                        Sets.newHashSet(), Sets.newHashSet());
                 datasetToDatasetInfo.put(dataset, datasetInfo);
             }
             datasetInfo.getIntFields().addAll(shard.flamdex.getIntFields());
@@ -95,8 +95,7 @@ public class TestImhotepClient extends ImhotepClient {
             final Interval shardInterval = ShardTimeUtils.parseInterval(shard.shardId);
             if(shardInterval.overlaps(new Interval(start, end))) {
                 // TODO: Not hardcode version to 2015-01-01 00:00:00?
-                final Shard locatedShard = new Shard(shard.shardId, shard.flamdex.getNumDocs(), 20150101000000L);
-                locatedShard.getServers().add(new Host("", 1));
+                final Shard locatedShard = new Shard(shard.shardId, shard.flamdex.getNumDocs(), 20150101000000L, new Host("", 1));
                 result.add(locatedShard);
             }
         }
