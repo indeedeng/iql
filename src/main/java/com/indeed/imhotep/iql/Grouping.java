@@ -51,7 +51,7 @@ public abstract class Grouping {
         for (int group = 1; group < groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {
-                groupStats[statNum] = statGroupValues[statNum][group];
+                groupStats[statNum] = (statGroupValues[statNum].length > group) ? statGroupValues[statNum][group] : 0;
             }
             ret.add(new GroupStats(groupKeys.get(group), groupStats));
         }
