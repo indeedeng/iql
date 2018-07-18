@@ -159,6 +159,7 @@ public class MetadataCache {
             DatasetYaml datasetYaml = datasetToDatasetYaml.get(datasetName);
             datasetToMetadata.put(datasetName, new DatasetMetadata(datasetName,
                     Strings.nullToEmpty(datasetYaml == null ? null : datasetYaml.getDescription()),
+                    datasetYaml != null && datasetYaml.getDeprecated() != null && datasetYaml.getDeprecated(),
                     datasetToIntFields.getOrDefault(datasetName, Collections.emptySet()),
                     datasetToStringFields.getOrDefault(datasetName, Collections.emptySet()),
                     datasetToDimensions.getOrDefault(datasetName, Collections.emptyMap())));

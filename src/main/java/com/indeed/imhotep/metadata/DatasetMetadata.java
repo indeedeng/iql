@@ -38,6 +38,7 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
 
     @Nonnull final String name;
     @Nullable String description;
+    boolean deprecated;
     @Nonnull final LinkedHashMap<String, FieldMetadata> fields = Maps.newLinkedHashMap();
     @Nonnull final LinkedHashMap<String, MetricMetadata> metrics = Maps.newLinkedHashMap();
     @Nullable DatasetType type = null;
@@ -85,6 +86,14 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
 
     public void setDescription(@Nullable String description) {
         this.description = description;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(boolean deprecated) {
+        this.deprecated = deprecated;
     }
 
     public boolean hasField(String field) {
@@ -213,6 +222,9 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
 
     public void toJSON(ObjectNode jsonNode, ObjectMapper mapper, boolean summaryOnly) {
         jsonNode.put("name", getName());
+        if (deprecated) {
+            jsonNode.put("deprecated", true);
+        }
         jsonNode.put("description", Strings.nullToEmpty(getDescription()));
         if(summaryOnly) {
             return;

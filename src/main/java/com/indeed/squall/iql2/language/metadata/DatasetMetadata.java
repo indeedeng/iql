@@ -30,21 +30,24 @@ import java.util.stream.Collectors;
 public class DatasetMetadata {
     public final String datasetName;
     public final String description;
+    public final boolean deprecated;
     public final TreeSet<FieldMetadata> intFields;
     public final TreeSet<FieldMetadata> stringFields;
     public final Map<String, Dimension> fieldToDimension;
 
-    public DatasetMetadata(String datasetName, String description) {
+    public DatasetMetadata(String datasetName, String description, boolean deprecated) {
         this.datasetName = datasetName;
+        this.deprecated = deprecated;
         intFields = new TreeSet<FieldMetadata>(FieldMetadata.CASE_INSENSITIVE_ORDER);
         stringFields = new TreeSet<FieldMetadata>(FieldMetadata.CASE_INSENSITIVE_ORDER);
         fieldToDimension = ImmutableMap.of();
         this.description = description;
     }
 
-    public DatasetMetadata(final String datasetName, final String description, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
+    public DatasetMetadata(final String datasetName, final String description, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, Dimension> fieldToDimension) {
         this.datasetName = datasetName;
+        this.deprecated = deprecated;
         this.intFields = toCaseInsensitive(intFields);
         this.stringFields = toCaseInsensitive(stringFields);
 

@@ -133,6 +133,9 @@ public class ImhotepMetadataCache {
                     if (newDatasets.containsKey(datasetYaml.getName())) {
                         DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
                         newDataset.setDescription(datasetYaml.getDescription());
+                        if (datasetYaml.getDeprecated() != null) {
+                            newDataset.setDeprecated(datasetYaml.getDeprecated());
+                        }
 
                         FieldsYaml[] fieldsYamls = datasetYaml.getFields();
                         for (FieldsYaml fieldYaml : fieldsYamls) {

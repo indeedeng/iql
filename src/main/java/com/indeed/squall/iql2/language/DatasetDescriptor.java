@@ -32,13 +32,15 @@ public class DatasetDescriptor {
 
     final String name;
     final String description;
+    final boolean deprecated;
     final ImmutableList<FieldMetadata> fields;
     // for IQL1 convention
     final ImmutableList<Dimension> metrics;
 
-    public DatasetDescriptor(String name, String description, List<FieldMetadata> fields, ImmutableList<Dimension> dimensions) {
+    public DatasetDescriptor(String name, String description, boolean deprecated, List<FieldMetadata> fields, ImmutableList<Dimension> dimensions) {
         this.name = name;
         this.description = description;
+        this.deprecated = deprecated;
         this.fields = ImmutableList.copyOf(fields);
         this.metrics = dimensions;
     }
@@ -53,7 +55,8 @@ public class DatasetDescriptor {
             fields.add(field);
         }
 
-        return new DatasetDescriptor(dataset, Strings.nullToEmpty(datasetMetadata.description), fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
+        return new DatasetDescriptor(dataset, Strings.nullToEmpty(datasetMetadata.description), datasetMetadata.deprecated,
+                fields, ImmutableList.copyOf(datasetMetadata.fieldToDimension.values()));
     }
 
     public String getName() {
@@ -62,6 +65,10 @@ public class DatasetDescriptor {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
     }
 
     public List<FieldMetadata> getFields() {

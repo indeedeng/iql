@@ -16,6 +16,8 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -296,16 +298,30 @@ public class QueryServlet {
 
     private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
         final List<String> datasetNames = imhotepClient.getDatasetNames();
-        final DatasetsMetadata metadata = metadataCache.get();
-        final List<Map<String, String>> datasets = new ArrayList<>();
-        for (final String dataset : datasetNames) {
-            final String description = metadata.getMetadata(dataset).isPresent() ?
-                    Strings.nullToEmpty(metadata.getMetadata(dataset).get().description) : "";
-            datasets.add(ImmutableMap.of("name", dataset, "description", description));
-        }
+        final DatasetsMetadata datasetsMetadata = metadataCache.get();
         if (contentType.contains("application/json") || contentType.contains("*/*")) {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("datasets", datasets)));
+
+            final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
+            final ArrayNode array = OBJECT_MAPPER.createArrayNode();
+            jsonRoot.set("datasets", array);
+            for(final String dataset : datasetNames) {
+                final ObjectNode datasetInfo = OBJECT_MAPPER.createObjectNode();
+                datasetInfo.put("name", dataset);
+                com.google.common.base.Optional<DatasetMetadata> metadata = datasetsMetadata.getMetadata(dataset);
+                final String description;
+                if (metadata.isPresent()) {
+                    description = Strings.nullToEmpty(metadata.get().description);
+                    if (metadata.get().deprecated) {
+                        datasetInfo.put("deprecated", true);
+                    }
+                } else {
+                    description = "";
+                }
+                datasetInfo.put("description", description);
+                array.add(datasetInfo);
+            }
+            OBJECT_MAPPER.writeValue(response.getOutputStream(), jsonRoot);
         } else {
             throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
         }

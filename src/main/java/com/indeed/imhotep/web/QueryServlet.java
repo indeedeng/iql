@@ -670,7 +670,7 @@ public class QueryServlet {
                 dataset.toJSON(datasetInfo, mapper, true);
                 array.add(datasetInfo);
             }
-            mapper.writeValue(outputStream, jsonRoot);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
             for(DatasetMetadata dataset : metadata.getDatasets().values()) {
                 outputStream.println(dataset.getName());
