@@ -14,6 +14,8 @@
 
 package com.indeed.imhotep.ez;
 
+import com.indeed.iql.exceptions.IqlKnownException;
+
 /**
  * @author vladimir
  */
@@ -24,7 +26,7 @@ public class ConstantDivideSingleStatReference extends SingleStatReference {
     public ConstantDivideSingleStatReference(SingleStatReference stat, long value, EZImhotepSession session) {
         super(stat.depth, stat.toString() + "/" + value, session);
         if(value == 0) {
-            throw new IllegalArgumentException("Can't divide by 0");
+            throw new IqlKnownException.ParseErrorException("Can't divide by 0");
         }
         this.value = value;
     }

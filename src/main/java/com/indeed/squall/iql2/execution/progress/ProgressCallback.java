@@ -15,10 +15,12 @@
 package com.indeed.squall.iql2.execution.progress;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.Command;
 
+import java.util.List;
 import java.util.Map;
 
 public interface ProgressCallback {
@@ -26,6 +28,9 @@ public interface ProgressCallback {
      * Optional.absent() when a Command List is not given.
      */
     void startSession(Optional<Integer> numCommands);
+
+    // called after shards are chosen but before sessions creation.
+    void preSessionOpen(Map<String, List<Shard>> datasetToChosenShards);
 
     // Provided separately in order to allow early termination.
     void sessionOpened(ImhotepSession session);

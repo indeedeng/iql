@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocMetric;
@@ -219,7 +220,7 @@ public class ExtractPrecomputed {
                 final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
                 final Set<String> newScope = Sets.newHashSet(qualified.scope);
                 if (!oldScope.containsAll(newScope)) {
-                    throw new IllegalStateException("Cannot have a sub-scope that is not a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
+                    throw new IqlKnownException.ParseErrorException("Cannot have a sub-scope that is not a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
                 }
                 setScope(newScope);
                 final AggregateMetric result = apply(qualified.metric);
@@ -237,7 +238,7 @@ public class ExtractPrecomputed {
                     } else if (docMetricQualifications.size() == 1) {
                         pushScope = docMetricQualifications;
                     } else {
-                        throw new IllegalArgumentException("Doc Metric cannot have multiple different qualifications! metric = [" + docMetric + "], qualifications = [" + docMetricQualifications + "]");
+                        throw new IqlKnownException.ParseErrorException("Doc Metric cannot have multiple different qualifications! metric = [" + docMetric + "], qualifications = [" + docMetricQualifications + "]");
                     }
                     for (final String dataset : pushScope) {
                         final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
@@ -352,7 +353,7 @@ public class ExtractPrecomputed {
             final Set<String> scope = this.scope;
 
             if (depth < 0) {
-                throw new IllegalArgumentException("Depth reached negative when processing metric: " + precomputed);
+                throw new IqlKnownException.ParseErrorException("Depth reached negative when processing metric: " + precomputed);
             }
             if (depth > maxDepth) {
                 throw new IllegalStateException("Required computation in the future: " + precomputed);

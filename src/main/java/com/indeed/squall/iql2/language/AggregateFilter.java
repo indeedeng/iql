@@ -770,7 +770,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         public Regex(Positioned<String> field, String regex) {
             this.field = field;
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.checkRegex(regex);
             this.regex = regex;
         }
 

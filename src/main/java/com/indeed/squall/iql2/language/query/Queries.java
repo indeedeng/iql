@@ -21,6 +21,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -379,17 +380,22 @@ public class Queries {
     }
 
     public static <T> T runParser(String input, Function<JQLParser, T> applyParser) {
-        final JQLParser parser = parserForString(input);
-        final List<RecognitionException> exceptions = new ArrayList<>();
-        parser.setErrorHandler(new DefaultErrorStrategy() {
-            @Override
-            public void reportError(Parser recognizer, RecognitionException e) {
-                super.reportError(recognizer, e);
-                exceptions.add(e);
+        final IqlKnownException.ParseErrorException error;
+        try {
+            final JQLParser parser = parserForString(input);
+            final List<RecognitionException> exceptions = new ArrayList<>();
+            parser.setErrorHandler(new DefaultErrorStrategy() {
+                @Override
+                public void reportError(Parser recognizer, RecognitionException e) {
+                    super.reportError(recognizer, e);
+                    exceptions.add(e);
+                }
+            });
+            final T result = applyParser.apply(parser);
+            if (parser.getNumberOfSyntaxErrors() == 0) {
+                return result;
             }
-        });
-        final T result = applyParser.apply(parser);
-        if (parser.getNumberOfSyntaxErrors() > 0) {
+
             final String extra;
             if (exceptions.size() > 0) {
                 final RecognitionException anException = exceptions.get(0);
@@ -398,9 +404,13 @@ public class Queries {
             } else {
                 extra = "";
             }
-            throw new IllegalArgumentException("Invalid input: [" + input + "]" + extra);
+            error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]" + extra);
+        } catch (final Throwable t) {
+            // Some unexpected error inside parser.
+            throw new RuntimeException("Something went wrong inside query parser", t);
         }
-        return result;
+
+        throw error;
     }
 
     public static JQLParser.QueryContext parseQueryContext(String q, final boolean useLegacy) {

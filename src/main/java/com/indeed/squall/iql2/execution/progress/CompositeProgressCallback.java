@@ -15,6 +15,7 @@
 package com.indeed.squall.iql2.execution.progress;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -41,6 +42,13 @@ public class CompositeProgressCallback implements ProgressCallback {
     public void startSession(Optional<Integer> numCommands) {
         for (final ProgressCallback progressCallback : progressCallbacks) {
             progressCallback.startSession(numCommands);
+        }
+    }
+
+    @Override
+    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+        for (final ProgressCallback progressCallback : progressCallbacks) {
+            progressCallback.preSessionOpen(datasetToChosenShards);
         }
     }
 

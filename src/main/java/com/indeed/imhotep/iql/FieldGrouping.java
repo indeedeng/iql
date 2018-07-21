@@ -24,6 +24,7 @@ import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
@@ -99,7 +100,7 @@ public final class FieldGrouping extends Grouping {
                     try {
                         termsArray[i] = Long.valueOf(termSubset.get(i));
                     } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("IN grouping for int field " + intField.getFieldName() +
+                        throw new IqlKnownException.ParseErrorException("IN grouping for int field " + intField.getFieldName() +
                                 " has a non integer argument: " + termSubset.get(i));
                     }
                 }

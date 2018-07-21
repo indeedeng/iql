@@ -14,9 +14,10 @@
 
 package com.indeed.squall.iql2.language;
 
-import com.indeed.util.core.time.WallClock;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
+import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.Token;
 import org.joda.time.DateTime;
 
@@ -67,11 +68,11 @@ public class TimePeriods {
             final JQLParser parser = Queries.parserForString(unquoted);
             final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod(), useLegacy);
             if (parser.getNumberOfSyntaxErrors() > 0) {
-                throw new IllegalArgumentException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");
+                throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");
             }
             return result;
         } else {
-            throw new IllegalArgumentException("Failed to handle time period context: [" + timePeriodContext.getText() + "]");
+            throw new IqlKnownException.ParseErrorException("Failed to handle time period context: [" + timePeriodContext.getText() + "]");
         }
 
     }

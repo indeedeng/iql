@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.optimizations.ConstantFolding;
 import com.indeed.squall.iql2.language.util.ErrorMessages;
@@ -150,7 +151,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(String dataset) {
             if (!datasetToMetric.containsKey(dataset)) {
-                throw new IllegalArgumentException("Unknown dataset: " + dataset + " in [" + this + "]");
+                throw new IqlKnownException.ParseErrorException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
                 return datasetToMetric.get(dataset).getPushes(dataset);
             }
@@ -164,7 +165,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
             if (!datasetToMetric.containsKey(dataset)) {
-                throw new IllegalArgumentException("Unknown dataset: " + dataset + " in [" + this + "]");
+                throw new IqlKnownException.ParseErrorException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
                 datasetToMetric.get(dataset).validate(dataset, validationHelper, validator);
             }
@@ -885,7 +886,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         public RegexMetric(Positioned<String> field, String regex) {
             this.field = field;
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.checkRegex(regex);
             this.regex = regex;
         }
 
@@ -1376,7 +1377,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(String dataset) {
             if (!dataset.equals(this.dataset)) {
-                throw new IllegalStateException("Qualified DocMetric getting pushes for a different dataset! [" + this.dataset + "] != [" + dataset + "]");
+                throw new IqlKnownException.ParseErrorException("Qualified DocMetric getting pushes for a different dataset! [" + this.dataset + "] != [" + dataset + "]");
             }
             return metric.getPushes(dataset);
         }

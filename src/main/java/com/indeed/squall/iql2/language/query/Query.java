@@ -17,6 +17,7 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -135,7 +136,7 @@ public class Query extends AbstractPositional {
                 }
             }
         } else {
-            throw new IllegalArgumentException("Invalid number of select clauses! numClauses = " + selects.size());
+            throw new IqlKnownException.ParseErrorException("Invalid number of select clauses! numClauses = " + selects.size());
         }
 
         final Optional<Integer> rowLimit;
@@ -221,7 +222,7 @@ public class Query extends AbstractPositional {
                 name = dataset.dataset;
             }
             if (names.contains(name.unwrap())) {
-                throw new IllegalArgumentException("Duplicate name encountered: " + name.unwrap());
+                throw new IqlKnownException.ParseErrorException("Duplicate name encountered: " + name.unwrap());
             }
             names.add(name.unwrap());
         }
@@ -238,7 +239,7 @@ public class Query extends AbstractPositional {
                 name = dataset.dataset;
             }
             if (nameToIndex.containsKey(name.unwrap())) {
-                throw new IllegalArgumentException("Duplicate name encountered: " + name.unwrap());
+                throw new IqlKnownException.ParseErrorException("Duplicate name encountered: " + name.unwrap());
             }
             nameToIndex.put(name.unwrap(), dataset.dataset.unwrap());
         }
