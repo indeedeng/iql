@@ -42,6 +42,11 @@ public class GetGroupStats implements Command {
         for (final AggregateMetric metric : metrics) {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
+        for (final Optional<String> formatString : formatStrings) {
+            if (formatString.isPresent() && !isCorrectFormatString(formatString.get())) {
+                validator.error("Incorrect format string: <" + formatString.get() + ">");
+            }
+        }
     }
 
     @Override
@@ -75,5 +80,17 @@ public class GetGroupStats implements Command {
                 ", formatStrings=" + formatStrings +
                 ", returnGroupKeys=" + returnGroupKeys +
                 '}';
+    }
+
+    private static boolean isCorrectFormatString(final String str) {
+        // Don't know how to check format string.
+        // Format string will be used to output doubles, so try to output any double and check for exceptions.
+        // Not sure that we can catch all format errors with this approach, but believe that almost all will be caught.
+        try {
+            final String ignored = String.format(str, 0.0d);
+            return true;
+        } catch (final Throwable t) {
+            return false;
+        }
     }
 }
