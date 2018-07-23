@@ -323,7 +323,11 @@ public class SelectQueryExecution implements Closeable {
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
-                queryInfo.datasets.add(upperCaseToActualDataset.get(dataset.dataset.unwrap().toUpperCase()));
+                final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap().toUpperCase());
+                if (actualDataset == null) {
+                    continue;
+                }
+                queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
             queryInfo.totalDatasetRange = datasetRangeSum;
@@ -332,7 +336,11 @@ public class SelectQueryExecution implements Closeable {
             queryInfo.datasetFields = Sets.newHashSet();
 
             for (final DatasetField datasetField : datasetFields) {
-                datasetField.dataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
+                final String actualDataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
+                if (actualDataset == null) {
+                    continue;
+                }
+                datasetField.dataset = actualDataset;
                 final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
                 final Collection<String> intFields = datasetInfo.getIntFields();
                 final Collection<String> stringFields = datasetInfo.getStringFields();
