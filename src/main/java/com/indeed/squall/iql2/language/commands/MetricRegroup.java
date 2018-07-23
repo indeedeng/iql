@@ -51,6 +51,13 @@ public class MetricRegroup implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
+        if (interval <= 0) {
+            validator.error("Bucket size must be positive. size = " + interval);
+        }
+        if (min >= max) {
+            validator.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
+        }
+
         // TODO: Validate more List<String>s.... somehow.
     }
 
