@@ -56,6 +56,12 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
+    public static class UnknownDatasetException extends IqlKnownException {
+        public UnknownDatasetException(final String message) {
+            super(message);
+        }
+    }
+
     public static class UnknownFieldException extends IqlKnownException {
         public UnknownFieldException(final String message) {
             super(message);

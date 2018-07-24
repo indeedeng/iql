@@ -641,7 +641,7 @@ public class SelectQueryExecution implements Closeable {
             timer.push("get chosen shards");
             final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
             if (actualDataset == null) {
-                throw new IqlKnownException.ParseErrorException("Unknown dataset: " + dataset.dataset.unwrap());
+                throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset.dataset.unwrap());
             }
             final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
             final List<Shard> chosenShards = imhotepClient.findShardsForTimeRange(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap());

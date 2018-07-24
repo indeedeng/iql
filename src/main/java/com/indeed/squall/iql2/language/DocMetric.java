@@ -151,7 +151,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(String dataset) {
             if (!datasetToMetric.containsKey(dataset)) {
-                throw new IqlKnownException.ParseErrorException("Unknown dataset: " + dataset + " in [" + this + "]");
+                throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
                 return datasetToMetric.get(dataset).getPushes(dataset);
             }
@@ -165,7 +165,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
             if (!datasetToMetric.containsKey(dataset)) {
-                throw new IqlKnownException.ParseErrorException("Unknown dataset: " + dataset + " in [" + this + "]");
+                throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
                 datasetToMetric.get(dataset).validate(dataset, validationHelper, validator);
             }
