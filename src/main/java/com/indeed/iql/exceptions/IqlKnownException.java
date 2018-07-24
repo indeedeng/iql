@@ -74,8 +74,8 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
-    public static class DocLimitExceededException extends IqlKnownException {
-        public DocLimitExceededException(final String message) {
+    public static class DocumentsLimitExceededException extends IqlKnownException {
+        public DocumentsLimitExceededException(final String message) {
             super(message);
         }
     }

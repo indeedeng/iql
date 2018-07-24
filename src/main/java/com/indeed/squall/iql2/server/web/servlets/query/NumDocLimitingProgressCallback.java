@@ -70,7 +70,7 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
 
     private void checkDocLimit(final long docCount) {
         if (docCount > docLimit) {
-            throw new IqlKnownException.DocLimitExceededException(String.format(
+            throw new IqlKnownException.DocumentsLimitExceededException(String.format(
                     "Opening sessions with a total of %s documents exceeds limit of %s.",
                     docCount,
                     docLimit
