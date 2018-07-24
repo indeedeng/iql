@@ -59,7 +59,7 @@ public final class StatRangeGrouping2D extends Grouping {
 
         final long expectedBucketCount = ((long)xMax - xMin) / xIntervalSize + ((long)yMax - yMin) / yIntervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
-            throw new IqlKnownException.LimitExceededException("Requested bucket count for metrics " + xStat.toString() + " & " + yStat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Requested bucket count for metrics " + xStat.toString() + " & " + yStat.toString() +
                     " is " + expectedBucketCount + " which is over the limit of " + limits.queryInMemoryRowsLimit);
         }
     }

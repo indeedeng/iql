@@ -813,13 +813,13 @@ public class Session {
 
     public void checkGroupLimitWithoutLog(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IqlKnownException.LimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 
     public void checkGroupLimit(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IqlKnownException.LimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
     }

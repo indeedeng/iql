@@ -77,7 +77,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
             topTerms.add(getStats(count, group, term));
 
             if(!limits.satisfiesQueryInMemoryRowsLimit(++newGroupCount)) {
-                throw new IqlKnownException.LimitExceededException("Number of groups exceeds the limit " +
+                throw new IqlKnownException.GroupLimitExceededException("Number of groups exceeds the limit " +
                         new DecimalFormat("###,###").format(limits.queryInMemoryRowsLimit) +
                         ". Please simplify the query.");
             }

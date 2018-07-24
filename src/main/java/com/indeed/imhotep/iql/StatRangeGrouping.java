@@ -62,7 +62,7 @@ public final class StatRangeGrouping extends Grouping {
 
         expectedBucketCount = (maxValue - minValue) / intervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
-            throw new IqlKnownException.LimitExceededException("Requested bucket count for metric " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Requested bucket count for metric " + this.stat.toString() +
                     " is " + df.format(expectedBucketCount) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit));
         }
     }
@@ -73,7 +73,7 @@ public final class StatRangeGrouping extends Grouping {
         }
         final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedNumberOfRows) || expectedNumberOfRows < 0) {
-            throw new IqlKnownException.LimitExceededException("Expected number of rows after bucketing by " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + this.stat.toString() +
                     " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit) +
                     " rows in memory. Please optimize the query.");
         }

@@ -62,8 +62,14 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
-    public static class LimitExceededException extends IqlKnownException {
-        public LimitExceededException(final String message) {
+    public static class GroupLimitExceededException extends IqlKnownException {
+        public GroupLimitExceededException(final String message) {
+            super(message);
+        }
+    }
+
+    public static class DocLimitExceededException extends IqlKnownException {
+        public DocLimitExceededException(final String message) {
             super(message);
         }
     }

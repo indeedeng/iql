@@ -418,7 +418,7 @@ public class SelectQueryExecution implements Closeable {
                                             @Override
                                             public void accept(String s) {
                                                 if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
-                                                    throw new IqlKnownException.LimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
+                                                    throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                                                 }
                                                 final String term = s.split("\t")[0];
                                                 try {
