@@ -17,13 +17,13 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
+import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.metadata.FieldMetadata;
 import com.indeed.squall.iql2.language.metadata.ImmutableFieldMetadata;
 import com.indeed.squall.iql2.language.query.Dataset;
 import com.indeed.squall.iql2.language.query.Query;
-import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import com.indeed.squall.iql2.language.util.ValidationHelper;
-import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +63,10 @@ public class CommandValidator {
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
-            final DatasetMetadata datasetMetada = datasetsMetadata.getMetadata(actualDataset).or(new DatasetMetadata(actualDataset, actualDataset, false));
+            final DatasetMetadata datasetMetada = datasetsMetadata.getMetadata(actualDataset).orNull();
+            if (datasetMetada == null) {
+                continue;
+            }
             relevantDatasetToMetadata.put(aliasDataset, datasetMetada);
 
             final Set<String> aliasIntField = new HashSet<>();
