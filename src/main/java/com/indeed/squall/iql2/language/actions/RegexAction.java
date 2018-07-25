@@ -37,7 +37,7 @@ public class RegexAction implements Action {
     public RegexAction(Set<String> scope, String field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
         this.scope = ImmutableSet.copyOf(scope);
         this.field = field;
-        ValidationUtil.checkRegex(regex);
+        ValidationUtil.compileRegex(regex);
         this.regex = regex;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;

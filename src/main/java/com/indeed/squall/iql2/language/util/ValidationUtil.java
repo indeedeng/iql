@@ -158,19 +158,11 @@ public class ValidationUtil {
             return new RegExp(regex).toAutomaton();
         } catch (Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
-            throw new IllegalArgumentException(
+            throw new IqlKnownException.ParseErrorException(
                     "The provided regex filter [" + regex + "] failed to parse."
                             + "\nError was: " + e.getMessage()
                             + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
             );
-        }
-    }
-
-    public static void checkRegex(final String regex) {
-        try {
-            compileRegex(regex);
-        } catch (final Throwable t) {
-            throw new IqlKnownException.ParseErrorException(t);
         }
     }
 }

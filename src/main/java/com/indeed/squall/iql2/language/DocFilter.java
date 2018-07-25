@@ -1038,7 +1038,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         public Regex(Positioned<String> field, String regex) {
             this.field = field;
-            ValidationUtil.checkRegex(regex);
+            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 
@@ -1098,7 +1098,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         public NotRegex(Positioned<String> field, String regex) {
             this.field = field;
-            ValidationUtil.checkRegex(regex);
+            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 

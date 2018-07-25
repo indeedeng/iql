@@ -886,7 +886,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         public RegexMetric(Positioned<String> field, String regex) {
             this.field = field;
-            ValidationUtil.checkRegex(regex);
+            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 
