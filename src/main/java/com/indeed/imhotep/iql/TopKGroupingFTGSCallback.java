@@ -69,7 +69,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
     private void termGroup(final Object term, final int group) {
         PriorityQueue<ScoredObject<GroupStats>> topTerms = groupToTopK.get(group);
         if (topTerms == null) {
-            topTerms = new PriorityQueue<ScoredObject<GroupStats>>(topK, comparator);
+            topTerms = new PriorityQueue<>(comparator);
             groupToTopK.put(group, topTerms);
         }
         final double count = getStat(countStat);
