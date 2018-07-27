@@ -16,10 +16,10 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
-import com.indeed.squall.iql2.execution.WrappingImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 
@@ -54,6 +54,11 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
 
     @Override
     public void startSession(Optional<Integer> numCommands) {
+    }
+
+    @Override
+    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+        // do nothing
     }
 
     @Override

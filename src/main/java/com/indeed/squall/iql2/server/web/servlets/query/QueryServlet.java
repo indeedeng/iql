@@ -21,8 +21,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.DatasetInfo;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.web.AccessControl;
@@ -30,17 +33,12 @@ import com.indeed.imhotep.web.ClientInfo;
 import com.indeed.imhotep.web.ErrorResult;
 import com.indeed.imhotep.web.FieldFrequencyCache;
 import com.indeed.imhotep.web.GlobalUncaughtExceptionHandler;
-import com.indeed.imhotep.web.IQLDB;
 import com.indeed.imhotep.web.Limits;
 import com.indeed.imhotep.web.QueryLogEntry;
 import com.indeed.imhotep.web.QueryMetrics;
 import com.indeed.imhotep.web.RunningQueriesManager;
 import com.indeed.imhotep.web.TopTermsCache;
-import com.indeed.util.core.time.StoppedClock;
-import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.DatasetDescriptor;
 import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
@@ -48,6 +46,7 @@ import com.indeed.squall.iql2.server.web.UsernameUtil;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
 import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
@@ -63,7 +62,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -73,7 +71,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -185,7 +182,7 @@ public class QueryServlet {
         queryInfo.statementType = "invalid";
         try {
             if (Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
-                throw new RuntimeException("IQL query requests have to include parameters 'client' and 'username' for identification");
+                throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
             accessControl.checkAllowedAccess(username);
 
@@ -472,8 +469,11 @@ public class QueryServlet {
         final String queryToLog = query.length() > QUERY_LENGTH_LIMIT ? query.substring(0, QUERY_LENGTH_LIMIT) : query;
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", query.length());
-        logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
-        if (errorOccurred != null) {
+        final boolean error = errorOccurred != null;
+        final boolean systemError = error && !ServletUtil.isKnownError(errorOccurred);
+        logEntry.setProperty("error", error ? "1" : "0");
+        logEntry.setProperty("systemerror", systemError ? "1" : "0");
+        if (error) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
             String message = errorOccurred.getMessage();
             if (message == null) {
@@ -482,7 +482,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", message);
         }
 
-        QueryMetrics.logQueryMetrics(2, queryInfo.statementType, errorOccurred != null, timeTaken, this.metricStatsEmitter);
+        QueryMetrics.logQueryMetrics(2, queryInfo.statementType, error, systemError, timeTaken, this.metricStatsEmitter);
         dataLog.info(logEntry);
     }
 

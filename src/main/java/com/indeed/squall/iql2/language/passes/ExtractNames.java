@@ -16,6 +16,7 @@ package com.indeed.squall.iql2.language.passes;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -45,7 +46,7 @@ public class ExtractNames {
                 if (input instanceof AggregateMetric.Named) {
                     final AggregateMetric.Named named = (AggregateMetric.Named) input;
                     if (resultAggregator.containsKey(named.name.unwrap())) {
-                        throw new IllegalArgumentException("Trying to name multiple metrics the same name: [" + named.name.unwrap() + "]!");
+                        throw new IqlKnownException.ParseErrorException("Trying to name multiple metrics the same name: [" + named.name.unwrap() + "]!");
                     }
                     resultAggregator.put(named.name.unwrap(), named.metric);
                 }

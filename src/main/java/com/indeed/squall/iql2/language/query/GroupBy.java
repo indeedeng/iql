@@ -18,6 +18,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -407,16 +408,16 @@ public abstract class GroupBy extends AbstractPositional {
             this.withDefault = withDefault;
 
             if (Sets.newHashSet(stringTerms).size() != stringTerms.size()) {
-                throw new IllegalArgumentException("String terms must be unique: " + stringTerms);
+                throw new IqlKnownException.ParseErrorException("String terms must be unique: " + stringTerms);
             }
             if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
-                throw new IllegalArgumentException("Int terms must be unique: " + intTerms);
+                throw new IqlKnownException.ParseErrorException("Int terms must be unique: " + intTerms);
             }
             if (intTerms.size() > 0 && stringTerms.size() > 0) {
-                throw new IllegalArgumentException("Cannot have both int terms and string terms.");
+                throw new IqlKnownException.ParseErrorException("Cannot have both int terms and string terms.");
             }
             if (intTerms.size() == 0 && stringTerms.size() == 0) {
-                throw new IllegalArgumentException("Cannot have empty field in Set");
+                throw new IqlKnownException.ParseErrorException("Cannot have empty field in Set");
             }
         }
 

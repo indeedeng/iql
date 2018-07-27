@@ -49,6 +49,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -180,6 +181,7 @@ public class Session {
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
 
         progressCallback.startSession(Optional.of(commands.size()));
+        progressCallback.preSessionOpen(datasetToChosenShards);
 
         treeTimer.push("createSubSessions");
         final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
@@ -296,6 +298,10 @@ public class Session {
             treeTimer.push("build session");
             treeTimer.push("create session builder");
             final List<Shard> chosenShards = datasetToChosenShards.get(dataset.name);
+            if ((chosenShards == null) || chosenShards.isEmpty()) {
+                throw new IqlKnownException.ExecutionException("No shards: no data available for the requested dataset and time range."
+                + " Dataset: " + dataset.name + ", start: " + startDateTime + ", end: " + endDateTime);
+            }
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(actualDataset, startDateTime, endDateTime)
                 .username("IQL2:" + username)
@@ -807,13 +813,13 @@ public class Session {
 
     public void checkGroupLimitWithoutLog(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 
     public void checkGroupLimit(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
     }

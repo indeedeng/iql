@@ -17,6 +17,7 @@ package com.indeed.squall.iql2.language.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateMetric;
 import com.indeed.squall.iql2.language.DocFilter;
@@ -52,7 +53,7 @@ public class SubstituteNamed {
                         if (namedMetrics.containsKey(docMetric.field)) {
                             if (substitutionStack.contains(docMetric.field)) {
                                 substitutionStack.push(docMetric.field);
-                                throw new IllegalStateException("Hit cycle when doing name replacement: [" + Joiner.on(" -> ").join(substitutionStack) + "]");
+                                throw new IqlKnownException.ParseErrorException("Hit cycle when doing name replacement: [" + Joiner.on(" -> ").join(substitutionStack) + "]");
                             }
                             substitutionStack.push(docMetric.field);
                             final AggregateMetric result =

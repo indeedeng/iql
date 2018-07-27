@@ -20,6 +20,7 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.Automaton;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.Validator;
 import org.apache.commons.lang.StringUtils;
 
@@ -96,7 +97,7 @@ public class ValidationUtil {
 
     public static void validateSameScopeThrowException(List<String> scope1, List<String> scope2) {
         if (!Objects.equal(scope1, scope2)) {
-            throw new IllegalArgumentException(ErrorMessages.scopeMismatch(StringUtils.join(scope1, "."), StringUtils.join(scope2, ".")));
+            throw new IqlKnownException.ParseErrorException(ErrorMessages.scopeMismatch(StringUtils.join(scope1, "."), StringUtils.join(scope2, ".")));
         }
     }
 
@@ -157,7 +158,7 @@ public class ValidationUtil {
             return new RegExp(regex).toAutomaton();
         } catch (Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
-            throw new IllegalArgumentException(
+            throw new IqlKnownException.ParseErrorException(
                     "The provided regex filter [" + regex + "] failed to parse."
                             + "\nError was: " + e.getMessage()
                             + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"

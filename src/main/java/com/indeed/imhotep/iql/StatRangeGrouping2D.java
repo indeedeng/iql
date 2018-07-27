@@ -18,6 +18,7 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
 import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
@@ -42,10 +43,10 @@ public final class StatRangeGrouping2D extends Grouping {
                                final Stat yStat, final long yMin, final long yMax, final long yIntervalSize,
                                final Limits limits) {
         if(xIntervalSize <= 0) {
-            throw new IllegalArgumentException("Bucket size has to be positive for stat: " + xStat.toString());
+            throw new IqlKnownException.ParseErrorException("Bucket size has to be positive for stat: " + xStat.toString());
         }
         if(yIntervalSize <= 0) {
-            throw new IllegalArgumentException("Bucket size has to be positive for stat: " + yStat.toString());
+            throw new IqlKnownException.ParseErrorException("Bucket size has to be positive for stat: " + yStat.toString());
         }
         this.xStat = xStat;
         this.xMin = xMin;
@@ -58,7 +59,7 @@ public final class StatRangeGrouping2D extends Grouping {
 
         final long expectedBucketCount = ((long)xMax - xMin) / xIntervalSize + ((long)yMax - yMin) / yIntervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
-            throw new IllegalArgumentException("Requested bucket count for metrics " + xStat.toString() + " & " + yStat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Requested bucket count for metrics " + xStat.toString() + " & " + yStat.toString() +
                     " is " + expectedBucketCount + " which is over the limit of " + limits.queryInMemoryRowsLimit);
         }
     }

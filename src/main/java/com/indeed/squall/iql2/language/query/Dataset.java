@@ -17,7 +17,7 @@ package com.indeed.squall.iql2.language.query;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.indeed.util.core.time.WallClock;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AbstractPositional;
 import com.indeed.squall.iql2.language.DocFilter;
 import com.indeed.squall.iql2.language.DocFilters;
@@ -29,6 +29,7 @@ import com.indeed.squall.iql2.language.TimePeriods;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.Pair;
+import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -185,7 +186,7 @@ public class Dataset extends AbstractPositional {
                         if (dt != null) {
                             return Positioned.from(dt, dateTimeContext);
                         }
-                        throw new IllegalArgumentException("Failed to parse string as either DateTime or time period: " + unquoted);
+                        throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + unquoted);
                     }
                     return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock, useLegacy), dateTimeContext);
                 }
@@ -195,7 +196,7 @@ public class Dataset extends AbstractPositional {
                 return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
             }
         }
-        throw new UnsupportedOperationException("Unhandled dateTime: " + dateTimeContext.getText());
+        throw new IqlKnownException.ParseErrorException("Unhandled dateTime: " + dateTimeContext.getText());
     }
 
     private static DateTime parseUnixTimestamp(String value) {

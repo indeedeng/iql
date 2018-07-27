@@ -16,6 +16,7 @@ package com.indeed.squall.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.AggregateFilter;
 import com.indeed.squall.iql2.language.AggregateFilters;
 import com.indeed.squall.iql2.language.AggregateMetric;
@@ -231,11 +232,11 @@ public class GroupBys {
                     final TimeUnit unit = pair.getSecond();
 
                     if (unit == TimeUnit.BUCKETS && pairs.size() > 1) {
-                        throw new IllegalArgumentException("Can't group by buckets and also other time units in the same time group by");
+                        throw new IqlKnownException.ParseErrorException("Can't group by buckets and also other time units in the same time group by");
                     } else if (unit == TimeUnit.MONTH && pairs.size() > 1) {
-                        throw new IllegalArgumentException("Can't group by months and also other time units in the same time group by");
+                        throw new IqlKnownException.ParseErrorException("Can't group by months and also other time units in the same time group by");
                     } else if (unit == TimeUnit.MONTH && coeff != 1) {
-                        throw new IllegalArgumentException("Month group by must be 1 month for time group-by.");
+                        throw new IqlKnownException.ParseErrorException("Month group by must be 1 month for time group-by.");
                     }
 
                     if (unit == TimeUnit.BUCKETS) {

@@ -30,6 +30,7 @@ import com.indeed.imhotep.iql.ScoredObject;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -265,7 +266,7 @@ public class EZImhotepSession implements Closeable {
                             intTermsSubset[i] = Long.valueOf((String) term);
                         } catch (NumberFormatException e) {
                             // TODO: move
-                            throw new IllegalArgumentException("IN grouping for int field " + field.getFieldName() +
+                            throw new IqlKnownException.ParseErrorException("IN grouping for int field " + field.getFieldName() +
                                     " has a non integer argument: " + term);
                         }
                     }

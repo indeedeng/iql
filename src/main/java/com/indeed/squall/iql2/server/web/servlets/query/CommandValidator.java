@@ -17,6 +17,8 @@ package com.indeed.squall.iql2.server.web.servlets.query;
 import com.indeed.squall.iql2.language.Positioned;
 import com.indeed.squall.iql2.language.Validator;
 import com.indeed.squall.iql2.language.commands.Command;
+import com.indeed.squall.iql2.language.commands.GetGroupStats;
+import com.indeed.squall.iql2.language.commands.SimpleIterate;
 import com.indeed.squall.iql2.language.metadata.DatasetMetadata;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.metadata.FieldMetadata;
@@ -52,6 +54,15 @@ public class CommandValidator {
         final ValidationHelper validationHelper = buildDatasetsFields(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
         for (final Command command : commands) {
             command.validate(validationHelper, validator);
+        }
+
+        if (!commands.isEmpty()) {
+            final Command lastCommand = commands.get(commands.size() - 1);
+            final boolean isExpected = (lastCommand instanceof SimpleIterate) || (lastCommand instanceof GetGroupStats);
+            if (!isExpected) {
+                throw new IllegalStateException("Last command expected to be SimpleIterate or GetGroupStats. "
+                        + "Actual last command: " + lastCommand );
+            }
         }
     }
 

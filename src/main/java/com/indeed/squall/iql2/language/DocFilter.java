@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.flamdex.query.Query;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.actions.Action;
 import com.indeed.squall.iql2.language.actions.IntOrAction;
 import com.indeed.squall.iql2.language.actions.MetricAction;
@@ -368,9 +369,9 @@ public abstract class DocFilter extends AbstractPositional {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             final Set<String> qualifications = Sets.union(ExtractQualifieds.extractDocMetricDatasets(m1), ExtractQualifieds.extractDocMetricDatasets(m2));
             if (qualifications.size() > 1) {
-                throw new IllegalStateException("DocFilter cannot have multiple different qualifications! docFilter = [" + this + "], qualifications = [" + qualifications + "]");
+                throw new IqlKnownException.ParseErrorException("DocFilter cannot have multiple different qualifications! docFilter = [" + this + "], qualifications = [" + qualifications + "]");
             } else if (!scope.keySet().containsAll(qualifications)) {
-                throw new IllegalArgumentException("Scope does not contain qualifications! scope = [" + scope.keySet() + "], qualifications = [" + qualifications + "]");
+                throw new IqlKnownException.ParseErrorException("Scope does not contain qualifications! scope = [" + scope.keySet() + "], qualifications = [" + qualifications + "]");
             } else if (qualifications.size() == 1) {
                 return Collections.<Action>singletonList(new MetricAction(qualifications, this, target, positive, negative));
             } else {
@@ -1588,7 +1589,7 @@ public abstract class DocFilter extends AbstractPositional {
         public StringFieldIn(DatasetsMetadata datasetsMetadata, Positioned<String> field, Set<String> terms) {
             this.datasetsMetadata = datasetsMetadata;
             if (terms.isEmpty()) {
-                throw new IllegalArgumentException("Cannot have empty set of terms!");
+                throw new IqlKnownException.ParseErrorException("Cannot have empty set of terms!");
             }
             this.field = field;
             this.terms = ImmutableSet.copyOf(terms);
@@ -1660,7 +1661,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         public IntFieldIn(DatasetsMetadata datasetsMetadata, Positioned<String> field, Set<Long> terms) {
             if (terms.isEmpty()) {
-                throw new IllegalArgumentException("Cannot have empty set of terms!");
+                throw new IqlKnownException.ParseErrorException("Cannot have empty set of terms!");
             }
             this.field = field;
             this.terms = new LongOpenHashSet(terms);

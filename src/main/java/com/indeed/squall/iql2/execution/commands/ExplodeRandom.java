@@ -16,6 +16,7 @@ package com.indeed.squall.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.SessionCallback;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -43,7 +44,7 @@ public class ExplodeRandom implements Command {
         final boolean isIntField = session.isIntField(field);
         final int numGroups = session.numGroups;
         if (numGroups != 1) {
-            throw new IllegalArgumentException("Can only use RANDOM() regroup as first GROUP BY");
+            throw new IqlKnownException.ExecutionException("Can only use RANDOM() regroup as first GROUP BY");
         }
         final double[] percentages = new double[k - 1];
         final int[] resultGroups = new int[k];
