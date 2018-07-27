@@ -1221,7 +1221,7 @@ public class Session {
 
         final IntList metricIndex = Iterables.getOnlyElement(metricIndexes.values());
         for (int i = 0; i < metricIndex.size(); i++) {
-            if (metricIndex.getInt(i) != 0) {
+            if (metricIndex.getInt(i) != i) {
                 return false;
             }
         }
