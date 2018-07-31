@@ -1166,11 +1166,10 @@ public class Session {
         final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
                              topKParams, ftgsRowLimit,
-                             termSubset, Optional.absent(), mustBeSorted || callback.needSorted())) {
+                             termSubset, Optional.absent(), callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
@@ -1213,10 +1212,6 @@ public class Session {
             final Map<String, Integer> presenceIndexes,
             final Set<String> options
     ) {
-        if (!options.contains(QueryOptions.Experimental.SIMPLE_PROSESSING)) {
-            return false;
-        }
-
         if ((sessions.size() != 1) || (metricIndexes.size() != 1) || !presenceIndexes.isEmpty()) {
             return false;
         }
@@ -1407,11 +1402,10 @@ public class Session {
         final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
                              topKParams, ftgsRowLimit,
-                             Optional.absent(), termSubset, mustBeSorted || callback.needSorted())) {
+                             Optional.absent(), termSubset, callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
