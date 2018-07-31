@@ -171,13 +171,13 @@ public class Dataset extends AbstractPositional {
             return Positioned.from(wordDate, dateTimeContext);
         } else {
             if (dateTimeContext.DATETIME_TOKEN() != null) {
-                return Positioned.from(new DateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
+                return Positioned.from(createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
             } else if (dateTimeContext.DATE_TOKEN() != null) {
-                return Positioned.from(new DateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
+                return Positioned.from(createDateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
             } else if (dateTimeContext.STRING_LITERAL() != null) {
                 final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
                 try {
-                    return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
+                    return Positioned.from(createDateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
                 } catch (IllegalArgumentException e) {
                     final JQLParser jqlParser = Queries.parserForString(unquoted);
                     final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
@@ -204,19 +204,35 @@ public class Dataset extends AbstractPositional {
         if(timestamp < Integer.MAX_VALUE) {
             timestamp *= 1000;  // seconds to milliseconds
         }
-        return new DateTime(timestamp);
+        return createDateTime(timestamp);
     }
 
     private static DateTime parseWordDate(String textValue, boolean useLegacy, WallClock clock) {
         final String lowerCasedValue = textValue.toLowerCase();
         if ("yesterday".startsWith(lowerCasedValue)) {
-            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
+            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
         } else if ("ago".equals(lowerCasedValue) || ((useLegacy || (textValue.length() >= 3)) && "today".startsWith(lowerCasedValue))) {
-            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
+            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
         } else if (textValue.length() >= 3 && "tomorrow".startsWith(lowerCasedValue)) {
-            return new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
+            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
         }
         return null;
+    }
+
+    private static DateTime createDateTime(final long time) {
+        try {
+            return new DateTime(time);
+        } catch (final Throwable t) {
+            throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
+        }
+    }
+
+    private static DateTime createDateTime(final String time) {
+        try {
+            return new DateTime(time);
+        } catch (final Throwable t) {
+            throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
+        }
     }
 
     @Override
