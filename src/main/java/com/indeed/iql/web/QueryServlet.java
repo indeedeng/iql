@@ -44,7 +44,6 @@ import com.indeed.imhotep.sql.ast2.IQLStatement;
 import com.indeed.imhotep.sql.ast2.SelectClause;
 import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
-import com.indeed.imhotep.sql.parser.IQLParseException;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.imhotep.web.ImhotepMetadataCache;

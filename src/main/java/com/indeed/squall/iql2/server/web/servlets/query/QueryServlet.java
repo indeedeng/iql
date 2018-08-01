@@ -28,6 +28,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.ErrorResult;
