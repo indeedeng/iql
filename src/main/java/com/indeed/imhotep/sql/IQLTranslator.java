@@ -931,7 +931,7 @@ public final class IQLTranslator {
         final QueryParser queryParser = new QueryParser("foo", analyzer);
         queryParser.setDefaultOperator(QueryParser.Operator.AND);
         // only auto-lowercase for non-Flamdex datasets
-        queryParser.setLowercaseExpandedTerms(!datasetMetadata.isImhotepDataset());
+        queryParser.setLowercaseExpandedTerms(false);
         final Query query;
         try {
             query = queryParser.parse(queryString);

@@ -41,7 +41,6 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
     boolean deprecated;
     @Nonnull final LinkedHashMap<String, FieldMetadata> fields = Maps.newLinkedHashMap();
     @Nonnull final LinkedHashMap<String, MetricMetadata> metrics = Maps.newLinkedHashMap();
-    @Nullable DatasetType type = null;
 
     // Required by LuceneQueryTranslator, so cache it here
     @Nonnull Set<String> intImhotepFieldSet = Sets.newHashSet();
@@ -110,43 +109,8 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
         return fieldMetadata != null && fieldMetadata.isStringImhotepField();
     }
 
-    public DatasetType getType() {
-        if(type == null) {
-            // try to detect
-            for(FieldMetadata fieldMetadata : fields.values()) {
-                if(fieldMetadata.isIntImhotepField()) {
-                    type = DatasetType.Imhotep;
-                    break;
-                }
-            }
-            if(type == null) {
-                type = DatasetType.Ramses;
-            }
-        }
-        return type;
-    }
-
-    public boolean isImhotepDataset() {
-        return getType() == DatasetType.Imhotep;
-    }
-
-    public boolean isRamsesDataset() {
-        return getType() == DatasetType.Ramses;
-    }
-
     public String getTimeFieldName() {
-        return isImhotepDataset() ? "unixtime" : "time";
-        // may want to try finding the time field among available fields like below
-//        if(intFields.isEmpty()) {
-//            return "time";  // in ramses indexes (which have no int fields) time is the mandatory name
-//        }
-//        // in imhotep indexes it is normally unixtime but things can vary
-//        for(String field : intFields) {
-//            if("time".equals(field) || "unixtime".equals(field)) {
-//                return field;
-//            }
-//        }
-//        throw new UnsupportedOperationException("time field not found");
+        return "unixtime";
     }
 
     @Nonnull

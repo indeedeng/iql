@@ -232,33 +232,9 @@ public class ImhotepMetadataCache {
             countsMetadata = new MetricMetadata("counts");
             datasetMetadata.getMetrics().put("counts", countsMetadata);
         }
-        if(!datasetMetadata.isRamsesDataset()) {    // for Ramses datasets we should allow counts to be pushed so that scaling can be applied
-            countsMetadata.setExpression("count()");
-        }
         countsMetadata.setDescription("Count of all documents");
 
         final String timeField = datasetMetadata.getTimeFieldName();
-
-        // make sure we have time field in Ramses indexes   // TODO: why is it not returned by Imhotep?
-        if(datasetMetadata.isRamsesDataset()) {
-            final String ramsesTimeField = "time";
-            final String timeDescription = "Unix timestamp (seconds since epoch)";
-            MetricMetadata timeMetric = datasetMetadata.getMetric(ramsesTimeField);
-            if(timeMetric == null) {
-                timeMetric = new MetricMetadata(ramsesTimeField);
-                datasetMetadata.getMetrics().put(ramsesTimeField, timeMetric);
-            }
-            timeMetric.setDescription(timeDescription);
-            timeMetric.setUnit("seconds");
-
-            FieldMetadata timeFieldMetadata = datasetMetadata.getField(ramsesTimeField);
-            if(timeFieldMetadata == null) {
-                timeFieldMetadata = new FieldMetadata(ramsesTimeField, FieldType.String);
-                datasetMetadata.getFields().put(ramsesTimeField, timeFieldMetadata);
-            }
-            timeFieldMetadata.setDescription(timeDescription);
-            timeFieldMetadata.setType(FieldType.Integer);
-        }
 
         tryAddMetricAlias("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", "day of week (days since Sunday)", datasetMetadata);
         tryAddMetricAlias("timeofday", "((" + timeField + "-21600)%86400)", "time of day (seconds since midnight)", datasetMetadata);

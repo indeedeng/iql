@@ -34,7 +34,6 @@ public class YamlMetadataConverter {
     public static DatasetMetadata convertDataset(DatasetYaml datasetYaml){
         DatasetMetadata datasetMetadata = new DatasetMetadata(datasetYaml.getName());
         datasetMetadata.setDescription(datasetMetadata.getDescription());
-        datasetMetadata.type = convertDatasetType(datasetYaml.getType());
 
         LinkedHashMap<String, FieldMetadata> fields = datasetMetadata.fields;
         LinkedHashMap<String, MetricMetadata> metrics = datasetMetadata.metrics;
