@@ -27,6 +27,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
@@ -308,7 +309,7 @@ public final class IQLQuery implements Closeable {
         final long min = shardsMinMax.getMin();
         final long max = shardsMinMax.getMax();
         if (min < start.getMillis() || max > end.getMillis()) {
-            new MetricCondition(EZImhotepSession.intField(getTimeField()),
+            new MetricCondition(EZImhotepSession.intField(DatasetMetadata.TIME_FIELD_NAME),
                     (int)(start.getMillis()/1000), (int)((end.getMillis()-1)/1000), false).filter(session);
         }
     }
@@ -357,11 +358,6 @@ public final class IQLQuery implements Closeable {
             }
         }
         return new LongRange(min, max);
-    }
-
-    @Nonnull
-    private String getTimeField() {
-        return metadata.getDataset(dataset).getTimeFieldName();
     }
 
     private List<StatReference> pushStats(EZImhotepSession session) throws ImhotepOutOfMemoryException {

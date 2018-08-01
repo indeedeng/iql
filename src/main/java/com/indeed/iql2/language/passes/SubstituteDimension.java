@@ -21,7 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.indeed.iql1.metadata.MetricMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;

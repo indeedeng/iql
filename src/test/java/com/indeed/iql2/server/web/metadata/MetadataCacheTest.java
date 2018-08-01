@@ -24,7 +24,7 @@ import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
-import com.indeed.iql1.metadata.MetricMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;

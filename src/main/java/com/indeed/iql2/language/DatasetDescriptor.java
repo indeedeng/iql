@@ -18,15 +18,17 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql1.metadata.MetricMetadata;
-import com.indeed.iql2.language.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
+import com.indeed.iql.metadata.DatasetMetadata;
 import org.apache.log4j.Logger;
 
 import java.util.List;
 
 /**
+ * @deprecated  TODO delete
  * @author jwolfe
  */
+@Deprecated
 public class DatasetDescriptor {
     private static final Logger log = Logger.getLogger(DatasetDescriptor.class);
 

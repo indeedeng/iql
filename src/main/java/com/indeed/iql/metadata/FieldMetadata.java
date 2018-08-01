@@ -89,11 +89,11 @@ public class FieldMetadata {
         return this;
     }
 
-    public boolean isIntImhotepField() {
+    public boolean isIntField() {
         return type == FieldType.Integer;
     }
 
-    public boolean isStringImhotepField() {
+    public boolean isStringField() {
         return type == FieldType.String;
     }
 
@@ -106,13 +106,27 @@ public class FieldMetadata {
 
     }
 
+    public String toTSV() {
+        final String description = Strings.nullToEmpty(getDescription());
+        return getName() + "\t" + description.replaceAll("[\r\n\t]+", " ");
+    }
+
     public static final Comparator<FieldMetadata> CASE_INSENSITIVE_ORDER = new CaseInsensitiveComparator();
+    public static final Comparator<FieldMetadata> CASE_SENSITIVE_ORDER = new CaseSensitiveComparator();
 
     public static final class CaseInsensitiveComparator implements Comparator<FieldMetadata> {
         public int compare(FieldMetadata f1, FieldMetadata f2) {
             String s1 = f1.getName();
             String s2 = f2.getName();
             return s1.compareToIgnoreCase(s2);
+        }
+    }
+
+    public static final class CaseSensitiveComparator implements Comparator<FieldMetadata> {
+        public int compare(FieldMetadata f1, FieldMetadata f2) {
+            String s1 = f1.getName();
+            String s2 = f2.getName();
+            return s1.compareTo(s2);
         }
     }
 }

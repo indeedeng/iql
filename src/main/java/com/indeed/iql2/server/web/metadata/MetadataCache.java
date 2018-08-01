@@ -27,10 +27,9 @@ import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
-import com.indeed.iql1.metadata.MetricMetadata;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.time.DefaultWallClock;
@@ -140,6 +139,7 @@ public class MetadataCache {
                 }
                 strFields.add(new FieldMetadata(strField, FieldType.String).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(strField, 0)));
             }
+            // TODO: don't define unixtime as a field if it doesn't already exist in the dataset
             intFields.add(new FieldMetadata("unixtime", FieldType.Integer).setDescription("time of imhotep index"));
             datasetToIntFields.put(dataset, intFields);
             datasetToStringFields.put(dataset, strFields);
@@ -150,7 +150,7 @@ public class MetadataCache {
         final Map<String, DatasetMetadata> datasetToMetadata = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (final String datasetName : datasetToShardList.keySet()) {
             DatasetYaml datasetYaml = datasetToDatasetYaml.get(datasetName);
-            datasetToMetadata.put(datasetName, new DatasetMetadata(datasetName,
+            datasetToMetadata.put(datasetName, new DatasetMetadata(true, datasetName,
                     Strings.nullToEmpty(datasetYaml == null ? null : datasetYaml.getDescription()),
                     datasetYaml != null && datasetYaml.getDeprecated() != null && datasetYaml.getDeprecated(),
                     datasetToIntFields.getOrDefault(datasetName, Collections.emptySet()),
@@ -163,7 +163,7 @@ public class MetadataCache {
 
     private static ImmutableMap<String, MetricMetadata> initDefaultDimension() {
         final ImmutableMap.Builder<String, MetricMetadata> typeBuilder = new ImmutableMap.Builder<>();
-        final String timeField = "unixtime";
+        final String timeField = DatasetMetadata.TIME_FIELD_NAME;
         final String countsExpression = "count()";
 
         final List<String> metricParseOptions = Collections.emptyList();

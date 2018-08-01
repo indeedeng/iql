@@ -23,6 +23,7 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql1.ez.DynamicMetric;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
@@ -41,7 +42,6 @@ import com.indeed.iql1.iql.SampleCondition;
 import com.indeed.iql1.iql.StatRangeGrouping;
 import com.indeed.iql1.iql.StatRangeGrouping2D;
 import com.indeed.iql1.iql.StringInCondition;
-import com.indeed.iql1.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
@@ -357,7 +357,7 @@ public final class IQLTranslator {
         if(fieldMetadata == null) {
             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name);
         }
-        return fieldMetadata.isIntImhotepField() ? Field.intField(name) : Field.stringField(name);
+        return fieldMetadata.isIntField() ? Field.intField(name) : Field.stringField(name);
     }
 
     private static class StatMatcher extends Expression.Matcher<Stat> {
@@ -630,7 +630,7 @@ public final class IQLTranslator {
                             throw new IqlKnownException.UnknownFieldException("Field not found: " + fieldName);
                         }
                         fieldNames.add(fieldName);
-                        if(field.isIntImhotepField() && right instanceof NumberExpression) {
+                        if(field.isIntField() && right instanceof NumberExpression) {
                             long value = parseLong(right);
                             return hasInt(fieldName, value);
                         } else {
@@ -974,7 +974,7 @@ public final class IQLTranslator {
         } catch (ParseException e) {
             throw new IqlKnownException.ParseErrorException(e);
         }
-        return LuceneQueryTranslator.rewrite(query, datasetMetadata.getIntImhotepFieldSet());
+        return LuceneQueryTranslator.rewrite(query, datasetMetadata.getIql1IntImhotepFieldSet());
     }
 
     private static final class GroupByMatcher extends Expression.Matcher<Grouping> {
@@ -1118,8 +1118,7 @@ public final class IQLTranslator {
             if (timeField != null) {
                 stat = timeField.match(statMatcher);
             } else {
-                // TODO: time field inference?
-                stat = intField(datasetMetadata.getTimeFieldName());
+                stat = intField(DatasetMetadata.TIME_FIELD_NAME);
             }
             return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, limits);
         }

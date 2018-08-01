@@ -50,6 +50,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.aliasing.FieldAliasingImhotepSession;
@@ -334,8 +335,7 @@ public class Session {
                 }
             }));
             treeTimer.pop();
-            final boolean isRamsesIndex = datasetInfo.getIntFields().isEmpty();
-            final String timeField = isRamsesIndex ? "time" : "unixtime";
+            final String timeField = DatasetMetadata.TIME_FIELD_NAME;
             if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {
                 treeTimer.push("regroup time range");
                 session.pushStat(timeField);

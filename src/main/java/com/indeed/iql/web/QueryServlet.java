@@ -28,11 +28,11 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql1.iql.GroupStats;
 import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql1.iql.SelectExecutionStats;
 import com.indeed.iql1.iql.cache.QueryCache;
-import com.indeed.iql1.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.imhotep.service.MetricStatsEmitter;
@@ -654,9 +654,11 @@ public class QueryServlet {
 
             mapper.writeValue(outputStream, jsonRoot);
         } else {
-            for(FieldMetadata field : datasetMetadata.getFields().values()) {
-                final String description = Strings.nullToEmpty(field.getDescription());
-                outputStream.println(field.getName() + "\t" + description.replaceAll("[\r\n\t]+", " "));
+            for(FieldMetadata field : datasetMetadata.intFields) {
+                outputStream.println(field.toTSV());
+            }
+            for(FieldMetadata field : datasetMetadata.stringFields) {
+                outputStream.println(field.toTSV());
             }
         }
         outputStream.close();
@@ -680,7 +682,7 @@ public class QueryServlet {
             mapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
             for(DatasetMetadata dataset : metadata.getDatasets().values()) {
-                outputStream.println(dataset.getName());
+                outputStream.println(dataset.name);
             }
         }
         outputStream.close();

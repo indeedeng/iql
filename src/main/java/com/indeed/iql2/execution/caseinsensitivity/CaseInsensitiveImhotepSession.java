@@ -66,8 +66,6 @@ public class CaseInsensitiveImhotepSession extends WrappingImhotepSession implem
         for (final String fieldName : fieldNames) {
             upperCaseToActual.put(fieldName.toUpperCase(), fieldName);
         }
-        upperCaseToActual.put("UNIXTIME", "unixtime");
-        upperCaseToActual.put("TIME", "time");
         this.upperCaseToActual = upperCaseToActual;
     }
 

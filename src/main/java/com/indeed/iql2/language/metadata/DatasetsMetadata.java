@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.metadata;
 
 import com.google.common.base.Optional;
+import com.indeed.iql.metadata.DatasetMetadata;
 
 import java.util.Collections;
 import java.util.Map;

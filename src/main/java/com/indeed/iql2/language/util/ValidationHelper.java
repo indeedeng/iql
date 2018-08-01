@@ -14,9 +14,7 @@
 
 package com.indeed.iql2.language.util;
 
-import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.FieldType;
-import com.indeed.iql1.metadata.MetricMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.Validator;
 
@@ -53,14 +51,12 @@ public class ValidationHelper {
 
 
     public boolean containsStringField(String dataset, String field) {
-        FieldMetadata fieldMetadata = new FieldMetadata(field, FieldType.String);
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().stringFields.contains(fieldMetadata)) ||
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasStringField(field)) ||
                 (datasetAliasStringFields.containsKey(dataset) && datasetAliasStringFields.get(dataset).contains(field));
     }
 
     public boolean containsIntField(String dataset, String field) {
-        FieldMetadata fieldMetadata = new FieldMetadata(field, FieldType.Integer);
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().intFields.contains(fieldMetadata)) ||
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasIntField(field)) ||
                 (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
     }
 

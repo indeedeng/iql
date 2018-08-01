@@ -40,7 +40,7 @@ import com.indeed.iql.web.QueryMetrics;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
 import com.indeed.iql2.language.DatasetDescriptor;
-import com.indeed.iql2.language.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.iql.web.UsernameUtil;

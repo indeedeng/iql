@@ -21,7 +21,7 @@ import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.SimpleIterate;
-import com.indeed.iql2.language.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;

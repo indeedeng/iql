@@ -17,7 +17,7 @@ package com.indeed.iql2.language.util;
 import com.google.common.base.Optional;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
-import com.indeed.iql2.language.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;

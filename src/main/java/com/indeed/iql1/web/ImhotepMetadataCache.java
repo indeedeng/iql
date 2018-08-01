@@ -23,11 +23,11 @@ import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql1.metadata.DatasetMetadata;
-import com.indeed.iql1.metadata.MetricMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -77,10 +77,10 @@ public class ImhotepMetadataCache {
         log.trace("Started metadata update");
         Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToDatasetInfo();
         log.trace("Loaded metadata for " + datasetToShardList.size() + " datasets from Imhotep");
-        List<String> datasetNames = new ArrayList<String>(datasetToShardList.keySet());
-        Collections.sort(datasetNames, String.CASE_INSENSITIVE_ORDER);
+        List<String> datasetNames = new ArrayList<>(datasetToShardList.keySet());
+        datasetNames.sort(String.CASE_INSENSITIVE_ORDER);
 
-        if(datasetNames.size() == 0) {   // if we get no data, just keep what we already have
+        if(datasetToShardList.size() == 0) {   // if we get no data, just keep what we already have
             log.warn("Imhotep returns no datasets");
             return;
         }
@@ -88,7 +88,7 @@ public class ImhotepMetadataCache {
         // First make empty DatasetMetadata instances
         final LinkedHashMap<String, DatasetMetadata> newDatasets = Maps.newLinkedHashMap();
         for(String datasetName : datasetNames) {
-            final DatasetMetadata datasetMetadata = new DatasetMetadata(datasetName);
+            final DatasetMetadata datasetMetadata = new DatasetMetadata(false, datasetName);
             newDatasets.put(datasetName, datasetMetadata);
         }
 
@@ -103,14 +103,13 @@ public class ImhotepMetadataCache {
 
             final String datasetName = datasetInfo.getDataset();
             final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
-            final LinkedHashMap<String, FieldMetadata> fieldMetadatas = datasetMetadata.getFields();
 
             for(String intField : dsIntFields) {
-                fieldMetadatas.put(intField, new FieldMetadata(intField, FieldType.Integer));
+                datasetMetadata.intFields.add(new FieldMetadata(intField, FieldType.Integer));
             }
 
             for(String stringField : dsStringFields) {
-                fieldMetadatas.put(stringField, new FieldMetadata(stringField, FieldType.String));
+                datasetMetadata.stringFields.add(new FieldMetadata(stringField, FieldType.String));
             }
         }
         log.trace("Metadata loaded from Imhotep. Querying IMS");
@@ -139,7 +138,7 @@ public class ImhotepMetadataCache {
                             }
                         }
                         MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
-                        Map<String, MetricMetadata> metrics = newDataset.getMetrics();
+                        Map<String, MetricMetadata> metrics = newDataset.fieldToDimension;
                         for (MetricsYaml metricYaml : metricsYamls) {
                             final MetricMetadata metricMetadata = imsMetricYamlToIQLMetricMetadata(metricYaml);
                             metrics.put(metricYaml.getName(), metricMetadata);
@@ -169,11 +168,12 @@ public class ImhotepMetadataCache {
         final Map<String, Map<String, Integer>> fieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
         if (fieldFrequencies != null) {
             for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
-                if (fieldFrequencies.containsKey(datasetMetadata.getName())) {
-                    final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.getName());
+                if (fieldFrequencies.containsKey(datasetMetadata.name)) {
+                    final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.name);
                     for (final Map.Entry<String, Integer> entry : fieldToFrequency.entrySet()) {
-                        if (datasetMetadata.getFields().containsKey(entry.getKey())) {
-                            datasetMetadata.getFields().get(entry.getKey()).setFrequency(entry.getValue());
+                        final FieldMetadata fieldMetadata = datasetMetadata.getField(entry.getKey());
+                        if(fieldMetadata != null) {
+                            fieldMetadata.setFrequency(entry.getValue());
                         }
                     }
                 }
@@ -224,7 +224,7 @@ public class ImhotepMetadataCache {
     @Nonnull
     public DatasetMetadata getDataset(String dataset) {
         if(!datasets.containsKey(dataset)) {
-            return new DatasetMetadata(dataset);    // empty
+            return new DatasetMetadata(false, dataset, "", false);    // empty
         }
         return datasets.get(dataset);
     }
@@ -234,11 +234,11 @@ public class ImhotepMetadataCache {
         MetricMetadata countsMetadata = datasetMetadata.getMetric("counts");
         if(countsMetadata == null) {
             countsMetadata = new MetricMetadata("counts");
-            datasetMetadata.getMetrics().put("counts", countsMetadata);
+            datasetMetadata.fieldToDimension.put("counts", countsMetadata);
         }
         countsMetadata.setDescription("Count of all documents");
 
-        final String timeField = datasetMetadata.getTimeFieldName();
+        final String timeField = DatasetMetadata.TIME_FIELD_NAME;
 
         tryAddMetricAlias("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", "day of week (days since Sunday)", datasetMetadata);
         tryAddMetricAlias("timeofday", "((" + timeField + "-21600)%86400)", "time of day (seconds since midnight)", datasetMetadata);
@@ -252,14 +252,14 @@ public class ImhotepMetadataCache {
                 && !replacement.startsWith("floatscale")    // allow floatscale operation to replace the original field as floats are not usable as is
                 || RESERVED_KEYWORDS.contains(metricName)) {
 
-            log.trace("Skipped adding alias due to conflict: " + datasetMetadata.getName() + "." + metricName + "->" + replacement);
+            log.trace("Skipped adding alias due to conflict: " + datasetMetadata.name + "." + metricName + "->" + replacement);
             return false;
         }
 
         MetricMetadata metricMetadata = datasetMetadata.getMetric(metricName);
         if(metricMetadata == null) {
             metricMetadata = new MetricMetadata(metricName);
-            datasetMetadata.getMetrics().put(metricName, metricMetadata);
+            datasetMetadata.fieldToDimension.put(metricName, metricMetadata);
         }
 
         metricMetadata.setExpression(replacement);
