@@ -28,27 +28,26 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
-import com.indeed.imhotep.iql.GroupStats;
-import com.indeed.imhotep.iql.IQLQuery;
-import com.indeed.imhotep.iql.SelectExecutionStats;
-import com.indeed.imhotep.iql.cache.QueryCache;
-import com.indeed.imhotep.metadata.DatasetMetadata;
-import com.indeed.imhotep.metadata.FieldMetadata;
-import com.indeed.imhotep.metadata.FieldType;
+import com.indeed.iql1.iql.GroupStats;
+import com.indeed.iql1.iql.IQLQuery;
+import com.indeed.iql1.iql.SelectExecutionStats;
+import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.iql1.metadata.DatasetMetadata;
+import com.indeed.iql1.metadata.FieldMetadata;
+import com.indeed.iql1.metadata.FieldType;
 import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.imhotep.sql.IQLTranslator;
-import com.indeed.imhotep.sql.ast2.DescribeStatement;
-import com.indeed.imhotep.sql.ast2.FromClause;
-import com.indeed.imhotep.sql.ast2.GroupByClause;
-import com.indeed.imhotep.sql.ast2.IQLStatement;
-import com.indeed.imhotep.sql.ast2.SelectClause;
-import com.indeed.imhotep.sql.ast2.SelectStatement;
-import com.indeed.imhotep.sql.ast2.ShowStatement;
-import com.indeed.imhotep.sql.parser.StatementParser;
+import com.indeed.iql1.sql.IQLTranslator;
+import com.indeed.iql1.sql.ast2.DescribeStatement;
+import com.indeed.iql1.sql.ast2.FromClause;
+import com.indeed.iql1.sql.ast2.GroupByClause;
+import com.indeed.iql1.sql.ast2.IQLStatement;
+import com.indeed.iql1.sql.ast2.SelectClause;
+import com.indeed.iql1.sql.ast2.SelectStatement;
+import com.indeed.iql1.sql.ast2.ShowStatement;
+import com.indeed.iql1.sql.parser.StatementParser;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.imhotep.web.ImhotepMetadataCache;
-import com.indeed.imhotep.web.QueryMetadata;
-import com.indeed.imhotep.web.ResultServlet;
+import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql1.web.QueryMetadata;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -124,7 +123,7 @@ public class QueryServlet {
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
     private final AccessControl accessControl;
-    private final com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2;
+    private final com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
 
@@ -136,7 +135,7 @@ public class QueryServlet {
                         RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
                         AccessControl accessControl,
-                        com.indeed.squall.iql2.server.web.servlets.query.QueryServlet queryServletV2,
+                        com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2,
                         MetricStatsEmitter metricStatsEmitter,
                         FieldFrequencyCache fieldFrequencyCache) {
         this.imhotepClient = imhotepClient;

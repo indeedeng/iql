@@ -17,7 +17,7 @@ package com.indeed.iql.web;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql.web.print.PrettyPrint;
-import com.indeed.squall.iql2.server.web.metadata.MetadataCache;
+import com.indeed.iql2.server.web.metadata.MetadataCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;

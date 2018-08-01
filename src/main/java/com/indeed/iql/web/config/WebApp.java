@@ -14,7 +14,7 @@
  package com.indeed.iql.web.config;
 
 import com.google.common.base.Strings;
-import com.indeed.imhotep.iql.IQLQuery;
+import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql.web.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
