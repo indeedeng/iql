@@ -47,6 +47,7 @@ import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.SelectQuery;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.QueryOptions;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.compat.Consumer;
@@ -425,7 +426,7 @@ public class SelectQueryExecution implements Closeable {
                                             @Override
                                             public void accept(String s) {
                                                 if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
-                                                    throw new IllegalStateException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
+                                                    throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                                                 }
                                                 final String term = s.split("\t")[0];
                                                 try {
@@ -482,7 +483,7 @@ public class SelectQueryExecution implements Closeable {
                 CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
 
                 if (errors.size() != 0) {
-                    throw new IllegalArgumentException("Errors found when validating query: " + errors);
+                    throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
                 }
                 if (warnings.size() != 0) {
                     for (String warning : warnings) {
@@ -648,7 +649,7 @@ public class SelectQueryExecution implements Closeable {
             timer.push("get chosen shards");
             final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
             if (actualDataset == null) {
-                throw new IllegalArgumentException("Unknown dataset: " + dataset.dataset.unwrap());
+                throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset.dataset.unwrap());
             }
             final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
             final List<Shard> chosenShards = imhotepClient.findShardsForTimeRange(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap());

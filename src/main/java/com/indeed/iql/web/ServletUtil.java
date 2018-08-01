@@ -14,6 +14,8 @@
 
 package com.indeed.iql.web;
 
+import com.indeed.imhotep.exceptions.ImhotepKnownException;
+import com.indeed.iql.exceptions.IqlKnownException;
 import org.springframework.web.bind.ServletRequestUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,5 +32,9 @@ public class ServletUtil {
     public static int getIQLVersionBasedOnParam(HttpServletRequest request) {
         final int defaultLanguageVersion = 1;
         return ServletRequestUtils.getIntParameter(request, "v", defaultLanguageVersion) == 1 ? 1 : 2;
+    }
+
+    public static boolean isKnownError(final Throwable error) {
+        return (error instanceof ImhotepKnownException) || (error instanceof IqlKnownException);
     }
 }

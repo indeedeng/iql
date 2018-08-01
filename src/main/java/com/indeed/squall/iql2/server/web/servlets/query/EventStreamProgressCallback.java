@@ -15,12 +15,14 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 
 public class EventStreamProgressCallback implements ProgressCallback {
@@ -48,6 +50,11 @@ public class EventStreamProgressCallback implements ProgressCallback {
             outputStream.println();
             doFlush();
         }
+    }
+
+    @Override
+    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+        // do nothing
     }
 
     @Override

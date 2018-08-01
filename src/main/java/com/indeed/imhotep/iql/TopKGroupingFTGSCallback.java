@@ -14,11 +14,11 @@
  package com.indeed.imhotep.iql;
 
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.exceptions.GroupLimitExceededException;
-import com.indeed.iql.web.Limits;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
+import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;
@@ -77,7 +77,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
             topTerms.add(getStats(count, group, term));
 
             if(!limits.satisfiesQueryInMemoryRowsLimit(++newGroupCount)) {
-                throw new GroupLimitExceededException("Number of groups exceeds the limit " +
+                throw new IqlKnownException.GroupLimitExceededException("Number of groups exceeds the limit " +
                         new DecimalFormat("###,###").format(limits.queryInMemoryRowsLimit) +
                         ". Please simplify the query.");
             }

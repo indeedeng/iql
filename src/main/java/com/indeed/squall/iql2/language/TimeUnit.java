@@ -14,6 +14,7 @@
 
 package com.indeed.squall.iql2.language;
 
+import com.indeed.iql.exceptions.IqlKnownException;
 import org.joda.time.DateTime;
 
 /**
@@ -65,7 +66,7 @@ public enum TimeUnit {
             case 'Y':
                 return YEAR;
             default:
-                throw new IllegalArgumentException("Invalid time unit: " + c);
+                throw new IqlKnownException.ParseErrorException("Invalid time unit: " + c);
         }
     }
 
@@ -92,7 +93,7 @@ public enum TimeUnit {
                 return YEAR;
             }
         }
-        throw new IllegalArgumentException("Don't know how to turn into TimeUnit: " + s);
+        throw new IqlKnownException.ParseErrorException("Don't know how to turn into TimeUnit: " + s);
     }
 
     public static DateTime subtract(DateTime start, int value, TimeUnit unit) {
@@ -112,7 +113,7 @@ public enum TimeUnit {
             case YEAR:
                 return start.minusYears(value);
             default:
-                throw new IllegalArgumentException("Unknown time unit: " + unit);
+                throw new IqlKnownException.ParseErrorException("Unknown time unit: " + unit);
         }
     }
 }

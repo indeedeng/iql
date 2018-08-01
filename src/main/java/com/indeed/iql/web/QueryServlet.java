@@ -13,6 +13,10 @@
  */
  package com.indeed.iql.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -42,16 +46,13 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.ast2.ShowStatement;
 import com.indeed.imhotep.sql.parser.IQLParseException;
 import com.indeed.imhotep.sql.parser.StatementParser;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
 import com.indeed.imhotep.web.QueryMetadata;
 import com.indeed.imhotep.web.ResultServlet;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
@@ -71,7 +72,6 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,7 +80,14 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -171,7 +178,7 @@ public class QueryServlet {
         SelectQuery selectQuery = null;
         try {
             if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
-                throw new IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
+                throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
                         "'client' is the name (e.g. class name) of the tool sending the request. " +
                         "'username' is the LDAP name of the user that requested the query to be performed " +
                         "or in case of automated tools the Google group of the team responsible for the tool.");
@@ -709,8 +716,8 @@ public class QueryServlet {
             // construct a parsed error object to be JSON serialized
             String clause = "";
             int offset = -1;
-            if(e instanceof IQLParseException) {
-                final IQLParseException IQLParseException = (IQLParseException) e;
+            if(e instanceof IqlKnownException.StatementParseException) {
+                final IqlKnownException.StatementParseException IQLParseException = (IqlKnownException.StatementParseException) e;
                 clause = IQLParseException.getClause();
                 offset = IQLParseException.getOffsetInClause();
             }
@@ -780,8 +787,11 @@ public class QueryServlet {
         final String queryToLog = queryWithShortenedLists.length() > LOGGED_FIELD_LENGTH_LIMIT ? queryWithShortenedLists.substring(0, LOGGED_FIELD_LENGTH_LIMIT) : queryWithShortenedLists;
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", query.length());
-        logEntry.setProperty("error", errorOccurred != null ? "1" : "0");
-        if(errorOccurred != null) {
+        final boolean error = errorOccurred != null;
+        final boolean systemError = error && !ServletUtil.isKnownError(errorOccurred);
+        logEntry.setProperty("error", error ? "1" : "0");
+        logEntry.setProperty("systemerror", systemError ? "1" : "0");
+        if(error) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
             String exceptionMessage = errorOccurred.getMessage();
             if(exceptionMessage != null && exceptionMessage.length() > LOGGED_FIELD_LENGTH_LIMIT) {
@@ -790,7 +800,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, errorOccurred != null);
+        final String queryType = logStatementData(parsedQuery, selectQuery, logEntry, error);
         logEntry.setProperty("statement", queryType);
 
         if(selectQuery != null) {
@@ -799,7 +809,7 @@ public class QueryServlet {
             }
         }
 
-        QueryMetrics.logQueryMetrics(1, queryType, errorOccurred != null, timeTaken, metricStatsEmitter);
+        QueryMetrics.logQueryMetrics(1, queryType, error, systemError, timeTaken, metricStatsEmitter);
         dataLog.info(logEntry);
     }
 

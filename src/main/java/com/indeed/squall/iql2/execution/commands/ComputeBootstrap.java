@@ -280,7 +280,8 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
 
             @Override
             public boolean needSorted() {
-                return filter.isPresent() && filter.get().needSorted();
+                // We need sorted since we use Random inside and result depends on terms order.
+                return true;
             }
 
             @Override

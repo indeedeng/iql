@@ -15,6 +15,7 @@
 package com.indeed.squall.iql2.language;
 
 import com.google.common.base.Optional;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.query.Query;
@@ -259,7 +260,7 @@ public class DocFilters {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
                 final JQLParser.FromContentsContext fromUsed = queryCtx.same == null ? queryCtx.fromContents() : fromContents;
                 if (fromUsed == null) {
-                    throw new IllegalArgumentException("Can't use 'FROM SAME' outside of WHERE");
+                    throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE");
                 }
                 final Query query = Query.parseQuery(
                         fromUsed,

@@ -15,11 +15,14 @@
 package com.indeed.squall.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.Session;
 import com.indeed.squall.iql2.execution.commands.Command;
 import com.indeed.squall.iql2.execution.progress.ProgressCallback;
 
+import java.util.List;
 import java.util.Map;
 
 public class NumDocLimitingProgressCallback implements ProgressCallback {
@@ -34,6 +37,17 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
     }
 
     @Override
+    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+        long docCount = 0;
+        for (final List<Shard> shards : datasetToChosenShards.values()) {
+            for (final Shard shard : shards) {
+                docCount += shard.numDocs;
+            }
+        }
+        checkDocLimit(docCount);
+    }
+
+    @Override
     public void sessionOpened(ImhotepSession session) {
     }
 
@@ -43,13 +57,7 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
         for (final Session.ImhotepSessionInfo sessionInfo : sessions.values()) {
             docCount += sessionInfo.session.getNumDocs();
         }
-        if (docCount > docLimit) {
-            throw new RuntimeException(String.format(
-                    "Opening sessions with a total of %s documents exceeds limit of %s.",
-                    docCount,
-                    docLimit
-            ));
-        }
+        checkDocLimit(docCount);
     }
 
     @Override
@@ -58,5 +66,15 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
 
     @Override
     public void endCommand(Session session, Command command) {
+    }
+
+    private void checkDocLimit(final long docCount) {
+        if (docCount > docLimit) {
+            throw new IqlKnownException.DocumentsLimitExceededException(String.format(
+                    "Opening sessions with a total of %s documents exceeds limit of %s.",
+                    docCount,
+                    docLimit
+            ));
+        }
     }
 }

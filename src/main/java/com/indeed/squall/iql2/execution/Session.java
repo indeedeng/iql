@@ -49,6 +49,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.squall.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.squall.iql2.execution.commands.Command;
@@ -180,6 +181,7 @@ public class Session {
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
 
         progressCallback.startSession(Optional.of(commands.size()));
+        progressCallback.preSessionOpen(datasetToChosenShards);
 
         treeTimer.push("createSubSessions");
         final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
@@ -296,6 +298,10 @@ public class Session {
             treeTimer.push("build session");
             treeTimer.push("create session builder");
             final List<Shard> chosenShards = datasetToChosenShards.get(dataset.name);
+            if ((chosenShards == null) || chosenShards.isEmpty()) {
+                throw new IqlKnownException.ExecutionException("No shards: no data available for the requested dataset and time range."
+                + " Dataset: " + dataset.name + ", start: " + startDateTime + ", end: " + endDateTime);
+            }
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(actualDataset, startDateTime, endDateTime)
                 .username("IQL2:" + username)
@@ -807,13 +813,13 @@ public class Session {
 
     public void checkGroupLimitWithoutLog(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 
     public void checkGroupLimit(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
-            throw new IllegalArgumentException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
     }
@@ -1160,11 +1166,10 @@ public class Session {
         final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
                              topKParams, ftgsRowLimit,
-                             termSubset, Optional.absent(), mustBeSorted || callback.needSorted())) {
+                             termSubset, Optional.absent(), callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
@@ -1207,10 +1212,6 @@ public class Session {
             final Map<String, Integer> presenceIndexes,
             final Set<String> options
     ) {
-        if (!options.contains(QueryOptions.Experimental.SIMPLE_PROSESSING)) {
-            return false;
-        }
-
         if ((sessions.size() != 1) || (metricIndexes.size() != 1) || !presenceIndexes.isEmpty()) {
             return false;
         }
@@ -1221,7 +1222,7 @@ public class Session {
 
         final IntList metricIndex = Iterables.getOnlyElement(metricIndexes.values());
         for (int i = 0; i < metricIndex.size(); i++) {
-            if (metricIndex.getInt(i) != 0) {
+            if (metricIndex.getInt(i) != i) {
                 return false;
             }
         }
@@ -1401,11 +1402,10 @@ public class Session {
         final String sessionName = Iterables.getOnlyElement(sessions.keySet());
         timer.push("request remote FTGS iterator for single session:"+sessionName);
 
-        final boolean mustBeSorted = !options.contains(QueryOptions.Experimental.UNSORTED_FTGS);
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
                              topKParams, ftgsRowLimit,
-                             Optional.absent(), termSubset, mustBeSorted || callback.needSorted())) {
+                             Optional.absent(), termSubset, callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");

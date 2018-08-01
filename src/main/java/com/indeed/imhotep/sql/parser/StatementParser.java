@@ -15,10 +15,23 @@
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.sql.ast.*;
-import com.indeed.imhotep.sql.ast2.*;
+import com.indeed.imhotep.sql.ast.Expression;
+import com.indeed.imhotep.sql.ast.FunctionExpression;
+import com.indeed.imhotep.sql.ast2.DescribeStatement;
+import com.indeed.imhotep.sql.ast2.FromClause;
+import com.indeed.imhotep.sql.ast2.GroupByClause;
+import com.indeed.imhotep.sql.ast2.IQLStatement;
+import com.indeed.imhotep.sql.ast2.QueryParts;
+import com.indeed.imhotep.sql.ast2.SelectClause;
+import com.indeed.imhotep.sql.ast2.SelectStatement;
+import com.indeed.imhotep.sql.ast2.ShowStatement;
+import com.indeed.imhotep.sql.ast2.WhereClause;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
-import org.codehaus.jparsec.*;
+import com.indeed.iql.exceptions.IqlKnownException;
+import org.codehaus.jparsec.Parser;
+import org.codehaus.jparsec.Parsers;
+import org.codehaus.jparsec.Scanners;
+import org.codehaus.jparsec.Terminals;
 import org.codehaus.jparsec.functors.Map;
 import org.codehaus.jparsec.misc.Mapper;
 import org.joda.time.DateTime;
@@ -52,7 +65,7 @@ public class StatementParser {
             try {
                 parts = QuerySplitter.splitQuery(statement);
             } catch (Exception e) {
-                throw new IQLParseException(e, "splitter");
+                throw new IqlKnownException.StatementParseException(e, "splitter");
             }
             return parseSelectStatement(parts, metadata);
         } else if(showPattern.matcher(statement).matches()) {
@@ -76,7 +89,7 @@ public class StatementParser {
         try {
             from = parseFromClause(parts.from, false);
         } catch (Exception e) {
-            throw new IQLParseException(e, "from");
+            throw new IqlKnownException.StatementParseException(e, "from");
         }
         final String dataset = from.getDataset();
         final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getAliases() : Collections.<String, String>emptyMap();
@@ -84,18 +97,18 @@ public class StatementParser {
         try {
             select = parseSelectClause(parts.select, aliases);
         } catch (Exception e) {
-            throw new IQLParseException(e, "select");
+            throw new IqlKnownException.StatementParseException(e, "select");
         }
 
         try {
             where = parseWhereClause(parts.where, aliases);
         } catch (Exception e) {
-            throw new IQLParseException(e, "where");
+            throw new IqlKnownException.StatementParseException(e, "where");
         }
         try {
             groupBy = parseGroupByClause(parts.groupBy, aliases);
         } catch (Exception e) {
-            throw new IQLParseException(e, "groupBy");
+            throw new IqlKnownException.StatementParseException(e, "groupBy");
         }
         int limit = parseLimit(parts.limit);
 
@@ -200,16 +213,16 @@ public class StatementParser {
 
                 if(!allowIllegalDates) {
                     if (startTime == null) {
-                        throw new IllegalArgumentException("Start date parsing failed: " + start);
+                        throw new IqlKnownException.ParseErrorException("Start date parsing failed: " + start);
                     }
                     if (endTime == null) {
-                        throw new IllegalArgumentException("End date parsing failed: " + end);
+                        throw new IqlKnownException.ParseErrorException("End date parsing failed: " + end);
                     }
                     if (!startTime.isBefore(endTime)) {
-                        throw new IllegalArgumentException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
+                        throw new IqlKnownException.ParseErrorException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
                     }
                     if (startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0))) {
-                        throw new IllegalArgumentException("The start date appears to be too low. Check for a typo: " + startTime);
+                        throw new IqlKnownException.ParseErrorException("The start date appears to be too low. Check for a typo: " + startTime);
                     }
                 }
                 return new FromClause(dataset, startTime, endTime, start, end);

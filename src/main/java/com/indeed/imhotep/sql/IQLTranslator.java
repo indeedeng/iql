@@ -26,12 +26,14 @@ import com.indeed.iql.web.Limits;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.imhotep.ez.DynamicMetric;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.Field;
 import com.indeed.imhotep.iql.Condition;
+import com.indeed.imhotep.iql.DiffGrouping;
 import com.indeed.imhotep.iql.DistinctGrouping;
 import com.indeed.imhotep.iql.FieldGrouping;
 import com.indeed.imhotep.iql.Grouping;
@@ -40,12 +42,14 @@ import com.indeed.imhotep.iql.IntInCondition;
 import com.indeed.imhotep.iql.MetricCondition;
 import com.indeed.imhotep.iql.PercentileGrouping;
 import com.indeed.imhotep.iql.QueryCondition;
+import com.indeed.imhotep.iql.RegexCondition;
 import com.indeed.imhotep.iql.SampleCondition;
 import com.indeed.imhotep.iql.StatRangeGrouping;
 import com.indeed.imhotep.iql.StatRangeGrouping2D;
 import com.indeed.imhotep.iql.StringInCondition;
 import com.indeed.imhotep.metadata.DatasetMetadata;
 import com.indeed.imhotep.metadata.FieldMetadata;
+import com.indeed.imhotep.sql.ast.BinaryExpression;
 import com.indeed.imhotep.sql.ast.Expression;
 import com.indeed.imhotep.sql.ast.FunctionExpression;
 import com.indeed.imhotep.sql.ast.NameExpression;
@@ -58,8 +62,12 @@ import com.indeed.imhotep.sql.ast2.SelectStatement;
 import com.indeed.imhotep.sql.parser.ExpressionParser;
 import com.indeed.imhotep.sql.parser.PeriodParser;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
-import com.indeed.imhotep.automaton.RegExp;
+import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.util.serialization.LongStringifier;
+import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
@@ -74,12 +82,47 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.indeed.imhotep.ez.EZImhotepSession.abs;
+import static com.indeed.imhotep.ez.EZImhotepSession.add;
+import static com.indeed.imhotep.ez.EZImhotepSession.aggDiv;
+import static com.indeed.imhotep.ez.EZImhotepSession.aggDivConst;
+import static com.indeed.imhotep.ez.EZImhotepSession.cached;
+import static com.indeed.imhotep.ez.EZImhotepSession.constant;
+import static com.indeed.imhotep.ez.EZImhotepSession.counts;
+import static com.indeed.imhotep.ez.EZImhotepSession.div;
+import static com.indeed.imhotep.ez.EZImhotepSession.dynamic;
+import static com.indeed.imhotep.ez.EZImhotepSession.exp;
+import static com.indeed.imhotep.ez.EZImhotepSession.floatScale;
+import static com.indeed.imhotep.ez.EZImhotepSession.greater;
+import static com.indeed.imhotep.ez.EZImhotepSession.greaterEq;
+import static com.indeed.imhotep.ez.EZImhotepSession.hasInt;
+import static com.indeed.imhotep.ez.EZImhotepSession.hasIntField;
+import static com.indeed.imhotep.ez.EZImhotepSession.hasString;
+import static com.indeed.imhotep.ez.EZImhotepSession.hasStringField;
+import static com.indeed.imhotep.ez.EZImhotepSession.intField;
+import static com.indeed.imhotep.ez.EZImhotepSession.isEqual;
+import static com.indeed.imhotep.ez.EZImhotepSession.isNotEqual;
+import static com.indeed.imhotep.ez.EZImhotepSession.less;
+import static com.indeed.imhotep.ez.EZImhotepSession.lessEq;
+import static com.indeed.imhotep.ez.EZImhotepSession.log;
+import static com.indeed.imhotep.ez.EZImhotepSession.lucene;
+import static com.indeed.imhotep.ez.EZImhotepSession.max;
+import static com.indeed.imhotep.ez.EZImhotepSession.min;
+import static com.indeed.imhotep.ez.EZImhotepSession.mod;
+import static com.indeed.imhotep.ez.EZImhotepSession.mult;
+import static com.indeed.imhotep.ez.EZImhotepSession.multiplyShiftRight;
+import static com.indeed.imhotep.ez.EZImhotepSession.shiftLeftDivide;
+import static com.indeed.imhotep.ez.EZImhotepSession.sub;
 import static com.indeed.imhotep.ez.Stats.Stat;
-import static com.indeed.imhotep.ez.EZImhotepSession.*;
 
 /**
  * @author jplaisance
@@ -148,7 +191,7 @@ public final class IQLTranslator {
         for(Field distinctField : distinctGrouping.getFields()) {
             for(Grouping grouping: groupings) {
                 if(grouping instanceof FieldGrouping && ((FieldGrouping) grouping).getField().equals(distinctField)) {
-                    throw new IllegalArgumentException("Please remove distinct(" + distinctField.getFieldName() +
+                    throw new IqlKnownException.ParseErrorException("Please remove distinct(" + distinctField.getFieldName() +
                         ") from the SELECT clause as it is always going to be 1 due to it being one of the GROUP BY groups");
                 }
             }
@@ -258,7 +301,7 @@ public final class IQLTranslator {
                 continue;
             }
             if(functionProjection.args.size() != 1) {
-                throw new IllegalArgumentException("distinct() takes a field name as an argument and returns distinct count of terms for the field");
+                throw new IqlKnownException.ParseErrorException("distinct() takes a field name as an argument and returns distinct count of terms for the field");
             }
 
             String fieldName = getStr(functionProjection.args.get(0));
@@ -287,7 +330,7 @@ public final class IQLTranslator {
                 continue;
             }
             if(functionProjection.args.size() != 2) {
-                throw new IllegalArgumentException(
+                throw new IqlKnownException.ParseErrorException(
                         "percentile() takes a field name and a percentile and returns that percentile, e.g. percentile(tottime, 50)"
                 );
             }
@@ -299,7 +342,7 @@ public final class IQLTranslator {
 
             final double percentile = parseInt(functionProjection.args.get(1));
             if (percentile < 0 || percentile > 100) {
-                throw new IllegalArgumentException("percentile must be between 0 and 100");
+                throw new IqlKnownException.ParseErrorException("percentile must be between 0 and 100");
             }
 
             if(percentileGrouping == null) {
@@ -312,13 +355,13 @@ public final class IQLTranslator {
 
     /**
      * Constructs the right type of Field depending on the available metadata.
-     * Throws IllegalArgumentException if field is not found.
+     * @throws IqlKnownException.UnknownFieldException if field is not found.
      */
     @Nonnull
     private static Field getField(String name, DatasetMetadata datasetMetadata) {
         final FieldMetadata fieldMetadata = datasetMetadata.getField(name);
         if(fieldMetadata == null) {
-            throw new IllegalArgumentException("Unknown field: " + name);
+            throw new IqlKnownException.UnknownFieldException("Unknown field: " + name);
         }
         return fieldMetadata.isIntImhotepField() ? Field.intField(name) : Field.stringField(name);
     }
@@ -345,7 +388,7 @@ public final class IQLTranslator {
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if(input.size() > 0) {
-                        throw new IllegalArgumentException("Only count() with no arguments is supported which returns the total number of documents in the group");
+                        throw new IqlKnownException.ParseErrorException("Only count() with no arguments is supported which returns the total number of documents in the group");
                     }
                     return counts();
                 }
@@ -353,7 +396,7 @@ public final class IQLTranslator {
             builder.put("cached", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new UnsupportedOperationException();
+                        throw new IqlKnownException.ParseErrorException("cached() requires one argument.");
                     }
                     return cached(input.get(0).match(StatMatcher.this));
                 }
@@ -361,7 +404,7 @@ public final class IQLTranslator {
             builder.put("abs", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new UnsupportedOperationException();
+                        throw new IqlKnownException.ParseErrorException("abc() requires one argument.");
                     }
                     return abs(input.get(0).match(StatMatcher.this));
                 }
@@ -369,7 +412,7 @@ public final class IQLTranslator {
             builder.put("min", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() < 2) {
-                        throw new UnsupportedOperationException("min() requires at least 2 arguments");
+                        throw new IqlKnownException.ParseErrorException("min() requires at least 2 arguments. Did you mean FIELD_MIN() function from IQL2?");
                     }
                     return min(getStats(input));
                 }
@@ -377,10 +420,10 @@ public final class IQLTranslator {
             builder.put("mulshr", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 3) {
-                        throw new UnsupportedOperationException("mulshr requires 3 arguments: shift, stat1, stat2");
+                        throw new IqlKnownException.ParseErrorException("mulshr requires 3 arguments: shift, stat1, stat2");
                     }
                     if(!(input.get(0) instanceof NumberExpression)) {
-                        throw new IllegalArgumentException("First argument of mulshr() has to be an integer. ");
+                        throw new IqlKnownException.ParseErrorException("First argument of mulshr() has to be an integer. ");
                     }
                     final String shiftStr = getStr(input.get(0));
                     final int shift = Integer.parseInt(shiftStr);
@@ -392,10 +435,10 @@ public final class IQLTranslator {
             builder.put("shldiv", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 3) {
-                        throw new UnsupportedOperationException("shldiv requires 3 arguments: shift, stat1, stat2");
+                        throw new IqlKnownException.ParseErrorException("shldiv requires 3 arguments: shift, stat1, stat2");
                     }
                     if(!(input.get(0) instanceof NumberExpression)) {
-                        throw new IllegalArgumentException("First argument of shldiv() has to be an integer. ");
+                        throw new IqlKnownException.ParseErrorException("First argument of shldiv() has to be an integer. ");
                     }
                     final String shiftStr = getStr(input.get(0));
                     final int shift = Integer.parseInt(shiftStr);
@@ -407,7 +450,7 @@ public final class IQLTranslator {
             builder.put("max", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() < 2) {
-                        throw new UnsupportedOperationException("max() requires at least 2 arguments");
+                        throw new IqlKnownException.ParseErrorException("max() requires at least 2 arguments. Did you mean FIELD_MAX() function from IQL2?");
                     }
                     return max(getStats(input));
                 }
@@ -418,7 +461,7 @@ public final class IQLTranslator {
                     if(input.size() == 2) {
                         scaleFactor = parseInt(input.get(1));
                     } else if (input.size() != 1) {
-                        throw new UnsupportedOperationException("exp() requires 1 or 2 arguments. " +
+                        throw new IqlKnownException.ParseErrorException("exp() requires 1 or 2 arguments. " +
                                 "e.g. exp(ojc, 1) where ojc is a metric and 1 is a scaling factor that the terms " +
                                 "get divided by before exponentiation and multiplied by after exponentiation. " +
                                 "Scaling factor defaults to 1.");
@@ -432,7 +475,7 @@ public final class IQLTranslator {
                     if(input.size() == 2) {
                         scaleFactor = parseInt(input.get(1));
                     } else if (input.size() != 1) {
-                        throw new UnsupportedOperationException("log() requires 1 or 2 arguments. " +
+                        throw new IqlKnownException.ParseErrorException("log() requires 1 or 2 arguments. " +
                                 "e.g. log(ojc, 1) where ojc is a metric and 1 is a scaling factor. " +
                                 "The resulting values are as follows: (Math.log(term) - Math.log(scaleFactor)) * scaleFactor. " +
                                 "Scaling factor defaults to 1.");
@@ -443,7 +486,7 @@ public final class IQLTranslator {
             builder.put("dynamic", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new UnsupportedOperationException();
+                        throw new IqlKnownException.ParseErrorException("dynamic() requires one argument.");
                     }
                     String name = getName(input.get(0));
                     fieldNames.add(name);
@@ -470,7 +513,7 @@ public final class IQLTranslator {
                     }
 
                     if(Strings.isNullOrEmpty(field) || value == null) {
-                        throw new IllegalArgumentException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
+                        throw new IqlKnownException.ParseErrorException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
                     }
                     fieldNames.add(field);
                     return hasString(field, value);
@@ -489,19 +532,19 @@ public final class IQLTranslator {
                             try {
                                 value = Long.parseLong(parts[1]);
                             } catch (NumberFormatException ignored) {
-                                throw new IllegalArgumentException("Value in hasint() has to be an integer. " + usageExamples);
+                                throw new IqlKnownException.ParseErrorException("Value in hasint() has to be an integer. " + usageExamples);
                             }
                         }
                     } else if(input.size() == 2) {
                         field = getStr(input.get(0));
                         if(!(input.get(1) instanceof NumberExpression)) {
-                            throw new IllegalArgumentException("Second argument of hasint() has to be an integer. " + usageExamples);
+                            throw new IqlKnownException.ParseErrorException("Second argument of hasint() has to be an integer. " + usageExamples);
                         }
                         value = parseLong(input.get(1));
                     }
 
                     if(Strings.isNullOrEmpty(field)) {
-                        throw new IllegalArgumentException("incorrect usage in hasint(). " + usageExamples);
+                        throw new IqlKnownException.ParseErrorException("incorrect usage in hasint(). " + usageExamples);
                     }
                     fieldNames.add(field);
                     return hasInt(field, value);
@@ -510,11 +553,11 @@ public final class IQLTranslator {
             builder.put("hasstrfield", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new IllegalArgumentException("hasstrfield() requires the field name as the argument. Example: hasstrfield(\"rcv\")");
+                        throw new IqlKnownException.ParseErrorException("hasstrfield() requires the field name as the argument. Example: hasstrfield(\"rcv\")");
                     }
                     final String field = getStr(input.get(0));
                     if(Strings.isNullOrEmpty(field)) {
-                        throw new IllegalArgumentException("incorrect usage in hasstrfield(). Example: hasstrfield(\"rcv\")");
+                        throw new IqlKnownException.ParseErrorException("incorrect usage in hasstrfield(). Example: hasstrfield(\"rcv\")");
                     }
                     fieldNames.add(field);
                     return hasStringField(field);
@@ -523,11 +566,11 @@ public final class IQLTranslator {
             builder.put("hasintfield", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new IllegalArgumentException("hasintfield() requires the field name as the argument. Example: hasintfield(\"sjc\")");
+                        throw new IqlKnownException.ParseErrorException("hasintfield() requires the field name as the argument. Example: hasintfield(\"sjc\")");
                     }
                     final String field = getStr(input.get(0));
                     if(Strings.isNullOrEmpty(field)) {
-                        throw new IllegalArgumentException("incorrect usage in hasintfield(). Example: hasintfield(\"sjc\")");
+                        throw new IqlKnownException.ParseErrorException("incorrect usage in hasintfield(). Example: hasintfield(\"sjc\")");
                     }
                     fieldNames.add(field);
                     return hasIntField(field);
@@ -548,14 +591,14 @@ public final class IQLTranslator {
                     	fieldNames.add(name);
                     	return floatScale(name, 1, 0);
                     } else {
-                        throw new UnsupportedOperationException();
+                        throw new IqlKnownException.ParseErrorException("floatscale() requires 1, 2, or 3 arguments");
                     }
                 }
             });
             builder.put("lucene", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
                     if (input.size() != 1) {
-                        throw new UnsupportedOperationException("lucene() requires a string argument containing the lucene query to try on each document");
+                        throw new IqlKnownException.ParseErrorException("lucene() requires a string argument containing the lucene query to try on each document");
                     }
                     final String luceneQuery = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query flamdexQuery = parseLuceneQuery(luceneQuery, datasetMetadata);
@@ -590,7 +633,7 @@ public final class IQLTranslator {
                         final String fieldName = ((NameExpression) left).name;
                         final FieldMetadata field = datasetMetadata.getField(fieldName);
                         if(field == null) {
-                            throw new IllegalArgumentException("Field not found: " + fieldName);
+                            throw new IqlKnownException.UnknownFieldException("Field not found: " + fieldName);
                         }
                         fieldNames.add(fieldName);
                         if(field.isIntImhotepField() && right instanceof NumberExpression) {
@@ -622,14 +665,14 @@ public final class IQLTranslator {
                     if(right instanceof NumberExpression) {
                         long value = parseLong(right);
                         if(value == 0) {
-                            throw new IllegalArgumentException("Can't divide by 0");
+                            throw new IqlKnownException.ParseErrorException("Can't divide by 0");
                         }
                         return aggDivConst(left.match(this), value);
                     }
                     return aggDiv(left.match(this), right.match(this));
                 }
                 default:
-                    throw new UnsupportedOperationException();
+                    throw new IllegalStateException();
             }
         }
 
@@ -647,14 +690,14 @@ public final class IQLTranslator {
         protected Stat functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Stat> function = statLookup.get(name);
             if (function == null) {
-                throw new IllegalArgumentException("Unknown stat function: " + name);
+                throw new IqlKnownException.ParseErrorException("Unknown stat function: " + name);
             }
             return function.apply(args);
         }
 
         protected Stat nameExpression(final String name) {
             if(!datasetMetadata.hasField(name)) {
-                throw new IllegalArgumentException("Unknown field name in a stat: " + name);
+                throw new IqlKnownException.UnknownFieldException("Unknown field name in a stat: " + name);
             }
             fieldNames.add(name);
             return intField(name);
@@ -710,7 +753,7 @@ public final class IQLTranslator {
                     if (input.size() < 2 || input.size() > 4) throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
                     final Expression arg0 = input.get(0);
                     if(!(arg0 instanceof NameExpression)) {
-                        throw new UnsupportedOperationException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));
+                        throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));
                     }
                     final NameExpression nameExpression = (NameExpression) arg0;
                     final String fieldName = nameExpression.name;
@@ -761,14 +804,14 @@ public final class IQLTranslator {
                             int index = 0;
                             for (Expression expression : values.expressions) {
                                 if(!(expression instanceof NumberExpression)) {
-                                    throw new IllegalArgumentException("A non integer value specified for an integer field: " + name.name);
+                                    throw new IqlKnownException.FieldTypeMismatchException("A non integer value specified for an integer field: " + name.name);
                                 }
                                 ints[index++] = parseLong(expression);
                             }
                             Arrays.sort(ints); // looks like terms being sorted is a pre-requisite of intOrRegroup()
                             return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
                         } else {
-                            throw new IllegalArgumentException("Unknown field: " + name.name);
+                            throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
                         }
                     }
                 case NOT_EQ:
@@ -788,23 +831,23 @@ public final class IQLTranslator {
                         return handleMetricComparison(new BinaryExpression(left, Op.EQ, right),
                                 new NumberExpression("1"), usingNegation);
                     } else {
-                        throw new IllegalArgumentException("Can't compare the provided operands: " + left + "; " + right);
+                        throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
                     }
                 case REGEX_NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to REGEX_EQ
                 case REGEX_EQ:
                     if(!(left instanceof NameExpression)) {
-                        throw new UnsupportedOperationException("Regexp compare only works on field names. Instead given: " + String.valueOf(left));
+                        throw new IqlKnownException.ParseErrorException("Regexp compare only works on field names. Instead given: " + String.valueOf(left));
                     }
                     final NameExpression nameExpression = (NameExpression) left;
                     final String fieldName = nameExpression.name;
                     if (!datasetMetadata.hasStringField(fieldName)) {
                         if(datasetMetadata.hasIntField(fieldName)) {
-                            throw new IllegalArgumentException("Regex filter currently only works on String fields. " +
+                            throw new IqlKnownException.ParseErrorException("Regex filter currently only works on String fields. " +
                                     "Int field given: " + fieldName);
                         }
-                        throw new IllegalArgumentException("Unknown field: " + fieldName);
+                        throw new IqlKnownException.UnknownFieldException("Unknown field: " + fieldName);
                     }
                     fieldNames.add(fieldName);
                     String regexp = getStr(right);
@@ -814,7 +857,7 @@ public final class IQLTranslator {
                     } catch (Exception e) {
                         Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
 
-                        throw new IllegalArgumentException("The provided regex filter '" + regexp + "' failed to parse. " +
+                        throw new IqlKnownException.ParseErrorException("The provided regex filter '" + regexp + "' failed to parse. " +
                                 "\nError was: " + e.getMessage() +
                                 "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
                     }
@@ -830,7 +873,7 @@ public final class IQLTranslator {
                 case GREATER:
                 case GREATER_EQ:
                     if ((left instanceof  StringExpression || right instanceof StringExpression)) {
-                        throw new IllegalArgumentException(op.toString() + " operation can't be applied to a string");
+                        throw new IqlKnownException.ParseErrorException(op.toString() + " operation can't be applied to a string");
                     }
                     if(left instanceof NameExpression && right instanceof NumberExpression) {
                         final Stat stat = left.match(statMatcher);
@@ -861,9 +904,9 @@ public final class IQLTranslator {
                 case DIV:
                 case AGG_DIV:
                 case MOD:
-                    throw new UnsupportedOperationException(op.toString() + " operation is not usable as a filter");
+                    throw new IqlKnownException.ParseErrorException(op.toString() + " operation is not usable as a filter");
                 default:
-                    throw new UnsupportedOperationException();
+                    throw new IllegalStateException();
             }
         }
 
@@ -872,9 +915,11 @@ public final class IQLTranslator {
             try {
                 stat = left.match(statMatcher);
             } catch (Exception e) {
-                throw new IllegalArgumentException("Left side of comparison is not a known field or metric: " + left.toString());
+                throw new IqlKnownException.ParseErrorException("Left side of comparison is not a known field or metric: " + left.toString());
             }
-            if (!(right instanceof NumberExpression)) throw new IllegalArgumentException("Metric comparison values have to be numbers");
+            if (!(right instanceof NumberExpression)) {
+                throw new IqlKnownException.ParseErrorException("Metric comparison values have to be numbers");
+            }
             final long value = parseLong(right);    // constant we are comparing against
 
             return Collections.<Condition>singletonList(new MetricCondition(stat, value, value, usingNegation));
@@ -888,12 +933,12 @@ public final class IQLTranslator {
             } else if (datasetMetadata.hasIntField(name.name)) {
                 final long[] ints = new long[1];
                 if(!(right instanceof NumberExpression)) {
-                    throw new IllegalArgumentException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
+                    throw new IqlKnownException.FieldTypeMismatchException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
                 }
                 ints[0] = parseLong(right);
                 return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
             } else {
-                throw new IllegalArgumentException("Unknown field: " + name.name);
+                throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
             }
         }
 
@@ -933,7 +978,7 @@ public final class IQLTranslator {
         try {
             query = queryParser.parse(queryString);
         } catch (ParseException e) {
-            throw Throwables.propagate(e);
+            throw new IqlKnownException.ParseErrorException(e);
         }
         return LuceneQueryTranslator.rewrite(query, datasetMetadata.getIntImhotepFieldSet());
     }
@@ -966,7 +1011,7 @@ public final class IQLTranslator {
             builder.put("topterms", new Function<List<Expression>, Grouping>() {
                 public Grouping apply(final List<Expression> input) {
                     if (input.size() < 2 || input.size() > 4) {
-                        throw new IllegalArgumentException("topterms() takes 2 to 4 arguments. " + input.size() + " given");
+                        throw new IqlKnownException.ParseErrorException("topterms() takes 2 to 4 arguments. " + input.size() + " given");
                     }
                     final String fieldName = getName(input.get(0));
                     final int topK = parseInt(input.get(1));
@@ -993,7 +1038,7 @@ public final class IQLTranslator {
             builder.put("diff", new Function<List<Expression>, Grouping>() {
                 public Grouping apply(final List<Expression> input) {
                     if (input.size() != 4) {
-                        throw new IllegalArgumentException("diff() takes 4 args: fieldName(string), metricFilter1(StatExpression), metricFilter2(StatExpression), topK(int)");
+                        throw new IqlKnownException.ParseErrorException("diff() takes 4 args: fieldName(string), metricFilter1(StatExpression), metricFilter2(StatExpression), topK(int)");
                     }
                     final String fieldName = getName(input.get(0));
                     Stat statFilter1 = input.get(1).match(statMatcher);
@@ -1032,7 +1077,7 @@ public final class IQLTranslator {
                             final long yInterval = parseTimeBucketInterval(getStr(input.get(7)), false, 0, 0);
                             return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval, limits);
                         } else {
-                            throw new IllegalArgumentException("buckets() takes 4 or 5 arguments: stat, min(long), max(long), bucket_size(long), [noGutters(boolean)]");
+                            throw new IqlKnownException.ParseErrorException("buckets() takes 4 or 5 arguments: stat, min(long), max(long), bucket_size(long), [noGutters(boolean)]");
                         }
                     }
                 };
@@ -1042,7 +1087,7 @@ public final class IQLTranslator {
             Function<List<Expression>, Grouping> timeHandler = new Function<List<Expression>, Grouping>() {
                 public Grouping apply(final List<Expression> input) {
                     if (input.size() > 3) {
-                        throw new IllegalArgumentException("time function takes up to 3 args");
+                        throw new IqlKnownException.ParseErrorException("time function takes up to 3 args");
                     }
                     final String bucket = input.size() > 0 ? getStr(input.get(0)) : null;
                     final String format = input.size() > 1 ? getStr(input.get(1)) : null;
@@ -1104,18 +1149,22 @@ public final class IQLTranslator {
                 }
             } else if(bucketSizeStr.charAt(bucketSizeStr.length()-1) == 'b' && min > 0 && max > 0) {
                 // given the number of buckets instead of the bucket size. so compute the bucket size ourselves
-                int bucketCount = Integer.parseInt(bucketSizeStr.substring(0, bucketSizeStr.length() - 1));
+                final String bucketCountStr = bucketSizeStr.substring(0, bucketSizeStr.length() - 1);
+                if (!NumberUtils.isDigits(bucketCountStr)) {
+                    throw new IqlKnownException.ParseErrorException("Bucket size argument couldn't be parsed: " + bucketSizeStr);
+                }
+                final int bucketCount = Integer.parseInt(bucketCountStr);
                 if(bucketCount < 1) {
-                    throw new IllegalArgumentException("Number of time buckets has to be at least 1");
+                    throw new IqlKnownException.ParseErrorException("Number of time buckets has to be at least 1");
                 }
                 return (long)Math.ceil((max-min) / (double)bucketCount); // bucket size rounded up
             } else {
                 Period period = PeriodParser.parseString(bucketSizeStr);
                 if(period == null) {
-                    throw new IllegalArgumentException("Bucket size argument couldn't be parsed: " + bucketSizeStr);
+                    throw new IqlKnownException.ParseErrorException("Bucket size argument couldn't be parsed: " + bucketSizeStr);
                 }
                 if(period.getMonths() > 0 || period.getYears() > 0) {
-                    throw new IllegalArgumentException("Months and years are not supported as bucket sizes because they vary in length. " +
+                    throw new IqlKnownException.ParseErrorException("Months and years are not supported as bucket sizes because they vary in length. " +
                             "Please convert to a fixed period (e.g days, weeks) or request an absolute number of buckets (e.g. 5b)");
                 }
                 bucketSize =  period.toStandardSeconds().getSeconds();
@@ -1136,7 +1185,7 @@ public final class IQLTranslator {
                     appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
                     appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
-                    throw new IllegalArgumentException(exceptionBuilder.toString());
+                    throw new IqlKnownException.ParseErrorException(exceptionBuilder.toString());
                 }
             }
 
@@ -1183,7 +1232,7 @@ public final class IQLTranslator {
         protected Grouping functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Grouping> function = functionLookup.get(name);
             if (function == null) {
-                throw new IllegalArgumentException("Unknown function in group by: " + name);
+                throw new IqlKnownException.ParseErrorException("Unknown function in group by: " + name);
             }
             return function.apply(args);
         }
@@ -1302,7 +1351,7 @@ public final class IQLTranslator {
             Pattern topTermsPattern = Pattern.compile("\\s*(?:(top|bottom)\\s+)?(\\d+)\\s*(?:\\s*(?:by|,)\\s*(.+))?\\s*");
             Matcher matcher = topTermsPattern.matcher(arg);
             if(!matcher.matches()) {
-                throw new IllegalArgumentException("'group by' part treated as top terms couldn't be parsed: " +
+                throw new IqlKnownException.ParseErrorException("'group by' part treated as top terms couldn't be parsed: " +
                         fieldName + "[" + arg + "].\n" + syntaxExamples);
             }
 
@@ -1314,7 +1363,7 @@ public final class IQLTranslator {
                     Expression statExpression = ExpressionParser.parseExpression(statStr);
                     stat = statExpression.match(statMatcher);
                 } catch (Exception e) {
-                    throw new IllegalArgumentException("Couldn't parse the stat expression for top terms: " + statStr +
+                    throw new IqlKnownException.ParseErrorException("Couldn't parse the stat expression for top terms: " + statStr +
                             "\n" + syntaxExamples, e);
                 }
             } else {

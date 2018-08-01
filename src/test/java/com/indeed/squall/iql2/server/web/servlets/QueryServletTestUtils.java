@@ -46,9 +46,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.SIMPLE_PROSESSING;
-import static com.indeed.squall.iql2.execution.QueryOptions.Experimental.UNSORTED_FTGS;
-
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static IQLDB iqldb;
@@ -60,8 +57,6 @@ public class QueryServletTestUtils extends BasicTest {
     private static final String[] OPTIONS_TO_TEST =
             {
                     "",// no options
-                    "OPTIONS['" + SIMPLE_PROSESSING + "']", // simple processing, sorted ftgs
-                    "OPTIONS['" + SIMPLE_PROSESSING + "', '" + UNSORTED_FTGS + "']" // simple processing, unsorted ftgs
             };
 
     public static QueryServlet create(List<Shard> shards, Options options) {

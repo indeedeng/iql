@@ -18,6 +18,7 @@ import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
@@ -49,7 +50,7 @@ public final class StatRangeGrouping extends Grouping {
                              final Limits limits) {
         this.limits = limits;
         if(intervalSize <= 0) {
-            throw new IllegalArgumentException("Bucket size has to be positive for stat: " + stat.toString());
+            throw new IqlKnownException.ParseErrorException("Bucket size has to be positive for stat: " + stat.toString());
         }
         this.stat = stat;
         this.minValue = minValue;
@@ -61,7 +62,7 @@ public final class StatRangeGrouping extends Grouping {
 
         expectedBucketCount = (maxValue - minValue) / intervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
-            throw new IllegalArgumentException("Requested bucket count for metric " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Requested bucket count for metric " + this.stat.toString() +
                     " is " + df.format(expectedBucketCount) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit));
         }
     }
@@ -72,7 +73,7 @@ public final class StatRangeGrouping extends Grouping {
         }
         final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedNumberOfRows) || expectedNumberOfRows < 0) {
-            throw new IllegalArgumentException("Expected number of rows after bucketing by " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + this.stat.toString() +
                     " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit) +
                     " rows in memory. Please optimize the query.");
         }

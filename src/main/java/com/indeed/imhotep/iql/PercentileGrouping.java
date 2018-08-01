@@ -126,9 +126,10 @@ public class PercentileGrouping extends Grouping {
 
             final Int2ObjectMap<DoubleList> percentileValues = new Int2ObjectOpenHashMap<DoubleList>();
             for (final int group : groupKeys.keySet()) {
+                final long count = (group < counts.length) ? counts[group] : 0;
                 final DoubleList groupPercentileValues = new DoubleArrayList();
                 for (final double percentile : fieldPercentiles) {
-                    groupPercentileValues.add(percentile / 100 * counts[group]);
+                    groupPercentileValues.add(percentile / 100 * count);
                 }
                 percentileValues.put(group, groupPercentileValues);
             }

@@ -33,15 +33,15 @@ public class RegroupIntoParent implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
         session.timer.push("compute remapping");
-        final int maxIndex = session.groupKeySet.previous().numGroups() + 1;
+        final int prevNumGroups = session.groupKeySet.previous().numGroups();
         final Map<String, Session.SavedGroupStats> newSavedGroupStatsEntries = Maps.newHashMap();
         for (final Map.Entry<String, Session.SavedGroupStats> entry : session.savedGroupStats.entrySet()) {
             final String k = entry.getKey();
             final Session.SavedGroupStats v = entry.getValue();
             if (v.depth == session.currentDepth) {
-                final double[] mergedStats = new double[maxIndex + 1];
+                final double[] mergedStats = new double[prevNumGroups + 1];
                 final double[] oldStats = v.stats;
-                final boolean[] anyFound = new boolean[maxIndex + 1];
+                final boolean[] anyFound = new boolean[prevNumGroups + 1];
                 for (int i = 1; i < oldStats.length; i++) {
                     final int index = session.groupKeySet.parentGroup(i);
                     switch (mergeType) {
@@ -87,7 +87,7 @@ public class RegroupIntoParent implements Command {
         session.timer.pop();
         session.regroupWithProtos(messages, false);
         session.currentDepth -= 1;
-        session.numGroups = maxIndex;
+        session.numGroups = prevNumGroups;
         session.groupKeySet = session.groupKeySet.previous();
 
         out.accept("RegroupedIntoParent");

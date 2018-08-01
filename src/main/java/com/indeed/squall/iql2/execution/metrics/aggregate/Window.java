@@ -14,6 +14,7 @@
 
 package com.indeed.squall.iql2.execution.metrics.aggregate;
 
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.execution.QualifiedPush;
 import com.indeed.squall.iql2.execution.groupkeys.sets.GroupKeySet;
 
@@ -112,7 +113,7 @@ public class Window implements AggregateMetric {
     private void clear() {
         for (int i = lastGroup + 1; i <= lastGroup + size; i++) {
             if (i < groupToWindowSum.length && groupToWindowSum[i] != 0) {
-                throw new IllegalStateException("Cannot use window where the window overlaps missing data.");
+                throw new IqlKnownException.ExecutionException("Cannot use window where the window overlaps missing data.");
             }
         }
         Arrays.fill(groupToWindowSum, 0.0);

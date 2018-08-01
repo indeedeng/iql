@@ -29,11 +29,15 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
+import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
@@ -145,7 +149,7 @@ public final class IQLQuery implements Closeable {
         final long numDocs = imhotepSession.getNumDocs();
         if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
             DecimalFormat df = new DecimalFormat("###,###");
-            throw new DocumentsLimitExceededException("The query on " + df.format(numDocs) +
+            throw new IqlKnownException.DocumentsLimitExceededException("The query on " + df.format(numDocs) +
                     " documents exceeds the limit of " + df.format(limits.queryDocumentCountLimitBillions * 1_000_000_000L) + ". Please reduce the time range.");
         }
         selectExecutionStats.numDocs = numDocs;
