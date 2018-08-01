@@ -11,7 +11,7 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.metadata;
+ package com.indeed.iql.metadata;
 
 import com.google.common.base.Strings;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -28,7 +28,8 @@ public class FieldMetadata {
     @Nonnull final String name;
     @Nullable String friendlyName;
     @Nullable String description;
-    @Nonnull FieldType type;
+    @Nonnull
+    FieldType type;
     int frequency;
     boolean isHidden;
 
@@ -55,32 +56,37 @@ public class FieldMetadata {
         return type;
     }
 
-    public void setType(@Nonnull FieldType type) {
+    public FieldMetadata setType(@Nonnull FieldType type) {
         this.type = type;
+        return this;
     }
 
-    public void setFriendlyName(@Nullable String friendlyName) {
+    public FieldMetadata setFriendlyName(@Nullable String friendlyName) {
         this.friendlyName = friendlyName;
+        return this;
     }
 
-    public void setDescription(@Nullable String description) {
+    public FieldMetadata setDescription(@Nullable String description) {
         this.description = description;
+        return this;
     }
 
     public boolean isHidden() {
         return isHidden;
     }
 
-    public void setHidden(boolean hidden) {
+    public FieldMetadata setHidden(boolean hidden) {
         isHidden = hidden;
+        return this;
     }
 
     public int getFrequency() {
         return frequency;
     }
 
-    public void setFrequency(final int frequency) {
+    public FieldMetadata setFrequency(final int frequency) {
         this.frequency = frequency;
+        return this;
     }
 
     public boolean isIntImhotepField() {

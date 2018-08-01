@@ -21,6 +21,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
@@ -29,9 +31,7 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.dimensions.Dimension;
 import com.indeed.iql2.language.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.metadata.FieldMetadata;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.metadata.ImmutableFieldMetadata;
 import com.indeed.util.core.time.DefaultWallClock;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -122,32 +122,24 @@ public class MetadataCache {
             //metrics defined in iql metadata webapp
             //all metrics defined there has type of Integer
             final Set<String> metrics = datasetToMetrics.getOrDefault(dataset, Collections.emptySet());
-            final ImmutableFieldMetadata.Builder integerBuilder = ImmutableFieldMetadata.builder().setType(FieldMetadata.Type.Integer);
-            final ImmutableFieldMetadata.Builder stringBuilder = ImmutableFieldMetadata.builder().setType(FieldMetadata.Type.String);
             final Map<String, Integer> fieldFrequencies = datasetToFieldFrequencies.getOrDefault(dataset, Maps.newHashMap());
 
             for (String intField: datasetInfo.getIntFields()) {
                 final DatasetYaml datasetYaml = datasetToDatasetYaml.get(dataset);
                 final String description = (datasetYaml == null || datasetYaml.getFieldsMap().get(intField) == null)
                                 ? null : datasetYaml.getFieldsMap().get(intField).getDescription();
-                intFields.add(integerBuilder.setName(intField).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(intField, 0)).build());
+                intFields.add(new FieldMetadata(intField, FieldType.Integer).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(intField, 0)));
             }
             for (String strField : datasetInfo.getStringFields()) {
                 final DatasetYaml datasetYaml = datasetToDatasetYaml.get(dataset);
                 final String description = (datasetYaml == null || datasetYaml.getFieldsMap().get(strField) == null)
                                 ? null : datasetYaml.getFieldsMap().get(strField).getDescription();
                 if (metrics.contains(strField)) {
-                    intFields.add(integerBuilder.setName(strField).setDescription(Strings.nullToEmpty(description)).build());
+                    intFields.add(new FieldMetadata(strField, FieldType.Integer).setDescription(Strings.nullToEmpty(description)));
                 }
-                strFields.add(stringBuilder.setName(strField).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(strField, 0)).build());
+                strFields.add(new FieldMetadata(strField, FieldType.String).setDescription(Strings.nullToEmpty(description)).setFrequency(fieldFrequencies.getOrDefault(strField, 0)));
             }
-            if (entry.getValue().getIntFields().isEmpty()) {
-                log.trace(dataset + " is ramses index");
-                intFields.add(integerBuilder.setName("time").setDescription("time of ramses index").build());
-            } else {
-                log.trace(dataset + " is imhotep index");
-                intFields.add(integerBuilder.setName("unixtime").setDescription("time of imhotep index").build());
-            }
+            intFields.add(new FieldMetadata("unixtime", FieldType.Integer).setDescription("time of imhotep index"));
             datasetToIntFields.put(dataset, intFields);
             datasetToStringFields.put(dataset, strFields);
         }

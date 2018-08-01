@@ -42,7 +42,7 @@ import com.indeed.iql1.iql.StatRangeGrouping;
 import com.indeed.iql1.iql.StatRangeGrouping2D;
 import com.indeed.iql1.iql.StringInCondition;
 import com.indeed.iql1.metadata.DatasetMetadata;
-import com.indeed.iql1.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.FunctionExpression;

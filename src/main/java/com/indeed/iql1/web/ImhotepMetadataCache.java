@@ -20,10 +20,9 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql1.metadata.DatasetMetadata;
-import com.indeed.iql1.metadata.FieldMetadata;
-import com.indeed.iql1.metadata.FieldType;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql1.metadata.MetricMetadata;
-import com.indeed.iql1.metadata.YamlMetadataConverter;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
@@ -151,7 +150,7 @@ public class ImhotepMetadataCache {
                         MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
                         Map<String, MetricMetadata> metrics = newDataset.getMetrics();
                         for (MetricsYaml metricYaml : metricsYamls) {
-                            final MetricMetadata metricMetadata = YamlMetadataConverter.convertMetricMetadata(metricYaml);
+                            final MetricMetadata metricMetadata = imsMetricYamlToIQLMetricMetadata(metricYaml);
                             metrics.put(metricYaml.getName(), metricMetadata);
                             // try to reuse the metric description on the field it describes
                             final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
@@ -200,6 +199,19 @@ public class ImhotepMetadataCache {
         datasets = newDatasets;
 
         log.debug("Finished metadata update");
+    }
+
+    public static MetricMetadata imsMetricYamlToIQLMetricMetadata(MetricsYaml metricYaml){
+        if (metricYaml==null){
+            return null;
+        }
+        MetricMetadata metricMetadata= new MetricMetadata(metricYaml.getName());
+        metricMetadata.setDescription(metricYaml.getDescription());
+        metricMetadata.setFriendlyName(metricYaml.getFriendlyName());
+        metricMetadata.setHidden(metricYaml.getHidden());
+        metricMetadata.setExpression(metricYaml.getExpr());
+        metricMetadata.setUnit(metricYaml.getUnits());
+        return metricMetadata;
     }
 
     private void removeDisabledFields(List<String> fields) {

@@ -17,9 +17,9 @@ package com.indeed.iql2.language;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql2.language.dimensions.Dimension;
 import com.indeed.iql2.language.metadata.DatasetMetadata;
-import com.indeed.iql2.language.metadata.FieldMetadata;
 import org.apache.log4j.Logger;
 
 import java.util.List;

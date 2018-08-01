@@ -16,8 +16,9 @@ package com.indeed.iql2.language.metadata;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.dimensions.Dimension;
-import com.indeed.iql2.language.metadata.ImmutableFieldMetadata;
 
 import java.util.Map;
 import java.util.Set;
@@ -75,7 +76,7 @@ public class DatasetMetadata {
     }
 
     public String getFieldDescription(final String field) {
-        final FieldMetadata fakeFieldMetadata = ImmutableFieldMetadata.builder().setName(field).setType(FieldMetadata.Type.Integer).build();
+        final FieldMetadata fakeFieldMetadata = new FieldMetadata(field, FieldType.Integer);
         final FieldMetadata ceilingIntObject = intFields.ceiling(fakeFieldMetadata);
         if (FieldMetadata.CASE_INSENSITIVE_ORDER.compare(fakeFieldMetadata, ceilingIntObject) == 0) {
             return Strings.nullToEmpty(ceilingIntObject.getDescription());
