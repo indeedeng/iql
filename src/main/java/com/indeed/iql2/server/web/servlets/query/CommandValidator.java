@@ -22,7 +22,7 @@ import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
@@ -103,6 +103,6 @@ public class CommandValidator {
             relevantDatasetAliasIntFields.put(aliasDataset, aliasIntField);
             relevantDatasetAliasStringFields.put(aliasDataset, aliasStringField);
         }
-        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), relevantDatasetAliasIntFields, relevantDatasetAliasStringFields, useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(true, relevantDatasetToMetadata), relevantDatasetAliasIntFields, relevantDatasetAliasStringFields, useLegacy);
     }
 }

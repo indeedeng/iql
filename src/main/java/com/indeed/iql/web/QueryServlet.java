@@ -46,7 +46,7 @@ import com.indeed.iql1.sql.ast2.SelectStatement;
 import com.indeed.iql1.sql.ast2.ShowStatement;
 import com.indeed.iql1.sql.parser.StatementParser;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.web.QueryMetadata;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.lang.StringUtils;
@@ -129,7 +129,7 @@ public class QueryServlet {
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
-                        ImhotepMetadataCache metadata,
+                        ImhotepMetadataCache metadataCacheIQL1,
                         TopTermsCache topTermsCache,
                         QueryCache queryCache,
                         RunningQueriesManager runningQueriesManager,
@@ -139,7 +139,7 @@ public class QueryServlet {
                         MetricStatsEmitter metricStatsEmitter,
                         FieldFrequencyCache fieldFrequencyCache) {
         this.imhotepClient = imhotepClient;
-        this.metadata = metadata;
+        this.metadata = metadataCacheIQL1;
         this.topTermsCache = topTermsCache;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
@@ -674,14 +674,14 @@ public class QueryServlet {
             final ObjectNode jsonRoot = mapper.createObjectNode();
             final ArrayNode array = mapper.createArrayNode();
             jsonRoot.set("datasets", array);
-            for(DatasetMetadata dataset : metadata.getDatasets().values()) {
+            for(DatasetMetadata dataset : metadata.get().getDatasetToMetadata().values()) {
                 final ObjectNode datasetInfo = mapper.createObjectNode();
                 dataset.toJSON(datasetInfo, mapper, true);
                 array.add(datasetInfo);
             }
             mapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
-            for(DatasetMetadata dataset : metadata.getDatasets().values()) {
+            for(DatasetMetadata dataset : metadata.get().getDatasetToMetadata().values()) {
                 outputStream.println(dataset.name);
             }
         }

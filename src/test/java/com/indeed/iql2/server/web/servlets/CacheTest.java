@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;

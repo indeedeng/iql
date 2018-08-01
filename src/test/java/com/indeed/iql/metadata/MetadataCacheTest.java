@@ -12,37 +12,31 @@
  * limitations under the License.
  */
 
-package com.indeed.iql2.server.web.metadata;
+package com.indeed.iql.metadata;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
-import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
-import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MetadataCacheTest {
     @Test
     public void testParseMetric() {
-        final MetadataCache metadataCache = new MetadataCache(null, null, new FieldFrequencyCache(null));
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true);
 
         final List<String> options = Collections.emptyList();
 
@@ -117,9 +111,9 @@ public class MetadataCacheTest {
         final ImhotepClient imhotepClient = new ImhotepClient("***REMOVED***",
                 "/imhotep/interactive-daemons", true);
         final ImsClientInterface realIMSClient = ImsClient.build("***REMOVED***");
-        final MetadataCache metadataCache = new MetadataCache(realIMSClient, imhotepClient, new FieldFrequencyCache(null));
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(realIMSClient, imhotepClient, "", new FieldFrequencyCache(null), true);
         // check if all existed dimensions can be parsed correctly
-        metadataCache.updateMetadata();
+        metadataCache.updateDatasets();
         // validate all dimensions
         final DatasetsMetadata datasetsMetadata = metadataCache.get();
         final ValidationHelper validationHelper = new ValidationHelper(datasetsMetadata, Collections.emptyMap(), Collections.emptyMap(), true);
@@ -154,23 +148,11 @@ public class MetadataCacheTest {
 
     @Test
     public void testParseDataset() {
-        final MetadataCache metadataCache = new MetadataCache(null, null, new FieldFrequencyCache(null));
-        final DatasetYaml imhotepDataset = new DatasetYaml();
-        imhotepDataset.setName("imhotep");
-        imhotepDataset.setType("Imhotep");
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true);
         final MetricsYaml calcMetric = new MetricsYaml();
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
-        imhotepDataset.setMetrics(new MetricsYaml[]{calcMetric});
-        final ImmutableMap<String, MetricMetadata> dimensions = metadataCache.buildDatasetDimension(imhotepDataset);
-
-        final ImmutableMap<String, String> expectedDimensions = ImmutableMap.of(
-                "complex", "(a1+a2)*10",
-                "counts", "count()",
-                "dayofweek", "(((unixtime-280800)%604800)\\86400)",
-                "timeofday", "((unixtime-21600)%86400)");
-        final Map<String, String> returnedDimensions = dimensions.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().expression));
-
-        Assert.assertEquals(expectedDimensions, returnedDimensions);
+        final MetricMetadata dimensions = metadataCache.getMetricMetadataFromMetricsYaml(calcMetric, "test");
+        Assert.assertEquals(dimensions.expression, "(a1+a2)*10");
     }
 }

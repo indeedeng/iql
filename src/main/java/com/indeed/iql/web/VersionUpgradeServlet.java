@@ -16,8 +16,8 @@ package com.indeed.iql.web;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.print.PrettyPrint;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,11 +31,11 @@ import java.util.HashMap;
 
 @Controller
 public class VersionUpgradeServlet {
-    private final MetadataCache metadataCache;
+    private final ImhotepMetadataCache metadataCache;
 
     @Autowired
-    public VersionUpgradeServlet(MetadataCache metadataCache) {
-        this.metadataCache = metadataCache;
+    public VersionUpgradeServlet(ImhotepMetadataCache metadataCacheIQL2) {
+        this.metadataCache = metadataCacheIQL2;
     }
 
     @RequestMapping("upgrade")

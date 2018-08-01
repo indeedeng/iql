@@ -21,7 +21,7 @@ import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.iql2.language.compat.Consumer;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;

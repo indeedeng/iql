@@ -26,6 +26,7 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -41,10 +42,9 @@ import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
 import com.indeed.iql2.language.DatasetDescriptor;
 import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.iql.web.UsernameUtil;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.time.WallClock;
@@ -97,7 +97,7 @@ public class QueryServlet {
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
     private final RunningQueriesManager runningQueriesManager;
-    private final MetadataCache metadataCache;
+    private final ImhotepMetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
     private final MetricStatsEmitter metricStatsEmitter;
@@ -113,7 +113,7 @@ public class QueryServlet {
             final ImhotepClient imhotepClient,
             final QueryCache queryCache,
             final RunningQueriesManager runningQueriesManager,
-            final MetadataCache metadataCache,
+            final ImhotepMetadataCache metadataCacheIQL2,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
             final MetricStatsEmitter metricStatsEmitter,
@@ -122,7 +122,7 @@ public class QueryServlet {
         this.imhotepClient = imhotepClient;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
-        this.metadataCache = metadataCache;
+        this.metadataCache = metadataCacheIQL2;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
         this.metricStatsEmitter = metricStatsEmitter;

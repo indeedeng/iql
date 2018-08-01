@@ -55,7 +55,7 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.util.serialization.LongStringifier;

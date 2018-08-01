@@ -31,7 +31,7 @@ import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.util.core.TreeTimer;

@@ -28,7 +28,7 @@ import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.execution.passes.FixDistinctFilterRunning;
 import com.indeed.iql2.language.execution.passes.GroupIterations;
 import com.indeed.iql2.language.execution.passes.OptimizeLast;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.optimizations.CollapseFilters;
 import com.indeed.iql2.language.passes.ExtractNames;
 import com.indeed.iql2.language.passes.ExtractPrecomputed;

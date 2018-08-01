@@ -21,7 +21,7 @@ import com.indeed.util.core.time.WallClock;
 import com.indeed.iql2.language.DocMetric.Field;
 import com.indeed.iql2.language.compat.Consumer;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;

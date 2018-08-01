@@ -14,6 +14,7 @@
  package com.indeed.iql1.web;
 
 import com.google.common.base.Strings;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.sql.ast2.IQLStatement;
 import com.indeed.iql1.sql.ast2.SelectStatement;
 import com.indeed.iql1.sql.parser.StatementParser;

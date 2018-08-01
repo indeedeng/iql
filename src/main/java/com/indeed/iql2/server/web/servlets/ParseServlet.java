@@ -16,10 +16,10 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.time.StoppedClock;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,11 +33,11 @@ import java.util.HashMap;
 @Controller
 public class ParseServlet {
 
-    final MetadataCache metadataCache;
+    final ImhotepMetadataCache metadataCache;
 
     @Autowired
-    public ParseServlet(final MetadataCache metadataCache) {
-        this.metadataCache = metadataCache;
+    public ParseServlet(final ImhotepMetadataCache metadataCacheIQL2) {
+        this.metadataCache = metadataCacheIQL2;
     }
 
 //    @RequestMapping("parse")

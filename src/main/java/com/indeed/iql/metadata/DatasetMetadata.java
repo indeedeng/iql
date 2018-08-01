@@ -39,6 +39,7 @@ public class DatasetMetadata {
     public static String TIME_FIELD_NAME = "unixtime";
     private final Comparator<FieldMetadata> fieldMetadataComparator;
     private final Comparator<String> fieldNameComparator;
+    private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
     public boolean deprecated;
@@ -51,18 +52,19 @@ public class DatasetMetadata {
     // used by the preprocessor
     @Nonnull Map<String, String> iql1Aliases = Maps.newHashMap();
 
-    public DatasetMetadata(boolean caseInsensitiveFields, String name) {
-        this(caseInsensitiveFields, name, null, false);
+    public DatasetMetadata(boolean iql2mode, String name) {
+        this(iql2mode, name, null, false);
     }
 
-    public DatasetMetadata(boolean caseInsensitiveFields, String name, String description, boolean deprecated) {
-        this(caseInsensitiveFields, name, description, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
+    public DatasetMetadata(boolean iql2mode, String name, String description, boolean deprecated) {
+        this(iql2mode, name, description, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
     }
 
-    public DatasetMetadata(final boolean caseInsensitiveFields, final String name, final String description, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
+    public DatasetMetadata(final boolean iql2mode, final String name, final String description, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, MetricMetadata> fieldToDimension) {
-        fieldMetadataComparator = caseInsensitiveFields ? FieldMetadata.CASE_INSENSITIVE_ORDER : FieldMetadata.CASE_SENSITIVE_ORDER;
-        fieldNameComparator = caseInsensitiveFields ? String.CASE_INSENSITIVE_ORDER : null;
+        fieldMetadataComparator = iql2mode ? FieldMetadata.CASE_INSENSITIVE_ORDER : FieldMetadata.CASE_SENSITIVE_ORDER;
+        fieldNameComparator = iql2mode ? String.CASE_INSENSITIVE_ORDER : null;
+        this.iql2mode = iql2mode;
         this.name = name;
         this.deprecated = deprecated;
         this.intFields = toCaseInsensitive(intFields);
@@ -106,16 +108,39 @@ public class DatasetMetadata {
     @Nullable
     public FieldMetadata getField(String field) {
         final FieldMetadata fakeFieldMetadata = new FieldMetadata(field, FieldType.Integer);
+        // TODO: unify default type between iql1 and iql2
+        if(iql2mode) {
+            final FieldMetadata intField = getIntField(fakeFieldMetadata);
+            if (intField == null) {
+                return getStringField(fakeFieldMetadata);
+            } else {
+                return intField;
+            }
+        } else {
+            final FieldMetadata stringField = getStringField(fakeFieldMetadata);
+            if (stringField == null) {
+                return getIntField(fakeFieldMetadata);
+            } else {
+                return stringField;
+            }
+        }
+    }
+
+    private FieldMetadata getIntField(FieldMetadata fakeFieldMetadata) {
         final FieldMetadata ceilingIntObject = intFields.ceiling(fakeFieldMetadata);
         if (ceilingIntObject != null && fieldMetadataComparator.compare(fakeFieldMetadata, ceilingIntObject) == 0) {
             return ceilingIntObject;
         } else {
-            final FieldMetadata ceilingStringObject = stringFields.ceiling(fakeFieldMetadata);
-            if (ceilingStringObject != null && fieldMetadataComparator.compare(fakeFieldMetadata, ceilingStringObject) == 0) {
-                return ceilingStringObject;
-            }
             return null;
         }
+    }
+
+    private FieldMetadata getStringField(FieldMetadata fakeFieldMetadata) {
+        final FieldMetadata ceilingStringObject = stringFields.ceiling(fakeFieldMetadata);
+        if (ceilingStringObject != null && fieldMetadataComparator.compare(fakeFieldMetadata, ceilingStringObject) == 0) {
+            return ceilingStringObject;
+        }
+        return null;
     }
 
     @Nullable

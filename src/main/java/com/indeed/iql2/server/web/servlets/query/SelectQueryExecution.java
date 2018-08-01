@@ -61,7 +61,7 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.ScopedField;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;

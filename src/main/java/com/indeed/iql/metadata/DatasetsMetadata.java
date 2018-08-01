@@ -12,12 +12,12 @@
  * limitations under the License.
  */
 
-package com.indeed.iql2.language.metadata;
+package com.indeed.iql.metadata;
 
 import com.google.common.base.Optional;
-import com.indeed.iql.metadata.DatasetMetadata;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -35,10 +35,11 @@ public class DatasetsMetadata {
         datasetToDimensionAliasFields = Collections.emptyMap();
     }
 
-    public DatasetsMetadata(final Map<String, DatasetMetadata> metadata) {
-        this.metadata = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    public DatasetsMetadata(final boolean caseInsensitiveNames, final Map<String, DatasetMetadata> metadata) {
+        final Comparator<String> fieldNameComparator = caseInsensitiveNames ? String.CASE_INSENSITIVE_ORDER : null;
+        this.metadata = new TreeMap<>(fieldNameComparator);
         this.metadata.putAll(metadata);
-        datasetToDimensionAliasFields = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        datasetToDimensionAliasFields = new TreeMap<>(fieldNameComparator);
         metadata.forEach((dataset, meta) -> {
             datasetToDimensionAliasFields.put(dataset, meta.fieldToDimension.entrySet()
                     .stream().filter(dimension -> dimension.getValue().isAlias)

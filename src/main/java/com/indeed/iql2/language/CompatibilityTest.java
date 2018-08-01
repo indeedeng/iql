@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.language;
 
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.time.DefaultWallClock;
 import org.apache.log4j.ConsoleAppender;

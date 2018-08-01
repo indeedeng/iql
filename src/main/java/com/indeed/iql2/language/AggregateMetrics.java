@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Optional;
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.squall.iql2.language.JQLBaseListener;

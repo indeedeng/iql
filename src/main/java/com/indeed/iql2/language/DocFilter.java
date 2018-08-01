@@ -31,7 +31,7 @@ import com.indeed.iql2.language.actions.SampleAction;
 import com.indeed.iql2.language.actions.SampleMetricAction;
 import com.indeed.iql2.language.actions.StringOrAction;
 import com.indeed.iql2.language.actions.UnconditionalAction;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.MapUtil;

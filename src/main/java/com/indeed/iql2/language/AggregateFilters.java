@@ -15,7 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.time.WallClock;

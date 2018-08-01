@@ -26,7 +26,7 @@ import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.ast2.SelectStatement;
 import com.indeed.iql1.sql.ast2.ShowStatement;
 import com.indeed.iql1.sql.ast2.WhereClause;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import org.codehaus.jparsec.Parser;
 import org.codehaus.jparsec.Parsers;

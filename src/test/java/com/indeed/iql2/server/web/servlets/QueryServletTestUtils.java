@@ -21,6 +21,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.web.AccessControl;
@@ -30,7 +31,6 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
 import com.indeed.ims.client.ImsClientInterface;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.iql2.server.web.servlets.query.QueryServlet;
@@ -62,8 +62,8 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(List<Shard> shards, Options options) {
         final ImhotepClient imhotepClient = new TestImhotepClient(shards);
 
-        final MetadataCache metadataCache = new MetadataCache(options.imsClient, imhotepClient, new FieldFrequencyCache(null));
-        metadataCache.updateMetadata();
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, imhotepClient, "", new FieldFrequencyCache(null), true);
+        metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
         return new QueryServlet(

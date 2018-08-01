@@ -18,7 +18,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
 import com.indeed.iql2.language.AggregateMetric;

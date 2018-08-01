@@ -19,7 +19,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocFilters;

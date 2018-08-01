@@ -14,12 +14,12 @@
 
 package com.indeed.iql2.server.web.fieldExtractor;
 
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql2.language.compat.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.iql2.language.util.FieldExtractor.DatasetField;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
@@ -52,7 +52,7 @@ public class BaseTest {
 		final Queries.ParseResult parseResult = Queries.parseQuery(
 				query,
 				false,
-				new MetadataCache(null, null, new FieldFrequencyCache(null)).get(),
+				new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true).get(),
 				new Consumer<String>() {
 					@Override
 					public void accept(String s) {}

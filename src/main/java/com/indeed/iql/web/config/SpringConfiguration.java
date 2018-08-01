@@ -29,7 +29,7 @@ import com.indeed.iql.web.DataSourceLoader;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql.web.IQLDB;
 import com.indeed.iql.web.ImhotepClientPinger;
-import com.indeed.iql1.web.ImhotepMetadataCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
@@ -37,7 +37,6 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.server.SpringContextAware;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import com.indeed.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -176,12 +175,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     // IQL1 metadata cache
     @Bean
     public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
+        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), false);
     }
     // IQL2 metadata cache
     @Bean
-    public MetadataCache metadataCacheIQL2() {
-        return new MetadataCache(imsClientIQL2(), imhotepClient(), fieldFrequencyCache());
+    public ImhotepMetadataCache metadataCacheIQL2() {
+        return new ImhotepMetadataCache(imsClientIQL2(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), true);
     }
     @Bean
     public TopTermsCache topTermsCache() {

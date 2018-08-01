@@ -32,7 +32,7 @@ import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;

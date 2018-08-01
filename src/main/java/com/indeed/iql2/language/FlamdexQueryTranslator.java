@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 
 import java.util.List;
 

@@ -22,7 +22,7 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ParserUtil;

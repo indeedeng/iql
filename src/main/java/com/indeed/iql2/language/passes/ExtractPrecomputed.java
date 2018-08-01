@@ -23,7 +23,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;

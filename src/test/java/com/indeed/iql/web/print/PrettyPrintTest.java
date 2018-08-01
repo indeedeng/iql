@@ -14,7 +14,7 @@
 
 package com.indeed.iql.web.print;
 
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import org.junit.Assert;
 import org.junit.Test;
 

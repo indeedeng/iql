@@ -15,7 +15,7 @@
 package com.indeed.iql2.language.util;
 
 import com.indeed.iql.metadata.MetricMetadata;
-import com.indeed.iql2.language.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.Validator;
 
 import java.util.Map;

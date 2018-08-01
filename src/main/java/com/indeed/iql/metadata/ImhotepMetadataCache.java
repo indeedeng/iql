@@ -11,9 +11,11 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.web;
+ package com.indeed.iql.metadata;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -23,23 +25,21 @@ import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
-import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql.metadata.MetricMetadata;
+import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.query.Queries;
+import com.indeed.util.core.time.DefaultWallClock;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
@@ -48,18 +48,22 @@ import java.util.regex.Pattern;
 
 public class ImhotepMetadataCache {
     private static final Logger log = Logger.getLogger(ImhotepMetadataCache.class);
+    private static final ImmutableMap<String, MetricMetadata> DEFAULT_DIMENSIONS = initDefaultDimension();
 
-    private LinkedHashMap<String, DatasetMetadata> datasets = Maps.newLinkedHashMap();
+
+    private final AtomicReference<DatasetsMetadata> atomMetadata = new AtomicReference<>(DatasetsMetadata.empty());
     private final ImhotepClient imhotepClient;
     private final List<Pattern> disabledFields = Lists.newArrayList();
     @Nullable
     private ImsClientInterface metadataClient;
     private final FieldFrequencyCache fieldFrequencyCache;
+    private final boolean caseInsensitiveNames;
 
-    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache) {
+    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache, boolean caseInsensitiveNames) {
         metadataClient = imsClient;
         imhotepClient = client;
         this.fieldFrequencyCache = fieldFrequencyCache;
+        this.caseInsensitiveNames = caseInsensitiveNames;
         if(!Strings.isNullOrEmpty(disabledFields)) {
             for(String field : disabledFields.split(",")) {
                 try {
@@ -77,32 +81,22 @@ public class ImhotepMetadataCache {
         log.trace("Started metadata update");
         Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToDatasetInfo();
         log.trace("Loaded metadata for " + datasetToShardList.size() + " datasets from Imhotep");
-        List<String> datasetNames = new ArrayList<>(datasetToShardList.keySet());
-        datasetNames.sort(String.CASE_INSENSITIVE_ORDER);
 
         if(datasetToShardList.size() == 0) {   // if we get no data, just keep what we already have
             log.warn("Imhotep returns no datasets");
             return;
         }
 
-        // First make empty DatasetMetadata instances
-        final LinkedHashMap<String, DatasetMetadata> newDatasets = Maps.newLinkedHashMap();
-        for(String datasetName : datasetNames) {
-            final DatasetMetadata datasetMetadata = new DatasetMetadata(false, datasetName);
-            newDatasets.put(datasetName, datasetMetadata);
-        }
-
-        // Now pre-fill the metadata with fields from Imhotep
+        final Map<String, DatasetMetadata> newDatasets = Maps.newHashMap();
         for(DatasetInfo datasetInfo : datasetToShardList.values()) {
+            final String datasetName = datasetInfo.getDataset();
+
+            final DatasetMetadata datasetMetadata = new DatasetMetadata(caseInsensitiveNames, datasetName);
+            newDatasets.put(datasetName, datasetMetadata);
             List<String> dsIntFields = Lists.newArrayList(datasetInfo.getIntFields());
             List<String> dsStringFields = Lists.newArrayList(datasetInfo.getStringFields());
             removeDisabledFields(dsIntFields);
             removeDisabledFields(dsStringFields);
-            Collections.sort(dsIntFields);
-            Collections.sort(dsStringFields);
-
-            final String datasetName = datasetInfo.getDataset();
-            final DatasetMetadata datasetMetadata = newDatasets.get(datasetName);
 
             for(String intField : dsIntFields) {
                 datasetMetadata.intFields.add(new FieldMetadata(intField, FieldType.Integer));
@@ -111,7 +105,11 @@ public class ImhotepMetadataCache {
             for(String stringField : dsStringFields) {
                 datasetMetadata.stringFields.add(new FieldMetadata(stringField, FieldType.String));
             }
+
+            // set default computed metrics on all datasets
+            datasetMetadata.fieldToDimension.putAll(DEFAULT_DIMENSIONS);
         }
+
         log.trace("Metadata loaded from Imhotep. Querying IMS");
 
         if(metadataClient != null) {
@@ -139,8 +137,12 @@ public class ImhotepMetadataCache {
                         }
                         MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
                         Map<String, MetricMetadata> metrics = newDataset.fieldToDimension;
+
                         for (MetricsYaml metricYaml : metricsYamls) {
-                            final MetricMetadata metricMetadata = imsMetricYamlToIQLMetricMetadata(metricYaml);
+                            final MetricMetadata metricMetadata = getMetricMetadataFromMetricsYaml(metricYaml, newDataset.name);
+                            if(metricMetadata == null) {
+                                continue;
+                            }
                             metrics.put(metricYaml.getName(), metricMetadata);
                             // try to reuse the metric description on the field it describes
                             final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
@@ -158,6 +160,7 @@ public class ImhotepMetadataCache {
                                 }
                             }
                         }
+
                     }
                 }
             } catch (Exception e) {
@@ -182,27 +185,52 @@ public class ImhotepMetadataCache {
 
 
         for (final DatasetMetadata datasetMetadata : newDatasets.values()) {
-            addStandardAliases(datasetMetadata);
             datasetMetadata.finishLoading();
         }
 
         // new metadata instance is ready for use
-        datasets = newDatasets;
+        atomMetadata.set(new DatasetsMetadata(caseInsensitiveNames, newDatasets));
 
         log.debug("Finished metadata update");
     }
 
-    public static MetricMetadata imsMetricYamlToIQLMetricMetadata(MetricsYaml metricYaml){
-        if (metricYaml==null){
+    MetricMetadata getMetricMetadataFromMetricsYaml(MetricsYaml metric, String dataset) {
+        try {
+            final MetricMetadata metricMetadata = new MetricMetadata(metric.getName(), metric.getExpr(), metric.getDescription(),
+                    parseMetric(metric.getName(), metric.getExpr(), DatasetsMetadata.empty()));
+            metricMetadata.setUnit(metric.getUnits());
+            metricMetadata.setFriendlyName(metric.getFriendlyName());
+            return metricMetadata;
+        } catch (Exception e) {
+            log.error(String.format("can't parse DimensionMetric, dataset: %s, name: %s, expr: %s, error: %s",
+                    dataset, metric.getName(), metric.getExpr(), e.getMessage()));
             return null;
         }
-        MetricMetadata metricMetadata= new MetricMetadata(metricYaml.getName());
-        metricMetadata.setDescription(metricYaml.getDescription());
-        metricMetadata.setFriendlyName(metricYaml.getFriendlyName());
-        metricMetadata.setHidden(metricYaml.getHidden());
-        metricMetadata.setExpression(metricYaml.getExpr());
-        metricMetadata.setUnit(metricYaml.getUnits());
-        return metricMetadata;
+    }
+
+    @VisibleForTesting
+    static AggregateMetric parseMetric(final String name, final String expr, List<String> options) {
+        return parseMetric(name, expr, DatasetsMetadata.empty());
+    }
+
+    private static AggregateMetric parseMetric(final String name, final String expr, final DatasetsMetadata datasetsMetadata) {
+        final String metricExpression;
+        if (Strings.isNullOrEmpty(expr)) {
+            metricExpression = name;
+        } else {
+            metricExpression = expr;
+        }
+        final AggregateMetric dimensionMetric = Queries.parseAggregateMetric(
+                metricExpression, true, null, datasetsMetadata,
+                s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)), new DefaultWallClock());
+        if (dimensionMetric.requiresFTGS()) {
+            throw new UnsupportedOperationException("Dimension metric requires FTGS is not supported");
+        }
+        return dimensionMetric;
+    }
+
+    public DatasetsMetadata get() {
+        return atomMetadata.get();
     }
 
     private void removeDisabledFields(List<String> fields) {
@@ -217,31 +245,26 @@ public class ImhotepMetadataCache {
         }
     }
 
-    public LinkedHashMap<String, DatasetMetadata> getDatasets() {
-        return datasets;
-    }
-
     @Nonnull
     public DatasetMetadata getDataset(String dataset) {
-        if(!datasets.containsKey(dataset)) {
-            return new DatasetMetadata(false, dataset, "", false);    // empty
-        }
-        return datasets.get(dataset);
+        return get().getMetadata(dataset).or(new DatasetMetadata(false, dataset, "", false));    // empty)
     }
 
-    // aliases applicable to all indexes
-    private void addStandardAliases(DatasetMetadata datasetMetadata) {
-        MetricMetadata countsMetadata = datasetMetadata.getMetric("counts");
-        if(countsMetadata == null) {
-            countsMetadata = new MetricMetadata("counts");
-            datasetMetadata.fieldToDimension.put("counts", countsMetadata);
-        }
-        countsMetadata.setDescription("Count of all documents");
-
+    // applicable to all indexes
+    private static ImmutableMap<String, MetricMetadata> initDefaultDimension() {
+        final ImmutableMap.Builder<String, MetricMetadata> typeBuilder = new ImmutableMap.Builder<>();
         final String timeField = DatasetMetadata.TIME_FIELD_NAME;
+        final String countsExpression = "count()";
 
-        tryAddMetricAlias("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", "day of week (days since Sunday)", datasetMetadata);
-        tryAddMetricAlias("timeofday", "((" + timeField + "-21600)%86400)", "time of day (seconds since midnight)", datasetMetadata);
+        final List<String> metricParseOptions = Collections.emptyList();
+
+        typeBuilder.put("counts", new MetricMetadata("counts", countsExpression, "Count of all documents",
+                parseMetric("counts", countsExpression, metricParseOptions)));
+        typeBuilder.put("dayofweek", new MetricMetadata("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)",
+                "day of week (days since Sunday)", parseMetric("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", metricParseOptions)));
+        typeBuilder.put("timeofday", new MetricMetadata("timeofday", "((" + timeField + "-21600)%86400)",
+                "time of day (seconds since midnight)", parseMetric("timeofday", "((" + timeField + "-21600)%86400)", metricParseOptions)));
+        return typeBuilder.build();
     }
 
     private static Set<String> RESERVED_KEYWORDS = ImmutableSet.of("time", "bucket", "buckets", "lucene", "in");
