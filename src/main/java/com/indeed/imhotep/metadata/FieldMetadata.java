@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Comparator;
 
 /**
  * @author vladimir
@@ -29,14 +30,12 @@ public class FieldMetadata {
     @Nullable String friendlyName;
     @Nullable String description;
     @Nonnull FieldType type;
-    @Nonnull final FieldType imhotepType;
     int frequency;
     boolean isHidden;
 
-    public FieldMetadata(@Nonnull String name, @Nonnull FieldType imhotepType) {
+    public FieldMetadata(@Nonnull String name, @Nonnull FieldType type) {
         this.name = name;
-        this.imhotepType = imhotepType;
-        this.type = imhotepType;
+        this.type = type;
     }
 
     @Nonnull
@@ -50,11 +49,6 @@ public class FieldMetadata {
 
     public String getDescription() {
         return description;
-    }
-
-    @Nonnull
-    public FieldType getImhotepType() {
-        return imhotepType;
     }
 
     @Nonnull
@@ -91,11 +85,11 @@ public class FieldMetadata {
     }
 
     public boolean isIntImhotepField() {
-        return imhotepType == FieldType.Integer;
+        return type == FieldType.Integer;
     }
 
     public boolean isStringImhotepField() {
-        return imhotepType == FieldType.String;
+        return type == FieldType.String;
     }
 
     public void toJSON(@Nonnull ObjectNode jsonNode) {
@@ -103,10 +97,17 @@ public class FieldMetadata {
         final String description = Strings.nullToEmpty(getDescription());
         jsonNode.put("description", description);
         jsonNode.put("type", getType().toString());
-        if(getType() != getImhotepType()) {
-            jsonNode.put("imhotepType", getImhotepType().toString());
-        }
         jsonNode.put("frequency", getFrequency());
 
+    }
+
+    public static final Comparator<FieldMetadata> CASE_INSENSITIVE_ORDER = new CaseInsensitiveComparator();
+
+    public static final class CaseInsensitiveComparator implements Comparator<FieldMetadata> {
+        public int compare(FieldMetadata f1, FieldMetadata f2) {
+            String s1 = f1.getName();
+            String s2 = f2.getName();
+            return s1.compareToIgnoreCase(s2);
+        }
     }
 }

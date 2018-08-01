@@ -131,9 +131,6 @@ public class DatasetMetadata implements Comparable<DatasetMetadata> {
                 if(isHidden) {
                     fieldMetadata.setHidden(isHidden);
                 }
-                if(hasMetric && fieldMetadata.isStringImhotepField()) {
-                    fieldMetadata.setType(FieldType.Integer);   // mark this as an int since it's a metric
-                }
             } else {
                 log.trace("Unknown field defined: " + getName() + "." + name);
             }
