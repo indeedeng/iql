@@ -27,8 +27,9 @@ import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql1.metadata.MetricMetadata;
+import com.indeed.iql1.web.ImhotepMetadataCache;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.dimensions.Dimension;
 import com.indeed.iql2.language.metadata.DatasetMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
@@ -51,7 +52,7 @@ import java.util.stream.Collectors;
 
 public class MetadataCache {
     private static final Logger log = Logger.getLogger(MetadataCache.class);
-    private static final ImmutableMap<DatasetType, ImmutableMap<String, Dimension>> DEFAULT_DIMENSIONS = initDefaultDimension();
+    private static final ImmutableMap<String, MetricMetadata> DEFAULT_DIMENSIONS = initDefaultDimension();
 
     private final AtomicReference<DatasetsMetadata> atomMetadata = new AtomicReference<>(DatasetsMetadata.empty());
     @Nullable
@@ -144,7 +145,7 @@ public class MetadataCache {
             datasetToStringFields.put(dataset, strFields);
         }
 
-        final Map<String, Map<String, Dimension>> datasetToDimensions = buildDatasetsDimensions(imsDatasets);
+        final Map<String, Map<String, MetricMetadata>> datasetToDimensions = buildDatasetsDimensions(imsDatasets);
 
         final Map<String, DatasetMetadata> datasetToMetadata = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (final String datasetName : datasetToShardList.keySet()) {
@@ -160,37 +161,25 @@ public class MetadataCache {
         return new DatasetsMetadata(datasetToMetadata);
     }
 
-    private static ImmutableMap<DatasetType, ImmutableMap<String, Dimension>> initDefaultDimension() {
-        final ImmutableMap.Builder<DatasetType, ImmutableMap<String, Dimension>> defaultBuilder = new ImmutableMap.Builder<>();
-        for (final DatasetType datasetType : DatasetType.values()) {
-            final ImmutableMap.Builder<String, Dimension> typeBuilder = new ImmutableMap.Builder<>();
-            final String timeField;
-            final String countsExpression;
-            if (datasetType == DatasetType.Imhotep) {
-                timeField = "unixtime";
-                countsExpression = "count()";
-            } else {
-                timeField = "time";
-                // for Ramses datasets we should allow counts to be pushed so that scaling can be applied
-                countsExpression = "counts";
-            }
+    private static ImmutableMap<String, MetricMetadata> initDefaultDimension() {
+        final ImmutableMap.Builder<String, MetricMetadata> typeBuilder = new ImmutableMap.Builder<>();
+        final String timeField = "unixtime";
+        final String countsExpression = "count()";
 
-            final List<String> metricParseOptions = Collections.emptyList();
+        final List<String> metricParseOptions = Collections.emptyList();
 
-            typeBuilder.put("counts", new Dimension("counts", countsExpression, "Count of all documents",
-                    parseMetric("counts", countsExpression, metricParseOptions)));
-            typeBuilder.put("dayofweek", new Dimension("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)",
-                    "day of week (days since Sunday)", parseMetric("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", metricParseOptions)));
-            typeBuilder.put("timeofday", new Dimension("timeofday", "((" + timeField + "-21600)%86400)",
-                    "time of day (seconds since midnight)", parseMetric("timeofday", "((" + timeField + "-21600)%86400)", metricParseOptions)));
-            defaultBuilder.put(datasetType, typeBuilder.build());
-        }
-        return defaultBuilder.build();
+        typeBuilder.put("counts", new MetricMetadata("counts", countsExpression, "Count of all documents",
+                parseMetric("counts", countsExpression, metricParseOptions)));
+        typeBuilder.put("dayofweek", new MetricMetadata("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)",
+                "day of week (days since Sunday)", parseMetric("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", metricParseOptions)));
+        typeBuilder.put("timeofday", new MetricMetadata("timeofday", "((" + timeField + "-21600)%86400)",
+                "time of day (seconds since midnight)", parseMetric("timeofday", "((" + timeField + "-21600)%86400)", metricParseOptions)));
+        return typeBuilder.build();
     }
 
-    private Map<String, Map<String, Dimension>> buildDatasetsDimensions(
+    private Map<String, Map<String, MetricMetadata>> buildDatasetsDimensions(
             final List<DatasetYaml> datasets) {
-        final ImmutableMap.Builder<String, Map<String, Dimension>> builder = new ImmutableMap.Builder<>();
+        final ImmutableMap.Builder<String, Map<String, MetricMetadata>> builder = new ImmutableMap.Builder<>();
 
         for (final DatasetYaml dataset : datasets) {
             builder.put(dataset.getName(), buildDatasetDimension(dataset));
@@ -199,27 +188,20 @@ public class MetadataCache {
     }
 
     @VisibleForTesting
-    ImmutableMap<String, Dimension> buildDatasetDimension(final DatasetYaml dataset) {
-        final ImmutableMap<String, Dimension> defaultDimensions;
-        final DatasetType datasetType = asDatasetType(dataset.getType());
-        if (!DEFAULT_DIMENSIONS.containsKey(datasetType)) {
-            log.error(String.format("get dataset default dimension for %s failed, unknown dataset type: %s",
-                    dataset.getName(), dataset.getType()));
-            defaultDimensions = ImmutableMap.of();
-        } else {
-            defaultDimensions = DEFAULT_DIMENSIONS.get(datasetType);
-        }
-        final ImmutableMap<String, Dimension> datasetDimensions = parseMetrics(dataset.getName(), dataset.getMetrics());
-        return new ImmutableMap.Builder<String, Dimension>().putAll(defaultDimensions).putAll(datasetDimensions).build();
+    ImmutableMap<String, MetricMetadata> buildDatasetDimension(final DatasetYaml dataset) {
+        final ImmutableMap<String, MetricMetadata> datasetDimensions = parseMetrics(dataset.getName(), dataset.getMetrics());
+        return new ImmutableMap.Builder<String, MetricMetadata>().putAll(DEFAULT_DIMENSIONS).putAll(datasetDimensions).build();
     }
 
-    private ImmutableMap<String, Dimension> parseMetrics(String dataset, MetricsYaml[] metrics) {
-        final ImmutableMap.Builder<String, Dimension> fieldToDimensionBuilder = new ImmutableMap.Builder<>();
+    private ImmutableMap<String, MetricMetadata> parseMetrics(String dataset, MetricsYaml[] metrics) {
+        final ImmutableMap.Builder<String, MetricMetadata> fieldToDimensionBuilder = new ImmutableMap.Builder<>();
         for (final MetricsYaml metric : metrics) {
             try {
+                // TODO
+//                final com.indeed.iql1.metadata.MetricMetadata metricMetadata = ImhotepMetadataCache.imsMetricYamlToIQLMetricMetadata(metric);
                 fieldToDimensionBuilder.put(
                         metric.getName(),
-                        new Dimension(metric.getName(), metric.getExpr(), metric.getDescription(),
+                        new MetricMetadata(metric.getName(), metric.getExpr(), metric.getDescription(),
                                 parseMetric(metric.getName(), metric.getExpr(), DatasetsMetadata.empty())));
             } catch (Exception e) {
                 log.error(String.format("can't parse DimensionMetric, dataset: %s, name: %s, expr: %s, error: %s",
@@ -248,18 +230,5 @@ public class MetadataCache {
             throw new UnsupportedOperationException("Dimension metric requires FTGS is not supported");
         }
         return dimensionMetric;
-    }
-
-    enum DatasetType {
-        Imhotep, Ramses
-    }
-
-    public static DatasetType asDatasetType(String str) {
-        for (DatasetType datasetType : DatasetType.values()) {
-            if (datasetType.name().equalsIgnoreCase(str)) {
-                return datasetType;
-            }
-        }
-        return null;
     }
 }

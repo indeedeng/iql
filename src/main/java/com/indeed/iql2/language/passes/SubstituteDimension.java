@@ -21,7 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.indeed.iql2.language.dimensions.Dimension;
+import com.indeed.iql1.metadata.MetricMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
@@ -62,11 +62,11 @@ public class SubstituteDimension {
                     final String dataset = datasetAliasToOrigin.get(pushStats.dataset);
                     final DocMetric docMetric = pushStats.pushes.metric;
                     if (datasetsMetadata.getMetadata(dataset).isPresent()) {
-                        final Map<String, Dimension> fieldToDimension = datasetsMetadata.getMetadata(dataset).get().fieldToDimension;
+                        final Map<String, MetricMetadata> fieldToDimension = datasetsMetadata.getMetadata(dataset).get().fieldToDimension;
                         if (docMetric instanceof DocMetric.Field) {
-                            final Dimension metricDimension = fieldToDimension.get(((DocMetric.Field) docMetric).field);
-                            if ((metricDimension != null) && !metricDimension.isAlias) {
-                                return applyDatasetToExpandedMetric(metricDimension.metric, pushStats.dataset);
+                            final MetricMetadata metricMetadata = fieldToDimension.get(((DocMetric.Field) docMetric).field);
+                            if ((metricMetadata != null) && !metricMetadata.isAlias) {
+                                return applyDatasetToExpandedMetric(metricMetadata.metric, pushStats.dataset);
                             }
                         } else {
                             final Function<String, Optional<DocMetric>> getDimensionMetricFunc =
@@ -180,9 +180,9 @@ public class SubstituteDimension {
             final String originDataset = datasetAliasToOrigin.get(dataset).toUpperCase();
             if (datasetsMetadata.getMetadata(originDataset).isPresent() &&
                     datasetsMetadata.getMetadata(originDataset).get().fieldToDimension.containsKey(field)) {
-                final Dimension dimension = datasetsMetadata.getMetadata(originDataset).get().fieldToDimension.get(field);
-                if (!dimension.isAlias) {
-                    datasetToMetric.put(dataset, getDocMetricOrThrow(dimension));
+                final MetricMetadata metricMetadata = datasetsMetadata.getMetadata(originDataset).get().fieldToDimension.get(field);
+                if (!metricMetadata.isAlias) {
+                    datasetToMetric.put(dataset, getDocMetricOrThrow(metricMetadata));
                     foundDimensionMetric = true;
                 } else {
                     datasetToMetric.put(dataset, new DocMetric.Field(field));
@@ -202,13 +202,13 @@ public class SubstituteDimension {
         }
     }
 
-    private static DocMetric getDocMetricOrThrow(final Dimension dimension) {
-        if (!(dimension.metric instanceof AggregateMetric.DocStats)) {
+    private static DocMetric getDocMetricOrThrow(final MetricMetadata metricMetadata) {
+        if (!(metricMetadata.metric instanceof AggregateMetric.DocStats)) {
             throw new IllegalArgumentException(
                     String.format("Cannot use compound metrics in per-document context, metric [ %s: %s ]",
-                            dimension.name, dimension.expression));
+                            metricMetadata.name, metricMetadata.expression));
         } else {
-            return ((AggregateMetric.DocStats) dimension.metric).docMetric;
+            return ((AggregateMetric.DocStats) metricMetadata.metric).docMetric;
         }
     }
 }

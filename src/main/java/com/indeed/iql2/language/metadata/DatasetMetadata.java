@@ -18,7 +18,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
-import com.indeed.iql2.language.dimensions.Dimension;
+import com.indeed.iql1.metadata.MetricMetadata;
 
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +35,7 @@ public class DatasetMetadata {
     public final boolean deprecated;
     public final TreeSet<FieldMetadata> intFields;
     public final TreeSet<FieldMetadata> stringFields;
-    public final Map<String, Dimension> fieldToDimension;
+    public final Map<String, MetricMetadata> fieldToDimension;
 
     public DatasetMetadata(String datasetName, String description, boolean deprecated) {
         this.datasetName = datasetName;
@@ -47,13 +47,13 @@ public class DatasetMetadata {
     }
 
     public DatasetMetadata(final String datasetName, final String description, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
-                           final Map<String, Dimension> fieldToDimension) {
+                           final Map<String, MetricMetadata> fieldToDimension) {
         this.datasetName = datasetName;
         this.deprecated = deprecated;
         this.intFields = toCaseInsensitive(intFields);
         this.stringFields = toCaseInsensitive(stringFields);
 
-        final Map<String, Dimension> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, MetricMetadata> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         caseInsensitiveMap.putAll(fieldToDimension);
         this.fieldToDimension = caseInsensitiveMap;
         this.description = description;

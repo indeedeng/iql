@@ -18,7 +18,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql2.language.dimensions.Dimension;
+import com.indeed.iql1.metadata.MetricMetadata;
 import com.indeed.iql2.language.metadata.DatasetMetadata;
 import org.apache.log4j.Logger;
 
@@ -35,14 +35,14 @@ public class DatasetDescriptor {
     final boolean deprecated;
     final ImmutableList<FieldMetadata> fields;
     // for IQL1 convention
-    final ImmutableList<Dimension> metrics;
+    final ImmutableList<MetricMetadata> metrics;
 
-    public DatasetDescriptor(String name, String description, boolean deprecated, List<FieldMetadata> fields, ImmutableList<Dimension> dimensions) {
+    public DatasetDescriptor(String name, String description, boolean deprecated, List<FieldMetadata> fields, ImmutableList<MetricMetadata> metricMetadata) {
         this.name = name;
         this.description = description;
         this.deprecated = deprecated;
         this.fields = ImmutableList.copyOf(fields);
-        this.metrics = dimensions;
+        this.metrics = metricMetadata;
     }
 
     public static DatasetDescriptor from(final String dataset, final DatasetMetadata datasetMetadata) {
@@ -76,7 +76,7 @@ public class DatasetDescriptor {
         return fields;
     }
 
-    public List<Dimension> getMetrics() {
+    public List<MetricMetadata> getMetrics() {
         return metrics;
     }
 }

@@ -16,7 +16,7 @@ package com.indeed.iql2.language.util;
 
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
-import com.indeed.iql2.language.dimensions.Dimension;
+import com.indeed.iql1.metadata.MetricMetadata;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.Validator;
 
@@ -88,12 +88,12 @@ public class ValidationHelper {
     }
 
     public boolean containsNonAliasMetricField(String dataset, String field) {
-        final Optional<Dimension> dimension = getDimension(dataset, field);
+        final Optional<MetricMetadata> dimension = getDimension(dataset, field);
         return dimension.isPresent() && !dimension.get().isAlias;
     }
 
     public boolean containsAliasMetricField(String dataset, String field) {
-        final Optional<Dimension> dimension = getDimension(dataset, field);
+        final Optional<MetricMetadata> dimension = getDimension(dataset, field);
         return dimension.isPresent() && dimension.get().isAlias;
     }
 
@@ -102,7 +102,7 @@ public class ValidationHelper {
         return containsIntField(dataset, field) || containsStringField(dataset, field) || containsAliasMetricField(dataset, field);
     }
 
-    private Optional<Dimension> getDimension(String dataset, String field) {
+    private Optional<MetricMetadata> getDimension(String dataset, String field) {
         if (datasetsMetadata.getMetadata(dataset).isPresent() &&
                 datasetsMetadata.getMetadata(dataset).get().fieldToDimension.containsKey(field)) {
             return Optional.of(datasetsMetadata.getMetadata(dataset).get().fieldToDimension.get(field));

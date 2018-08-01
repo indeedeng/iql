@@ -13,9 +13,12 @@
  */
  package com.indeed.iql1.metadata;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.DocMetric;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,18 +26,30 @@ import javax.annotation.Nullable;
 /**
  * @author vladimir
  */
-
 public class MetricMetadata {
-    @Nonnull final String name;
-    @Nullable String friendlyName;
-    @Nullable String description;
-    @Nullable String expression;
-    @Nullable String unit;
-    boolean isHidden = false;
+    public @Nonnull final String name;
+    public @Nullable String friendlyName;
+    public @Nullable String description;
+    public @Nullable String expression;
+    public @Nullable String unit;
+    public boolean isHidden = false;
+
+    // IQL2 only
+    public AggregateMetric metric;
+    public boolean isAlias;
 
     public MetricMetadata(@Nonnull String name) {
         Preconditions.checkNotNull(name);
         this.name = name;
+    }
+
+    // TODO delete
+    public MetricMetadata(final String name, final String expression, final String description, final AggregateMetric metric) {
+        this.name = name;
+        this.expression = expression;
+        this.description = description;
+        this.metric = metric;
+        this.isAlias = isAliasDimension(metric);
     }
 
     @Nonnull
@@ -77,6 +92,22 @@ public class MetricMetadata {
         isHidden = hidden;
     }
 
+    public AggregateMetric getMetric() {
+        return metric;
+    }
+
+    public void setMetric(AggregateMetric metric) {
+        this.metric = metric;
+    }
+
+    public boolean isAlias() {
+        return isAlias;
+    }
+
+    public void setAlias(boolean alias) {
+        isAlias = alias;
+    }
+
     /**
      * Returns a unit of measurement for the metric (e.g. clicks, hours, etc.)
      */
@@ -87,6 +118,20 @@ public class MetricMetadata {
 
     public void setUnit(@Nullable String unit) {
         this.unit = unit;
+    }
+
+
+    private boolean isAliasDimension(AggregateMetric metric) {
+        return getAliasActualField().isPresent();
+    }
+
+    public Optional<String> getAliasActualField() {
+        if ((metric instanceof AggregateMetric.DocStats)
+                && (((AggregateMetric.DocStats) metric).docMetric instanceof DocMetric.Field)) {
+            return Optional.of(((DocMetric.Field) ((AggregateMetric.DocStats) metric).docMetric).field);
+        } else {
+            return Optional.absent();
+        }
     }
 
     public void toJSON(ObjectNode jsonNode) {

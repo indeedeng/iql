@@ -19,29 +19,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.iql1.metadata.DatasetMetadata;
-import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.FieldType;
-import com.indeed.iql1.metadata.MetricMetadata;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.util.core.io.Closeables2;
+import com.indeed.iql1.metadata.DatasetMetadata;
+import com.indeed.iql1.metadata.MetricMetadata;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.xml.XmlBeanFactory;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -276,204 +267,5 @@ public class ImhotepMetadataCache {
             metricMetadata.setDescription(description);
         }
         return true;
-    }
-
-    private void loadSuggestions(File indexDir, DatasetMetadata datasetMetadata) {
-        final File suggestionsXml = new File(indexDir, "suggestions.xml");
-        if (!suggestionsXml.exists()) {
-            return;
-        }
-        @SuppressWarnings("unchecked")
-        final Map<String, String> suggestions = (Map<String, String>) new XmlBeanFactory(new FileSystemResource(suggestionsXml)).getBean("suggestionMap");
-        if (suggestions != null) {
-            for(Map.Entry<String, String> suggestion : suggestions.entrySet()) {
-                datasetMetadata.addFieldMetricDescription(suggestion.getKey(), suggestion.getValue(), null, false, true, false);
-            }
-        }
-    }
-
-    /**
-     * Loads metrics descriptions and aliases for an index from a Ramses dimensions file
-     */
-    private void loadDimensions(File indexDir, DatasetMetadata datasetMetadata) {
-        final File dimensionsFile = new File(indexDir, "dimensions.desc");
-        if(!dimensionsFile.exists()) {
-            return;
-        }
-        BufferedReader reader = null;
-        try {
-            final Map<String, Alias> fieldToAlias = Maps.newHashMap();
-
-            reader = new BufferedReader(new InputStreamReader(new FileInputStream(dimensionsFile)));
-            for(String line = reader.readLine(); line != null; line = reader.readLine()) {
-                if(line.startsWith("#")) {
-                    if(line.startsWith("#/")) {
-                        // dimension only for IQL but not ramses hack
-                        line = line.substring(2);
-                    } else {
-                        continue;
-                    }
-                }
-                String[] split = line.split(",");
-                if(split.length < 5) {
-                    continue; // invalid field entry?
-                }
-
-                String name = split[0].trim();
-                String desc = split[1].trim();
-                String unit = split[2].trim();
-                final String dimType = split[3].trim();
-
-                if(Strings.isNullOrEmpty(unit) || "null".equals(unit)) {
-                    unit = null;
-                }
-                if(Strings.isNullOrEmpty(desc) || "null".equals(desc)) {
-                    desc = null;
-                }
-                boolean isHidden = name.startsWith("!");
-                if(isHidden) {
-                    name = name.substring(1);
-                }
-
-                if(name.equals("time")) {
-                    continue;   // time is a reserved field/keyword
-                }
-
-                boolean metricHasField = false;
-                Alias alias = null;
-
-                if ("add".equals(dimType) || "subtract".equals(dimType) ||
-                        "multiply".equals(dimType) || "divide".equals(dimType)) {
-
-                    String dim1 = split[4].trim();
-                    String dim2 = split[5].trim();
-                    if (dim1.startsWith("!")) dim1 = dim1.substring(1);
-                    if (dim2.startsWith("!")) dim2 = dim2.substring(1);
-                    final String op;
-                    if ("add".equals(dimType)) {
-                        op = "+";
-                    } else if ("subtract".equals(dimType)) {
-                        op = "-";
-                    } else if("divide".equals(dimType)) {
-                        op = "\\";
-                    } else {
-                        op = "*";
-                    }
-                    alias = new CompositeOp(op, dim1, dim2, isHidden);
-                } else if("lossless".equals(dimType)) {
-                    String realField = split[4].trim();
-                    if(!name.equals(realField)) {
-                        if(realField.startsWith("floatscale")) {
-                            realField = realField.replace(' ', '(').replace('*', ',').replace('+', ',') + ')';
-                        }
-                        alias = new SimpleField(realField, isHidden);
-                    } else {
-                        metricHasField = true;
-                    }
-                }
-
-                if(!(isHidden && alias != null)) {    // if it's an aliased hidden metric, it's intermediary and we can skip it
-                    datasetMetadata.addFieldMetricDescription(name, desc, unit, isHidden, metricHasField, true);
-                }
-
-                if(alias != null) {
-                    fieldToAlias.put(name, alias);
-                }
-            }
-
-            // now that we have all the aliases loaded we can resolve them
-            for(Map.Entry<String, Alias> entry : fieldToAlias.entrySet()) {
-                final Alias alias = entry.getValue();
-                if(alias.hidden) {
-                    continue;   // this is just an intermediate metric
-                }
-                final String metricName = entry.getKey();
-                final String resolvedAlias = alias.resolve(fieldToAlias);
-                if(resolvedAlias == null) {
-                    log.warn("Found a metric alias with a circular dependency which is illegal: " + datasetMetadata.getName() + "." + metricName);
-                    continue;
-                }
-                tryAddMetricAlias(metricName, resolvedAlias, null, datasetMetadata);
-                log.trace("Aliasing: " + datasetMetadata.getName() + "." + metricName + "->" + resolvedAlias);
-            }
-        } catch (FileNotFoundException e) {
-            log.warn("Dimensions file read failed for " + indexDir, e);
-        } catch (IOException e) {
-            log.warn("Dimensions file read failed for " + indexDir, e);
-        } finally {
-            if(reader != null) {
-                Closeables2.closeQuietly(reader, log);
-            }
-        }
-    }
-
-    private static abstract class Alias {
-        boolean hidden;
-
-        protected Alias(boolean hidden) {
-            this.hidden = hidden;
-        }
-
-        abstract String resolve(Map<String,Alias> fieldToAlias);
-    }
-
-    private static class SimpleField extends Alias {
-        String fieldName;
-
-        private SimpleField(String fieldName, boolean hidden){
-            super(hidden);
-            this.fieldName = fieldName;
-        }
-
-        @Override
-        public String resolve(Map<String, Alias> fieldToAlias) {
-            return fieldName;
-        }
-    }
-
-    private static class CompositeOp extends Alias {
-        String operator;
-        String dim1;
-        String dim2;
-        boolean isSeen; // keeps track of whether the resolve process has already encountered this object
-
-        private CompositeOp(String operator, String dim1, String dim2, boolean hidden) {
-            super(hidden);
-            this.operator = operator;
-            this.dim1 = dim1;
-            this.dim2 = dim2;
-        }
-
-        @Override
-        public String resolve(Map<String, Alias> fieldToAlias) {
-            if(isSeen) { // protection from infinite recursion
-                return null;
-            }
-            final String dim1Resolved;
-            final String dim2Resolved;
-            isSeen = true;
-            try {
-                final Alias dim1Alias = fieldToAlias.get(dim1);
-                if(dim1Alias != null) {
-                    dim1Resolved = dim1Alias.resolve(fieldToAlias);
-                } else {
-                    dim1Resolved = dim1;
-                }
-
-                final Alias dim2Alias = fieldToAlias.get(dim2);
-                if(dim2Alias != null) {
-                    dim2Resolved = dim2Alias.resolve(fieldToAlias);
-                } else {
-                    dim2Resolved = dim2;
-                }
-
-                if(dim1Resolved == null || dim2Resolved == null) {  // encountered a loop
-                    return null;
-                }
-            } finally {
-                isSeen = false;
-            }
-            return "(" + dim1Resolved + operator + dim2Resolved + ")";
-        }
     }
 }

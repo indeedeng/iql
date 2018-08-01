@@ -24,13 +24,12 @@ import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql1.metadata.MetricMetadata;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;
-import com.indeed.iql2.language.dimensions.Dimension;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.metadata.DatasetsMetadata;
-import com.indeed.iql2.server.web.metadata.MetadataCache;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -139,8 +138,8 @@ public class MetadataCacheTest {
             }
         };
         for (String dataset : validationHelper.datasets()) {
-            for (final Dimension dimension : datasetsMetadata.getMetadata(dataset).get().fieldToDimension.values()) {
-                dimension.metric.validate(
+            for (final MetricMetadata metricMetadata : datasetsMetadata.getMetadata(dataset).get().fieldToDimension.values()) {
+                metricMetadata.metric.validate(
                         ImmutableSet.of(dataset),
                         validationHelper, validator);
             }
@@ -163,7 +162,7 @@ public class MetadataCacheTest {
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
         imhotepDataset.setMetrics(new MetricsYaml[]{calcMetric});
-        final ImmutableMap<String, Dimension> dimensions = metadataCache.buildDatasetDimension(imhotepDataset);
+        final ImmutableMap<String, MetricMetadata> dimensions = metadataCache.buildDatasetDimension(imhotepDataset);
 
         final ImmutableMap<String, String> expectedDimensions = ImmutableMap.of(
                 "complex", "(a1+a2)*10",
