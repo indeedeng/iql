@@ -28,6 +28,7 @@ import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.xml.XmlBeanFactory;

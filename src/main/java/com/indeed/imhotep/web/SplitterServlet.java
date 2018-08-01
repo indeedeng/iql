@@ -19,7 +19,7 @@ import com.indeed.imhotep.sql.parser.QuerySplitter;
 import com.indeed.imhotep.sql.parser.StatementParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.indeed.squall.iql2.server.web.servlets.ServletUtil;
+import com.indeed.iql.web.ServletUtil;
 import com.indeed.squall.iql2.server.web.servlets.SplitServlet;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;

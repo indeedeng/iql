@@ -19,7 +19,7 @@ import com.indeed.imhotep.exceptions.GroupLimitExceededException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;
-import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.web.Limits;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;

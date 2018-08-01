@@ -30,7 +30,7 @@ import com.indeed.squall.iql2.language.query.GroupBy;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.query.Query;
 import com.indeed.squall.iql2.language.metadata.DatasetsMetadata;
-import com.indeed.squall.iql2.server.print.LevelPrinter;
+import com.indeed.iql.web.print.LevelPrinter;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;

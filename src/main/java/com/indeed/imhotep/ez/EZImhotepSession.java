@@ -29,7 +29,7 @@ import com.indeed.imhotep.iql.ScoredLong;
 import com.indeed.imhotep.iql.ScoredObject;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
-import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.web.Limits;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;

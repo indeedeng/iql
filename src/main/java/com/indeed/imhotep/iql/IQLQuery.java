@@ -23,7 +23,7 @@ import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.exceptions.DocumentsLimitExceededException;
-import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.web.Limits;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.HasSessionId;

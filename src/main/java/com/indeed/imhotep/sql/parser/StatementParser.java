@@ -17,7 +17,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.sql.ast.*;
 import com.indeed.imhotep.sql.ast2.*;
-import com.indeed.imhotep.web.IQLParseException;
 import com.indeed.imhotep.web.ImhotepMetadataCache;
 import org.codehaus.jparsec.*;
 import org.codehaus.jparsec.functors.Map;

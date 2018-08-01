@@ -15,7 +15,7 @@
 
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.exceptions.GroupLimitExceededException;
-import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.web.Limits;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.StatReference;

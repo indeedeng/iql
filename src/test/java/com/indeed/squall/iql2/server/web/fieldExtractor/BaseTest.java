@@ -1,6 +1,6 @@
 package com.indeed.squall.iql2.server.web.fieldExtractor;
 
-import com.indeed.imhotep.web.FieldFrequencyCache;
+import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.language.util.FieldExtractor;
 import com.indeed.squall.iql2.language.util.FieldExtractor.DatasetField;

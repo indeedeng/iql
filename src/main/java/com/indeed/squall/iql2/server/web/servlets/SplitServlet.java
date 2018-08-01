@@ -15,6 +15,7 @@
 package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
+import com.indeed.iql.web.ServletUtil;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import org.springframework.stereotype.Controller;

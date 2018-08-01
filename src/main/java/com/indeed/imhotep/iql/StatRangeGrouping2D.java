@@ -17,7 +17,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.ez.EZImhotepSession;
 import com.indeed.imhotep.ez.GroupKey;
 import com.indeed.imhotep.ez.SingleStatReference;
-import com.indeed.imhotep.web.Limits;
+import com.indeed.iql.web.Limits;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 

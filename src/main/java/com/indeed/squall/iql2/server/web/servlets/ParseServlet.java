@@ -16,6 +16,7 @@ package com.indeed.squall.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.iql.web.ServletUtil;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.squall.iql2.language.query.Queries;
 import com.indeed.squall.iql2.server.web.metadata.MetadataCache;

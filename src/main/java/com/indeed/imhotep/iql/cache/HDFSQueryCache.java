@@ -14,7 +14,7 @@
  package com.indeed.imhotep.iql.cache;
 
 import com.google.common.io.ByteStreams;
-import com.indeed.imhotep.web.KerberosUtils;
+import com.indeed.iql.web.KerberosUtils;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;

@@ -15,6 +15,7 @@
 
 import com.indeed.imhotep.iql.IQLQuery;
 import com.indeed.imhotep.iql.cache.QueryCache;
+import com.indeed.iql.web.QueryServlet;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -28,9 +29,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
+ * @deprecated  TODO: delete
 * @author dwahler
 */
 @Controller
+@Deprecated
 public class ResultServlet {
     private static final Logger log = Logger.getLogger(ResultServlet.class);
     private final QueryCache queryCache;
@@ -54,25 +57,10 @@ public class ResultServlet {
             return;
         }
 
-        setContentType(resp, avoidFileSave, csv, false);
+        QueryServlet.setContentType(resp, avoidFileSave, csv, false);
         final InputStream cacheInputStream = queryCache.getInputStream(filename);
         IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, false);
         outputStream.close();
 
-    }
-
-    static void setContentType(HttpServletResponse resp, boolean avoidFileSave, boolean csv, boolean progress) {
-        if(avoidFileSave) {
-            resp.setContentType("text/plain");
-        } else if (csv) {
-            resp.setContentType("text/csv");
-            resp.setHeader("Content-Disposition", "inline; filename=\"iqlresult.csv\"");
-        } else if (progress) {
-            resp.setContentType("text/event-stream");
-            resp.setHeader("Cache-Control", "no-cache");
-        } else {
-            resp.setContentType("text/tab-separated-values");
-            resp.setHeader("Content-Disposition", "inline; filename=\"iqlresult.tsv\"");
-        }
     }
 }

@@ -14,6 +14,7 @@
  package com.indeed.imhotep.web;
 
 import com.indeed.imhotep.sql.parser.TerminalParser;
+import com.indeed.iql.web.QueryServlet;
 import org.apache.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -33,9 +34,11 @@ import java.io.IOException;
 import java.util.List;
 
 /**
+ * @deprecated not used by IQLWeb any more
  * @author vladimir
  */
 @Controller
+@Deprecated
 public class TokenizeController {
     private static final Logger log = Logger.getLogger(TokenizeController.class);
 
