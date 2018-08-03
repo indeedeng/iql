@@ -44,8 +44,8 @@ public class ParseController {
     private final ParseServlet parseServletV2;
 
     @Autowired
-    public ParseController(ImhotepMetadataCache metadata, ParseServlet parseServletV2) {
-        this.metadata = metadata;
+    public ParseController(ImhotepMetadataCache metadataCacheIQL1, ParseServlet parseServletV2) {
+        this.metadata = metadataCacheIQL1;
         this.parseServletV2 = parseServletV2;
     }
 

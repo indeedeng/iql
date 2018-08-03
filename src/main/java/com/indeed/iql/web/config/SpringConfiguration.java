@@ -37,7 +37,9 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.server.SpringContextAware;
+import com.indeed.iql1.web.SplitterServlet;
 import com.indeed.iql2.server.web.servlets.ServletsPackageMarker;
+import com.indeed.iql2.server.web.servlets.SplitServlet;
 import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.DefaultWallClock;
@@ -86,7 +88,7 @@ import java.util.concurrent.TimeUnit;
 @EnableWebMvc
 @EnableScheduling
 @ComponentScan(basePackageClasses = {SpringConfiguration.class, QueryServlet.class,
-        ServletsPackageMarker.class, QueryServletPackageMarker.class})
+        ServletsPackageMarker.class, QueryServletPackageMarker.class, SplitterServlet.class, SplitServlet.class})
 public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private static final Logger log = Logger.getLogger(SpringConfiguration.class);
 
