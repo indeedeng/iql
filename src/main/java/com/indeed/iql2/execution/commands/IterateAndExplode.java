@@ -23,7 +23,7 @@ import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import javax.annotation.Nullable;

@@ -19,7 +19,7 @@ import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
-import com.indeed.iql1.sql.ast2.SelectStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -31,7 +31,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
 
 /**
  * @author vladimir
@@ -54,7 +53,7 @@ public class SelectQuery implements Closeable {
     final byte sessions;    // imhotep sessions
     /** Only in IQL1 */
     @Nullable
-    final SelectStatement parsedStatement;
+    final IQL1SelectStatement parsedStatement;
     Closeable iqlQuery;
     boolean cancelled = false;
     DateTime queryStartTimestamp;
@@ -64,7 +63,7 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
+    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, IQL1SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
         this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
         this.clientInfo = clientInfo;

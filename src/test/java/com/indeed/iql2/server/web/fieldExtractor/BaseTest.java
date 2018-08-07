@@ -16,7 +16,7 @@ package com.indeed.iql2.server.web.fieldExtractor;
 
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.iql2.language.util.FieldExtractor.DatasetField;

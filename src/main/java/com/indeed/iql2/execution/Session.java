@@ -52,7 +52,7 @@ import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.aliasing.FieldAliasingImhotepSession;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;

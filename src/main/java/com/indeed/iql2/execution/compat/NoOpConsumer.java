@@ -11,14 +11,14 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.sql.ast2;
 
-import java.io.Serializable;
+package com.indeed.iql2.execution.compat;
 
-/**
- * @author vladimir
- */
+import java.util.function.Consumer;
 
-public class ShowStatement extends IQLStatement implements Serializable {
+public class NoOpConsumer<T> implements Consumer<T> {
+    @Override
+    public void accept(T t) {
 
+    }
 }

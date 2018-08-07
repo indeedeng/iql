@@ -11,10 +11,29 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ package com.indeed.iql.language;
 
-package com.indeed.iql2.language.compat;
+/**
+ * @author vladimir
+ */
 
-// TODO: Delete this with JDK8. Or at least share with iql2-execution's Consumer? iql2-common..?
-public interface Consumer<T> {
-    void accept(T t);
+public class DescribeStatement extends IQLStatement {
+    public final String dataset;
+    public final String field;
+
+    public DescribeStatement(String dataset) {
+        this.dataset = dataset;
+        this.field = null;
+    }
+
+    public DescribeStatement(String dataset, String field) {
+        this.dataset = dataset;
+        this.field = field;
+    }
+
+
+    @Override
+    public String getStatementType() {
+        return "describe";
+    }
 }

@@ -14,7 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
-import com.indeed.iql2.execution.compat.Consumer;
+
+import java.util.function.Consumer;
 
 public class CountingConsumer<T> implements Consumer<T> {
     private final Consumer<T> inner;

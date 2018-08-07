@@ -19,7 +19,7 @@ import com.google.common.base.Optional;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Queries;

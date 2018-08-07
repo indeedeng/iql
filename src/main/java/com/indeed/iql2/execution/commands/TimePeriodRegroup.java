@@ -17,7 +17,7 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
 
 public class TimePeriodRegroup implements Command {

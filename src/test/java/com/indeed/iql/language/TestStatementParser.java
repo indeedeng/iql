@@ -11,19 +11,18 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.sql.parser;
+package com.indeed.iql.language;
 
 import com.google.common.collect.Lists;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.NameExpression;
 import com.indeed.iql1.sql.ast.Op;
-import com.indeed.iql1.sql.ast2.DescribeStatement;
+import com.indeed.iql.language.DescribeStatement;
 import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.IQLStatement;
-import com.indeed.iql1.sql.ast2.SelectStatement;
-import com.indeed.iql1.sql.ast2.ShowStatement;
-import com.indeed.iql1.sql.parser.StatementParser;
+import com.indeed.iql.language.IQLStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql.language.ShowStatement;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -37,44 +36,32 @@ public class TestStatementParser {
 
     @Test
     public void testShow() {
-        assertTrue(StatementParser.parse("show tables") instanceof ShowStatement);
-        assertTrue(StatementParser.parse("show datasets") instanceof ShowStatement);
-        assertTrue(StatementParser.parse(" SHOW    TABLES ") instanceof ShowStatement);
+        assertTrue(StatementParser.parseIQLToStatement("show tables") instanceof ShowStatement);
+        assertTrue(StatementParser.parseIQLToStatement("show datasets") instanceof ShowStatement);
+        assertTrue(StatementParser.parseIQLToStatement(" SHOW    TABLES ") instanceof ShowStatement);
     }
 
     @Test
     public void testDescribe() {
         String dataset = "testndx";
 
-        IQLStatement query = StatementParser.parse("describe " + dataset);
+        IQLStatement query = StatementParser.parseIQLToStatement("describe " + dataset);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
         assertEquals(null, ((DescribeStatement) query).field);
 
-        query = StatementParser.parse("DESC " + dataset);
+        query = StatementParser.parseIQLToStatement("DESC " + dataset);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
 
-        query = StatementParser.parse("explain " + dataset);
+        query = StatementParser.parseIQLToStatement("explain " + dataset);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
 
         String field = "myfield";
-        query = StatementParser.parse("describe " + dataset + "." + field);
+        query = StatementParser.parseIQLToStatement("describe " + dataset + "." + field);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
         assertEquals(field, ((DescribeStatement) query).field);
-    }
-
-    @Test
-    public void testBasicSelectQuery() {
-        String testQuery = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc";
-        SelectStatement expected = new SelectStatement(
-                Lists.newArrayList((Expression) new NameExpression("sjc")),
-                new FromClause("jobsearch", new DateTime(2012,1,1,0,0), new DateTime(2012,1,2,0,0)),
-                new BinaryExpression(new NameExpression("rcv"), Op.EQ, new NameExpression("jsv")),
-                Lists.newArrayList((Expression)new NameExpression("grp")));
-
-        assertEquals(expected, StatementParser.parse(testQuery));
     }
 }

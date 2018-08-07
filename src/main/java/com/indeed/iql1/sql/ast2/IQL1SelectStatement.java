@@ -15,21 +15,20 @@
 
 import com.indeed.iql1.sql.ast.Expression;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author vladimir
  */
 
-public class SelectStatement extends IQLStatement implements Serializable {
+public class IQL1SelectStatement {
     public final SelectClause select;
     public final FromClause from;
     public final WhereClause where;
     public final GroupByClause groupBy;
     public final int limit;
 
-    public SelectStatement(SelectClause select, FromClause from, WhereClause where, GroupByClause groupBy, int limit) {
+    public IQL1SelectStatement(SelectClause select, FromClause from, WhereClause where, GroupByClause groupBy, int limit) {
         this.select = select;
         this.from = from;
         this.where = where;
@@ -38,7 +37,7 @@ public class SelectStatement extends IQLStatement implements Serializable {
     }
 
     // convenience constructor that constructs the clauses for you
-    public SelectStatement(
+    public IQL1SelectStatement(
             List<Expression> projections, FromClause from, Expression where,
             List<Expression> groupBy, int limit) {
         this.select = new SelectClause(projections);
@@ -49,7 +48,7 @@ public class SelectStatement extends IQLStatement implements Serializable {
     }
 
     // limit default constructor
-    public SelectStatement(
+    public IQL1SelectStatement(
             List<Expression> projections, FromClause from, Expression where,
             List<Expression> groupBy) {
         this(projections, from, where, groupBy, Integer.MAX_VALUE);

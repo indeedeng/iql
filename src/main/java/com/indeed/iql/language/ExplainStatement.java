@@ -11,16 +11,21 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ package com.indeed.iql.language;
 
-package com.indeed.iql2.execution.compat;
+/**
+ * @author vladimir
+ */
 
-public interface Consumer<T> {
-    void accept(T t);
+public class ExplainStatement extends IQLStatement {
+    public final String selectQuery;
 
-    class NoOpConsumer<T> implements Consumer<T> {
-        @Override
-        public void accept(T t) {
+    public ExplainStatement(String selectQuery) {
+        this.selectQuery = selectQuery;
+    }
 
-        }
+    @Override
+    public String getStatementType() {
+        return "explain";
     }
 }

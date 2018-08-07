@@ -33,13 +33,13 @@ public class TestParser {
     public void testGroupByClause() {
         String testQuery = "country[top 5 by sjc / sji]";
         GroupByClause expected = new GroupByClause(Lists.newArrayList((Expression) new BracketsExpression("country", "top 5 by sjc / sji")));
-        GroupByClause result = StatementParser.parseGroupByClause(testQuery);
+        GroupByClause result = SelectStatementParser.parseGroupByClause(testQuery);
         assertEquals(expected, result);
     }
 
     @Test
     public void testWhereClauseNegation() {
-        BinaryExpression e = (BinaryExpression) StatementParser.parseWhereClause("rcv!=jsv -rcv=ctk").getExpression();
+        BinaryExpression e = (BinaryExpression) SelectStatementParser.parseWhereClause("rcv!=jsv -rcv=ctk").getExpression();
         assertEquals(Op.AND, e.operator);
         BinaryExpression condition1 = (BinaryExpression) e.left;
         assertEquals(Op.NOT_EQ, condition1.operator);

@@ -175,30 +175,9 @@ public class QueryServlet {
 
             final Matcher describeDatasetMatcher = DESCRIBE_DATASET_PATTERN.matcher(query);
             final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
-            if (describeDatasetMatcher.matches()) {
-                final String dataset = describeDatasetMatcher.group(4);
-                processDescribeDataset(resp, contentType, dataset);
-                queryInfo.statementType = "describe";
-            } else if (describeDatasetFieldMatcher.matches()) {
-                final String dataset = describeDatasetFieldMatcher.group(4);
-                final String field = describeDatasetFieldMatcher.group(5);
-                processDescribeField(resp, contentType, dataset, field);
-                queryInfo.statementType = "describe";
-            } else if (query.trim().toLowerCase().equals("show datasets")) {
-                processShowDatasets(resp, contentType);
-                queryInfo.statementType = "show";
-            } else if (query.trim().toLowerCase().startsWith("explain ")) {
-                queryInfo.statementType = "explain";
 
-                final boolean isJSON = contentType.contains("application/json");
-                if (isJSON) {
-                    resp.setHeader("Content-Type", "application/json");
-                }
-                final String selectQuery = query.trim().substring("explain ".length());
-                final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                        metadataCache.get(), resp.getWriter(), selectQuery, version, isJSON, clock);
-                explainQueryExecution.processExplain();
-            } else {
+            // handling SELECT
+
                 final boolean skipValidation = "1".equals(req.getParameter("skipValidation"));
 
                 if (isStream) {
@@ -215,7 +194,6 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
                 querySubmitTimestamp = selectQueryExecution.queryStartTimestamp;
                 fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
-            }
         } catch (Throwable e) {
             if (e instanceof Exception) {
                 e = ImhotepErrorResolver.resolve((Exception) e);
@@ -280,82 +258,6 @@ public class QueryServlet {
         }
     }
 
-    private void processShowDatasets(HttpServletResponse response, String contentType) throws IOException {
-        final List<String> datasetNames = imhotepClient.getDatasetNames();
-        final DatasetsMetadata datasetsMetadata = metadataCache.get();
-        if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-            final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
-            final ArrayNode array = OBJECT_MAPPER.createArrayNode();
-            jsonRoot.set("datasets", array);
-            for(final String dataset : datasetNames) {
-                final ObjectNode datasetInfo = OBJECT_MAPPER.createObjectNode();
-                datasetInfo.put("name", dataset);
-                com.google.common.base.Optional<DatasetMetadata> metadata = datasetsMetadata.getMetadata(dataset);
-                final String description;
-                if (metadata.isPresent()) {
-                    description = Strings.nullToEmpty(metadata.get().description);
-                    if (metadata.get().deprecated) {
-                        datasetInfo.put("deprecated", true);
-                    }
-                } else {
-                    description = "";
-                }
-                datasetInfo.put("description", description);
-                array.add(datasetInfo);
-            }
-            OBJECT_MAPPER.writeValue(response.getOutputStream(), jsonRoot);
-        } else {
-            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-        }
-    }
-
-    private void processDescribeField(HttpServletResponse response, String contentType, String dataset, String field) throws IOException {
-        final DatasetInfo datasetInfo = imhotepClient.getDatasetInfo(dataset);
-
-        final String type;
-        if (datasetInfo.getIntFields().contains(field)) {
-            type = "Integer";
-        } else if (datasetInfo.getStringFields().contains(field)) {
-            type = "String";
-        } else {
-            throw new IllegalArgumentException("[" + field + "] is not present in [" + dataset + "]");
-        }
-
-        if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            final Map<String, Object> result = new HashMap<>();
-            final DatasetsMetadata metadata = metadataCache.get();
-            final com.google.common.base.Optional<DatasetMetadata> targetMetadata = metadata.getMetadata(dataset);
-            final String description = !targetMetadata.isPresent() ? "" : targetMetadata.get().getFieldDescription(field);
-            result.put("name", field);
-            result.put("description", description);
-            result.put("type", type);
-            final List<String> topTerms = topTermsCache.getTopTerms(dataset, field);
-            result.put("topTerms", topTerms);
-            response.getWriter().println(OBJECT_MAPPER.writeValueAsString(result));
-        } else {
-            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-        }
-    }
-
-    private void processDescribeDataset(HttpServletResponse response, String contentType, String dataset) throws IOException {
-        final DatasetsMetadata metadata = metadataCache.get();
-        final String content;
-        if (!metadata.getMetadata(dataset).isPresent()) {
-            content = "dataset " + dataset + " does not exist";
-        } else {
-            final DatasetDescriptor datasetDescriptor = DatasetDescriptor.from(dataset, metadata.getMetadata(dataset).get());
-            content = OBJECT_MAPPER.writeValueAsString(datasetDescriptor);
-        }
-        if (contentType.contains("application/json") || contentType.contains("*/*")) {
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().println(content);
-        } else {
-            throw new IllegalArgumentException("Don't know what to do with request Accept: [" + contentType + "]");
-        }
-    }
 
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about

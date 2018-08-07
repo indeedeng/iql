@@ -22,7 +22,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.iql1.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.iql1.sql.parser.StatementParser;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.CORSInterceptor;
 import com.indeed.iql.web.DataSourceLoader;
@@ -330,7 +330,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @PostConstruct
     public void init() {
-        StatementParser.LOWEST_YEAR_ALLOWED = env.getProperty("lowest.year.allowed", Integer.class, 0);
+        SelectStatementParser.LOWEST_YEAR_ALLOWED = env.getProperty("lowest.year.allowed", Integer.class, 0);
     }
 
     // Serve IMS statics

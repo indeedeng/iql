@@ -51,7 +51,6 @@ import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import com.indeed.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
@@ -106,6 +105,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class SelectQueryExecution implements Closeable {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -223,12 +223,7 @@ public class SelectQueryExecution implements Closeable {
             progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
         }
 
-        final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.iql2.language.compat.Consumer<String>() {
-            @Override
-            public void accept(String s) {
-                warnings.add(s);
-            }
-        });
+        final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, warnings::add);
         extractCompletedQueryInfoData(execInfo, warnings, countingOut);
         if (isStream) {
             outputStream.println();
@@ -295,7 +290,7 @@ public class SelectQueryExecution implements Closeable {
             final boolean useLegacy,
             final Consumer<String> out,
             final ProgressCallback progressCallback,
-            final com.indeed.iql2.language.compat.Consumer<String> warn
+            final Consumer<String> warn
     ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
         timer.push("Select query execution");
 
@@ -370,7 +365,7 @@ public class SelectQueryExecution implements Closeable {
     private class ParsedQueryExecution {
         private final CharStream inputStream;
         private final Consumer<String> externalOutput;
-        private final com.indeed.iql2.language.compat.Consumer warn;
+        private final Consumer<String> warn;
 
         private final int groupLimit;
 
@@ -379,7 +374,7 @@ public class SelectQueryExecution implements Closeable {
         private final ProgressCallback progressCallback;
         private final Map<Query, Boolean> queryCached = new HashMap<>();
 
-        private ParsedQueryExecution(CharStream inputStream, Consumer<String> out, com.indeed.iql2.language.compat.Consumer warn, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit) {
+        private ParsedQueryExecution(CharStream inputStream, Consumer<String> out, Consumer<String> warn, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit) {
             this.inputStream = inputStream;
             this.externalOutput = out;
             this.warn = warn;

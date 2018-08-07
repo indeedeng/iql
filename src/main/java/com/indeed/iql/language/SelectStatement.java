@@ -11,15 +11,21 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ package com.indeed.iql.language;
 
-package com.indeed.iql2.execution.commands;
+/**
+ * @author vladimir
+ */
 
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
+public class SelectStatement extends IQLStatement {
+    public final String selectQuery;
 
-import java.io.IOException;
+    public SelectStatement(String selectQuery) {
+        this.selectQuery = selectQuery;
+    }
 
-public interface Command {
-    void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException;
+    @Override
+    public String getStatementType() {
+        return "select";
+    }
 }

@@ -22,7 +22,7 @@ import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.util.core.TreeTimer;

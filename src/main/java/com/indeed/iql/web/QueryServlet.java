@@ -29,6 +29,9 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.language.ExplainStatement;
+import com.indeed.iql.language.SelectStatement;
+import com.indeed.iql.language.StatementParser;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
@@ -37,15 +40,16 @@ import com.indeed.iql1.iql.GroupStats;
 import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.iql1.sql.IQLTranslator;
-import com.indeed.iql1.sql.ast2.DescribeStatement;
+import com.indeed.iql.language.DescribeStatement;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql1.sql.ast2.IQLStatement;
+import com.indeed.iql.language.IQLStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.ast2.SelectStatement;
-import com.indeed.iql1.sql.ast2.ShowStatement;
-import com.indeed.iql1.sql.parser.StatementParser;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql.language.ShowStatement;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql1.web.QueryMetadata;
+import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.StoppedClock;
@@ -89,6 +93,7 @@ import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
 * @author dwahler
@@ -196,8 +201,6 @@ public class QueryServlet {
             return;
         }
 
-        IQLStatement parsedQuery = null;
-        SelectQuery selectQuery = null;
         try {
             if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
                 throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
@@ -207,15 +210,19 @@ public class QueryServlet {
             }
             accessControl.checkAllowedAccess(userName);
 
-            parsedQuery = StatementParser.parse(query, metadataCacheIQL1);
-            if(parsedQuery instanceof SelectStatement) {
-                queryInfo.statementType = "select";
-                setQueryInfoFromSelectStatement((SelectStatement) parsedQuery, queryInfo);
+            final IQLStatement iqlStatement = StatementParser.parseIQLToStatement(query);
+            queryInfo.statementType = iqlStatement.getStatementType();
+
+
+            if(iqlStatement instanceof SelectStatement) {
+                final IQL1SelectStatement parsedQuery = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
+
+                setQueryInfoFromSelectStatement(parsedQuery, queryInfo);
 
                 final Limits limits = accessControl.getLimitsForIdentity(userName, client);
 
-                selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                        new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery, (byte)1, null);
+                SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+                        new DateTime(querySubmitTimestamp), parsedQuery, (byte)1, null);
 
                 logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
 
@@ -233,19 +240,18 @@ public class QueryServlet {
                     if(!selectQuery.isAsynchronousRelease()) {
                         Closeables2.closeQuietly(selectQuery, log);
                     }
-
                 }
-            } else if(parsedQuery instanceof DescribeStatement) {
-                queryInfo.statementType = "describe";
-                final DescribeStatement describeStatement = (DescribeStatement) parsedQuery;
+            } else if(iqlStatement instanceof DescribeStatement) {
+                final DescribeStatement describeStatement = (DescribeStatement) iqlStatement;
                 queryInfo.datasets = Sets.newHashSet(describeStatement.dataset);
                 queryInfo.datasetFields = Sets.newHashSet(describeStatement.dataset + "." + describeStatement.field);
-                handleDescribeStatement(req, resp, describeStatement);
-            } else if(parsedQuery instanceof ShowStatement) {
-                queryInfo.statementType = "show";
-                handleShowStatement(req, resp);
+                handleDescribeStatement(req, resp, describeStatement, contentType);
+            } else if(iqlStatement instanceof ShowStatement) {
+                handleShowStatement(req, resp, contentType);
+            } else if(iqlStatement instanceof ExplainStatement) {
+                final ExplainStatement explainStatement = (ExplainStatement) iqlStatement;
+                handleExplainStatement(explainStatement, req, resp, version, clock, contentType);
             } else {
-                queryInfo.statementType = "invalid";
                 throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
             }
         } catch (Throwable e) {
@@ -266,10 +272,10 @@ public class QueryServlet {
         }
     }
 
-    private void setQueryInfoFromSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo) {
-        final FromClause from = selectStatement.from;
-        final GroupByClause groupBy = selectStatement.groupBy;
-        final SelectClause select =  selectStatement.select;
+    private void setQueryInfoFromSelectStatement(IQL1SelectStatement IQL1SelectStatement, QueryInfo queryInfo) {
+        final FromClause from = IQL1SelectStatement.from;
+        final GroupByClause groupBy = IQL1SelectStatement.groupBy;
+        final SelectClause select =  IQL1SelectStatement.select;
 
         if(from != null) {
             queryInfo.datasets = Collections.singleton(from.getDataset());
@@ -320,7 +326,7 @@ public class QueryServlet {
 
     private void handleSelectStatement(final SelectQuery selectQuery, final SelectRequestArgs args, final HttpServletResponse resp) throws IOException {
         final QueryInfo queryInfo = selectQuery.queryInfo;
-        final SelectStatement parsedQuery = selectQuery.parsedStatement;
+        final IQL1SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
@@ -615,15 +621,29 @@ public class QueryServlet {
         }
     }
 
-    private void handleDescribeStatement(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
+    private void handleExplainStatement(ExplainStatement explainStatement, HttpServletRequest req, HttpServletResponse resp, int version, WallClock clock, String contentType) throws IOException, TimeoutException, ImhotepOutOfMemoryException {
+        if(version == 1) {
+            throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
+        }
+
+        final boolean isJSON = req.getParameter("json") != null || contentType.contains("application/json");
+        if (isJSON) {
+            resp.setHeader("Content-Type", "application/json");
+        }
+        final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
+                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, version, isJSON, clock);
+        explainQueryExecution.processExplain();
+    }
+
+    private void handleDescribeStatement(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
         if(Strings.isNullOrEmpty(parsedQuery.field)) {
-            handleDescribeDataset(req, resp, parsedQuery);
+            handleDescribeDataset(req, resp, parsedQuery, contentType);
         } else {
-            handleDescribeField(req, resp, parsedQuery);
+            handleDescribeField(req, resp, parsedQuery, contentType);
         }
     }
 
-    private void handleDescribeField(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
+    private void handleDescribeField(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
@@ -633,7 +653,7 @@ public class QueryServlet {
             field = new FieldMetadata("notfound", FieldType.String);
             field.setDescription("Field not found");
         }
-        final boolean json = req.getParameter("json") != null;
+        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
         if(json) {
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
@@ -653,11 +673,11 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    private void handleDescribeDataset(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery) throws IOException {
+    private void handleDescribeDataset(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final DatasetMetadata datasetMetadata = metadataCacheIQL1.getDataset(dataset);
-        final boolean json = req.getParameter("json") != null;
+        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
         if(json) {
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
@@ -675,9 +695,9 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    private void handleShowStatement(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
+    private void handleShowStatement(final HttpServletRequest req, final HttpServletResponse resp, String contentType) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
-        final boolean json = req.getParameter("json") != null;
+        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
 
         if(json) {
             resp.setContentType(MediaType.APPLICATION_JSON_VALUE);

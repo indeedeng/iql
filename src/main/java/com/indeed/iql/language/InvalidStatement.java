@@ -11,25 +11,20 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.sql.ast2;
-
-import java.io.Serializable;
+ package com.indeed.iql.language;
 
 /**
  * @author vladimir
  */
 
-public class DescribeStatement extends IQLStatement implements Serializable {
-    public final String dataset;
-    public final String field;
+public class InvalidStatement extends IQLStatement {
+    public static final InvalidStatement INSTANCE = new InvalidStatement();
 
-    public DescribeStatement(String dataset) {
-        this.dataset = dataset;
-        this.field = null;
+    private InvalidStatement() {
     }
 
-    public DescribeStatement(String dataset, String field) {
-        this.dataset = dataset;
-        this.field = field;
+    @Override
+    public String getStatementType() {
+        return "invalid";
     }
 }

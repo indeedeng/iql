@@ -11,16 +11,15 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.sql.ast2;
-
-import com.indeed.iql1.sql.ast.ValueObject;
-
-import java.io.Serializable;
+ package com.indeed.iql.language;
 
 /**
  * @author vladimir
  */
 
-public abstract class IQLStatement extends ValueObject implements Serializable {
-
+public class ShowStatement extends IQLStatement {
+    @Override
+    public String getStatementType() {
+        return "show";
+    }
 }

@@ -16,7 +16,7 @@
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.QueryParts;
 import com.indeed.iql1.sql.parser.QuerySplitter;
-import com.indeed.iql1.sql.parser.StatementParser;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.indeed.iql.web.ServletUtil;
@@ -72,7 +72,7 @@ public class SplitterServlet {
 
             FromClause fromClause = null;
             try {
-                fromClause = StatementParser.parseFromClause(parts.from, true);
+                fromClause = SelectStatementParser.parseFromClause(parts.from, true);
             } catch (Exception ignored) { }
             json.put("dataset", fromClause != null ? fromClause.getDataset() : "");
             json.put("start", fromClause != null && fromClause.getStart() != null ? fromClause.getStart().toString(dateTimeFormatter) : "");

@@ -14,10 +14,12 @@
  package com.indeed.iql1.web;
 
 import com.google.common.base.Strings;
+import com.indeed.iql.language.SelectStatement;
+import com.indeed.iql.language.StatementParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql1.sql.ast2.IQLStatement;
-import com.indeed.iql1.sql.ast2.SelectStatement;
-import com.indeed.iql1.sql.parser.StatementParser;
+import com.indeed.iql.language.IQLStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql2.server.web.servlets.ParseServlet;
 import com.indeed.iql.web.ServletUtil;
@@ -61,11 +63,11 @@ public class ParseController {
 
         resp.setHeader("Access-Control-Allow-Origin", "*");
         try {
-            final IQLStatement parsedQuery = StatementParser.parse(query, metadata);
+            final IQLStatement parsedQuery = StatementParser.parseIQLToStatement(query);
             if(!(parsedQuery instanceof SelectStatement)) {
                 throw new RuntimeException("The query is not recognized as a select statement: " + query);
             }
-            return (SelectStatement) parsedQuery;
+            return SelectStatementParser.parseSelectStatement(query, metadata);
         } catch (Throwable e) {
             QueryServlet.handleError(resp, !Strings.isNullOrEmpty(json), e, false, false);
             return null;

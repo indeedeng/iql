@@ -23,7 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.execution.passes.FixDistinctFilterRunning;
 import com.indeed.iql2.language.execution.passes.GroupIterations;

@@ -53,7 +53,7 @@ import com.indeed.iql1.sql.ast.Op;
 import com.indeed.iql1.sql.ast.StringExpression;
 import com.indeed.iql1.sql.ast.TupleExpression;
 import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.SelectStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
@@ -125,7 +125,7 @@ import static com.indeed.iql1.ez.Stats.Stat;
 public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
-    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
+    public static IQLQuery translate(IQL1SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
                                      Limits limits, QueryInfo queryInfo) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());

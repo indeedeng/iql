@@ -17,14 +17,11 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.FunctionExpression;
-import com.indeed.iql1.sql.ast2.DescribeStatement;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql1.sql.ast2.IQLStatement;
 import com.indeed.iql1.sql.ast2.QueryParts;
 import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.ast2.SelectStatement;
-import com.indeed.iql1.sql.ast2.ShowStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.WhereClause;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -40,45 +37,25 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author vladimir
  */
 
-public class StatementParser {
-    private static final Pattern selectPattern = Pattern.compile("(?i)\\s*(?:select|from) .*");
-    private static final Pattern showPattern = Pattern.compile("(?i)\\s*show\\s+(?:tables|datasets).*");
-    private static final Pattern describePattern = Pattern.compile("(?i)\\s*(?:describe|explain|desc)\\s+(\\w+)(?:(?:\\s+|\\.)(\\w+))?.*");
+public class SelectStatementParser {
     public static int LOWEST_YEAR_ALLOWED = 0;
 
-
-    public static IQLStatement parse(String statement) {
-        return parse(statement, null);
-    }
-    public static IQLStatement parse(String statement, ImhotepMetadataCache metadata) {
-        if(selectPattern.matcher(statement).matches()) {
-            final QueryParts parts;
-            try {
-                parts = QuerySplitter.splitQuery(statement);
-            } catch (Exception e) {
-                throw new IqlKnownException.StatementParseException(e, "splitter");
-            }
-            return parseSelectStatement(parts, metadata);
-        } else if(showPattern.matcher(statement).matches()) {
-            return new ShowStatement();
-        } else {
-            Matcher matcher = describePattern.matcher(statement);
-            if(matcher.matches()) {
-                return new DescribeStatement(matcher.group(1), matcher.group(2));
-            }
+    public static IQL1SelectStatement parseSelectStatement(String selectQuery, ImhotepMetadataCache metadata) {
+        final QueryParts parts;
+        try {
+            parts = QuerySplitter.splitQuery(selectQuery);
+        } catch (Exception e) {
+            throw new IqlKnownException.StatementParseException(e, "splitter");
         }
-
-        return null;
+        return parseSelectStatement(parts, metadata);
     }
 
-    public static SelectStatement parseSelectStatement(QueryParts parts, ImhotepMetadataCache metadata) {
+    static IQL1SelectStatement parseSelectStatement(QueryParts parts, ImhotepMetadataCache metadata) {
         final SelectClause select;
         final FromClause from;
         final WhereClause where;
@@ -110,7 +87,7 @@ public class StatementParser {
         }
         int limit = parseLimit(parts.limit);
 
-        return new SelectStatement(select, from, where, groupBy, limit);
+        return new IQL1SelectStatement(select, from, where, groupBy, limit);
     }
 
     private static int parseLimit(String limit) {

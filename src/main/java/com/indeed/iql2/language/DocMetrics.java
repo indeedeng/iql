@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.language;
 
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.squall.iql2.language.JQLBaseListener;
