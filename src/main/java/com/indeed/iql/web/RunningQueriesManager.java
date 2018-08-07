@@ -228,7 +228,7 @@ public class RunningQueriesManager {
                 released = true;
             } catch (Exception e) {
                 log.error("Failed to release query, going to retry. Id " + selectQuery.id
-                        + ". " + selectQuery.queryStringTruncatedForPrint, e);
+                        + ". " + selectQuery.queryInfo.queryStringTruncatedForPrint, e);
                 try {
                     Thread.sleep(1000);
                 } catch (Exception ignored) { }
@@ -257,7 +257,7 @@ public class RunningQueriesManager {
         for(SelectQuery query : queries) {
             runningQueries.add(new RunningQuery(
                     query.id,
-                    query.queryStringTruncatedForPrint,
+                    query.queryInfo.queryStringTruncatedForPrint,
                     query.queryHash,
                     query.clientInfo.username,
                     query.clientInfo.client,

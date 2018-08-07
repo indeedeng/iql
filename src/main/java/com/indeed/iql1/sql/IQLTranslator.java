@@ -24,6 +24,7 @@ import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.DynamicMetric;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
@@ -125,7 +126,7 @@ public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
     public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
-                                     Limits limits) {
+                                     Limits limits, QueryInfo queryInfo) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -178,7 +179,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, limits, fieldNames);
+                conditions, groupings, parse.limit, username, limits, fieldNames, queryInfo);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {

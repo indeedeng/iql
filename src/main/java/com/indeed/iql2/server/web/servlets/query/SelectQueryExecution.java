@@ -42,6 +42,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -236,7 +237,8 @@ public class SelectQueryExecution implements Closeable {
             // TODO: Fix these headers
             final Map<String, Object> headerMap = new HashMap<>();
             headerMap.put("IQL-Cached", execInfo.allCached());
-            headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
+            queryInfo.timingTreeReport = timer.toString().replaceAll("\n", "\t");
+            headerMap.put("IQL-Query-Info", queryInfo.toJSON());
             headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
             headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(-1L)));
             headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
@@ -268,7 +270,7 @@ public class SelectQueryExecution implements Closeable {
             }
         }
         queryInfo.numShards = shardCount;
-        queryInfo.totalShardPeriod = totalShardPeriod;
+        queryInfo.totalShardPeriodHours = totalShardPeriod.toStandardHours().getHours();
         queryInfo.cached = execInfo.allCached();
         queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;
         queryInfo.sessionIDs = execInfo.sessionIds;
@@ -278,17 +280,7 @@ public class SelectQueryExecution implements Closeable {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
-        final PerformanceStats imhotepPerfStats = execInfo.imhotepPerformanceStats;
-        if (imhotepPerfStats != null) {
-            queryInfo.imhotepcputimems = imhotepPerfStats.cpuTime / 1000000;   // nanoseconds to ms;
-            queryInfo.imhoteprammb = imhotepPerfStats.maxMemoryUsage / 1024 / 1024;
-            queryInfo.imhotepftgsmb = imhotepPerfStats.ftgsTempFileSize / 1024 / 1024;
-            queryInfo.imhotepfieldfilesmb = imhotepPerfStats.fieldFilesReadSize / 1024 / 1024;
-            queryInfo.cpuSlotsExecTimeMs = imhotepPerfStats.cpuSlotsExecTimeMs;
-            queryInfo.cpuSlotsWaitTimeMs = imhotepPerfStats.cpuSlotsWaitTimeMs;
-            queryInfo.ioSlotsExecTimeMs = imhotepPerfStats.ioSlotsExecTimeMs;
-            queryInfo.ioSlotsWaitTimeMs = imhotepPerfStats.ioSlotsWaitTimeMs;
-        }
+        queryInfo.setFromPerformanceStats(execInfo.imhotepPerformanceStats);
 
         if (execInfo.hasMoreRows) {
             warnings.add(String.format("Only first %d rows returned sorted on the last group by column", queryInfo.rows));
@@ -305,7 +297,7 @@ public class SelectQueryExecution implements Closeable {
             final ProgressCallback progressCallback,
             final com.indeed.iql2.language.compat.Consumer<String> warn
     ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
-        timer.push(q.replaceAll("\\s+", " "));
+        timer.push("Select query execution");
 
         timer.push("parse query");
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warn, clock);
@@ -330,7 +322,7 @@ public class SelectQueryExecution implements Closeable {
                 queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
-            queryInfo.totalDatasetRange = datasetRangeSum;
+            queryInfo.totalDatasetRangeDays = datasetRangeSum.toStandardDays().getDays();
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
@@ -358,7 +350,7 @@ public class SelectQueryExecution implements Closeable {
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
-        final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
+        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
                 null, (byte) sessions, this);
 
         try {
@@ -727,32 +719,6 @@ public class SelectQueryExecution implements Closeable {
         return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 
-    static class QueryInfo {
-        @Nullable String statementType;
-        @Nullable Set<String> datasets;
-        @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
-        @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
-        @Nullable Long ftgsMB;
-        @Nullable Long imhotepcputimems;
-        @Nullable Long imhoteprammb;
-        @Nullable Long imhotepftgsmb;
-        @Nullable Long imhotepfieldfilesmb;
-        @Nullable Long cpuSlotsExecTimeMs;
-        @Nullable Long cpuSlotsWaitTimeMs;
-        @Nullable Long ioSlotsExecTimeMs;
-        @Nullable Long ioSlotsWaitTimeMs;
-        @Nullable Collection<String> sessionIDs;
-        @Nullable Integer numShards;
-        @Nullable Long numDocs;
-        @Nullable Boolean cached;
-        @Nullable Integer rows;
-        @Nullable Set<String> cacheHashes;
-        @Nullable Integer maxGroups;
-        @Nullable Integer maxConcurrentSessions;
-        @Nullable Set<String> datasetFields;
-
-    }
-
     private static class SelectExecutionInformation {
         public final Multimap<String, List<Shard>> shards;
         public final Map<Query, Boolean> queryCached;
@@ -761,7 +727,7 @@ public class SelectQueryExecution implements Closeable {
         public final PerformanceStats imhotepPerformanceStats;
         public final Set<String> cacheKeys;
 
-        public final List<String> sessionIds;
+        public final Set<String> sessionIds;
         public final long totalNumDocs;
         public final int maxNumGroups;
         public final int maxConcurrentSessions;
@@ -774,7 +740,7 @@ public class SelectQueryExecution implements Closeable {
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
             this.imhotepPerformanceStats = imhotepPerformanceStats;
             this.cacheKeys = ImmutableSet.copyOf(cacheKeys);
-            this.sessionIds = ImmutableList.copyOf(sessionIds);
+            this.sessionIds = ImmutableSet.copyOf(sessionIds);
             this.totalNumDocs = totalNumDocs;
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;

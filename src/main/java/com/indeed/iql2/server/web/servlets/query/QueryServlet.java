@@ -27,6 +27,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -81,18 +82,18 @@ public class QueryServlet {
     private static final Logger log = Logger.getLogger(QueryServlet.class);
     private static final Logger dataLog = Logger.getLogger("indeed.logentry");
     private static String hostname;
-
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
-        GlobalUncaughtExceptionHandler.register();
-        OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
-        try {
-            hostname = java.net.InetAddress.getLocalHost().getHostName();
-        } catch (java.net.UnknownHostException ex) {
-            hostname = "(unknown)";
-        }
-    }
+//
+//    static {
+//        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+//        TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
+//        GlobalUncaughtExceptionHandler.register();
+//        OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
+//        try {
+//            hostname = java.net.InetAddress.getLocalHost().getHostName();
+//        } catch (java.net.UnknownHostException ex) {
+//            hostname = "(unknown)";
+//        }
+//    }
 
     private final ImhotepClient imhotepClient;
     private final QueryCache queryCache;
@@ -108,7 +109,7 @@ public class QueryServlet {
     private static final Pattern DESCRIBE_DATASET_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern DESCRIBE_DATASET_FIELD_PATTERN = Pattern.compile("((DESC)|(DESCRIBE)) ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)", Pattern.CASE_INSENSITIVE);
 
-    @Autowired
+//    @Autowired
     public QueryServlet(
             final ImhotepClient imhotepClient,
             final QueryCache queryCache,
@@ -130,36 +131,24 @@ public class QueryServlet {
         this.fieldFrequencyCache = fieldFrequencyCache;
     }
 
-    public static Map<String, Set<String>> upperCaseMapToSet(Map<String, ? extends Set<String>> map) {
-        final Map<String, Set<String>> upperCased = new HashMap<>();
-        for (final Map.Entry<String, ? extends Set<String>> e : map.entrySet()) {
-            final Set<String> upperCaseTerms = new HashSet<>(e.getValue().size());
-            for (final String term : e.getValue()) {
-                upperCaseTerms.add(term.toUpperCase());
-            }
-            upperCased.put(e.getKey().toUpperCase(), upperCaseTerms);
-        }
-        return upperCased;
-    }
-
 //    @RequestMapping("query")
     public void query(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
+            final HttpServletRequest req,
+            final HttpServletResponse resp,
             final @Nonnull @RequestParam("q") String query
-    ) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
+    ) throws IOException {
         final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
 
-        final int version = ServletUtil.getIQLVersionBasedOnParam(request);
-        final String contentType = Optional.ofNullable(request.getHeader("Accept")).orElse("text/plain;charset=utf-8");
+        final int version = ServletUtil.getIQLVersionBasedOnParam(req);
+        final String contentType = Optional.ofNullable(req.getHeader("Accept")).orElse("text/plain;charset=utf-8");
 
-        final String httpUsername = UsernameUtil.getUserNameFromRequest(request);
-        final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? request.getParameter("username") : httpUsername);
-        final String author = Strings.nullToEmpty(request.getParameter("author"));
-        final String client = Strings.nullToEmpty(request.getParameter("client"));
-        final String clientProcessId = Strings.nullToEmpty(request.getParameter("clientProcessId"));
-        final String clientProcessName = Strings.nullToEmpty(request.getParameter("clientProcessName"));
-        final String clientExecutionId = Strings.nullToEmpty(request.getParameter("clientExecutionId"));
+        final String httpUsername = UsernameUtil.getUserNameFromRequest(req);
+        final String username = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUsername) ? req.getParameter("username") : httpUsername);
+        final String author = Strings.nullToEmpty(req.getParameter("author"));
+        final String client = Strings.nullToEmpty(req.getParameter("client"));
+        final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
+        final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
+        final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
         final ClientInfo clientInfo = new ClientInfo(username, author, client, clientProcessId, clientProcessName,
                 clientExecutionId, accessControl.isMultiuserClient(client));
         final TreeTimer timer = new TreeTimer() {
@@ -170,18 +159,16 @@ public class QueryServlet {
             }
         };
 
-        log.info("Query received from user [" + username + "]");
-
         Throwable errorOccurred = null;
 
-        long queryStartTimestamp = System.currentTimeMillis();
+        long querySubmitTimestamp = System.currentTimeMillis();
 
-        final SelectQueryExecution.QueryInfo queryInfo = new SelectQueryExecution.QueryInfo();
+        final QueryInfo queryInfo = new QueryInfo(query, version);
 
         final boolean isStream = contentType.contains("text/event-stream");
         queryInfo.statementType = "invalid";
         try {
-            if (Strings.isNullOrEmpty(request.getParameter("client")) && Strings.isNullOrEmpty(username)) {
+            if (Strings.isNullOrEmpty(req.getParameter("client")) && Strings.isNullOrEmpty(username)) {
                 throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification");
             }
             accessControl.checkAllowedAccess(username);
@@ -190,43 +177,43 @@ public class QueryServlet {
             final Matcher describeDatasetFieldMatcher = DESCRIBE_DATASET_FIELD_PATTERN.matcher(query);
             if (describeDatasetMatcher.matches()) {
                 final String dataset = describeDatasetMatcher.group(4);
-                processDescribeDataset(response, contentType, dataset);
+                processDescribeDataset(resp, contentType, dataset);
                 queryInfo.statementType = "describe";
             } else if (describeDatasetFieldMatcher.matches()) {
                 final String dataset = describeDatasetFieldMatcher.group(4);
                 final String field = describeDatasetFieldMatcher.group(5);
-                processDescribeField(response, contentType, dataset, field);
+                processDescribeField(resp, contentType, dataset, field);
                 queryInfo.statementType = "describe";
             } else if (query.trim().toLowerCase().equals("show datasets")) {
-                processShowDatasets(response, contentType);
+                processShowDatasets(resp, contentType);
                 queryInfo.statementType = "show";
             } else if (query.trim().toLowerCase().startsWith("explain ")) {
                 queryInfo.statementType = "explain";
 
                 final boolean isJSON = contentType.contains("application/json");
                 if (isJSON) {
-                    response.setHeader("Content-Type", "application/json");
+                    resp.setHeader("Content-Type", "application/json");
                 }
                 final String selectQuery = query.trim().substring("explain ".length());
                 final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                        metadataCache.get(), response.getWriter(), selectQuery, version, isJSON, clock);
+                        metadataCache.get(), resp.getWriter(), selectQuery, version, isJSON, clock);
                 explainQueryExecution.processExplain();
             } else {
-                final boolean skipValidation = "1".equals(request.getParameter("skipValidation"));
+                final boolean skipValidation = "1".equals(req.getParameter("skipValidation"));
 
                 if (isStream) {
-                    response.setHeader("Content-Type", "text/event-stream;charset=utf-8");
+                    resp.setHeader("Content-Type", "text/event-stream;charset=utf-8");
                 } else {
-                    response.setHeader("Content-Type", "text/plain;charset=utf-8");
+                    resp.setHeader("Content-Type", "text/plain;charset=utf-8");
                 }
 
                 final Limits limits = accessControl.getLimitsForIdentity(username, client);
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         queryCache, limits, imhotepClient,
-                        metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
+                        metadataCache.get(), resp.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
-                queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
+                querySubmitTimestamp = selectQueryExecution.queryStartTimestamp;
                 fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
             }
         } catch (Throwable e) {
@@ -235,16 +222,16 @@ public class QueryServlet {
             }
             final boolean isJson = false;
             final boolean status500 = true;
-            handleError(response, isJson, e, status500, isStream);
+            handleError(resp, isJson, e, status500, isStream);
             log.info("Exception during query handling", e);
             errorOccurred = e;
         } finally {
             try {
-                String remoteAddr = getForwardedForIPAddress(request);
+                String remoteAddr = getForwardedForIPAddress(req);
                 if (remoteAddr == null) {
-                    remoteAddr = request.getRemoteAddr();
+                    remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(request, query, queryStartTimestamp, errorOccurred, remoteAddr, queryInfo, clientInfo);
+                com.indeed.iql.web.QueryServlet.logQuery(queryInfo, clientInfo, req, querySubmitTimestamp, errorOccurred, remoteAddr, metricStatsEmitter);
             } catch (Throwable ignored) {
                 // Do nothing
             }
@@ -402,133 +389,7 @@ public class QueryServlet {
         }
     }
 
-    private void logQuery(HttpServletRequest req,
-                          String query,
-                          long queryStartTimestamp,
-                          Throwable errorOccurred,
-                          String remoteAddr,
-                          SelectQueryExecution.QueryInfo queryInfo,
-                          ClientInfo clientInfo) {
-        final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
-        if (timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
-            logQueryToLog4J(query, (Strings.isNullOrEmpty(clientInfo.username) ? remoteAddr : clientInfo.username), timeTaken);
-        }
-
-        final QueryLogEntry logEntry = new QueryLogEntry();
-        logEntry.setProperty("v", 0);
-        logEntry.setProperty("iqlversion", 2);
-        logEntry.setProperty("username", clientInfo.username);
-        logEntry.setProperty("client", clientInfo.client);
-        logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
-        logEntry.setProperty("starttime", Long.toString(queryStartTimestamp));
-        logEntry.setProperty("tottime", (int) timeTaken);
-        setIfNotEmpty(logEntry, "author", clientInfo.author);
-        setIfNotEmpty(logEntry, "clientProcessId", clientInfo.clientProcessId);
-        setIfNotEmpty(logEntry, "clientProcessName", clientInfo.clientProcessName);
-        setIfNotEmpty(logEntry, "clientExecutionId", clientInfo.clientExecutionId);
-
-        logString(logEntry, "statement", queryInfo.statementType);
-
-        logBoolean(logEntry, "cached", queryInfo.cached);
-        logSet(logEntry, "dataset", queryInfo.datasets);
-        if (errorOccurred == null && queryInfo.datasetFields.size() > 0) {
-            logSet(logEntry, "datasetfield", queryInfo.datasetFields);
-        }
-        if (queryInfo.totalDatasetRange != null) {
-            logInteger(logEntry, "days", queryInfo.totalDatasetRange.toStandardDays().getDays());
-        }
-        logLong(logEntry, "ftgsmb", queryInfo.ftgsMB);
-        logLong(logEntry, "imhotepcputimems", queryInfo.imhotepcputimems);
-        logLong(logEntry, "imhoteprammb", queryInfo.imhoteprammb);
-        logLong(logEntry, "imhotepftgsmb", queryInfo.imhotepftgsmb);
-        logLong(logEntry, "imhotepfieldfilesmb", queryInfo.imhotepfieldfilesmb);
-        logLong(logEntry, "cpuSlotsExecTimeMs", queryInfo.cpuSlotsExecTimeMs);
-        logLong(logEntry, "cpuSlotsWaitTimeMs", queryInfo.cpuSlotsWaitTimeMs);
-        logLong(logEntry, "ioSlotsExecTimeMs", queryInfo.ioSlotsExecTimeMs);
-        logLong(logEntry, "ioSlotsWaitTimeMs", queryInfo.ioSlotsWaitTimeMs);
-        logSet(logEntry, "hash", queryInfo.cacheHashes);
-        logString(logEntry, "hostname", hostname);
-        logInteger(logEntry, "maxgroups", queryInfo.maxGroups);
-        logInteger(logEntry, "maxconcurrentsessions", queryInfo.maxConcurrentSessions);
-        logInteger(logEntry, "rows", queryInfo.rows);
-        logSet(logEntry, "sessionid", queryInfo.sessionIDs);
-        logInteger(logEntry, "shards", queryInfo.numShards);
-        if (queryInfo.totalShardPeriod != null) {
-            logInteger(logEntry, "shardhours", queryInfo.totalShardPeriod.toStandardHours().getHours());
-        }
-        logLong(logEntry, "numdocs", queryInfo.numDocs);
-
-        final List<String> params = Lists.newArrayList();
-        final Enumeration<String> paramsEnum = req.getParameterNames();
-        while (paramsEnum.hasMoreElements()) {
-            final String param = paramsEnum.nextElement();
-            // TODO: Add whitelist
-            params.add(param);
-        }
-        logEntry.setProperty("params", Joiner.on(' ').join(params));
-        final String queryToLog = query.length() > QUERY_LENGTH_LIMIT ? query.substring(0, QUERY_LENGTH_LIMIT) : query;
-        logEntry.setProperty("q", queryToLog);
-        logEntry.setProperty("qlen", query.length());
-        final boolean error = errorOccurred != null;
-        final boolean systemError = error && !ServletUtil.isKnownError(errorOccurred);
-        logEntry.setProperty("error", error ? "1" : "0");
-        logEntry.setProperty("systemerror", systemError ? "1" : "0");
-        if (error) {
-            logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
-            String message = errorOccurred.getMessage();
-            if (message == null) {
-                message = "<no msg>";
-            }
-            logEntry.setProperty("exceptionmsg", message);
-        }
-
-        QueryMetrics.logQueryMetrics(2, queryInfo.statementType, error, systemError, timeTaken, this.metricStatsEmitter);
-        dataLog.info(logEntry);
-    }
-
-    private void logLong(QueryLogEntry logEntry, String field, @Nullable Long value) {
-        if (value != null) {
-            logEntry.setProperty(field, value);
-        }
-    }
-
-    private void logInteger(QueryLogEntry logEntry, String field, @Nullable Integer value) {
-        if (value != null) {
-            logEntry.setProperty(field, value);
-        }
-    }
-
-    private void logString(QueryLogEntry logEntry, String field, @Nullable String value) {
-        if (value != null) {
-            logEntry.setProperty(field, value);
-        }
-    }
-
-    private void logBoolean(QueryLogEntry logEntry, String field, @Nullable Boolean value) {
-        if (value != null) {
-            logEntry.setProperty(field, value ? 1 : 0);
-        }
-    }
-
-    private void logSet(QueryLogEntry logEntry, String field, Collection<String> values) {
-        if (values != null) {
-            final StringBuilder sb = new StringBuilder();
-            boolean appendedAny = false;
-            for (final String value : values) {
-                if (appendedAny) {
-                    sb.append(',');
-                }
-                sb.append(value);
-                appendedAny = true;
-            }
-            logEntry.setProperty(field, sb.toString());
-        }
-    }
-
     private void logQueryToLog4J(String query, String identification, long timeTaken) {
-        if (query.length() > 500) {
-            query = query.replaceAll("\\(([^\\)]{0,100}+)[^\\)]+\\)", "\\($1\\.\\.\\.\\)");
-        }
         final String timeTakenStr = timeTaken >= 0 ? String.valueOf(timeTaken) : "";
         log.info((timeTaken < 0 ? "+" : "-") + identification + "\t" + timeTakenStr + "\t" + query);
     }

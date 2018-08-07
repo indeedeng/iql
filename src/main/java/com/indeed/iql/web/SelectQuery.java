@@ -19,7 +19,6 @@ import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
-import com.indeed.iql1.iql.SelectExecutionStats;
 import com.indeed.iql1.sql.ast2.SelectStatement;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
@@ -45,17 +44,14 @@ public class SelectQuery implements Closeable {
     public static final byte VERSION_FOR_HASHING = 3;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
     private final RunningQueriesManager runningQueriesManager;
-    final String queryString;
+    final QueryInfo queryInfo;
     public final String queryHash; // this hash doesn't include the shards so is different from the caching hash
     final String shortHash; // queryHash truncated
-    public final String queryStringTruncatedForPrint;
     final ClientInfo clientInfo;
     final Limits limits;
     final DateTime querySubmitTimestamp;
     final byte sessions;    // imhotep sessions
-    final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     /** Only in IQL1 */
     @Nullable
     final SelectStatement parsedStatement;
@@ -68,14 +64,13 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
+    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
+        this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
-        this.queryString = queryString;
         this.clientInfo = clientInfo;
         this.limits = limits;
         this.querySubmitTimestamp = querySubmitTimestamp;
         this.parsedStatement = parsedStatement;
-        this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(queryString).replaceAll("\\($1\\.\\.\\.\\)");
         this.queryHash = getQueryHash(queryString, null, false);
         this.sessions = sessions;
         this.iqlQuery = iqlQuery;
@@ -124,7 +119,7 @@ public class SelectQuery implements Closeable {
             Throwables.propagate(e);
         }
         final long queryStartedTimestamp = System.currentTimeMillis();
-        selectExecutionStats.setPhase("lockWaitMillis", queryStartedTimestamp-waitStartTime);
+        queryInfo.lockWaitMillis = queryStartedTimestamp-waitStartTime;
         checkCancelled();
     }
 
@@ -146,7 +141,7 @@ public class SelectQuery implements Closeable {
         try {
             runningQueriesManager.unregister(this);
         } catch (Exception e) {
-            log.error("Failed to release the query tracking for " + queryStringTruncatedForPrint, e);
+            log.error("Failed to release the query tracking for " + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 
@@ -157,7 +152,7 @@ public class SelectQuery implements Closeable {
                 iqlQuery.close();
             }
         } catch (Exception e) {
-            log.warn("Failed to close the Imhotep session to kill query" + queryStringTruncatedForPrint, e);
+            log.warn("Failed to close the Imhotep session to kill query" + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 
@@ -201,13 +196,11 @@ public class SelectQuery implements Closeable {
     public String toString() {
         return "SelectQuery{" +
                 "runningQueriesManager=" + runningQueriesManager +
-                ", queryString='" + queryString + '\'' +
                 ", queryHash='" + queryHash + '\'' +
-                ", queryStringTruncatedForPrint='" + queryStringTruncatedForPrint + '\'' +
+                ", queryStringTruncatedForPrint='" + queryInfo.queryStringTruncatedForPrint + '\'' +
                 ", username='" + clientInfo.username + '\'' +
                 ", client='" + clientInfo.client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
-                ", selectExecutionStats=" + selectExecutionStats +
                 ", parsedStatement=" + parsedStatement +
                 ", iqlQuery=" + iqlQuery +
                 ", queryStartTimestamp=" + queryStartTimestamp +

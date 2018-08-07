@@ -73,7 +73,7 @@ public class IQLDB {
                                 "(query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
                                 "VALUES (?, ?, ?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), ?, ?)",
                             Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000));
+                ps.setString(1, StringUtils.abbreviate(query.queryInfo.queryStringTruncatedForPrint, 1000));
                 ps.setString(2, StringUtils.abbreviate(query.queryHash, 30));
                 ps.setString(3, StringUtils.abbreviate(query.clientInfo.username, 100));
                 ps.setString(4, StringUtils.abbreviate(query.clientInfo.client, 100));
