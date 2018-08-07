@@ -19,7 +19,6 @@ import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.ImhotepMemoryPool;
-import com.indeed.imhotep.ImhotepRemoteSession;
 import com.indeed.imhotep.MemoryReservationContext;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -36,8 +35,6 @@ import org.junit.Ignore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,14 +46,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Ignore
 public class TestImhotepClient extends ImhotepClient {
-    private final List<com.indeed.squall.iql2.server.web.servlets.dataset.Shard> shards;
+    private final List<com.indeed.iql2.server.web.servlets.dataset.Shard> shards;
 
-    public TestImhotepClient(List<com.indeed.squall.iql2.server.web.servlets.dataset.Shard> shards) {
+    public TestImhotepClient(List<com.indeed.iql2.server.web.servlets.dataset.Shard> shards) {
         super(new DummyHostsReloader(Collections.<Host>emptyList()));
         this.shards = shards;
 
         final Map<String, DatasetInfo> datasetToDatasetInfo = new HashMap<>();
-        for (final com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard : shards) {
+        for (final com.indeed.iql2.server.web.servlets.dataset.Shard shard : shards) {
             final String dataset = shard.dataset;
 
             DatasetInfo datasetInfo = datasetToDatasetInfo.get(dataset);
@@ -87,7 +84,7 @@ public class TestImhotepClient extends ImhotepClient {
     @Override
     protected List<Shard> getAllShardsForTimeRange(String dataset, DateTime start, DateTime end) {
         final List<Shard> result = new ArrayList<>();
-        for(com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard: shards) {
+        for(com.indeed.iql2.server.web.servlets.dataset.Shard shard: shards) {
             if(!shard.dataset.equals(dataset)) {
                 continue;
             }
@@ -123,7 +120,7 @@ public class TestImhotepClient extends ImhotepClient {
 
                 final List<ImhotepLocalSession> sessions = new ArrayList<>();
 
-                for (final com.indeed.squall.iql2.server.web.servlets.dataset.Shard shard : TestImhotepClient.this.shards) {
+                for (final com.indeed.iql2.server.web.servlets.dataset.Shard shard : TestImhotepClient.this.shards) {
                     if (shardIds.contains(shard.shardId) && shard.dataset.equals(dataset)) {
                         try {
                             sessions.add(new ImhotepJavaLocalSession("TestSession", shard.flamdex));
