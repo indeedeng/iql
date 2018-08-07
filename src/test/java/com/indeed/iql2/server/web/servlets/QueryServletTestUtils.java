@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.web.AccessControl;
@@ -33,7 +34,7 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.Shard;
-import com.indeed.iql2.server.web.servlets.query.QueryServlet;
+import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
@@ -45,10 +46,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static IQLDB iqldb;
+
+    private static ExecutorService executorService = new ThreadPoolExecutor(
+                3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
+                new NamedThreadFactory("IQL-Worker")
+        );
 
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
@@ -68,15 +78,17 @@ public class QueryServletTestUtils extends BasicTest {
 
         return new QueryServlet(
                 imhotepClient,
+                metadataCache,
+                metadataCache,
+                new TopTermsCache(imhotepClient, "", true, false),
                 options.queryCache,
                 runningQueriesManager,
-                metadataCache,
+                executorService,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
-                new TopTermsCache(imhotepClient, "", true, false),
                 MetricStatsEmitter.NULL_EMITTER,
-                options.wallClock,
-				new FieldFrequencyCache(null));
+				new FieldFrequencyCache(null),
+                options.wallClock);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -103,6 +115,7 @@ public class QueryServletTestUtils extends BasicTest {
         switch (version) {
             case IQL1:
                 request.addParameter("v", "1");
+                request.addParameter("legacymode", "1");
                 break;
             case IQL2:
                 request.addParameter("v", "2");

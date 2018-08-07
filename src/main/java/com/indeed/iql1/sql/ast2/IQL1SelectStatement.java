@@ -14,6 +14,7 @@
  package com.indeed.iql1.sql.ast2;
 
 import com.indeed.iql1.sql.ast.Expression;
+import com.indeed.iql1.sql.ast.ValueObject;
 
 import java.util.List;
 
@@ -21,7 +22,7 @@ import java.util.List;
  * @author vladimir
  */
 
-public class IQL1SelectStatement {
+public class IQL1SelectStatement extends ValueObject {
     public final SelectClause select;
     public final FromClause from;
     public final WhereClause where;

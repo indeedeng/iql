@@ -103,7 +103,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -175,7 +174,7 @@ public class SelectQueryExecution implements Closeable {
         Closeables2.closeQuietly(closer, log);
     }
 
-    public void processSelect(final RunningQueriesManager runningQueriesManager) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
         // .. just in case.
         synchronized (this) {
             if (ran) {
@@ -192,20 +191,12 @@ public class SelectQueryExecution implements Closeable {
         }
         final Consumer<String> out;
         if (isStream) {
-            out = new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    outputStream.print("data: ");
-                    outputStream.println(s);
-                }
+            out = s -> {
+                outputStream.print("data: ");
+                outputStream.println(s);
             };
         } else {
-            out = new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    outputStream.println(s);
-                }
-            };
+            out = outputStream::println;
         }
 
         final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
@@ -291,7 +282,7 @@ public class SelectQueryExecution implements Closeable {
             final Consumer<String> out,
             final ProgressCallback progressCallback,
             final Consumer<String> warn
-    ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
+    ) throws IOException {
         timer.push("Select query execution");
 
         timer.push("parse query");

@@ -27,6 +27,7 @@ import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
+import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.language.ExplainStatement;
@@ -50,6 +51,7 @@ import com.indeed.iql.language.ShowStatement;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql1.web.QueryMetadata;
 import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
+import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.StoppedClock;
@@ -130,7 +132,6 @@ public class QueryServlet {
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
     private final AccessControl accessControl;
-    private final com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
@@ -144,7 +145,6 @@ public class QueryServlet {
                         final RunningQueriesManager runningQueriesManager,
                         final ExecutorService executorService,
                         final AccessControl accessControl,
-                        final com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2,
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock) {
@@ -156,19 +156,15 @@ public class QueryServlet {
         this.runningQueriesManager = runningQueriesManager;
         this.executorService = executorService;
         this.accessControl = accessControl;
-        this.queryServletV2 = queryServletV2;
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
         this.clock = clock;
     }
 
     @RequestMapping("/query")
-    protected void query(final HttpServletRequest req, final HttpServletResponse resp,
+    public void query(final HttpServletRequest req, final HttpServletResponse resp,
                          final @Nonnull @RequestParam("q") String query) throws IOException {
 
-        final int version = ServletUtil.getIQLVersionBasedOnParam(req);
-        boolean iql2Mode = version == 2;
-        boolean iql1Mode = !iql2Mode;
         final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
         final String contentType = Optional.ofNullable(req.getHeader("Accept")).orElse("text/plain;charset=utf-8");
 
@@ -182,24 +178,9 @@ public class QueryServlet {
         final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
                 clientExecutionId, accessControl.isMultiuserClient(client));
         long querySubmitTimestamp = System.currentTimeMillis();
-        final TreeTimer timer = new TreeTimer() {
-            @Override
-            public void push(String s) {
-                super.push(s);
-                log.info(s);
-            }
-        };
-
-        final boolean json = req.getParameter("json") != null;
+        final QueryRequestParams queryRequestParams = new QueryRequestParams(req, clientInfo.username, clientInfo.client, contentType);
         Throwable errorOccurred = null;
-        final QueryInfo queryInfo = new QueryInfo(query, version);
-
-
-        // TODO remove
-        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
-            queryServletV2.query(req, resp, query);
-            return;
-        }
+        final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version);
 
         try {
             if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
@@ -215,51 +196,21 @@ public class QueryServlet {
 
 
             if(iqlStatement instanceof SelectStatement) {
-                final IQL1SelectStatement parsedQuery = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
-
-                setQueryInfoFromSelectStatement(parsedQuery, queryInfo);
-
-                final Limits limits = accessControl.getLimitsForIdentity(userName, client);
-
-                SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                        new DateTime(querySubmitTimestamp), parsedQuery, (byte)1, null);
-
-                logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
-
-                try {
-                    selectQuery.lock(); // blocks and waits if necessary
-
-                    querySubmitTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
-
-                    // actually process
-                    final SelectRequestArgs selectRequestArgs = new SelectRequestArgs(req, userName, client);
-
-                    handleSelectStatement(selectQuery, selectRequestArgs, resp);
-                } finally {
-                    // this must be closed. but we may have to defer it to the async thread finishing query processing
-                    if(!selectQuery.isAsynchronousRelease()) {
-                        Closeables2.closeQuietly(selectQuery, log);
-                    }
-                }
+                querySubmitTimestamp = handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp, querySubmitTimestamp);
             } else if(iqlStatement instanceof DescribeStatement) {
-                final DescribeStatement describeStatement = (DescribeStatement) iqlStatement;
-                queryInfo.datasets = Sets.newHashSet(describeStatement.dataset);
-                queryInfo.datasetFields = Sets.newHashSet(describeStatement.dataset + "." + describeStatement.field);
-                handleDescribeStatement(req, resp, describeStatement, contentType);
+                handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
             } else if(iqlStatement instanceof ShowStatement) {
-                handleShowStatement(req, resp, contentType);
+                handleShowStatement(queryRequestParams, resp);
             } else if(iqlStatement instanceof ExplainStatement) {
-                final ExplainStatement explainStatement = (ExplainStatement) iqlStatement;
-                handleExplainStatement(explainStatement, req, resp, version, clock, contentType);
+                handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
             } else {
                 throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
             }
         } catch (Throwable e) {
-            final boolean progress = req.getParameter("progress") != null;
             if (e instanceof Exception) {
                 e = ImhotepErrorResolver.resolve((Exception) e);
             }
-            handleError(resp, json, e, true, progress);
+            handleError(resp, queryRequestParams.json, e, true, queryRequestParams.isEventStream);
             errorOccurred = e;
         } finally {
             try {
@@ -324,7 +275,60 @@ public class QueryServlet {
         return value;
     }
 
-    private void handleSelectStatement(final SelectQuery selectQuery, final SelectRequestArgs args, final HttpServletResponse resp) throws IOException {
+    private long handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
+                                       QueryRequestParams queryRequestParams, HttpServletResponse resp, long querySubmitTimestamp) throws IOException, ImhotepOutOfMemoryException {
+        final TreeTimer timer = new TreeTimer() {
+            @Override
+            public void push(String s) {
+                super.push(s);
+                log.info(s);
+            }
+        };
+
+        final String query = selectStatement.selectQuery;
+        setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
+        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+        final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
+        logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
+
+
+        if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
+            // IQL2
+
+            final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                    queryCache, limits, imhotepClient,
+                    metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
+                    queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation, clock);
+            selectQueryExecution.processSelect(runningQueriesManager);
+            querySubmitTimestamp = selectQueryExecution.queryStartTimestamp;
+        } else {
+            // IQL1
+            final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
+            setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
+            SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+                    new DateTime(querySubmitTimestamp), iql1SelectStatement, (byte) 1, null);
+            try {
+                selectQuery.lock(); // blocks and waits if necessary
+
+                querySubmitTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
+
+                // actually process
+                runSelectStatement(selectQuery, queryRequestParams, resp);
+            } finally {
+                // this must be closed. but we may have to defer it to the async thread finishing query processing
+                if (!selectQuery.isAsynchronousRelease()) {
+                    Closeables2.closeQuietly(selectQuery, log);
+                }
+            }
+        }
+
+        fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
+        log.debug(timer);
+
+        return querySubmitTimestamp;
+    }
+
+    private void runSelectStatement(final SelectQuery selectQuery, final QueryRequestParams args, final HttpServletResponse resp) throws IOException {
         final QueryInfo queryInfo = selectQuery.queryInfo;
         final IQL1SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
@@ -336,7 +340,6 @@ public class QueryServlet {
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
-        fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, selectQuery.clientInfo);
 
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
@@ -419,13 +422,12 @@ public class QueryServlet {
             return;
         }
         final ServletOutputStream outputStream = resp.getOutputStream();
-        if (args.progress) {
+        if (args.isEventStream) {
             outputStream.print(": This is the start of the IQL Query Stream\n\n");
         }
 
         // TODO remove
         if (true) {
-            setContentType(resp, args.avoidFileSave, args.csv, args.progress);
             if (!args.cacheReadDisabled && isCached) {
                 log.trace("Returning cached data in " + cacheFileName);
 
@@ -442,8 +444,8 @@ public class QueryServlet {
                 }
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
-                final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.progress);
-                if(args.progress) {
+                final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
+                if(args.isEventStream) {
                     completeStream(outputStream, queryMetadata);
                 }
                 outputStream.close();
@@ -456,7 +458,7 @@ public class QueryServlet {
                 // TODO: should we always get totals? opt out http param?
                 final DateTime execStartTime = DateTime.now();
 
-                executionResult = iqlQuery.execute(args.progress, outputStream, true);
+                executionResult = iqlQuery.execute(args.isEventStream, outputStream, true);
 
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
                 queryMetadata.addItem("Imhotep-Session-ID", queryInfo.sessionIDs.iterator().next());
@@ -469,7 +471,7 @@ public class QueryServlet {
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
                 final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
                 final long beginSendToClientMillis = System.currentTimeMillis();
-                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+                writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.isEventStream, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 queryInfo.sendToClientMillis = System.currentTimeMillis() - beginSendToClientMillis;
                 if (writeResults.exceedsLimit) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
@@ -521,7 +523,7 @@ public class QueryServlet {
             if (queryInfo.cpuSlotsExecTimeMs != null) {
             	queryMetadata.addItem("Imhotep-CPU-Slots-Execution-Time-MS", queryInfo.cpuSlotsExecTimeMs);
             }
-            if(args.progress) {
+            if(args.isEventStream) {
             	completeStream(outputStream, queryMetadata);
             }
             outputStream.close();
@@ -621,29 +623,29 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, HttpServletRequest req, HttpServletResponse resp, int version, WallClock clock, String contentType) throws IOException, TimeoutException, ImhotepOutOfMemoryException {
-        if(version == 1) {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException, TimeoutException, ImhotepOutOfMemoryException {
+        if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
-
-        final boolean isJSON = req.getParameter("json") != null || contentType.contains("application/json");
-        if (isJSON) {
+        if (queryRequestParams.json) {
             resp.setHeader("Content-Type", "application/json");
         }
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, version, isJSON, clock);
+                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock);
         explainQueryExecution.processExplain();
     }
 
-    private void handleDescribeStatement(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
-        if(Strings.isNullOrEmpty(parsedQuery.field)) {
-            handleDescribeDataset(req, resp, parsedQuery, contentType);
+    private void handleDescribeStatement(DescribeStatement describeStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, QueryInfo queryInfo) throws IOException {
+        queryInfo.datasets = Sets.newHashSet(describeStatement.dataset);
+        if(Strings.isNullOrEmpty(describeStatement.field)) {
+            handleDescribeDataset(describeStatement, queryRequestParams, resp);
         } else {
-            handleDescribeField(req, resp, parsedQuery, contentType);
+            queryInfo.datasetFields = Sets.newHashSet(describeStatement.dataset + "." + describeStatement.field);
+            handleDescribeField(describeStatement, queryRequestParams, resp);
         }
     }
 
-    private void handleDescribeField(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
+    private void handleDescribeField(DescribeStatement parsedQuery, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
@@ -653,9 +655,8 @@ public class QueryServlet {
             field = new FieldMetadata("notfound", FieldType.String);
             field.setDescription("Field not found");
         }
-        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
-        if(json) {
-            resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        if(queryRequestParams.json) {
+            resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             field.toJSON(jsonRoot);
 
@@ -673,13 +674,12 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    private void handleDescribeDataset(HttpServletRequest req, HttpServletResponse resp, DescribeStatement parsedQuery, String contentType) throws IOException {
+    private void handleDescribeDataset(DescribeStatement describeStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
-        final String dataset = parsedQuery.dataset;
+        final String dataset = describeStatement.dataset;
         final DatasetMetadata datasetMetadata = metadataCacheIQL1.getDataset(dataset);
-        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
-        if(json) {
-            resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        if(queryRequestParams.json) {
+            resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             datasetMetadata.toJSON(jsonRoot, OBJECT_MAPPER, false);
 
@@ -695,12 +695,11 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    private void handleShowStatement(final HttpServletRequest req, final HttpServletResponse resp, String contentType) throws IOException {
+    private void handleShowStatement(QueryRequestParams queryRequestParams, final HttpServletResponse resp) throws IOException {
         final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
-        final boolean json = req.getParameter("json") != null || contentType.contains("application/json");
 
-        if(json) {
-            resp.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        if(queryRequestParams.json) {
+            resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             final ArrayNode array = OBJECT_MAPPER.createArrayNode();
             jsonRoot.set("datasets", array);
@@ -718,7 +717,7 @@ public class QueryServlet {
         outputStream.close();
     }
 
-    public static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean status500, boolean isEventStream) throws IOException {
+    public static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean setHTTPStatus, boolean isEventStream) throws IOException {
         if(!(e instanceof Exception || e instanceof OutOfMemoryError)) {
             throw Throwables.propagate(e);
         }
@@ -727,7 +726,7 @@ public class QueryServlet {
             final ServletOutputStream outputStream = resp.getOutputStream();
             final PrintStream printStream = new PrintStream(outputStream, false, "UTF-8");
             if(isEventStream) {
-                resp.setContentType("text/event-stream");
+                resp.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
                 final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
                 printStream.println("event: servererror");
                 for (String s : stackTrace) {
@@ -735,13 +734,13 @@ public class QueryServlet {
                 }
                 printStream.println();
             } else {
-                resp.setStatus(500);
+                resp.setStatus(getHTTPStatusForError(e));
                 e.printStackTrace(printStream);
                 printStream.close();
             }
         } else {
-            if(status500) {
-                resp.setStatus(500);
+            if(setHTTPStatus) {
+                resp.setStatus(getHTTPStatusForError(e));
             }
             // construct a parsed error object to be JSON serialized
             String clause = "";
@@ -753,11 +752,26 @@ public class QueryServlet {
             }
             final String stackTrace = Throwables.getStackTraceAsString(Throwables.getRootCause(e));
             final ErrorResult error = new ErrorResult(e.getClass().getSimpleName(), e.getMessage(), stackTrace, clause, offset);
-            resp.setContentType("application/json");
-            final ServletOutputStream outputStream = resp.getOutputStream();
+            resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
+            final PrintWriter outputStream = resp.getWriter();
             OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(outputStream, error);
             outputStream.close();
         }
+    }
+
+    private static int getHTTPStatusForError(Throwable e) {
+        if(isKnownError(e)) {
+            return 400;
+        } else {
+            return 500;
+        }
+
+        // TODO: return 404 on NoShardsException when it exists
+    }
+
+
+    private static boolean isKnownError(final Throwable error) {
+        return (error instanceof ImhotepKnownException) || (error instanceof IqlKnownException);
     }
 
     // Logging code below
@@ -766,8 +780,7 @@ public class QueryServlet {
     // this is the pre URL-encoded limit and encoding can make it about twice longer
     private static final int LOGGED_FIELD_LENGTH_LIMIT = 8092;
 
-    // TODO
-    public static void logQuery(QueryInfo queryInfo,
+    private static void logQuery(QueryInfo queryInfo,
                                  ClientInfo clientInfo,
                                  HttpServletRequest req,
                                  long queryStartTimestamp,
@@ -776,8 +789,13 @@ public class QueryServlet {
                                  MetricStatsEmitter metricStatsEmitter) {
         final long timeTaken = System.currentTimeMillis() - queryStartTimestamp;
         final String queryWithShortenedLists = queryInfo.queryStringTruncatedForPrint;
-        if (timeTaken > 5000) {  // we've already logged the query so only log again if it took a long time to run
+        final boolean error = errorOccurred != null;
+        final boolean systemError = error && !isKnownError(errorOccurred);
+        if (timeTaken > 5000 || systemError) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(queryWithShortenedLists, (Strings.isNullOrEmpty(clientInfo.username) ? remoteAddr : clientInfo.username), timeTaken);
+            if (systemError) {
+                log.info("System error during query execution", errorOccurred);
+            }
         }
 
         final QueryLogEntry logEntry = new QueryLogEntry();
@@ -853,8 +871,6 @@ public class QueryServlet {
         final String queryToLog = queryWithShortenedLists.length() > LOGGED_FIELD_LENGTH_LIMIT ? queryWithShortenedLists.substring(0, LOGGED_FIELD_LENGTH_LIMIT) : queryWithShortenedLists;
         logEntry.setProperty("q", queryToLog);
         logEntry.setProperty("qlen", queryInfo.queryLength);
-        final boolean error = errorOccurred != null;
-        final boolean systemError = error && !ServletUtil.isKnownError(errorOccurred);
         logEntry.setProperty("error", error ? "1" : "0");
         logEntry.setProperty("systemerror", systemError ? "1" : "0");
         if (error) {
@@ -937,20 +953,21 @@ public class QueryServlet {
 
     public static void setContentType(HttpServletResponse resp, boolean avoidFileSave, boolean csv, boolean progress) {
         if(avoidFileSave) {
-            resp.setContentType("text/plain");
+            resp.setContentType("text/plain;charset=utf-8");
         } else if (csv) {
-            resp.setContentType("text/csv");
+            resp.setContentType("text/csv;charset=utf-8");
             resp.setHeader("Content-Disposition", "inline; filename=\"iqlresult.csv\"");
         } else if (progress) {
-            resp.setContentType("text/event-stream");
+            resp.setContentType("text/event-stream;charset=utf-8");
             resp.setHeader("Cache-Control", "no-cache");
         } else {
-            resp.setContentType("text/tab-separated-values");
+            resp.setContentType("text/tab-separated-values;charset=utf-8");
             resp.setHeader("Content-Disposition", "inline; filename=\"iqlresult.tsv\"");
         }
     }
 
-    private class SelectRequestArgs {
+    private class QueryRequestParams {
+        public final int version;
         public final boolean avoidFileSave;
         public final boolean csv;
         public final boolean interactive;
@@ -959,12 +976,16 @@ public class QueryServlet {
         public final boolean cacheReadDisabled;
         public final boolean cacheWriteDisabled;
         public final boolean headOnly;
-        public final boolean progress;
+        public final boolean json;
+        public final boolean isEventStream;
         public final boolean getTotals;
+        public final boolean skipValidation;
+        public final boolean legacyMode;
         public final String imhotepUserName;
         public final String requestURL;
+        public final String remoteAddr;
 
-        public SelectRequestArgs(HttpServletRequest req, String userName, String clientName) {
+        public QueryRequestParams(HttpServletRequest req, String userName, String clientName, String contentType) {
             avoidFileSave = req.getParameter("view") != null;
             csv = req.getParameter("csv") != null;
             interactive = req.getParameter("interactive") != null;
@@ -973,10 +994,15 @@ public class QueryServlet {
             cacheReadDisabled = !queryCache.isEnabled() || req.getParameter("nocacheread") != null || req.getParameter("nocache") != null;
             cacheWriteDisabled = !queryCache.isEnabled() || req.getParameter("nocachewrite") != null || req.getParameter("nocache") != null;
             headOnly = "HEAD".equals(req.getMethod()) || req.getParameter("head") != null;
-            progress = req.getParameter("progress") != null;
+            isEventStream = req.getParameter("progress") != null || contentType.contains("text/event-stream");
+            json = req.getParameter("json") != null || contentType.contains("application/json");
             getTotals = req.getParameter("totals") != null;
+            skipValidation = "1".equals(req.getParameter("skipValidation"));
             imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
+            remoteAddr = req.getRemoteAddr();
+            version = ServletUtil.getIQLVersionBasedOnParam(req);
+            legacyMode = req.getParameter("legacymode") != null;
         }
     }
 }

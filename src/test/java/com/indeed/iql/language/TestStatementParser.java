@@ -54,14 +54,18 @@ public class TestStatementParser {
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
 
-        query = StatementParser.parseIQLToStatement("explain " + dataset);
-        assertTrue(query instanceof DescribeStatement);
-        assertEquals(dataset, ((DescribeStatement) query).dataset);
-
         String field = "myfield";
         query = StatementParser.parseIQLToStatement("describe " + dataset + "." + field);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
         assertEquals(field, ((DescribeStatement) query).field);
+    }
+
+    @Test
+    public void testExplain() {
+        String query = "FROM dataset 2d 1d select count()";
+        IQLStatement statement = StatementParser.parseIQLToStatement("explain " + query);
+        assertTrue(statement instanceof ExplainStatement);
+        assertEquals(query, ((ExplainStatement) statement).selectQuery);
     }
 }
