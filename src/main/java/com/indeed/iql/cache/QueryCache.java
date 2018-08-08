@@ -11,7 +11,7 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.iql.cache;
+ package com.indeed.iql.cache;
 
 import java.io.File;
 import java.io.IOException;

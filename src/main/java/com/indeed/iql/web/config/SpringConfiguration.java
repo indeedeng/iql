@@ -19,8 +19,8 @@ import com.google.common.collect.Lists;
 import com.indeed.iql.LocalImhotepDaemon;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.iql1.iql.cache.QueryCache;
-import com.indeed.iql1.iql.cache.QueryCacheFactory;
+import com.indeed.iql.cache.QueryCache;
+import com.indeed.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.web.AccessControl;
@@ -103,10 +103,10 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return new SpringContextAware();
     }
     @Bean(destroyMethod = "shutdown")
-    public ExecutorService executorService()  {
+    public ExecutorService cacheUploadExecutorService()  {
         return new ThreadPoolExecutor(
-                3, 20, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
-                new NamedThreadFactory("IQL-Worker")
+                3, 20, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+                new NamedThreadFactory("IQL-Cache-Uploader")
         );
     }
 
@@ -359,7 +359,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 //    @PreDestroy
 //    public void destroy() throws IOException {
 //        try {
-//            executorService().awaitTermination(60, TimeUnit.SECONDS);
+//            cacheUploadExecutorService().awaitTermination(60, TimeUnit.SECONDS);
 //        } catch (InterruptedException e) {
 //            throw new IOException("interrupted while shutting down", e);
 //        }

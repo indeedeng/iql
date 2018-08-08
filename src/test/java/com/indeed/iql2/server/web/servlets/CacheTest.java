@@ -94,7 +94,13 @@ public class CacheTest extends BasicTest {
             final List<List<String>> result1 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
             final List<List<String>> result2 = QueryServletTestUtils.runQuery(shards, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
-            Assert.assertEquals(1, queryCache.getReadsTracked().size());
+            final long waitStart = System.currentTimeMillis();
+            while(queryCache.getReadsTracked().size() != 2) {   // should have 2 files: metadata and data
+                if(System.currentTimeMillis() - waitStart > 1000) {
+                    Assert.fail("Async cache upload didn't complete in 1 second");
+                }
+                Thread.sleep(1);
+            }
             Assert.assertEquals(result1, result2);
         }
     }

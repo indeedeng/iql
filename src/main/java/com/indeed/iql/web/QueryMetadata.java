@@ -11,8 +11,11 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.web;
+ package com.indeed.iql.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,6 +23,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
+import org.apache.commons.lang.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedOutputStream;
@@ -37,17 +41,29 @@ import java.util.Map;
  */
 
 public class QueryMetadata {
-    private final List<QueryMetadataItem> items = Lists.newArrayList();
+    private final List<QueryMetadataItem> items;
 
-    public void addItem(String name, Object value) {
-        addItem(name, value, true);
+    final HttpServletResponse resp;
+
+    QueryMetadata() {
+        this(null);
     }
 
-    public void addItem(String name, Object value, boolean sendPending) {
-        items.add(new QueryMetadataItem(name, value, sendPending));
+    public QueryMetadata(HttpServletResponse resp) {
+        this.resp = resp;
+        this.items = Lists.newArrayList();
     }
 
-    public String toJSON() {
+    public QueryMetadata(HttpServletResponse resp, List<QueryMetadataItem> items) {
+        this.resp = resp;
+        this.items = items;
+    }
+
+    public void addItem(String name, Object value, boolean sendAsHeader) {
+        items.add(new QueryMetadataItem(name, value, sendAsHeader));
+    }
+
+    public String toJSONForClients() {
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode headerObject = mapper.createObjectNode();
         for(QueryMetadataItem queryMetadataItem : items) {
@@ -56,21 +72,31 @@ public class QueryMetadata {
         return headerObject.toString();
     }
 
-    public void setPendingHeaders(HttpServletResponse resp) {
+    public String toJSONForCaching() {
+        final ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.writeValueAsString(items);
+        } catch (JsonProcessingException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public void setPendingHeaders() {
         for(QueryMetadataItem queryMetadataItem : items) {
-            if(queryMetadataItem.sendPending) {
+            if(queryMetadataItem.sendAsHeaderPending) {
                 resp.setHeader(queryMetadataItem.name, queryMetadataItem.value);
                 queryMetadataItem.markSent();
             }
         }
+        resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
     }
 
     /**
      * Serializes this object to the stream as JSON.
      * Closes the stream after.
      */
-    public void toStream(OutputStream outputStream) {
-        final String stringSerialization = toJSON();
+    public void toOutputStream(OutputStream outputStream) {
+        final String stringSerialization = toJSONForCaching();
         try {
             final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8);
             outputStreamWriter.write(stringSerialization);
@@ -83,23 +109,30 @@ public class QueryMetadata {
 
     public static QueryMetadata fromStream(InputStream inputStream) {
         final String stringVal = streamToString(inputStream);
-        return fromJSON(stringVal);
+        return fromJSON(stringVal, null);
     }
 
-    public static QueryMetadata fromJSON(String json) {
-        final QueryMetadata metadataObject = new QueryMetadata();
+    public static QueryMetadata fromJSON(String json, HttpServletResponse resp) {
         final ObjectMapper mapper = new ObjectMapper();
         try {
-            final JsonNode root = mapper.readTree(json);
-            final Iterator<Map.Entry<String, JsonNode>> nodeIterator = root.fields();
-            while(nodeIterator.hasNext()) {
-                Map.Entry<String, JsonNode> item = nodeIterator.next();
-                metadataObject.addItem(item.getKey(), item.getValue().textValue());
+            List<QueryMetadataItem> items = mapper.readValue(json, new TypeReference<List<QueryMetadataItem>>() {});
+            return new QueryMetadata(resp, items);
+        } catch (Exception e) {
+            // TODO: delete. fallback to try to read old format
+            try {
+                final QueryMetadata metadataObject = new QueryMetadata(resp);
+                final JsonNode root = mapper.readTree(json);
+                final Iterator<Map.Entry<String, JsonNode>> nodeIterator = root.fields();
+                while (nodeIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> item = nodeIterator.next();
+                    metadataObject.addItem(item.getKey(), item.getValue().textValue(), false);
+                }
+                return metadataObject;
+            } catch (IOException ignored) {
+                // fallback failed, propagate initial error
+                throw Throwables.propagate(e);
             }
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
         }
-        return metadataObject;
     }
 
     /**
@@ -114,13 +147,13 @@ public class QueryMetadata {
                 }
             }
             if(!alreadyExists) {
-                addItem(otherItem.name, otherItem.value);
+                addItem(otherItem.name, otherItem.value, otherItem.sendAsHeader);
             }
         }
     }
 
     public QueryMetadata copy() {
-        final QueryMetadata newInstance = new QueryMetadata();
+        final QueryMetadata newInstance = new QueryMetadata(resp);
         newInstance.items.addAll(this.items);
         return newInstance;
     }
@@ -137,18 +170,24 @@ public class QueryMetadata {
     }
 
     private static class QueryMetadataItem {
-        public final String name;
-        public final String value;
-        public boolean sendPending;
+        public String name;
+        public String value;
+        public boolean sendAsHeader;
+        @JsonIgnore
+        public boolean sendAsHeaderPending;
 
-        public QueryMetadataItem(String name, Object value, boolean sendPending) {
+        QueryMetadataItem() {
+        }
+
+        public QueryMetadataItem(String name, Object value, boolean sendAsHeader) {
             this.name = name;
             this.value = value == null ? "" : String.valueOf(value);
-            this.sendPending = sendPending;
+            this.sendAsHeader = sendAsHeader;
+            this.sendAsHeaderPending = sendAsHeader;
         }
 
         public void markSent() {
-            sendPending = false;
+            sendAsHeaderPending = false;
         }
     }
 }

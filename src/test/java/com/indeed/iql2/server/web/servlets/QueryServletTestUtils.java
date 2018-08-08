@@ -23,7 +23,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.QueryServlet;
-import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.FieldFrequencyCache;

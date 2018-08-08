@@ -38,10 +38,11 @@ public class QueryInfo {
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
 
-    public QueryInfo(String query, int iqlVersion) {
+    public QueryInfo(String query, int iqlVersion, long queryStartTimestamp) {
         this.queryLength = query.length();
         this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
         this.iqlVersion = iqlVersion;
+        this.queryStartTimestamp = queryStartTimestamp;
     }
 
     @JsonIgnore
@@ -52,6 +53,7 @@ public class QueryInfo {
     public String queryStringTruncatedForPrint() {
         return queryStringTruncatedForPrint;
     }
+    public @Nullable long queryStartTimestamp;
     public final int iqlVersion;
     public int queryLength;
     public @Nullable Set<String> datasets;
@@ -80,6 +82,7 @@ public class QueryInfo {
     public @Nullable Boolean headOnly;
 
     public @Nullable String timingTreeReport;
+    public @Nullable Long totalTime;
 
     public @Nullable Long lockWaitMillis;
     public @Nullable Long cacheCheckMillis;

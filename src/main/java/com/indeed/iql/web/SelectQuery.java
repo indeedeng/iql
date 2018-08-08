@@ -54,6 +54,7 @@ public class SelectQuery implements Closeable {
     /** Only in IQL1 */
     @Nullable
     final IQL1SelectStatement parsedStatement;
+    final QueryMetadata queryMetadata;
     Closeable iqlQuery;
     boolean cancelled = false;
     DateTime queryStartTimestamp;
@@ -63,7 +64,7 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, IQL1SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
+    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, IQL1SelectStatement parsedStatement, byte sessions, QueryMetadata queryMetadata, Closeable iqlQuery) {
         this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
         this.clientInfo = clientInfo;
@@ -72,6 +73,7 @@ public class SelectQuery implements Closeable {
         this.parsedStatement = parsedStatement;
         this.queryHash = getQueryHash(queryString, null, false);
         this.sessions = sessions;
+        this.queryMetadata = queryMetadata;
         this.iqlQuery = iqlQuery;
         this.shortHash = this.queryHash.substring(0, 6);
         log.debug("Query created with hash " + shortHash);

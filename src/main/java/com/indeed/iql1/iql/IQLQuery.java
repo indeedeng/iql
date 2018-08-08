@@ -252,10 +252,9 @@ public final class IQLQuery implements Closeable {
                 count = updateProgress(progress, out, count);
                 final List<GroupStats> result = Lists.newArrayList();
                 result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));
-                queryInfo.timingTreeReport = timer.toString().replace('\n', '\t');
                 executionResult = new ExecutionResult(result.iterator(), stats);
             }
-            queryInfo.timingTreeReport = timer.toString().replace('\n', '\t');
+            queryInfo.timingTreeReport = timer.toString();
             queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
             return executionResult;
         } catch (Throwable t) {
@@ -640,6 +639,10 @@ public final class IQLQuery implements Closeable {
     public DateTime getStart(){ return start; }
 
     public DateTime getEnd() { return end; }
+
+    public String getDataset() {
+        return dataset;
+    }
 
     @Override
     public void close() {
