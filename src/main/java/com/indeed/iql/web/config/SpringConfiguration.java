@@ -149,7 +149,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         // connect to an externally running ShardMaster via its leader election node
         return getImhotepClient(
                 env.getProperty("imhotep.shardmaster.zookeeper.quorum"),
-                env.getProperty("imhotep.shardmaster.zookeeper.path") + "-election",
+                env.getProperty("imhotep.shardmaster.zookeeper.path"),
                 env.getProperty("imhotep.shardmaster.host"),
                 false);
     }
