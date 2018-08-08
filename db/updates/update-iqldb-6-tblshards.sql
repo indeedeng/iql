@@ -1,8 +1,8 @@
 create table tblshards
 (
-  path           varchar(512) null,
-  numDocs        int          null,
-  addedtimestamp bigint       null
+  path           varchar(357) not null,
+  numDocs        int          not null,
+  addedtimestamp bigint       not null
 );
 
 create index tblshards_addedtimestamp_path_index
