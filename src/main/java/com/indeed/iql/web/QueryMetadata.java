@@ -63,6 +63,14 @@ public class QueryMetadata {
         items.add(new QueryMetadataItem(name, value, sendAsHeader));
     }
 
+    public void renameItem(String oldName, String newName) {
+        for(QueryMetadataItem queryMetadataItem : items) {
+            if(queryMetadataItem.name.equals(oldName)) {
+                queryMetadataItem.name = newName;
+            }
+        }
+    }
+
     public String toJSONForClients() {
         final ObjectMapper mapper = new ObjectMapper();
         final ObjectNode headerObject = mapper.createObjectNode();

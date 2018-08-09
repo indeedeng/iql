@@ -501,6 +501,8 @@ public class SelectQueryExecution implements Closeable {
                     if (isCached) {
                         timer.push("read cache");
                         if (isTopLevelQuery) {
+                            boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
+                            queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
                             // read metadata from cache
                             try {
                                 final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
@@ -509,8 +511,6 @@ public class SelectQueryExecution implements Closeable {
                             } catch (Exception e) {
                                 log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
                             }
-                            boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
-                            queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
                             queryMetadata.setPendingHeaders();
                         }
                         // TODO: Don't have this hack
@@ -661,6 +661,7 @@ public class SelectQueryExecution implements Closeable {
                 if (!warnings.isEmpty()) {
                     queryMetadata.addItem("IQL-Warning", Joiner.on('\n').join(warnings), false);
                 }
+                queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
                 queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
 
                 outputStream.println("data: " + queryMetadata.toJSONForClients());

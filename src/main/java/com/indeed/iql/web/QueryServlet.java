@@ -396,7 +396,7 @@ public class QueryServlet {
                     final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
                     final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
                     queryMetadata.mergeIn(cachedMetadata);
-
+                    queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
                     queryMetadata.setPendingHeaders();
                     resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
                 } catch (Exception e) {
@@ -405,8 +405,10 @@ public class QueryServlet {
 
                 final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
                 final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
-                finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
                 queryInfo.rows = rowsWritten;
+                queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
+                queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
+                finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
                 return;
             }
             final IQLQuery.WriteResults writeResults;
@@ -443,7 +445,7 @@ public class QueryServlet {
                 String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
                 queryMetadata.addItem("IQL-Warning", warning, false);
             }
-
+            queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
             queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
 
             if (!args.cacheWriteDisabled && !isCached) {
@@ -476,7 +478,6 @@ public class QueryServlet {
     }
 
     private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, ServletOutputStream outputStream, QueryInfo queryInfo) throws IOException {
-        queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
         if (args.isEventStream) {
             completeEventStream(outputStream, queryMetadata);
         }
