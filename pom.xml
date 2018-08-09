@@ -38,7 +38,7 @@
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.5.1</version>
+                <version>4.7.1</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>
@@ -353,7 +353,7 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
-            <version>4.5</version>
+            <version>4.7.1</version>
         </dependency>
 
         <dependency>
@@ -373,6 +373,13 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
 

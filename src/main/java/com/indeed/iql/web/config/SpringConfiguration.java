@@ -19,6 +19,8 @@ import com.google.common.collect.Lists;
 import com.indeed.iql.LocalImhotepDaemon;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.SQLToIQL.AntlrParserGenerator;
+import com.indeed.iql.SQLToIQL.SQLToIQLParser;
 import com.indeed.iql1.iql.cache.QueryCache;
 import com.indeed.iql1.iql.cache.QueryCacheFactory;
 import com.indeed.imhotep.service.MetricStatsEmitter;
@@ -373,5 +375,10 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Bean
     public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
         return new ScheduledThreadPoolExecutor(4);
+    }
+
+    @Bean
+    SQLToIQLParser buildAntlrParser() {
+        return new SQLToIQLParser(new AntlrParserGenerator());
     }
 }

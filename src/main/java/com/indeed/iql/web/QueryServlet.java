@@ -63,6 +63,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import com.indeed.iql.SQLToIQL.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -126,6 +127,7 @@ public class QueryServlet {
     private final com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2;
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
+    private final SQLToIQLParser sqlToIQLParser;
 
     @Autowired
     public QueryServlet(ImhotepClient imhotepClient,
@@ -137,7 +139,8 @@ public class QueryServlet {
                         AccessControl accessControl,
                         com.indeed.iql2.server.web.servlets.query.QueryServlet queryServletV2,
                         MetricStatsEmitter metricStatsEmitter,
-                        FieldFrequencyCache fieldFrequencyCache) {
+                        FieldFrequencyCache fieldFrequencyCache,
+                        SQLToIQLParser sqlToIQLParser) {
         this.imhotepClient = imhotepClient;
         this.metadata = metadataCacheIQL1;
         this.topTermsCache = topTermsCache;
@@ -148,10 +151,11 @@ public class QueryServlet {
         this.queryServletV2 = queryServletV2;
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
+        this.sqlToIQLParser = sqlToIQLParser;
     }
 
     @RequestMapping("/query")
-    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp,
+    public void doGet(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
 
         if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
@@ -166,6 +170,7 @@ public class QueryServlet {
         final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
         final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
         final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
+        final String sqlMode = Strings.nullToEmpty(req.getParameter("sqlMode"));
         final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
                 clientExecutionId, accessControl.isMultiuserClient(client));
         long querySubmitTimestamp = System.currentTimeMillis();
@@ -174,6 +179,8 @@ public class QueryServlet {
         IQLStatement parsedQuery = null;
         Throwable errorOccurred = null;
         SelectQuery selectQuery = null;
+
+        String queryToUse = query;
         try {
             if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
                 throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
@@ -183,11 +190,15 @@ public class QueryServlet {
             }
             accessControl.checkAllowedAccess(userName);
 
-            parsedQuery = StatementParser.parse(query, metadata);
+            if (!sqlMode.isEmpty() && sqlMode.equals("true")) {
+                queryToUse = sqlToIQLParser.parse(query);
+            }
+
+            parsedQuery = StatementParser.parse(queryToUse, metadata);
             if(parsedQuery instanceof SelectStatement) {
                 final Limits limits = accessControl.getLimitsForIdentity(userName, client);
 
-                selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits,
+                selectQuery = new SelectQuery(runningQueriesManager, queryToUse, clientInfo, limits,
                         new DateTime(querySubmitTimestamp), (SelectStatement) parsedQuery, (byte)1, null);
 
                 logQueryToLog4J(selectQuery.queryStringTruncatedForPrint, (Strings.isNullOrEmpty(userName) ? req.getRemoteAddr() : userName), -1);
@@ -228,7 +239,7 @@ public class QueryServlet {
                 if(remoteAddr == null) {
                     remoteAddr = req.getRemoteAddr();
                 }
-                logQuery(req, query, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
+                logQuery(req, queryToUse, clientInfo, querySubmitTimestamp, parsedQuery, errorOccurred, remoteAddr, this.metricStatsEmitter, selectQuery);
             } catch (Throwable ignored) { }
         }
     }
@@ -252,6 +263,7 @@ public class QueryServlet {
      * @param req request
      * @return the X-Forwarded-For IP address or null if none
      */
+
     private static String getForwardedForIPAddress(final HttpServletRequest req) {
         return getForwardedForIPAddress(req, "X-Forwarded-For");
     }
