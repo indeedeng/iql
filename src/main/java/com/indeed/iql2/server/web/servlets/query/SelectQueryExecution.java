@@ -504,13 +504,14 @@ public class SelectQueryExecution implements Closeable {
                             boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
                             queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
                             // read metadata from cache
-                            try {
-                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                                queryMetadata.mergeIn(cachedMetadata);
-                            } catch (Exception e) {
-                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
-                            }
+                            // TODO: reenable
+//                            try {
+//                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+//                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+//                                queryMetadata.mergeIn(cachedMetadata);
+//                            } catch (Exception e) {
+//                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+//                            }
                             queryMetadata.setPendingHeaders();
                         }
                         // TODO: Don't have this hack
@@ -610,13 +611,14 @@ public class SelectQueryExecution implements Closeable {
                             public Void call() throws Exception {
                                 try {
                                     if (isTopLevelQuery) {
-                                        try {
-                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                            queryMetadata.toOutputStream(metadataCacheStream);
-                                            metadataCacheStream.close();
-                                        } catch (Exception e) {
-                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-                                        }
+                                        // TODO: reenable
+//                                        try {
+//                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+//                                            queryMetadata.toOutputStream(metadataCacheStream);
+//                                            metadataCacheStream.close();
+//                                        } catch (Exception e) {
+//                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+//                                        }
                                     }
                                     try {
                                         cacheWriter.close();

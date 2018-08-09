@@ -281,13 +281,7 @@ public class QueryServlet {
 
     private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
                                        QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
-        final TreeTimer timer = new TreeTimer() {
-            @Override
-            public void push(String s) {
-                super.push(s);
-                log.info(s);
-            }
-        };
+        final TreeTimer timer = new TreeTimer();
 
         final String query = selectStatement.selectQuery;
         setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
