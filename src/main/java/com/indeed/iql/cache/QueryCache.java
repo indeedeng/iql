@@ -13,6 +13,7 @@
  */
  package com.indeed.iql.cache;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +36,9 @@ public interface QueryCache {
     /**
      * Returns InputStream that can be used to read data in the cache.
      * close() should be called when done.
+     * Returns null if the file is not cached.
      */
+    @Nullable
     public InputStream getInputStream(String cachedFileName) throws IOException;
 
     /**

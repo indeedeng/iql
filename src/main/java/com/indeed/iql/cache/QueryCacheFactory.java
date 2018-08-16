@@ -33,14 +33,28 @@ public class QueryCacheFactory {
         enabled = props.getProperty("query.cache.enabled", Boolean.class, true);
         if(!enabled) {
             log.info("Query caching disabled in config");
-            return new NoOpQueryCache();
+            return new NoOpQueryCache(false);
         }
         cacheType = props.getProperty("query.cache.backend", String.class, "HDFS");
-        if ("HDFS".equals(cacheType)) {
-            return new HDFSQueryCache(props);
-        }
-        if ("S3".equals(cacheType)) {
-            return new S3QueryCache(props);
+        try {
+            if ("HDFS".equalsIgnoreCase(cacheType)) {
+                return new HDFSQueryCache(props);
+            }
+            if ("S3".equalsIgnoreCase(cacheType)) {
+                return new S3QueryCache(props);
+            }
+            if ("redis".equalsIgnoreCase(cacheType)) {
+                return new RedisQueryCache(props);
+            }
+            if ("redishdfs".equalsIgnoreCase(cacheType)) {
+                return new MultiLevelQueryCache(new RedisQueryCache(props), new HDFSQueryCache(props), props);
+            }
+            if ("s3hdfs".equalsIgnoreCase(cacheType)) {
+                return new MultiLevelQueryCache(new S3QueryCache(props), new HDFSQueryCache(props), props);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to initialize the query cache. Caching disabled.", e);
+            return new NoOpQueryCache(true);
         }
         
         throw new PropertyException("Unknown cache type (property: query.cache.backend): "
@@ -49,6 +63,12 @@ public class QueryCacheFactory {
     
     static class NoOpQueryCache implements QueryCache {
 
+        private final boolean enabledInConfig;
+
+        public NoOpQueryCache(boolean enabledInConfig) {
+            this.enabledInConfig = enabledInConfig;
+        }
+
         @Override
         public boolean isEnabled() {
             return false;
@@ -56,7 +76,7 @@ public class QueryCacheFactory {
 
         @Override
         public boolean isEnabledInConfig() {
-            return false;
+            return enabledInConfig;
         }
 
         @Override

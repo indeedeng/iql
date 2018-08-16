@@ -22,6 +22,7 @@ import com.amazonaws.services.s3.model.Region;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -36,7 +37,6 @@ import java.io.OutputStream;
 public class S3QueryCache implements QueryCache {
     static final Logger log = Logger.getLogger(S3QueryCache.class);
 
-    private boolean enabled;
     private AmazonS3Client client;
     private String bucket;
 
@@ -44,29 +44,23 @@ public class S3QueryCache implements QueryCache {
         String awsRegion;
         String awsKey;
         String awsSecret;
-        
-        enabled = true;
-        try {
-            bucket = props.getProperty("query.cache.s3.bucket", String.class);
-            awsKey = props.getProperty("query.cache.s3.s3key", String.class);
-            awsSecret = props.getProperty("query.cache.s3.s3secret", String.class);
-            if (awsKey == null || awsSecret == null) {
-                log.warn("No AWS key or Secret found.  Using Anonymous access.");
-                client = new AmazonS3Client();
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(awsKey, awsSecret));
-            }
 
-            boolean exists = client.doesBucketExist(bucket);
-            if (! exists) {
-                awsRegion = props.getProperty("aws.s3.region", 
-                                              String.class, 
-                                              Region.US_Standard.toString());
-                client.createBucket(bucket, awsRegion);
-            }
-        } catch (Exception e) {
-            log.info("Failed to initialize the S3 client. Caching disabled.", e);
-            enabled = false;
+        bucket = props.getProperty("query.cache.s3.bucket", String.class);
+        awsKey = props.getProperty("query.cache.s3.s3key", String.class);
+        awsSecret = props.getProperty("query.cache.s3.s3secret", String.class);
+        if (awsKey == null || awsSecret == null) {
+            log.warn("No AWS key or Secret found.  Using Anonymous access.");
+            client = new AmazonS3Client();
+        } else {
+            client = new AmazonS3Client(new BasicAWSCredentials(awsKey, awsSecret));
+        }
+
+        boolean exists = client.doesBucketExist(bucket);
+        if (! exists) {
+            awsRegion = props.getProperty("aws.s3.region",
+                                          String.class,
+                                          Region.US_Standard.toString());
+            client.createBucket(bucket, awsRegion);
         }
     }
 
@@ -75,7 +69,7 @@ public class S3QueryCache implements QueryCache {
      */
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     /**
@@ -88,9 +82,6 @@ public class S3QueryCache implements QueryCache {
 
     @Override
     public boolean isFileCached(String fileName) {
-        if(!enabled) {
-            return false;
-        }
         try {
             ObjectListing objs;
             objs = client.listObjects(bucket, fileName);
@@ -101,19 +92,17 @@ public class S3QueryCache implements QueryCache {
     }
 
     @Override
+    @Nullable
     public InputStream getInputStream(String cachedFileName) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data from S3 cache as it is disabled");
+        try {
+            return client.getObject(bucket, cachedFileName).getObjectContent();
+        } catch (Exception e) {
+            return null;
         }
-        return client.getObject(bucket, cachedFileName).getObjectContent();
     }
 
     @Override
     public OutputStream getOutputStream(final String cachedFileName) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data to S3 cache as it is disabled");
-        }
-
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         // Wrap the returned OutputStream so that we can write to buffer and do actual write on close()
         return new OutputStream() {
@@ -159,9 +148,6 @@ public class S3QueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data to S3 cache as it is disabled");
-        }
         client.putObject(bucket, cachedFileName, localFile);
     }
 
@@ -171,10 +157,6 @@ public class S3QueryCache implements QueryCache {
      */
     @Override
     public void healthcheck() throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("S3 cache is not available");
-        }
-
         client.listObjects(bucket);
     }
 }

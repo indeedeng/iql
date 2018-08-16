@@ -344,7 +344,8 @@ public class QueryServlet {
         queryInfo.cacheHashes = Collections.singleton(queryHash);
         final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
         long beginTimeMillis = System.currentTimeMillis();
-        final boolean isCached = queryCache.isFileCached(cacheFileName);
+        final InputStream cacheInputStream = args.cacheReadDisabled ? null : queryCache.getInputStream(cacheFileName);
+        final boolean isCached = cacheInputStream != null;
         long endTimeMillis = System.currentTimeMillis();
         queryInfo.cached = isCached;
         queryInfo.cacheCheckMillis = endTimeMillis - beginTimeMillis;
@@ -382,7 +383,7 @@ public class QueryServlet {
 
         // TODO remove
         if (true) {
-            if (!args.cacheReadDisabled && isCached) {
+            if (isCached) {
                 log.trace("Returning cached data in " + cacheFileName);
 
                 // read metadata from cache
@@ -397,9 +398,7 @@ public class QueryServlet {
                     log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
                 }
 
-                final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
-                final int rowsWritten = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
-                queryInfo.rows = rowsWritten;
+                queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
                 queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
                 queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
                 finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);

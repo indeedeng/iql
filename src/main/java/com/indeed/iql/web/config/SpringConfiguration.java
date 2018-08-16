@@ -122,9 +122,14 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
     }
 
-    @Bean 
+    @Bean
+//    @Autowired
     QueryCache queryCache() throws PropertyException {
-        return QueryCacheFactory.newQueryCache(env);
+//        if(queryCache != null) {
+//            return queryCache;
+//        } else {
+            return QueryCacheFactory.newQueryCache(env);
+//        }
     }
 
     @Bean

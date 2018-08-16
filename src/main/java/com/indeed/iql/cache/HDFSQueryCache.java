@@ -23,9 +23,11 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
+import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,26 +39,18 @@ import java.io.OutputStream;
 public class HDFSQueryCache implements QueryCache {
     static final Logger log = Logger.getLogger(HDFSQueryCache.class);
 
-    private boolean enabled;
     private FileSystem hdfs;
     private Path cachePath;
     private boolean cacheDirWorldWritable;
 
-    public HDFSQueryCache(PropertyResolver props) {
+    public HDFSQueryCache(PropertyResolver props) throws IOException {
+        kerberosLogin(props);
 
-        enabled = true;
-        try {
-            kerberosLogin(props);
+        cachePath = new Path(props.getProperty("query.cache.hdfs.path"));
+        hdfs = cachePath.getFileSystem(new org.apache.hadoop.conf.Configuration());
+        cacheDirWorldWritable = props.getProperty("query.cache.worldwritable", Boolean.class);
 
-            cachePath = new Path(props.getProperty("query.cache.hdfs.path"));
-            hdfs = cachePath.getFileSystem(new org.apache.hadoop.conf.Configuration());
-            cacheDirWorldWritable = props.getProperty("query.cache.worldwritable", Boolean.class);
-
-            makeSurePathExists(cachePath);
-        } catch (Exception e) {
-            log.info("Failed to initialize the HDFS query cache. Caching disabled.", e);
-            enabled = false;
-        }
+        makeSurePathExists(cachePath);
     }
 
     private void kerberosLogin(PropertyResolver props) {
@@ -72,7 +66,7 @@ public class HDFSQueryCache implements QueryCache {
      */
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     /**
@@ -85,9 +79,6 @@ public class HDFSQueryCache implements QueryCache {
 
     @Override
     public boolean isFileCached(String fileName) {
-        if(!enabled) {
-            return false;
-        }
         try {
             final Path f = new Path(cachePath, fileName);
             return hdfs.exists(f);
@@ -98,19 +89,21 @@ public class HDFSQueryCache implements QueryCache {
     }
 
     @Override
+    @Nullable
     public InputStream getInputStream(String cachedFileName) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data from HDFS cache as it is disabled");
-        }
         final Path f = new Path(cachePath, cachedFileName);
-        return hdfs.open(f);
+        try {
+            return hdfs.open(f);
+        } catch (FileNotFoundException e) {
+            return null;
+        } catch (Exception e) {
+            log.error("Error while reading from HDFS cache", e);
+            return null;
+        }
     }
 
     @Override
     public OutputStream getOutputStream(String cachedFileName) throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("Can't send data to HDFS cache as it is disabled");
-        }
         makeSurePathExists(cachePath);
         final Path filePath = new Path(cachePath, cachedFileName);
         final Path tempPath = new Path(filePath.toString() + "." + (System.currentTimeMillis() % 100000) + ".tmp");
@@ -178,10 +171,6 @@ public class HDFSQueryCache implements QueryCache {
      */
     @Override
     public void healthcheck() throws IOException {
-        if(!enabled) {
-            throw new IllegalStateException("HDFS cache is not available");
-        }
-
         makeSurePathExists(cachePath);
     }
 }

@@ -493,7 +493,8 @@ public class SelectQueryExecution implements Closeable {
                 final String cacheFileName = computeCacheKey.cacheFileName;
                 if (cacheEnabled) {
                     timer.push("cache check");
-                    final boolean isCached = queryCache.isFileCached(cacheFileName);
+                    final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
+                    final boolean isCached = cacheInputStream != null;
                     timer.pop();
 
                     queryCached.put(query, isCached);
@@ -516,7 +517,7 @@ public class SelectQueryExecution implements Closeable {
                         }
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        final boolean hasMoreRows = sendCachedQuery(cacheFileName, out, query.rowLimit, queryCache);
+                        final boolean hasMoreRows = sendCachedQuery(out, query.rowLimit, cacheInputStream);
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 queryCached, totalBytesWritten[0], null, cacheKeys,
@@ -763,11 +764,11 @@ public class SelectQueryExecution implements Closeable {
         return new ComputeCacheKey(datasetToChosenShards, datasetsWithMissingShards, queryHash, cacheFileName);
     }
 
-    private static boolean sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit, QueryCache queryCache) throws IOException {
+    private static boolean sendCachedQuery(Consumer<String> out, Optional<Integer> rowLimit, InputStream cacheInputStream) throws IOException {
         final int limit = rowLimit.or(Integer.MAX_VALUE);
         int rowsWritten = 0;
         boolean hasMoreRows = false;
-        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
+        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(cacheInputStream))) {
             String line;
             while ((line = stream.readLine()) != null) {
                 out.accept(line);
