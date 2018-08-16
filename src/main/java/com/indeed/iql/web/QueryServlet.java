@@ -232,17 +232,6 @@ public class QueryServlet {
             } catch (Throwable ignored) { }
         }
     }
-
-    @RequestMapping("/private/updateLimits")
-    @ResponseBody
-    protected String updateLimits() {
-        try {
-            accessControl.updateLimits();
-            return "Limits reloaded from the DB";
-        } catch (Exception e) {
-            return "Update failed: " + e.toString();
-        }
-    }
     
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
