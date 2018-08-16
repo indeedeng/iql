@@ -16,6 +16,7 @@ package com.indeed.iql.metadata;
 
 import com.google.common.base.Optional;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class DatasetsMetadata {
         return metadata;
     }
 
-    public Optional<DatasetMetadata> getMetadata(final String dataset) {
+    public Optional<DatasetMetadata> getMetadata(@Nullable final String dataset) {
         if (dataset == null) {
             return Optional.absent();
         }
