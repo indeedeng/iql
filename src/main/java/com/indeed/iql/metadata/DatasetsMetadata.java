@@ -56,6 +56,9 @@ public class DatasetsMetadata {
     }
 
     public Optional<DatasetMetadata> getMetadata(final String dataset) {
+        if (dataset == null) {
+            return Optional.absent();
+        }
         return Optional.fromNullable(metadata.get(dataset));
     }
 
