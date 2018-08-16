@@ -140,7 +140,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             // when running an imhotep daemon instance in process
             final String shardsDir = env.getProperty("imhotep.shards.directory");
             if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
-                // TODO: replace this with a LocalShardMaster
+                // TODO: make this also run a LocalShardMaster inside LocalImhotepDaemon
                 final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
                 return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
             } else {
