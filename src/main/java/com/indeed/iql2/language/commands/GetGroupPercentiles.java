@@ -40,6 +40,11 @@ public class GetGroupPercentiles implements Command {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         ValidationUtil.validateIntField(scope, field, validationHelper, validator, this);
+        for (final double percentile : percentiles) {
+            if ((percentile < 0) || (percentile > 100.0)) {
+                validator.error("Percentile must be in [0, 100] range, user value is " + percentile);
+            }
+        }
     }
 
     @Override

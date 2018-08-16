@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -43,8 +44,8 @@ public class GetGroupStats implements Command {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
         for (final Optional<String> formatString : formatStrings) {
-            if (formatString.isPresent() && !isCorrectFormatString(formatString.get())) {
-                validator.error("Incorrect format string: <" + formatString.get() + ">");
+            if (formatString.isPresent() ) {
+                ValidationUtil.validateFormatString(formatString.get(), validator);
             }
         }
     }
@@ -80,17 +81,5 @@ public class GetGroupStats implements Command {
                 ", formatStrings=" + formatStrings +
                 ", returnGroupKeys=" + returnGroupKeys +
                 '}';
-    }
-
-    private static boolean isCorrectFormatString(final String str) {
-        // Don't know how to check format string.
-        // Format string will be used to output doubles, so try to output any double and check for exceptions.
-        // Not sure that we can catch all format errors with this approach, but believe that almost all will be caught.
-        try {
-            final String ignored = String.format(str, 0.0d);
-            return true;
-        } catch (final Throwable t) {
-            return false;
-        }
     }
 }

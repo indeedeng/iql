@@ -43,6 +43,9 @@ public class TimePeriodRegroup implements Command {
         if (timeField.isPresent()) {
             ValidationUtil.validateIntField(validationHelper.datasets(), timeField.get(), validationHelper, validator, this);
         }
+        if (timeFormat.isPresent()) {
+            ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);
+        }
     }
 
     @Override
