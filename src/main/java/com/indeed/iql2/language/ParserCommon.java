@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.indeed.iql.exceptions.IqlKnownException;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTimeZone;
 
@@ -28,6 +29,10 @@ public class ParserCommon {
         if (!((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("\'") && text.endsWith("\'")))) {
             return text;
         }
-        return StringEscapeUtils.unescapeJava(text.substring(1, text.length() - 1));
+        try {
+            return StringEscapeUtils.unescapeJava(text.substring(1, text.length() - 1));
+        } catch (final Throwable t) {
+            throw new IqlKnownException.ParseErrorException("Can't process string value " + text, t);
+        }
     }
 }

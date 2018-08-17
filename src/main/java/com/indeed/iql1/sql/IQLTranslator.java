@@ -23,7 +23,11 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.DynamicMetric;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
@@ -42,7 +46,6 @@ import com.indeed.iql1.iql.SampleCondition;
 import com.indeed.iql1.iql.StatRangeGrouping;
 import com.indeed.iql1.iql.StatRangeGrouping2D;
 import com.indeed.iql1.iql.StringInCondition;
-import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.FunctionExpression;
@@ -55,9 +58,6 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.web.Limits;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -735,7 +735,7 @@ public final class IQLTranslator {
             // TODO: remove. can relax parsing of function params when it's done
             builder.put("between", new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() != 3) throw new IllegalArgumentException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    if (input.size() != 3) throw new IqlKnownException.ParseErrorException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
                     final Stat stat = input.get(0).match(statMatcher);
                     final long min = parseLong(input.get(1));
                     final long max = parseLong(input.get(2));
@@ -1101,7 +1101,11 @@ public final class IQLTranslator {
             final long interval = parseTimeBucketInterval(bucket, true, min, max);
             final DateTimeFormatter dateTimeFormatter;
             if (format != null) {
-                dateTimeFormatter = DateTimeFormat.forPattern(format);
+                try {
+                    dateTimeFormatter = DateTimeFormat.forPattern(format);
+                } catch (final Throwable t) {
+                    throw new IqlKnownException.ParseErrorException("Incorrect DateTime format string: <" + format + ">", t);
+                }
             } else {
                 dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
             }
@@ -1348,7 +1352,13 @@ public final class IQLTranslator {
                         fieldName + "[" + arg + "].\n" + syntaxExamples);
             }
 
-            final int topK = Integer.parseInt(matcher.group(2));
+            final int topK;
+            final String topKasString = matcher.group(2);
+            try {
+                topK = Integer.parseInt(topKasString);
+            } catch (final Throwable t) {
+                throw new IqlKnownException.ParseErrorException("Can't parse '" + topKasString + "' as integer", t);
+            }
             final Stat stat;
             String statStr = matcher.group(3);
             if (!Strings.isNullOrEmpty(statStr)) {
