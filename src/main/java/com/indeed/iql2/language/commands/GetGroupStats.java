@@ -45,7 +45,7 @@ public class GetGroupStats implements Command {
         }
         for (final Optional<String> formatString : formatStrings) {
             if (formatString.isPresent() ) {
-                ValidationUtil.validateFormatString(formatString.get(), validator);
+                ValidationUtil.validateDoubleFormatString(formatString.get(), validator);
             }
         }
     }

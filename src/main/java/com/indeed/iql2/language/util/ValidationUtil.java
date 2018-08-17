@@ -126,7 +126,7 @@ public class ValidationUtil {
         validateField(scope, field, validationHelper, validationHelper::containsField, validator, context);
     }
 
-    public static void validateFormatString(final String formatString, final Validator validator) {
+    public static void validateDoubleFormatString(final String formatString, final Validator validator) {
         // Don't know how to check format string.
         // Format string will be used to output doubles, so try to output any double and check for exceptions.
         // Not sure that we can catch all format errors with this approach, but believe that almost all will be caught.
@@ -142,7 +142,7 @@ public class ValidationUtil {
             // Creating string representation of a current time to see if formatString is correct.
             final String ignored = DateTimeFormat.forPattern(formatString).withLocale(Locale.US).print(System.currentTimeMillis());
         } catch (final Throwable t) {
-            validator.error("Incorrect DateTime string: <" + formatString + ">");
+            validator.error("Incorrect DateTime format string: <" + formatString + ">");
         }
     }
 
