@@ -45,6 +45,9 @@ public class RandomMetricRegroup implements Command {
 
     @Override
     public void validate(final ValidationHelper validationHelper, final Validator validator) {
+        if (k <= 1) {
+            validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
+        }
     }
 
     @Override

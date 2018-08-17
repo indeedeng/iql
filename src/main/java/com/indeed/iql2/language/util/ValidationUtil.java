@@ -23,11 +23,13 @@ import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.Validator;
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.format.DateTimeFormat;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -122,6 +124,26 @@ public class ValidationUtil {
     public static void validateField(
             final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
         validateField(scope, field, validationHelper, validationHelper::containsField, validator, context);
+    }
+
+    public static void validateDoubleFormatString(final String formatString, final Validator validator) {
+        // Don't know how to check format string.
+        // Format string will be used to output doubles, so try to output any double and check for exceptions.
+        // Not sure that we can catch all format errors with this approach, but believe that almost all will be caught.
+        try {
+            final String ignored = String.format(formatString, 0.0d);
+        } catch (final Throwable t) {
+            validator.error("Incorrect format string: <" + formatString + ">");
+        }
+    }
+
+    public static void validateDateTimeFormat(final String formatString, final Validator validator) {
+        try {
+            // Creating string representation of a current time to see if formatString is correct.
+            final String ignored = DateTimeFormat.forPattern(formatString).withLocale(Locale.US).print(System.currentTimeMillis());
+        } catch (final Throwable t) {
+            validator.error("Incorrect DateTime format string: <" + formatString + ">");
+        }
     }
 
     private static void validateField(final Set<String> scope, final String field, final ValidationHelper validationHelper,

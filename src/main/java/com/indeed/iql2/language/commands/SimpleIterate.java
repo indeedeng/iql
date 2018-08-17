@@ -62,6 +62,12 @@ public class SimpleIterate implements Command {
         for (final AggregateMetric metric : selecting) {
             metric.validate(validationHelper.datasets(), validationHelper, validator);
         }
+
+        for (final Optional<String> formatString : formatStrings) {
+            if (formatString.isPresent()) {
+                ValidationUtil.validateDoubleFormatString(formatString.get(), validator);
+            }
+        }
     }
 
     @Override
