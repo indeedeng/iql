@@ -16,7 +16,7 @@
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.indeed.iql.LocalImhotepDaemon;
+import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql1.iql.cache.QueryCache;
@@ -44,6 +44,7 @@ import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.WallClock;
+import javafx.util.Pair;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -140,9 +141,9 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             // when running an imhotep daemon instance in process
             final String shardsDir = env.getProperty("imhotep.shards.directory");
             if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
-                // TODO: make this also run a LocalShardMaster inside LocalImhotepDaemon
-                final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
-                return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
+                // TODO: make this also refresh a LocalShardMaster inside LocalImhotepDaemon
+                final Pair<Integer, Integer> localPorts = LocalImhotepDaemonAndShardmaster.startInProcess(shardsDir);
+                return getImhotepClient("", "", "localhost:" + localPorts.getKey(), false);
             } else {
                 log.warn("Local mode is enabled for the Imhotep Daemon but imhotep.shards.directory is not set to an existing location." +
                         "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
