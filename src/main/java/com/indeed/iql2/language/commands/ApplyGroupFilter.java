@@ -33,7 +33,7 @@ public class ApplyGroupFilter implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        // TODO: Validate.
+        filter.validate(validationHelper.datasets(), validationHelper, validator);
     }
 
     @Override
