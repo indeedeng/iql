@@ -60,7 +60,7 @@ public class LocalImhotepDaemonAndShardmaster {
 
             ServerSocket shardMasterSocket = new ServerSocket(0);
             final ShardMasterDaemon shardMasterDaemon = new ShardMasterDaemon(new ShardMasterDaemon.Config().setLocalMode(true)
-                    .setHostsOverride("localhost:"+imhotepPort)
+                    .setHostsListStatic("localhost:"+imhotepPort)
                     .setShardsDir(shardsDir)
                     .setServerSocket(shardMasterSocket)
                     .setShardFilter(new ShardFilter() {
