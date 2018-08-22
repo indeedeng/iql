@@ -80,6 +80,12 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
+    public static class NoDataException extends IqlKnownException {
+        public NoDataException(final String message) {
+            super(message);
+        }
+    }
+
     // Error that occur during execution but not system error.
     // For example, group by multivalued field
     public static class ExecutionException extends IqlKnownException {

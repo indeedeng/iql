@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.squall.iql2.language.JQLParser;
 
 import java.util.regex.Pattern;
@@ -28,7 +29,7 @@ public class Identifiers {
         } else {
             result = identifierContext.getText().toUpperCase();
             if (!IDENTIFIER_PATTERN.matcher(result).matches()) {
-                throw new IllegalArgumentException("identifier " + result +" doesn't match pattern : " + IDENTIFIER_PATTERN.toString());
+                throw new IqlKnownException.ParseErrorException("identifier " + result +" doesn't match pattern : " + IDENTIFIER_PATTERN.toString());
             }
         }
         return Positioned.from(result, identifierContext);
