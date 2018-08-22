@@ -1104,7 +1104,8 @@ public final class IQLTranslator {
                 try {
                     dateTimeFormatter = DateTimeFormat.forPattern(format);
                 } catch (final Throwable t) {
-                    throw new IqlKnownException.ParseErrorException("Incorrect DateTime format string: <" + format + ">", t);
+                    throw new IqlKnownException.ParseErrorException("Incorrect DateTime format string: \"" + format + "\"\n"
+                            + "default format is \"YYYY-MM-dd HH:mm:ss\"", t);
                 }
             } else {
                 dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
@@ -1357,7 +1358,8 @@ public final class IQLTranslator {
             try {
                 topK = Integer.parseInt(topKasString);
             } catch (final Throwable t) {
-                throw new IqlKnownException.ParseErrorException("Can't parse '" + topKasString + "' as integer", t);
+                throw new IqlKnownException.ParseErrorException("Can't parse '" + topKasString
+                        + "' as integer in top terms grouping '" + arg + "'", t);
             }
             final Stat stat;
             String statStr = matcher.group(3);

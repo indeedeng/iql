@@ -114,7 +114,7 @@ public final class IQLQuery implements Closeable {
                 .daemonTempFileSizeLimit(mbToBytes(limits.queryFTGSImhotepDaemonLimitMB)).username(username).clientName("IQL");
         shards = sessionBuilder.getChosenShards();
         if ((shards == null) || shards.isEmpty()) {
-            throw new IqlKnownException.ExecutionException("No shards: no data available for the requested dataset and time range."
+            throw new IqlKnownException.NoDataException("No shards: no data available for the requested dataset and time range."
                     + " Dataset: " + dataset + ", start: " + start + ", end: " + end);
         }
         shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
