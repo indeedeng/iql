@@ -154,7 +154,8 @@ public class QueryServlet {
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws ServletException, IOException, ImhotepOutOfMemoryException, TimeoutException {
 
-        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
+        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2 && !isMetadataQuery(query)) { // handle V2 metadata queries in V1 code
+            // handle select and explain v2 queries in v2 code
             queryServletV2.query(req, resp, query);
             return;
         }
@@ -232,7 +233,16 @@ public class QueryServlet {
             } catch (Throwable ignored) { }
         }
     }
-    
+
+    private boolean isMetadataQuery(String query) {
+        try {
+            final IQLStatement statement = StatementParser.parse(query, metadata);
+            return statement instanceof DescribeStatement || statement instanceof ShowStatement;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
      * the order in which the header values will be returned. I have examined the Tomcat source to establish that it does return the values in order, but this
