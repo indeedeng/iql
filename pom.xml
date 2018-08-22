@@ -406,6 +406,12 @@
             <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.indeed</groupId>
+            <artifactId>imhotep-shardmaster</artifactId>
+            <version>${imhotep.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 

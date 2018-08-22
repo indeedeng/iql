@@ -59,21 +59,11 @@ public class LocalImhotepDaemonAndShardmaster {
             log.info("Local Imhotep Daemon instance started on port " + imhotepPort);
 
             ServerSocket shardMasterSocket = new ServerSocket(0);
-            final ShardMasterDaemon shardMasterDaemon = new ShardMasterDaemon(new ShardMasterDaemon.Config().setLocalMode(true)
+            final ShardMasterDaemon shardMasterDaemon = new ShardMasterDaemon(new ShardMasterDaemon.Config()
+                    .setLocalMode(true)
                     .setHostsListStatic("localhost:"+imhotepPort)
-                    .setShardsDir(shardsDir)
-                    .setServerSocket(shardMasterSocket)
-                    .setShardFilter(new ShardFilter() {
-                        @Override
-                        public boolean accept(String dataset) {
-                            return dataset.equalsIgnoreCase("iqlquery");
-                        }
-
-                        @Override
-                        public boolean accept(String dataset, String shardId) {
-                            return accept(dataset);
-                        }
-                    }));
+                    .setShardsRootPath(shardsDir)
+                    .setServerSocket(shardMasterSocket));
             new Thread(() -> {
                 try {
                     shardMasterDaemon.run();
