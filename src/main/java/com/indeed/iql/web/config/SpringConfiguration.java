@@ -143,21 +143,24 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
                 // TODO: make this also refresh a LocalShardMaster inside LocalImhotepDaemon
                 final Pair<Integer, Integer> localPorts = LocalImhotepDaemonAndShardmaster.startInProcess(shardsDir);
-                return getImhotepClient("", "", "localhost:" + localPorts.getKey(), false);
+                final ImhotepClient client = getImhotepClient("", "", "localhost:" + localPorts.getKey());
+                client.setImhotepDaemonsOverride(env.getProperty("imhotep.daemons.override"));
+                return client;
             } else {
                 log.warn("Local mode is enabled for the Imhotep Daemon but imhotep.shards.directory is not set to an existing location." +
                         "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
             }
         }
         // connect to an externally running ShardMaster via its leader election node
-        return getImhotepClient(
+        ImhotepClient client = getImhotepClient(
                 env.getProperty("imhotep.shardmaster.zookeeper.quorum"),
                 env.getProperty("imhotep.shardmaster.zookeeper.path"),
-                env.getProperty("imhotep.shardmaster.host"),
-                false);
+                env.getProperty("imhotep.shardmaster.host"));
+        client.setImhotepDaemonsOverride(env.getProperty("imhotep.daemons.override"));
+        return client;
     }
 
-    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts, boolean quiet) {
+    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts) {
         if(!Strings.isNullOrEmpty(hosts)) {
             final List<Host> hostObjects = Lists.newArrayList();
             for(String host : hosts.split(",")) {
@@ -168,9 +171,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
             return new ImhotepClient(zkNodes, zkPath, true);
         } else {
-            if(quiet) {
-                return null;
-            }
             throw new IllegalArgumentException("either imhotep.daemons.zookeeper.quorum or imhotep.daemons.host config properties must be set");
         }
     }

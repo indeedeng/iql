@@ -61,6 +61,8 @@ public class LocalImhotepDaemonAndShardmaster {
             ServerSocket shardMasterSocket = new ServerSocket(0);
             final ShardMasterDaemon shardMasterDaemon = new ShardMasterDaemon(new ShardMasterDaemon.Config()
                     .setLocalMode(true)
+                    .setWriteSQL(false)
+                    .setReadSQL(false)
                     .setHostsListStatic("localhost:"+imhotepPort)
                     .setShardsRootPath(shardsDir)
                     .setServerSocket(shardMasterSocket));
