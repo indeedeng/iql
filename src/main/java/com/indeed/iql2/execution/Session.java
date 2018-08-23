@@ -51,12 +51,12 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
-import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.aliasing.FieldAliasingImhotepSession;
+import com.indeed.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
 import com.indeed.iql2.execution.commands.SimpleIterate;
+import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -300,7 +300,7 @@ public class Session {
             treeTimer.push("create session builder");
             final List<Shard> chosenShards = datasetToChosenShards.get(dataset.name);
             if ((chosenShards == null) || chosenShards.isEmpty()) {
-                throw new IqlKnownException.ExecutionException("No shards: no data available for the requested dataset and time range."
+                throw new IqlKnownException.NoDataException("No shards: no data available for the requested dataset and time range."
                 + " Dataset: " + dataset.name + ", start: " + startDateTime + ", end: " + endDateTime);
             }
             final ImhotepClient.SessionBuilder sessionBuilder = client

@@ -137,11 +137,18 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateDateTimeFormat(final String formatString, final Validator validator) {
+    public static boolean isValidDateTimeFormat(final String formatString) {
         try {
             // Creating string representation of a current time to see if formatString is correct.
             final String ignored = DateTimeFormat.forPattern(formatString).withLocale(Locale.US).print(System.currentTimeMillis());
+            return true;
         } catch (final Throwable t) {
+            return false;
+        }
+    }
+
+    public static void validateDateTimeFormat(final String formatString, final Validator validator) {
+        if (!isValidDateTimeFormat(formatString)) {
             validator.error("Incorrect DateTime format string: <" + formatString + ">");
         }
     }

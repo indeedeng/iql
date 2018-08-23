@@ -96,6 +96,7 @@ public class Dataset extends AbstractPositional {
         } else {
             initializerFilter = Optional.absent();
         }
+        checkRange(start.unwrap(), end.unwrap());
         final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases);
         dataset1.copyPosition(datasetContext);
         return Pair.of(dataset1, initializerFilter);
@@ -138,6 +139,7 @@ public class Dataset extends AbstractPositional {
                     initializerFilter = Optional.absent();
                 }
 
+                checkRange(defaultStart, defaultEnd); // this should not fail as we already checked this range before, but just in case.
                 final Dataset dataset1 = new Dataset(dataset, Positioned.unpositioned(defaultStart), Positioned.unpositioned(defaultEnd), name, fieldAliases);
                 dataset1.copyPosition(ctx);
                 accept(Pair.of(dataset1, initializerFilter));
@@ -233,6 +235,12 @@ public class Dataset extends AbstractPositional {
             return new DateTime(time);
         } catch (final Throwable t) {
             throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
+        }
+    }
+
+    private static void checkRange(final DateTime start, final DateTime end) {
+        if(!end.isAfter(start)) {
+            throw new IqlKnownException.ParseErrorException("Illegal time range requested: " + start.toString() + " to " + end.toString());
         }
     }
 
