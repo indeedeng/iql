@@ -19,7 +19,6 @@ import com.indeed.imhotep.service.GenericFlamdexReaderSource;
 import com.indeed.imhotep.service.ImhotepDaemon;
 import com.indeed.imhotep.service.LocalImhotepServiceConfig;
 import com.indeed.imhotep.service.LocalImhotepServiceCore;
-import com.indeed.imhotep.shardmaster.ShardFilter;
 import com.indeed.imhotep.shardmaster.ShardMasterDaemon;
 import javafx.util.Pair;
 import org.apache.log4j.Logger;
