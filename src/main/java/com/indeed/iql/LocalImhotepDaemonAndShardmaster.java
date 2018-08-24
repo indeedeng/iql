@@ -60,6 +60,7 @@ public class LocalImhotepDaemonAndShardmaster {
 
             ServerSocket shardMasterSocket = new ServerSocket(0);
             final ShardMasterDaemon shardMasterDaemon = new ShardMasterDaemon(new ShardMasterDaemon.Config()
+                    .setInitialRefreshReadFilesystem(true)
                     .setLocalMode(true)
                     .setWriteSQL(false)
                     .setReadSQL(false)
