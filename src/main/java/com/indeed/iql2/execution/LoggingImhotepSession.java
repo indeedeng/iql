@@ -21,7 +21,12 @@ import com.indeed.imhotep.Instrumentation;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.TermCount;
-import com.indeed.imhotep.api.*;
+import com.indeed.imhotep.api.FTGSIterator;
+import com.indeed.imhotep.api.FTGSParams;
+import com.indeed.imhotep.api.GroupStatsIterator;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import org.apache.log4j.Logger;
 
