@@ -214,7 +214,7 @@ public class QueryServlet {
             } else if(parsedQuery instanceof ShowStatement) {
                 handleShowStatement(req, resp);
             } else {
-                throw new RuntimeException("Query parsing failed: unknown statement type");
+                throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
             }
         } catch (Throwable e) {
             final boolean progress = req.getParameter("progress") != null;

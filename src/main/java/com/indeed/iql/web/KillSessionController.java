@@ -55,16 +55,18 @@ public class KillSessionController {
     @RequestMapping("/killsession")
     protected void doGet(@RequestParam("session") final String sessionId, @RequestParam("username") final String username, final HttpServletResponse resp) throws IOException {
         final PrintWriter output = new PrintWriter(resp.getOutputStream());
-        List<Host> hosts = imhotepClient.getServerHosts();
-
-        boolean success = killSession(sessionId, hosts, output);
-        if (success) {
-            output.println("Session " + sessionId + " killed successfully");
-            log.info("Session " + sessionId + " killed successfully by " + username);
-        } else {
-            log.info("Failed to close all sessions for " + sessionId + " requested by " + username);
-        }
+        output.println("Session cancellation temporarily disabled");
         output.flush();
+//        List<Host> hosts = imhotepClient.getServerHosts();
+//
+//        boolean success = killSession(sessionId, hosts, output);
+//        if (success) {
+//            output.println("Session " + sessionId + " killed successfully");
+//            log.info("Session " + sessionId + " killed successfully by " + username);
+//        } else {
+//            log.info("Failed to close all sessions for " + sessionId + " requested by " + username);
+//        }
+//        output.flush();
     }
 
     // TODO: move this to ImhotepClient

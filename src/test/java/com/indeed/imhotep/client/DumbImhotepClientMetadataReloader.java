@@ -23,7 +23,7 @@ public class DumbImhotepClientMetadataReloader extends ImhotepClientMetadataRelo
     private final Map<String, DatasetInfo> datasetToDatasetInfo;
 
     public DumbImhotepClientMetadataReloader(Map<String, DatasetInfo> datasetToDatasetInfo) {
-        super(null, null);
+        super(null);
         this.datasetToDatasetInfo = datasetToDatasetInfo;
     }
 

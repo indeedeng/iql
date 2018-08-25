@@ -944,21 +944,21 @@ public final class IQLTranslator {
                 negation = !negation;
                 return result;
             }
-            throw new UnsupportedOperationException();
+            throw new IqlKnownException.ParseErrorException("Unknown unary operation");
         }
 
         @Override
         protected List<Condition> functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Condition> function = functionLookup.get(name);
             if (function == null) {
-                throw new IllegalArgumentException();
+                throw new IqlKnownException.ParseErrorException("Unknown function " + name);
             }
             return Collections.singletonList(function.apply(args));
         }
 
         @Override
         protected List<Condition> otherwise() {
-            throw new UnsupportedOperationException("Syntax error in a Where condition");
+            throw new IqlKnownException.ParseErrorException("Syntax error in a Where condition");
         }
     }
 
@@ -1401,7 +1401,7 @@ public final class IQLTranslator {
                 final String stringValue = "-" + ((NumberExpression)operand).number;
                 return Long.parseLong(stringValue);
             } else {
-                throw new UnsupportedOperationException("Expected a number to negate, got " + operand.toString());
+                throw new IqlKnownException.ParseErrorException("Expected a number to negate, got " + operand.toString());
             }
         }
     };

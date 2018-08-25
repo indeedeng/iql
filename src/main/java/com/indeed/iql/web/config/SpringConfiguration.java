@@ -16,7 +16,7 @@
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.indeed.iql.LocalImhotepDaemon;
+import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql1.iql.cache.QueryCache;
@@ -44,6 +44,7 @@ import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.WallClock;
+import javafx.util.Pair;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -140,22 +141,26 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             // when running an imhotep daemon instance in process
             final String shardsDir = env.getProperty("imhotep.shards.directory");
             if(!Strings.isNullOrEmpty(shardsDir) && new File(shardsDir).exists()) {
-                final int localImhotepPort = LocalImhotepDaemon.startInProcess(shardsDir);
-                return getImhotepClient("", "", "localhost:" + localImhotepPort, false);
+                // TODO: make this also refresh a LocalShardMaster inside LocalImhotepDaemon
+                final Pair<Integer, Integer> localPorts = LocalImhotepDaemonAndShardmaster.startInProcess(shardsDir);
+                final ImhotepClient client = getImhotepClient("", "", "localhost:" + localPorts.getKey());
+                client.setImhotepDaemonsOverride(env.getProperty("imhotep.daemons.override"));
+                return client;
             } else {
                 log.warn("Local mode is enabled for the Imhotep Daemon but imhotep.shards.directory is not set to an existing location." +
                         "It should be set to the local path of a directory containing the Imhotep indexes and shards to be served.");
             }
         }
-        // connect to an externally running Imhotep Daemon
-        return getImhotepClient(
-                env.getProperty("imhotep.daemons.zookeeper.quorum"),
-                env.getProperty("imhotep.daemons.zookeeper.path"),
-                env.getProperty("imhotep.daemons.host"),
-                false);
+        // connect to an externally running ShardMaster via its leader election node
+        ImhotepClient client = getImhotepClient(
+                env.getProperty("imhotep.shardmaster.zookeeper.quorum"),
+                env.getProperty("imhotep.shardmaster.zookeeper.path"),
+                env.getProperty("imhotep.shardmaster.host"));
+        client.setImhotepDaemonsOverride(env.getProperty("imhotep.daemons.override"));
+        return client;
     }
 
-    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts, boolean quiet) {
+    private ImhotepClient getImhotepClient(String zkNodes, String zkPath, String hosts) {
         if(!Strings.isNullOrEmpty(hosts)) {
             final List<Host> hostObjects = Lists.newArrayList();
             for(String host : hosts.split(",")) {
@@ -166,9 +171,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
             return new ImhotepClient(zkNodes, zkPath, true);
         } else {
-            if(quiet) {
-                return null;
-            }
             throw new IllegalArgumentException("either imhotep.daemons.zookeeper.quorum or imhotep.daemons.host config properties must be set");
         }
     }

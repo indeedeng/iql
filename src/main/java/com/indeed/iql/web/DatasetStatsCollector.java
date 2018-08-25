@@ -28,11 +28,7 @@ import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author vladimir
@@ -46,7 +42,7 @@ public class DatasetStatsCollector {
     public static List<DatasetStats> computeStats(ImhotepClient client) {
         final List<DatasetStats> statsList = Lists.newArrayList();
         Map<String, DatasetInfo> datasetToDatasetInfo = client.getDatasetToDatasetInfo();
-        Map<String, List<Shard>> datasetToShardList = client.queryDatasetToFullShardList();
+        Map<String, Collection<ShardInfo>> datasetToShardList = client.queryDatasetToFullShardList();
         for (DatasetInfo datasetInfo : datasetToDatasetInfo.values()) {
             final DatasetStats stats = new DatasetStats();
             statsList.add(stats);
@@ -62,7 +58,7 @@ public class DatasetStatsCollector {
             long firstDataTime = Long.MAX_VALUE;
             long lastDataTime = 0;
             final IntOpenHashSet shardSizes = new IntOpenHashSet();
-            final List<Shard> shardList = datasetToShardList.get(datasetInfo.getDataset());
+            final Collection<ShardInfo> shardList = datasetToShardList.get(datasetInfo.getDataset());
             for (ShardInfo shard : shardList) {
                 stats.numDocs += shard.getNumDocs();
                 stats.numShards++;

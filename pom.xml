@@ -61,20 +61,32 @@
     <dependencies>
         <dependency>
             <groupId>com.indeed</groupId>
+            <artifactId>imhotep-client</artifactId>
+            <version>${imhotep.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.indeed</groupId>
             <artifactId>imhotep-server</artifactId>
             <version>${imhotep.version}</version>
             <exclusions>
                 <exclusion>
-                    <artifactId>hadoop-common</artifactId>
                     <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
 
         <dependency>
             <groupId>com.indeed</groupId>
-            <artifactId>imhotep-client</artifactId>
+            <artifactId>imhotep-shardmaster</artifactId>
             <version>${imhotep.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -99,6 +111,12 @@
             <groupId>com.indeed</groupId>
             <artifactId>ims-rest-server</artifactId>
             <version>${ims.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.indeed</groupId>
+                    <artifactId>imhotep-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -349,6 +367,12 @@
             <version>1.7.11</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.5</version>
+        </dependency>
+
         <!-- IQL2 deps -->
         <dependency>
             <groupId>org.antlr</groupId>
@@ -392,7 +416,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.110</imhotep.version>
+        <imhotep.version>3.1.111</imhotep.version>
         <ims.version>4.0.4</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
