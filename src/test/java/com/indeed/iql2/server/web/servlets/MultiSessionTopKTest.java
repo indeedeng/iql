@@ -1,7 +1,7 @@
-package com.indeed.squall.iql2.server.web.servlets;
+package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.squall.iql2.server.web.servlets.dataset.OrganicDataset;
+import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ public class MultiSessionTopKTest extends BasicTest {
     public void testIt() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("d", "141", "141"));
-        expected.add(ImmutableList.of("a", "4", "4"));
+        expected.add(ImmutableList.of("c", "4", "4"));
         QueryServletTestUtils.testIQL2(
                 OrganicDataset.create(),
                 expected,

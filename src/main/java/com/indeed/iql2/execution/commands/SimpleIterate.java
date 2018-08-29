@@ -169,9 +169,6 @@ public class SimpleIterate implements Command {
             }
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
-        final Optional<Session.RemoteTopKParams> topKParams = getTopKParamsOptional(opts);
-
-        session.timer.pop();
 
         final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
         final Map<String, ImhotepSession> sessionsToUse;
@@ -183,6 +180,17 @@ public class SimpleIterate implements Command {
                 sessionsToUse.put(dataset, sessionsMapRaw.get(dataset));
             }
         }
+
+        final Optional<Session.RemoteTopKParams> topKParams;
+        if (sessionsToUse.size() > 1) {
+            // if there are multiple datasets, topK must be calculated on a client side.
+            topKParams = Optional.absent();
+        } else {
+            topKParams = getTopKParamsOptional(opts);
+        }
+
+        session.timer.pop();
+
 
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback;
