@@ -30,7 +30,6 @@ import com.indeed.iql.web.IQLDB;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
-import com.indeed.iql.web.DatasetStatsCache;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.Shard;
@@ -75,7 +74,6 @@ public class QueryServletTestUtils extends BasicTest {
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
                 new TopTermsCache(imhotepClient, "", true, false),
-                new DatasetStatsCache(imhotepClient),
                 MetricStatsEmitter.NULL_EMITTER,
                 options.wallClock,
 				new FieldFrequencyCache(null));

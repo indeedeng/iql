@@ -119,7 +119,6 @@ public class QueryServlet {
     private final ImhotepClient imhotepClient;
     private final ImhotepMetadataCache metadata;
     private final TopTermsCache topTermsCache;
-    private final DatasetStatsCache datasetStatsCache;
     private final QueryCache queryCache;
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService executorService;
@@ -132,7 +131,6 @@ public class QueryServlet {
     public QueryServlet(ImhotepClient imhotepClient,
                         ImhotepMetadataCache metadataCacheIQL1,
                         TopTermsCache topTermsCache,
-                        DatasetStatsCache datasetStatsCache,
                         QueryCache queryCache,
                         RunningQueriesManager runningQueriesManager,
                         ExecutorService executorService,
@@ -143,7 +141,6 @@ public class QueryServlet {
         this.imhotepClient = imhotepClient;
         this.metadata = metadataCacheIQL1;
         this.topTermsCache = topTermsCache;
-        this.datasetStatsCache = datasetStatsCache;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
         this.executorService = executorService;
@@ -323,11 +320,6 @@ public class QueryServlet {
 
         ArrayList<String> warningList = new ArrayList<>();
 
-        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), datasetStatsCache.getTypeConflictFieldNames());
-        if (conflictFieldsUsed.size() > 0) {
-            final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
-            warningList.add(conflictWarning);
-        }
 
         if(properTimeIntervalsMissingShards.size() > 0) {
             long millisMissing = 0;

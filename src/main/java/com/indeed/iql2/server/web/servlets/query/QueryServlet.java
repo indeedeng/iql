@@ -22,15 +22,13 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.iql.web.DatasetStatsCache;
-import com.indeed.util.core.time.StoppedClock;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
@@ -45,6 +43,7 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.iql2.language.DatasetDescriptor;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.util.core.time.StoppedClock;
 import com.indeed.iql.web.UsernameUtil;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.util.core.TreeTimer;
@@ -101,7 +100,6 @@ public class QueryServlet {
     private final ImhotepMetadataCache metadataCache;
     private final AccessControl accessControl;
     private final TopTermsCache topTermsCache;
-    private final DatasetStatsCache datasetStatsCache;
     private final MetricStatsEmitter metricStatsEmitter;
     private final WallClock clock;
     private final FieldFrequencyCache fieldFrequencyCache;
@@ -118,7 +116,6 @@ public class QueryServlet {
             final ImhotepMetadataCache metadataCacheIQL2,
             final AccessControl accessControl,
             final TopTermsCache topTermsCache,
-            final DatasetStatsCache datasetStatsCache,
             final MetricStatsEmitter metricStatsEmitter,
             final WallClock clock,
             final FieldFrequencyCache fieldFrequencyCache) {
@@ -128,7 +125,6 @@ public class QueryServlet {
         this.metadataCache = metadataCacheIQL2;
         this.accessControl = accessControl;
         this.topTermsCache = topTermsCache;
-        this.datasetStatsCache = datasetStatsCache;
         this.metricStatsEmitter = metricStatsEmitter;
         this.clock = clock;
         this.fieldFrequencyCache = fieldFrequencyCache;
@@ -228,7 +224,7 @@ public class QueryServlet {
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         queryCache, limits, imhotepClient,
-                        metadataCache.get(), datasetStatsCache, response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
+                        metadataCache.get(), response.getWriter(), queryInfo, clientInfo, timer, query, version, isStream, skipValidation, clock);
                 selectQueryExecution.processSelect(runningQueriesManager);
                 queryStartTimestamp = selectQueryExecution.queryStartTimestamp;
                 fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);

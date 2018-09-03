@@ -34,7 +34,6 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
-import com.indeed.iql.web.DatasetStatsCache;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.server.SpringContextAware;
@@ -122,14 +121,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         } else {
             return MetricStatsEmitter.NULL_EMITTER;
         }
-    }
-
-    @Bean
-    @Autowired
-    DatasetStatsCache datasetStatsCache(
-            ImhotepClient imhotepClient
-    ) {
-        return new DatasetStatsCache(imhotepClient);
     }
 
     @Bean 

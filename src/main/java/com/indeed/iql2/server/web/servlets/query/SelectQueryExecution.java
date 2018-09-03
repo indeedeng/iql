@@ -67,7 +67,6 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.FieldExtractor;
-import com.indeed.iql.web.DatasetStatsCache;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
@@ -122,7 +121,6 @@ public class SelectQueryExecution implements Closeable {
     private final ImhotepClient imhotepClient;
 
     private final DatasetsMetadata datasetsMetadata;
-    private final DatasetStatsCache datasetStatsCache;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -146,7 +144,6 @@ public class SelectQueryExecution implements Closeable {
             final Limits limits,
             final ImhotepClient imhotepClient,
             final DatasetsMetadata datasetsMetadata,
-            final DatasetStatsCache datasetStatsCache,
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
             final ClientInfo clientInfo,
@@ -169,7 +166,6 @@ public class SelectQueryExecution implements Closeable {
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
-        this.datasetStatsCache = datasetStatsCache;
         this.queryCache = queryCache;
     }
 
@@ -494,12 +490,6 @@ public class SelectQueryExecution implements Closeable {
                     }
                 }
                 timer.pop();
-            }
-
-            final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetStatsCache.getTypeConflictFieldNames());
-            if (conflictFieldsUsed.size() > 0) {
-                final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
-                warn.accept(conflictWarning);
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
