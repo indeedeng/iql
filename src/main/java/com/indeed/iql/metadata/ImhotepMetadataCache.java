@@ -168,6 +168,7 @@ public class ImhotepMetadataCache {
             }
         }
 
+        // Set field frequencies
         final Map<String, Map<String, Integer>> fieldFrequencies = fieldFrequencyCache.getFieldFrequencies();
         if (fieldFrequencies != null) {
             for (final DatasetMetadata datasetMetadata : newDatasets.values()) {

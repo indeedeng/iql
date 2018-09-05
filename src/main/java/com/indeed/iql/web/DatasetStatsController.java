@@ -14,8 +14,8 @@
 
 package com.indeed.iql.web;
 
-import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author vladimir
@@ -41,9 +40,15 @@ public class DatasetStatsController {
 
     private final ImhotepClient imhotepClient;
 
+    private final ImhotepMetadataCache metadataCacheIQL2;
+
     @Autowired
-    public DatasetStatsController(ImhotepClient imhotepClient) {
+    public DatasetStatsController(
+            ImhotepClient imhotepClient,
+            ImhotepMetadataCache metadataCacheIQL2
+    ) {
         this.imhotepClient = imhotepClient;
+        this.metadataCacheIQL2 = metadataCacheIQL2;
     }
 
     @RequestMapping(value = "/datasetstats", produces = "application/json")
@@ -55,7 +60,7 @@ public class DatasetStatsController {
     }
 
     private synchronized void updateDatasetStatsCache() {
-        if(cached == null || DateTime.now().isAfter(lastCacheUpdate.plus(CACHE_EXPIRATION))) {
+        if (cached == null || DateTime.now().isAfter(lastCacheUpdate.plus(CACHE_EXPIRATION))) {
             long computationStartTime = System.currentTimeMillis();
             cached = DatasetStatsCollector.computeStats(imhotepClient);
             lastCacheUpdate = DateTime.now();
@@ -67,23 +72,6 @@ public class DatasetStatsController {
     @RequestMapping(value = "/typeconflictfields", produces = "application/json")
     @ResponseBody
     public List<DatasetTypeConflictFields> getTypeConflictFields() {
-        updateDatasetStatsCache();
-        final List<DatasetTypeConflictFields> result = Lists.newArrayList();
-        for(DatasetStats stats : cached) {
-            if(stats.numTypeConflictFields > 0) {
-                result.add(new DatasetTypeConflictFields(stats.name, stats.typeConflictFields));
-            }
-        }
-        return result;
-    }
-
-    private static class DatasetTypeConflictFields {
-        public String dataset;
-        public Set<String> fields;
-
-        public DatasetTypeConflictFields(String dataset, Set<String> fields) {
-            this.dataset = dataset;
-            this.fields = fields;
-        }
+        return metadataCacheIQL2.get().getTypeConflictFields();
     }
 }

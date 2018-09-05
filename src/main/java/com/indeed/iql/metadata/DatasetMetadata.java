@@ -45,6 +45,7 @@ public class DatasetMetadata {
     public boolean deprecated;
     public final TreeSet<FieldMetadata> intFields;
     public final TreeSet<FieldMetadata> stringFields;
+    public Set<String> conflictFieldNames;
     public final Map<String, MetricMetadata> fieldToDimension;
 
     // Required by LuceneQueryTranslator, so cache it here
@@ -69,6 +70,7 @@ public class DatasetMetadata {
         this.deprecated = deprecated;
         this.intFields = toCaseInsensitive(intFields);
         this.stringFields = toCaseInsensitive(stringFields);
+        this.conflictFieldNames = new TreeSet<>();
 
         final Map<String, MetricMetadata> fieldToDimensionCopy = new TreeMap<>(fieldNameComparator);
         fieldToDimensionCopy.putAll(fieldToDimension);
@@ -182,7 +184,6 @@ public class DatasetMetadata {
         }
         iql1IntImhotepFieldSet = Collections.unmodifiableSet(iql1IntImhotepFieldSet);
 
-
         Preconditions.checkState(iql1Aliases.isEmpty());
         for(MetricMetadata metric : fieldToDimension.values()) {
             if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
@@ -190,6 +191,10 @@ public class DatasetMetadata {
             }
         }
         iql1Aliases = Collections.unmodifiableMap(iql1Aliases);
+
+        final Set<String> intFieldNames = intFields.stream().map(x -> x.name).collect(Collectors.toSet());
+        final Set<String> stringFieldNames = stringFields.stream().map(x -> x.name).collect(Collectors.toSet());
+        conflictFieldNames = Sets.intersection(intFieldNames, stringFieldNames);
     }
 
     public void toJSON(ObjectNode jsonNode, ObjectMapper mapper, boolean summaryOnly) {
