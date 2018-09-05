@@ -27,14 +27,13 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.web.QueryInfo;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.web.Limits;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -118,6 +117,10 @@ public final class IQLQuery implements Closeable {
                 .localTempFileSizeLimit(mbToBytes(limits.queryFTGSIQLLimitMB))
                 .daemonTempFileSizeLimit(mbToBytes(limits.queryFTGSImhotepDaemonLimitMB)).username(username).clientName("IQL");
         shards = sessionBuilder.getChosenShards();
+        if ((shards == null) || shards.isEmpty()) {
+            throw new IqlKnownException.NoDataException("No shards: no data available for the requested dataset and time range."
+                    + " Dataset: " + dataset + ", start: " + start + ", end: " + end);
+        }
         shardsSelectionMillis = System.currentTimeMillis() - shardsSelectionStartTime;
 
         timeIntervalsMissingShards = sessionBuilder.getTimeIntervalsMissingShards();

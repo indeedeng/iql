@@ -14,6 +14,9 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.Positioned;
@@ -21,8 +24,6 @@ import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.SimpleIterate;
-import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
@@ -88,7 +89,7 @@ public class CommandValidator {
                 final FieldMetadata actualField = new FieldMetadata(actualFieldString, FieldType.Integer);
                 if (datasetMetada.fieldToDimension.containsKey(actualFieldString)) {
                     if (!datasetMetada.fieldToDimension.get(actualFieldString).isAlias) {
-                        throw new IllegalArgumentException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));
+                        throw new IqlKnownException.ParseErrorException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));
                     } else {
                         aliasIntField.add(aliasField);
                     }
@@ -97,7 +98,7 @@ public class CommandValidator {
                 } else if (datasetMetada.intFields.contains(actualField)) {
                     aliasIntField.add(aliasField);
                 } else {
-                    throw new IllegalArgumentException("Alias for non-existent field: " + actualField + " in dataset " + actualDataset);
+                    throw new IqlKnownException.ParseErrorException("Alias for non-existent field: " + actualField + " in dataset " + actualDataset);
                 }
             }
             relevantDatasetAliasIntFields.put(aliasDataset, aliasIntField);

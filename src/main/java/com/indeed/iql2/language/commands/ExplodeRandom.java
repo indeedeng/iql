@@ -39,6 +39,9 @@ public class ExplodeRandom implements Command {
         for (final String dataset : validationHelper.datasets()) {
             validationHelper.containsField(dataset, field);
         }
+        if (k <= 1) {
+            validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
+        }
     }
 
     @Override

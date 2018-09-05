@@ -455,6 +455,12 @@ public class SelectQueryExecution implements Closeable {
                 timer.pop();
             }
 
+            final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
+            if (conflictFieldsUsed.size() > 0) {
+                final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
+                warn.accept(conflictWarning);
+            }
+
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));

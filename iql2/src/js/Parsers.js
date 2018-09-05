@@ -6,6 +6,8 @@ const ErrorListener = require('antlr4').error.ErrorListener;
 
 const moment = require('moment');
 
+const DEFAULT_UTC_OFFSET = -6;
+
 import autobind from 'autobind-decorator';
 
 function failure(err, expected) {
@@ -63,10 +65,12 @@ function runParser(parserName, input, parserArgs) {
 
     const lexer = new JQLLexer.JQLLexer(chars);
     const errorListener = new CollectingErrorListener();
+    lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener);
     const tokens = new antlr4.CommonTokenStream(lexer);
     const parser = new JQLParser.JQLParser(tokens);
     parser.buildParseTrees = true;
+    parser.removeErrorListeners();
     parser.addErrorListener(errorListener);
     const result = parser[parserName].apply(parser, parserArgs || []);
     if (errorListener.errors.length > 0) {
@@ -312,16 +316,17 @@ class Parser {
         }
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
+        const timeAtStartOfDay = moment().utcOffset(DEFAULT_UTC_OFFSET).startOf('day');
         if (((this.isLegacy || rawDate.length > 3) && 'TODAY'.startsWith(rawDate.toUpperCase()))
             || ('AGO' === rawDate.toUpperCase())){
-            return successIfValid(moment().startOf('day'));
+            return successIfValid(timeAtStartOfDay);
         } else if (rawDate.length >= 3 && 'TOMORROW'.startsWith(rawDate.toUpperCase())) {
-            return successIfValid(moment().startOf('day').add(1, 'days'));
+            return successIfValid(timeAtStartOfDay.add(1, 'days'));
         } else if (rawDate.length > 1 && 'YESTERDAY'.startsWith(rawDate.toUpperCase())) {
-            return successIfValid(moment().startOf('day').subtract(1, 'days'));
+            return successIfValid(timeAtStartOfDay.subtract(1, 'days'));
         } else if (parsed.timePeriod() !== null) {
             const timePeriod = parsed.timePeriod();
-            const res = moment().startOf('day');
+            const res = timeAtStartOfDay;
             for (let i = 0; i < timePeriod.timeunits.length; i++) {
                 const timeUnit = timePeriod.timeunits[i];
                 const coeff = timeUnit.coeff ? getText(timeUnit.coeff) : 1;

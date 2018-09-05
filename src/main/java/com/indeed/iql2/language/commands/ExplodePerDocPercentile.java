@@ -36,6 +36,9 @@ public class ExplodePerDocPercentile implements Command {
     @Override
     public void validate(final ValidationHelper validationHelper, final Validator validator) {
         ValidationUtil.validateIntField(validationHelper.datasets(), field, validationHelper, validator, this);
+        if (numBuckets <= 0) {
+            validator.error("Bucket count in QUANTILES must be positive, current value = " + numBuckets);
+        }
     }
 
     @Override

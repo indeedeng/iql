@@ -257,6 +257,16 @@ public class QueryServlet {
         queryInfo.groupByCount = groupByCount;
     }
 
+
+    private boolean isMetadataQuery(String query) {
+        try {
+            final IQLStatement statement = StatementParser.parse(query, metadata);
+            return statement instanceof DescribeStatement || statement instanceof ShowStatement;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
      * the order in which the header values will be returned. I have examined the Tomcat source to establish that it does return the values in order, but this
@@ -364,6 +374,36 @@ public class QueryServlet {
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
+
+        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadata.get().getTypeConflictDatasetFieldNames());
+        if (conflictFieldsUsed.size() > 0) {
+            final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
+            warningList.add(conflictWarning);
+        }
+
+        if(properTimeIntervalsMissingShards.size() > 0) {
+            long millisMissing = 0;
+            final int countMissingIntervals = properTimeIntervalsMissingShards.size();
+
+            for (Interval interval: properTimeIntervalsMissingShards){
+                millisMissing += interval.getEndMillis()-interval.getStartMillis();
+            }
+
+            final double totalPeriod = endTime.getMillis()-startTime.getMillis();
+
+            final double percentMissing = millisMissing/totalPeriod*100;
+            final String percentAbsent = percentMissing > 1 ?
+                    String.valueOf((int) percentMissing) : String.format("%.2f", percentMissing);
+
+            final String shortenedMissingIntervalsString;
+            if (countMissingIntervals>5) {
+                final List<Interval> properSubList =properTimeIntervalsMissingShards.subList(0, 5);
+                shortenedMissingIntervalsString = intervalListToString(properSubList) + ", " + (countMissingIntervals - 5) + " more intervals";
+            } else {
+                shortenedMissingIntervalsString = intervalListToString(properTimeIntervalsMissingShards);
+            }
+            warningList.add(percentAbsent + "% of the queried time period is missing: " + shortenedMissingIntervalsString);
+        }
 
         if(timeIntervalsMissingShards.size() > 0) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);

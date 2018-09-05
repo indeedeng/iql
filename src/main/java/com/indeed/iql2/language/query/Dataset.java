@@ -22,11 +22,12 @@ import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocFilters;
-import com.indeed.squall.iql2.language.JQLBaseListener;
-import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.TimePeriods;
+import com.indeed.iql2.language.compat.Consumer;
+import com.indeed.squall.iql2.language.JQLBaseListener;
+import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
@@ -96,6 +97,7 @@ public class Dataset extends AbstractPositional {
         } else {
             initializerFilter = Optional.absent();
         }
+        checkRange(start.unwrap(), end.unwrap());
         final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases);
         dataset1.copyPosition(datasetContext);
         return Pair.of(dataset1, initializerFilter);
@@ -138,6 +140,7 @@ public class Dataset extends AbstractPositional {
                     initializerFilter = Optional.absent();
                 }
 
+                checkRange(defaultStart, defaultEnd); // this should not fail as we already checked this range before, but just in case.
                 final Dataset dataset1 = new Dataset(dataset, Positioned.unpositioned(defaultStart), Positioned.unpositioned(defaultEnd), name, fieldAliases);
                 dataset1.copyPosition(ctx);
                 accept(Pair.of(dataset1, initializerFilter));
@@ -177,7 +180,8 @@ public class Dataset extends AbstractPositional {
             } else if (dateTimeContext.STRING_LITERAL() != null) {
                 final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
                 try {
-                    return Positioned.from(createDateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
+                    // Don't use createDataTime method here since error will be caught and processed.
+                    return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
                 } catch (IllegalArgumentException e) {
                     final JQLParser jqlParser = Queries.parserForString(unquoted);
                     final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
@@ -232,6 +236,12 @@ public class Dataset extends AbstractPositional {
             return new DateTime(time);
         } catch (final Throwable t) {
             throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
+        }
+    }
+
+    private static void checkRange(final DateTime start, final DateTime end) {
+        if(!end.isAfter(start)) {
+            throw new IqlKnownException.ParseErrorException("Illegal time range requested: " + start.toString() + " to " + end.toString());
         }
     }
 
