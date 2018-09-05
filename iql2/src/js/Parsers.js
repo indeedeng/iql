@@ -65,7 +65,7 @@ function runParser(parserName, input, parserArgs) {
 
     const lexer = new JQLLexer.JQLLexer(chars);
     const errorListener = new CollectingErrorListener();
-    lexer.removeErrorListeners();extra
+    lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener);
     const tokens = new antlr4.CommonTokenStream(lexer);
     const parser = new JQLParser.JQLParser(tokens);
