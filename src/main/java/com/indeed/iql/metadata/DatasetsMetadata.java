@@ -34,17 +34,18 @@ import java.util.stream.Collectors;
 public class DatasetsMetadata {
     private final Map<String, DatasetMetadata> metadata;
     private final Map<String, Map<String, String>> datasetToDimensionAliasFields;
-    private final Set<String> typeConflictFieldNames;
+    // typeConflictDatasetFieldNames contains entries of the form "datasetname.fieldname"
+    private final Set<String> typeConflictDatasetFieldNames;
     private static final DatasetsMetadata EMPTY_META = new DatasetsMetadata();
 
     private DatasetsMetadata() {
         metadata = Collections.emptyMap();
         datasetToDimensionAliasFields = Collections.emptyMap();
-        typeConflictFieldNames = Collections.emptySet();
+        typeConflictDatasetFieldNames = Collections.emptySet();
     }
 
-    public Set<String> getTypeConflictFieldNames() {
-        return typeConflictFieldNames;
+    public Set<String> getTypeConflictDatasetFieldNames() {
+        return typeConflictDatasetFieldNames;
     }
 
     public List<DatasetTypeConflictFields> getTypeConflictFields() {
@@ -67,10 +68,10 @@ public class DatasetsMetadata {
                     .stream().filter(dimension -> dimension.getValue().isAlias)
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasActualField().get())));
         });
-        typeConflictFieldNames = new HashSet<>();
+        typeConflictDatasetFieldNames = new HashSet<>();
         metadata.forEach((dataset, meta) -> {
             for (final String conflictFieldName : meta.conflictFieldNames) {
-                typeConflictFieldNames.add(meta.name + "." + conflictFieldName);
+                typeConflictDatasetFieldNames.add(meta.name + "." + conflictFieldName);
             }
         });
     }

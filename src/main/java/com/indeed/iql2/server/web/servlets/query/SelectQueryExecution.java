@@ -492,7 +492,7 @@ public class SelectQueryExecution implements Closeable {
                 timer.pop();
             }
 
-            final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictFieldNames());
+            final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
             if (conflictFieldsUsed.size() > 0) {
                 final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
                 warn.accept(conflictWarning);

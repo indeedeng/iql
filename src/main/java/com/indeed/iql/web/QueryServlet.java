@@ -319,7 +319,7 @@ public class QueryServlet {
 
         ArrayList<String> warningList = new ArrayList<>();
 
-        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadata.get().getTypeConflictFieldNames());
+        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadata.get().getTypeConflictDatasetFieldNames());
         if (conflictFieldsUsed.size() > 0) {
             final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
             warningList.add(conflictWarning);
