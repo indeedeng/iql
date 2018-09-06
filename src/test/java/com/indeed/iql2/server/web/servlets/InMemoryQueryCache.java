@@ -36,6 +36,7 @@ import java.util.Set;
 public class InMemoryQueryCache implements QueryCache {
     private final Map<String, String> cachedValues = new HashMap<>();
     private final Set<String> readsTracked = new HashSet<>();
+    private final Set<String> writesTracked = new HashSet<>();
 
     @Override
     public boolean isEnabled() {
@@ -78,6 +79,7 @@ public class InMemoryQueryCache implements QueryCache {
 
             @Override
             public void close() throws IOException {
+                writesTracked.add(cachedFileName);
                 cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
             }
         };
@@ -87,6 +89,7 @@ public class InMemoryQueryCache implements QueryCache {
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
         final String[] lines = Files.readTextFileOrDie(localFile.getAbsolutePath());
         cachedValues.put(cachedFileName, Joiner.on('\n').join(lines));
+        writesTracked.add(cachedFileName);
     }
 
     @Override
@@ -96,6 +99,10 @@ public class InMemoryQueryCache implements QueryCache {
 
     public Set<String> getReadsTracked() {
         return ImmutableSet.copyOf(readsTracked);
+    }
+
+    public Set<String> getWritesTracked() {
+        return ImmutableSet.copyOf(writesTracked);
     }
 
     public void clearReadsTracked() {
