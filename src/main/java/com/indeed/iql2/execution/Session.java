@@ -56,7 +56,6 @@ import com.indeed.iql2.execution.caseinsensitivity.CaseInsensitiveImhotepSession
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
 import com.indeed.iql2.execution.commands.SimpleIterate;
-import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -90,6 +89,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**

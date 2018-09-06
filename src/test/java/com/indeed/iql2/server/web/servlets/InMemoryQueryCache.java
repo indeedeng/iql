@@ -54,8 +54,12 @@ public class InMemoryQueryCache implements QueryCache {
 
     @Override
     public InputStream getInputStream(String cachedFileName) throws IOException {
+        final String cachedValue = cachedValues.get(cachedFileName);
+        if (cachedValue == null) {
+            return null;
+        }
         readsTracked.add(cachedFileName);
-        return new ByteArrayInputStream(cachedValues.get(cachedFileName).getBytes());
+        return new ByteArrayInputStream(cachedValue.getBytes());
     }
 
     @Override

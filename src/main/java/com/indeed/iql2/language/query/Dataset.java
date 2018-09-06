@@ -25,7 +25,6 @@ import com.indeed.iql2.language.DocFilters;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.TimePeriods;
-import com.indeed.iql2.language.compat.Consumer;
 import com.indeed.squall.iql2.language.JQLBaseListener;
 import com.indeed.squall.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;

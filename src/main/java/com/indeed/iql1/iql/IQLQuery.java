@@ -17,7 +17,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.Shard;
@@ -55,7 +55,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
@@ -137,10 +136,10 @@ public final class IQLQuery implements Closeable {
     /**
      * Not thread safe due to session reference caching for close().
      */
-    public ExecutionResult execute(boolean progress, OutputStream outputStream, boolean getTotals) throws ImhotepOutOfMemoryException {
+    public ExecutionResult execute(boolean progress, PrintWriter outputStream, boolean getTotals) throws ImhotepOutOfMemoryException {
         queryInfo.shardsSelectionMillis = shardsSelectionMillis;
         //if outputStream passed, update on progress
-        final PrintWriter out = progress ? new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8)) : null;
+        final PrintWriter out = progress ? outputStream : null;
 
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
@@ -398,7 +397,7 @@ public final class IQLQuery implements Closeable {
     }
 
     @Nonnull
-    public WriteResults outputResults(final Iterator<GroupStats> rows, OutputStream httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
+    public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
         final long timeStarted = System.currentTimeMillis();
         final boolean requiresSorting = requiresSorting();
         if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
@@ -426,7 +425,8 @@ public final class IQLQuery implements Closeable {
         } else {    // have to work with the files on the hard drive to avoid OOM
             try {
                 final File unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
-                final FileOutputStream fileOutputStream = new FileOutputStream(unsortedFile);
+                final PrintWriter fileOutputStream = new PrintWriter(new OutputStreamWriter(
+                        new BufferedOutputStream(new FileOutputStream(unsortedFile)), Charsets.UTF_8));
                 final long started = System.currentTimeMillis();
                 int rowsWritten = 0;
                 // flush cache
@@ -505,22 +505,22 @@ public final class IQLQuery implements Closeable {
      * Copies everything from input stream to the output stream, limiting to the requested number of lines if necessary.
      * Input stream is closed; output stream is flushed but not closed when done.
      */
-    public static int copyStream(InputStream inputStream, OutputStream outputStream, int lineLimit, boolean eventSource) {
-        final String EVENT_NAME = "resultstream";
+    public static int copyStream(InputStream inputStream, PrintWriter outputStream, int lineLimit, boolean eventSource) {
         try {
             if(!eventSource && (lineLimit == Integer.MAX_VALUE || lineLimit <= 0)) {
                 // no need to count rows so copy streams completely
                 // we can't do this if we need the eventSource data
-                ByteStreams.copy(inputStream, outputStream);
+                CharStreams.copy(new InputStreamReader(inputStream, Charsets.UTF_8), outputStream);
                 outputStream.flush();
                 return 0;    // unknown how many rows were copied as we haven't counted
             }
 
             // have to count the lines as we copy to enforce the limit
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, Charsets.UTF_8));
-            final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, Charsets.UTF_8));
+            final BufferedWriter writer = new BufferedWriter(outputStream);
 
             if(eventSource) {
+                final String EVENT_NAME = "resultstream";
                 writer.write("event: " + EVENT_NAME);
                 writer.newLine();
             }
@@ -529,7 +529,7 @@ public final class IQLQuery implements Closeable {
             int linesCopied = 0;
             while(line != null) {
                 if(eventSource) {
-                    line = "data: " + line;
+                    writer.write("data: ");
                 }
                 writer.write(line);
                 writer.newLine();
@@ -550,11 +550,10 @@ public final class IQLQuery implements Closeable {
         }
     }
 
-    public static int writeRowsToStream(final Iterator<GroupStats> rows, OutputStream os, final boolean csv, final int rowLimit, final boolean progress) {
+    public static int writeRowsToStream(final Iterator<GroupStats> rows, PrintWriter out, final boolean csv, final int rowLimit, final boolean progress) {
         // TODO: how much precision do we want?
         final DecimalFormat format = new DecimalFormat("#.#######");
         final String tsvDelimiter = "\t";
-        final PrintWriter out = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(os), Charsets.UTF_8));
 
         final CSVWriter csvWriter;
         final List<String> csvFields;

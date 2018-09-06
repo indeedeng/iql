@@ -458,7 +458,7 @@ public class SelectQueryExecution implements Closeable {
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
             if (conflictFieldsUsed.size() > 0) {
                 final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
-                warn.accept(conflictWarning);
+                warnings.add(conflictWarning);
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
@@ -680,7 +680,7 @@ public class SelectQueryExecution implements Closeable {
                 outputStream.println("data: :)");
                 outputStream.println();
             }
-            outputStream.close();
+            outputStream.close(); // only close on success because on error the stack trace is printed
         }
     }
 

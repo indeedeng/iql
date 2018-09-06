@@ -109,6 +109,7 @@ public class ExplainQueryExecution {
             dataMap.put("warnings", warnings);
             outputStream.println(OBJECT_MAPPER.writeValueAsString(dataMap));
         }
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     private class ParsedQueryExplain {

@@ -257,16 +257,6 @@ public class QueryServlet {
         queryInfo.groupByCount = groupByCount;
     }
 
-
-    private boolean isMetadataQuery(String query) {
-        try {
-            final IQLStatement statement = StatementParser.parse(query, metadata);
-            return statement instanceof DescribeStatement || statement instanceof ShowStatement;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
      * the order in which the header values will be returned. I have examined the Tomcat source to establish that it does return the values in order, but this
@@ -322,7 +312,7 @@ public class QueryServlet {
                 queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                 // actually process
-                runSelectStatement(selectQuery, queryRequestParams, resp);
+                runSelectStatement(selectQuery, queryRequestParams, resp.getWriter());
             } finally {
                 // this must be closed. but we may have to defer it to the async thread finishing query processing
                 if (!selectQuery.isAsynchronousRelease()) {
@@ -335,7 +325,7 @@ public class QueryServlet {
         log.debug(timer);
     }
 
-    private void runSelectStatement(final SelectQuery selectQuery, final QueryRequestParams args, final HttpServletResponse resp) throws IOException {
+    private void runSelectStatement(final SelectQuery selectQuery, final QueryRequestParams args, final PrintWriter outputStream) throws IOException {
         final QueryInfo queryInfo = selectQuery.queryInfo;
         final IQL1SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
@@ -375,34 +365,10 @@ public class QueryServlet {
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
 
-        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadata.get().getTypeConflictDatasetFieldNames());
+        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCacheIQL1.get().getTypeConflictDatasetFieldNames());
         if (conflictFieldsUsed.size() > 0) {
             final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
             warningList.add(conflictWarning);
-        }
-
-        if(properTimeIntervalsMissingShards.size() > 0) {
-            long millisMissing = 0;
-            final int countMissingIntervals = properTimeIntervalsMissingShards.size();
-
-            for (Interval interval: properTimeIntervalsMissingShards){
-                millisMissing += interval.getEndMillis()-interval.getStartMillis();
-            }
-
-            final double totalPeriod = endTime.getMillis()-startTime.getMillis();
-
-            final double percentMissing = millisMissing/totalPeriod*100;
-            final String percentAbsent = percentMissing > 1 ?
-                    String.valueOf((int) percentMissing) : String.format("%.2f", percentMissing);
-
-            final String shortenedMissingIntervalsString;
-            if (countMissingIntervals>5) {
-                final List<Interval> properSubList =properTimeIntervalsMissingShards.subList(0, 5);
-                shortenedMissingIntervalsString = intervalListToString(properSubList) + ", " + (countMissingIntervals - 5) + " more intervals";
-            } else {
-                shortenedMissingIntervalsString = intervalListToString(properTimeIntervalsMissingShards);
-            }
-            warningList.add(percentAbsent + "% of the queried time period is missing: " + shortenedMissingIntervalsString);
         }
 
         if(timeIntervalsMissingShards.size() > 0) {
@@ -416,7 +382,6 @@ public class QueryServlet {
         if (args.headOnly) {
             return;
         }
-        final ServletOutputStream outputStream = resp.getOutputStream();
         if (args.isEventStream) {
             outputStream.print(": This is the start of the IQL Query Stream\n\n");
         }
@@ -433,7 +398,6 @@ public class QueryServlet {
                     queryMetadata.mergeIn(cachedMetadata);
                     queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
                     queryMetadata.setPendingHeaders();
-                    resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
                 } catch (Exception e) {
                     log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
                 }
@@ -453,7 +417,6 @@ public class QueryServlet {
                 queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
 
                 queryMetadata.setPendingHeaders();
-                resp.setHeader("Access-Control-Expose-Headers", StringUtils.join(resp.getHeaderNames(), ", "));
 
                 final Iterator<GroupStats> groupStats = executionResult.getRows();
                 final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
@@ -486,10 +449,8 @@ public class QueryServlet {
                     @Override
                     public Void call() throws Exception {
                         try {
-                            try {
-                                final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                            try (final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX)) {
                                 queryMetadata.toOutputStream(metadataCacheStream);
-                                metadataCacheStream.close();
                             } catch (Exception e) {
                                 log.warn("Failed to upload metadata cache: " + cacheFileName, e);
                             }
@@ -510,11 +471,11 @@ public class QueryServlet {
         }
     }
 
-    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, ServletOutputStream outputStream, QueryInfo queryInfo) throws IOException {
+    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream, QueryInfo queryInfo) throws IOException {
         if (args.isEventStream) {
             completeEventStream(outputStream, queryMetadata);
         }
-        outputStream.close();
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     public static List<String> missingShardsToWarnings(String datasetName, DateTime startTime, DateTime endTime, List<Interval> timeIntervalsMissingShards) {
@@ -563,7 +524,7 @@ public class QueryServlet {
         return warningList;
     }
 
-    public static void completeEventStream(ServletOutputStream outputStream, QueryMetadata queryMetadata) throws IOException {
+    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) throws IOException {
         outputStream.println();
         outputStream.println("event: header");
         outputStream.print("data: ");
@@ -621,9 +582,9 @@ public class QueryServlet {
     private void uploadResultsToCache(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
         if(writeResults.resultCacheIterator != null) {
             // use the memory cached data
-            final OutputStream cacheStream = queryCache.getOutputStream(cachedFileName);
-            IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheStream, csv, Integer.MAX_VALUE, false);
-            cacheStream.close(); // has to be closed
+            try (final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(queryCache.getOutputStream(cachedFileName)))) {
+                IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
+            }
         } else if(writeResults.unsortedFile != null) {
             // cache overflowed to disk so read from file
             try {
@@ -661,7 +622,7 @@ public class QueryServlet {
     }
 
     private void handleDescribeField(DescribeStatement parsedQuery, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
-        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
+        final PrintWriter outputStream = resp.getWriter();
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
@@ -686,50 +647,49 @@ public class QueryServlet {
                 outputStream.println(term);
             }
         }
-        outputStream.close();
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     private void handleDescribeDataset(DescribeStatement describeStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
-        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
+        final PrintWriter outputStream = resp.getWriter();
         final String dataset = describeStatement.dataset;
         final DatasetMetadata datasetMetadata = metadataCacheIQL1.getDataset(dataset);
-        if(queryRequestParams.json) {
+        if (queryRequestParams.json) {
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             datasetMetadata.toJSON(jsonRoot, OBJECT_MAPPER, false);
 
             OBJECT_MAPPER.writeValue(outputStream, jsonRoot);
         } else {
-            for(FieldMetadata field : datasetMetadata.intFields) {
+            for (FieldMetadata field : datasetMetadata.intFields) {
                 outputStream.println(field.toTSV());
             }
-            for(FieldMetadata field : datasetMetadata.stringFields) {
+            for (FieldMetadata field : datasetMetadata.stringFields) {
                 outputStream.println(field.toTSV());
             }
         }
-        outputStream.close();
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     private void handleShowStatement(QueryRequestParams queryRequestParams, final HttpServletResponse resp) throws IOException {
-        final PrintWriter outputStream = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(resp.getOutputStream()), Charsets.UTF_8));
-
-        if(queryRequestParams.json) {
+        final PrintWriter outputStream = resp.getWriter();
+        if (queryRequestParams.json) {
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             final ArrayNode array = OBJECT_MAPPER.createArrayNode();
             jsonRoot.set("datasets", array);
-            for(DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+            for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
                 final ObjectNode datasetInfo = OBJECT_MAPPER.createObjectNode();
                 dataset.toJSON(datasetInfo, OBJECT_MAPPER, true);
                 array.add(datasetInfo);
             }
             OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
-            for(DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+            for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
                 outputStream.println(dataset.name);
             }
         }
-        outputStream.close();
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     public static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean setHTTPStatus, boolean isEventStream) throws IOException {
@@ -738,20 +698,20 @@ public class QueryServlet {
         }
         // output parse/execute error
         if(!json) {
-            final PrintWriter printWriter = resp.getWriter();
-            if(isEventStream) {
-                resp.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
-                final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
-                printWriter.println("event: servererror");
-                for (String s : stackTrace) {
-                    printWriter.println("data: " + s);
+            try (final PrintWriter printWriter = resp.getWriter()) {
+                if (isEventStream) {
+                    resp.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
+                    final String[] stackTrace = Throwables.getStackTraceAsString(e).split("\\n");
+                    printWriter.println("event: servererror");
+                    for (String s : stackTrace) {
+                        printWriter.println("data: " + s);
+                    }
+                    printWriter.println();
+                } else {
+                    resp.setContentType(MediaType.TEXT_PLAIN_VALUE);
+                    resp.setStatus(getHTTPStatusForError(e));
+                    e.printStackTrace(printWriter);
                 }
-                printWriter.println();
-            } else {
-                resp.setContentType(MediaType.TEXT_PLAIN_VALUE);
-                resp.setStatus(getHTTPStatusForError(e));
-                e.printStackTrace(printWriter);
-                printWriter.close();
             }
         } else {
             if(setHTTPStatus) {
@@ -768,9 +728,9 @@ public class QueryServlet {
             final String stackTrace = Throwables.getStackTraceAsString(Throwables.getRootCause(e));
             final ErrorResult error = new ErrorResult(e.getClass().getSimpleName(), e.getMessage(), stackTrace, clause, offset);
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
-            final PrintWriter printWriter = resp.getWriter();
-            OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(printWriter, error);
-            printWriter.close();
+            try (final PrintWriter printWriter = resp.getWriter()) {
+                OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(printWriter, error);
+            }
         }
     }
 
