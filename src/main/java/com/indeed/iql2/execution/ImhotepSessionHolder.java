@@ -246,6 +246,13 @@ public class ImhotepSessionHolder implements Closeable {
         }
     }
 
+    // method for unconditional remapping from one groups to another.
+    // TODO: refactor this after IMTEPD-419 is implemented
+    public int remapGroups(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
+        // skip conversion since we assume that rawRuleMessages don't have RegroupConditions.
+        return session.regroupWithProtos(rawRuleMessages, true);
+    }
+
     // converting methods
 
     private String convertField(final String field) {

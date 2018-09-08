@@ -50,8 +50,8 @@ public class ExplodeSessionNames implements Command {
             }
             session.timer.pop();
 
-            session.timer.push("regroupWithProtos(" + messages.length + " rules)");
-            s.regroupWithProtos(messages, false);
+            session.timer.push("remapGroups");
+            s.remapGroups(messages);
             session.timer.pop();
 
             index += 1;

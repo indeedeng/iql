@@ -102,7 +102,7 @@ public class MetricRegroup implements Command {
                                 .setNegativeGroup(newGroup)
                                 .build();
                     }
-                    session.regroupWithProtos(rules, true);
+                    session.remapGroups(rules);
                     timer.pop();
                 }
 

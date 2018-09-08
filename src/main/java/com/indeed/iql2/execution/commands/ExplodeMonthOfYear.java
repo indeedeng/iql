@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.compat.Consumer;
@@ -60,7 +59,8 @@ public class ExplodeMonthOfYear implements Command {
         session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");
-        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[oldNumGroups * numBuckets];
+        final int[] fromGroups = new int[oldNumGroups * numBuckets];
+        final int[] toGroups = new int[oldNumGroups * numBuckets];
         int index = 0;
         for (int outerGroup = 1; outerGroup <= oldNumGroups; outerGroup++) {
             for (int innerGroup = 0; innerGroup < numBuckets; innerGroup++) {
@@ -70,15 +70,14 @@ public class ExplodeMonthOfYear implements Command {
 
                 final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
                 final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
-                rules[index++] = GroupMultiRemapMessage.newBuilder()
-                        .setTargetGroup(base)
-                        .setNegativeGroup(newGroup)
-                        .build();
+                fromGroups[index] = base;
+                toGroups[index] = newGroup;
+                index++;
             }
         }
         session.timer.pop();
 
-        session.regroupWithProtos(rules, true);
+        session.remapGroups(fromGroups, toGroups);
 
         session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, TimeUnit.MONTH.formatString));
     }

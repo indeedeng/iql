@@ -838,6 +838,29 @@ public class Session {
         timer.pop();
     }
 
+    public void remapGroups(final int[] fromGroups, final int[] toGroups) throws ImhotepOutOfMemoryException {
+
+        if (fromGroups.length != toGroups.length) {
+            throw new IllegalStateException();
+        }
+
+        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[fromGroups.length];
+        for (int i = 0; i < fromGroups.length; i++) {
+            messages[i] = GroupMultiRemapMessage.newBuilder()
+                    .setTargetGroup(fromGroups[i])
+                    .setNegativeGroup(toGroups[i])
+                    .build();
+        }
+        // TODO: Parallelize
+        timer.push("remapGroups");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            timer.push("session:" + sessionInfo.displayName);
+            sessionInfo.session.remapGroups(messages);
+            timer.pop();
+        }
+        timer.pop();
+    }
+
     public void popStat() {
         // TODO: Parallelize
         timer.push("popStat");

@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.GroupLookupMergeType;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.compat.Consumer;
@@ -76,16 +75,15 @@ public class RegroupIntoParent implements Command {
         session.timer.pop();
 
         session.timer.push("create rules");
-        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
+        final int[] fromGroups = new int[session.numGroups];
+        final int[] toGroups = new int[session.numGroups];
         for (int group = 1; group <= session.numGroups; group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
-            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(group)
-                    .setNegativeGroup(newGroup)
-                    .build();
+            fromGroups[group - 1] = group;
+            toGroups[group - 1] = newGroup;
         }
         session.timer.pop();
-        session.regroupWithProtos(messages, false);
+        session.remapGroups(fromGroups, toGroups);
         session.currentDepth -= 1;
         session.numGroups = prevNumGroups;
         session.groupKeySet = session.groupKeySet.previous();
