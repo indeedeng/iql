@@ -18,16 +18,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
-import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang.ArrayUtils;
@@ -150,18 +147,8 @@ public class ExplodePerDocPercentile implements Command {
         }
         session.timer.pop();
 
-        session.process(new SessionCallback() {
-            @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
-                timer.push("regroupWithProtos(" + rules.length + " rules)");
-                session.regroupWithProtos(rules, true);
-                timer.pop();
-
-                timer.push("popStat");
-                session.popStat();
-                timer.pop();
-            }
-        });
+        session.regroupWithProtos(rules, true);
+        session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
 

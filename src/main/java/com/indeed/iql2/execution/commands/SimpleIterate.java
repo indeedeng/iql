@@ -23,9 +23,9 @@ import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.DenseInt2ObjectMap;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
@@ -170,8 +170,8 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
 
-        final Map<String, ImhotepSession> sessionsMapRaw = session.getSessionsMapRaw();
-        final Map<String, ImhotepSession> sessionsToUse;
+        final Map<String, ImhotepSessionHolder> sessionsMapRaw = session.getSessionsMapRaw();
+        final Map<String, ImhotepSessionHolder> sessionsToUse;
         if (scope == null) {
             sessionsToUse = sessionsMapRaw;
         } else {

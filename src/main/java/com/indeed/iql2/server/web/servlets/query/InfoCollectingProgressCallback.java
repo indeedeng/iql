@@ -17,8 +17,7 @@ package com.indeed.iql2.server.web.servlets.query;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.HasSessionId;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
@@ -40,12 +39,10 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     @Override
     public void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions) {
         for (final Session.ImhotepSessionInfo sessionInfo : sessions.values()) {
-            ImhotepSession session = sessionInfo.session;
-            if (session instanceof HasSessionId) {
-                final String sessionId = ((HasSessionId) session).getSessionId();
-                if (sessionId != null) {
-                    sessionIds.add(sessionId);
-                }
+            final ImhotepSessionHolder session = sessionInfo.session;
+            final String sessionId = session.getSessionId();
+            if (sessionId != null) {
+                sessionIds.add(sessionId);
             }
             totalNumDocs += session.getNumDocs();
         }
@@ -62,7 +59,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(ImhotepSession session) {
+    public void sessionOpened(final ImhotepSessionHolder session) {
     }
 
     @Override

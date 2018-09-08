@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.progress;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 
@@ -53,7 +53,7 @@ public class CompositeProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(ImhotepSession session) {
+    public void sessionOpened(final ImhotepSessionHolder session) {
         for (final ProgressCallback progressCallback : progressCallbacks) {
             progressCallback.sessionOpened(session);
         }
