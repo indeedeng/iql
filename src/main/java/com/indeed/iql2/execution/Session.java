@@ -50,6 +50,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -833,6 +834,20 @@ public class Session {
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
             sessionInfo.session.regroupWithProtos(messages, errorOnCollisions);
+            timer.pop();
+        }
+        timer.pop();
+    }
+
+    public void regroupWithSingleFieldRules(
+            final ImhotepMarshallerInIQL.SingleFieldMultiRemapRule[] rules,
+            final ImhotepMarshallerInIQL.FieldOptions options,
+            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        // TODO: Parallelize
+        timer.push("regroupWithSingleFieldRules(" + rules.length + " rules)");
+        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+            timer.push("session:" + sessionInfo.displayName);
+            sessionInfo.session.regroupWithSingleFieldRules(rules, options, errorOnCollisions);
             timer.pop();
         }
         timer.pop();

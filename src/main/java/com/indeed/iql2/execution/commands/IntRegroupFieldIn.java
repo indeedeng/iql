@@ -14,10 +14,9 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
@@ -44,15 +43,11 @@ public class IntRegroupFieldIn implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
-        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
+        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
         final int numTerms = intTerms.size();
-        final RegroupConditionMessage[] conditions = new RegroupConditionMessage[numTerms];
-        final RegroupConditionMessage.Builder builder = RegroupConditionMessage.newBuilder()
-                .setField(field)
-                .setIntType(true)
-                .setInequality(false);
-        for (int i = 0; i < conditions.length; i++) {
-            conditions[i] = builder.setIntTerm(intTerms.getLong(i)).build();
+        final long[] terms = new long[numTerms];
+        for (int i = 0; i < terms.length; i++) {
+            terms[i] = intTerms.getLong(i);
         }
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];
@@ -61,16 +56,17 @@ public class IntRegroupFieldIn implements Command {
                 positiveGroups[i] = baseGroup + i;
             }
             final int negativeGroup = withDefault ? (baseGroup + numTerms) : 0;
-            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(group)
-                    .setNegativeGroup(negativeGroup)
-                    .addAllPositiveGroup(Ints.asList(positiveGroups))
-                    .addAllCondition(Arrays.asList(conditions))
-                    .build();
+            rules[group -1] = new SingleFieldMultiRemapRule(
+                    group,
+                    negativeGroup,
+                    positiveGroups,
+                    terms,
+                    null);
         }
         session.timer.pop();
 
-        session.regroupWithProtos(messages, true);
+        final FieldOptions fieldOptions = new FieldOptions(field, true, false);
+        session.regroupWithSingleFieldRules(rules, fieldOptions, true);
 
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms, withDefault));
     }

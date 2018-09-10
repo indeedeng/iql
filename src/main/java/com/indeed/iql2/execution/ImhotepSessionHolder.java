@@ -18,6 +18,9 @@ import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.Closeable;
@@ -251,6 +254,15 @@ public class ImhotepSessionHolder implements Closeable {
     public int remapGroups(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
         // skip conversion since we assume that rawRuleMessages don't have RegroupConditions.
         return session.regroupWithProtos(rawRuleMessages, true);
+    }
+
+    public int regroupWithSingleFieldRules(
+            final SingleFieldMultiRemapRule[] rules,
+            final FieldOptions options,
+            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        final FieldOptions convertedOptions = new FieldOptions(convertField(options.field), options.intType, options.inequality);
+        final GroupMultiRemapMessage[] converted = ImhotepMarshallerInIQL.marshal(rules, convertedOptions);
+        return session.regroupWithProtos(converted, errorOnCollisions);
     }
 
     // converting methods
