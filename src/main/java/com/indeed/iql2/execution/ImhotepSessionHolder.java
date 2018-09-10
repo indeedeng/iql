@@ -253,7 +253,7 @@ public class ImhotepSessionHolder implements Closeable {
     // TODO: refactor this after IMTEPD-419 is implemented
     public int remapGroups(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
         // skip conversion since we assume that rawRuleMessages don't have RegroupConditions.
-        return session.regroupWithProtos(rawRuleMessages, true);
+        return regroupWithPreparedProtos(rawRuleMessages, true);
     }
 
     public int regroupWithSingleFieldRules(
@@ -265,9 +265,15 @@ public class ImhotepSessionHolder implements Closeable {
         return session.regroupWithProtos(converted, errorOnCollisions);
     }
 
+    public int regroupWithPreparedProtos(
+            final GroupMultiRemapMessage[] rawRuleMessages,
+            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        return session.regroupWithProtos(rawRuleMessages, errorOnCollisions);
+    }
+
     // converting methods
 
-    private String convertField(final String field) {
+    public String convertField(final String field) {
         final String aliasResolved = aliases.getOrDefault(field.toUpperCase(), field);
         final String actual = upperCaseToActual.getOrDefault(aliasResolved.toUpperCase(), aliasResolved);
         return actual;

@@ -51,6 +51,8 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -840,15 +842,30 @@ public class Session {
     }
 
     public void regroupWithSingleFieldRules(
-            final ImhotepMarshallerInIQL.SingleFieldMultiRemapRule[] rules,
-            final ImhotepMarshallerInIQL.FieldOptions options,
+            final SingleFieldMultiRemapRule[] rules,
+            final FieldOptions options,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        // TODO: Parallelize
         timer.push("regroupWithSingleFieldRules(" + rules.length + " rules)");
+
+        // Gather sessions with same real fields name together
+        // to convert messages only once for each unique real field name.
+        final Map<String, List<ImhotepSessionInfo>> realFieldToSessions = new HashMap<>();
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
-            sessionInfo.session.regroupWithSingleFieldRules(rules, options, errorOnCollisions);
-            timer.pop();
+            final String realField = sessionInfo.session.convertField(options.field);
+            if (!realFieldToSessions.containsKey(realField)) {
+                realFieldToSessions.put(realField, new ArrayList<>());
+            }
+            realFieldToSessions.get(realField).add(sessionInfo);
+        }
+
+        for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
+            final FieldOptions realOptions = new FieldOptions(entry.getKey(), options.intType, options.inequality);
+            final GroupMultiRemapMessage[] convertedMessages = ImhotepMarshallerInIQL.marshal(rules, realOptions);
+            for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
+                timer.push("session:" + sessionInfo.displayName);
+                sessionInfo.session.regroupWithPreparedProtos(convertedMessages, errorOnCollisions);
+                timer.pop();
+            }
         }
         timer.pop();
     }
