@@ -52,7 +52,7 @@ public class ImhotepSessionHolder implements Closeable {
         this.session = session;
         aliases = new HashMap<>();
         for (Map.Entry<String, String> entry : fieldAliases.entrySet()) {
-            aliases.put(entry.getKey().toUpperCase(), entry.getValue().toUpperCase());
+            aliases.put(entry.getKey().toUpperCase(), entry.getValue());
         }
         upperCaseToActual = new HashMap<>();
         for (final String field : fieldNames) {
