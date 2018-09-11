@@ -693,9 +693,6 @@ public class QueryServlet {
     }
 
     public static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean setHTTPStatus, boolean isEventStream) throws IOException {
-        if(!(e instanceof Exception || e instanceof OutOfMemoryError || e instanceof StackOverflowError)) {
-            throw Throwables.propagate(e);
-        }
         // output parse/execute error
         if(!json) {
             try (final PrintWriter printWriter = resp.getWriter()) {
@@ -735,11 +732,13 @@ public class QueryServlet {
     }
 
     private static int getHTTPStatusForError(Throwable e) {
-        if(isKnownError(e)) {
-            return 400;
-        } else {
-            return 500;
-        }
+        return 500;
+        // TODO: improve return codes
+//        if(isKnownError(e)) {
+//            return 400;
+//        } else {
+//            return 500;
+//        }
 
         // TODO: return 404 on NoShardsException when it exists
     }
