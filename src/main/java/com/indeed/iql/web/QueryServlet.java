@@ -693,7 +693,7 @@ public class QueryServlet {
     }
 
     public static void handleError(HttpServletResponse resp, boolean json, Throwable e, boolean setHTTPStatus, boolean isEventStream) throws IOException {
-        if(!(e instanceof Exception || e instanceof OutOfMemoryError)) {
+        if(!(e instanceof Exception || e instanceof OutOfMemoryError || e instanceof StackOverflowError)) {
             throw Throwables.propagate(e);
         }
         // output parse/execute error
