@@ -18,8 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class StatementParser {
-    private static final Pattern selectPattern = Pattern.compile("\\s*(?:select|from)\\s+(?:.|\r|\n)*", Pattern.CASE_INSENSITIVE);
-    private static final Pattern explainPattern = Pattern.compile("\\s*explain\\s+((?:.|\r|\n)*)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern selectPattern = Pattern.compile("\\s*(?:select|from)\\s+.*", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern explainPattern = Pattern.compile("\\s*explain\\s+(.*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern showPattern = Pattern.compile("\\s*show\\s+(?:tables|datasets).*", Pattern.CASE_INSENSITIVE);
     private static final Pattern describePattern = Pattern.compile("\\s*(?:describe|desc)\\s+(\\w+)(?:(?:\\s+|\\.)(\\w+))?.*", Pattern.CASE_INSENSITIVE);
 
