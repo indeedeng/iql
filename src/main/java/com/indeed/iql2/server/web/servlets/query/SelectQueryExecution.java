@@ -39,6 +39,7 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
+import com.indeed.imhotep.io.LimitedBufferedOutputStream;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.web.ClientInfo;
@@ -536,6 +537,7 @@ public class SelectQueryExecution implements Closeable {
                     final Consumer<String> oldOut = out;
                     final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
                     cacheFile = tmpFile.toFile();
+                    // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
                     cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
                     out = s -> {
                         oldOut.accept(s);
