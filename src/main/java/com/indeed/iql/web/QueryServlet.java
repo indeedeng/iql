@@ -68,6 +68,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import com.indeed.iql.SQLToIQL.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -133,6 +135,7 @@ public class QueryServlet {
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
+    private final SQLToIQLParser sqlToIQLParser;
 
     @Autowired
     public QueryServlet(final ImhotepClient imhotepClient,
@@ -145,7 +148,8 @@ public class QueryServlet {
                         final AccessControl accessControl,
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
-                        final WallClock clock) {
+                        final WallClock clock,
+                        SQLToIQLParser sqlToIQLParser) {
         this.imhotepClient = imhotepClient;
         this.metadataCacheIQL1 = metadataCacheIQL1;
         this.metadataCacheIQL2 = metadataCacheIQL2;
@@ -156,6 +160,7 @@ public class QueryServlet {
         this.accessControl = accessControl;
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
+        this.sqlToIQLParser = sqlToIQLParser;
         this.clock = clock;
     }
 
@@ -175,6 +180,7 @@ public class QueryServlet {
         final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
         final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
         final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
+        final String sqlMode = Strings.nullToEmpty(req.getParameter("sqlMode"));
         final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
                 clientExecutionId, accessControl.isMultiuserClient(client));
         final QueryRequestParams queryRequestParams = new QueryRequestParams(req, clientInfo.username, clientInfo.client, contentType);
@@ -265,6 +271,7 @@ public class QueryServlet {
      * @param req request
      * @return the X-Forwarded-For IP address or null if none
      */
+
     private static String getForwardedForIPAddress(final HttpServletRequest req) {
         return getForwardedForIPAddress(req, "X-Forwarded-For");
     }
