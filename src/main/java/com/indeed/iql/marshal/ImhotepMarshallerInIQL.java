@@ -41,7 +41,7 @@ public final class ImhotepMarshallerInIQL {
             }
             final int length = (intTerms != null) ? intTerms.length : stringTerms.length;
             if (length != positiveGroups.length) {
-                throw new IllegalArgumentException("positiveGroups.length must equal conditions.length");
+                throw new IllegalArgumentException("positiveGroups.length must equal length of intTerms/stringTerms");
             }
             if (stringTerms != null) {
                 for (final String term : stringTerms) {
