@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import java.util.function.Consumer;

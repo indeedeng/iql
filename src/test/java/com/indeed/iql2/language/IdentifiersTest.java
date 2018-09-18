@@ -17,7 +17,7 @@ package com.indeed.iql2.language;
 import com.google.common.base.Function;
 import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import junit.framework.Assert;
 import org.junit.Test;
 

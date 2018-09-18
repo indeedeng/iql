@@ -26,7 +26,7 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;

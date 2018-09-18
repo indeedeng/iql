@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.language;
 
-import com.indeed.squall.iql2.language.JQLBaseListener;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLBaseListener;
+import com.indeed.iql2.language.JQLParser;
 
 public class Term {
     public final String stringTerm;

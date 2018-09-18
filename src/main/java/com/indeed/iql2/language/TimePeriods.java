@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.Token;

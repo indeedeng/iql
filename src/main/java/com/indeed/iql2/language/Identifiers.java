@@ -15,7 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 
 import java.util.regex.Pattern;
 
