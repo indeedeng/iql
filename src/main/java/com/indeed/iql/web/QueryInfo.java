@@ -38,9 +38,10 @@ public class QueryInfo {
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
 
-    public QueryInfo(String query, int iqlVersion, long queryStartTimestamp) {
+    public QueryInfo(String query, int iqlVersion, long queryStartTimestamp, @Nullable String sqlQuery) {
         this.queryLength = query.length();
         this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
+        this.sqlQuery = sqlQuery == null ? null : queryTruncatePattern.matcher(sqlQuery).replaceAll("\\($1\\.\\.\\.\\)");
         this.iqlVersion = iqlVersion;
         this.queryStartTimestamp = queryStartTimestamp;
     }
@@ -95,6 +96,8 @@ public class QueryInfo {
     public @Nullable Long ftgsMillis;
     public @Nullable Long pushStatsMillis;
     public @Nullable Long getStatsMillis;
+
+    public @Nullable String sqlQuery;
 
 
     public void setFromPerformanceStats(PerformanceStats performanceStats) {
