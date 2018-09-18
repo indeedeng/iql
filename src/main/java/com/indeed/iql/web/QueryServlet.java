@@ -119,7 +119,7 @@ public class QueryServlet {
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
-            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sqlMode");
+            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql");
 
     private final ImhotepClient imhotepClient;
     private final ImhotepMetadataCache metadataCacheIQL1;
@@ -182,7 +182,7 @@ public class QueryServlet {
         Throwable errorOccurred = null;
 
         String sqlQuery = null;
-        if (queryRequestParams.sqlMode) {
+        if (queryRequestParams.sql) {
             sqlQuery = query;
             // Convert SQL to IQL2 and pretend the query was IQL2 from the start
             query = sqlToIQLParser.parse(query);
@@ -956,7 +956,7 @@ public class QueryServlet {
 
     private class QueryRequestParams {
         public final int version;
-        public final boolean sqlMode;
+        public final boolean sql;
         public final boolean avoidFileSave;
         public final boolean csv;
         public final boolean interactive;
@@ -988,8 +988,8 @@ public class QueryServlet {
             imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
             remoteAddr = req.getRemoteAddr();
-            sqlMode = "true".equals(req.getParameter("sqlMode"));
-            version = sqlMode ? 2 : ServletUtil.getIQLVersionBasedOnParam(req);
+            sql = req.getParameter("sql") != null;
+            version = sql ? 2 : ServletUtil.getIQLVersionBasedOnParam(req);
             legacyMode = req.getParameter("legacymode") != null;
 
         }
