@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-;
-
 public class ExplodeSessionNames implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
