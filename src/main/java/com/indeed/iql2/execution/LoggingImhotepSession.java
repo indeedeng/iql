@@ -201,6 +201,12 @@ public class LoggingImhotepSession implements ImhotepSession {
     }
 
     @Override
+    public int regroup(final int[] fromGroups, final int[] toGroups, final boolean filterOutNotTargeted) throws ImhotepOutOfMemoryException {
+        log.info("LoggingImhotepSession.regroup: " + "fromGroups = [" + Arrays.toString(fromGroups) + "], toGroups = [" + Arrays.toString(toGroups) + "], filterOutNotTargeted = [" + filterOutNotTargeted + "]");
+        return wrapped.regroup(fromGroups, toGroups, filterOutNotTargeted);
+    }
+
+    @Override
     public int metricFilter(int stat, long min, long max, boolean negate) throws ImhotepOutOfMemoryException {
         log.info("LoggingImhotepSession.metricFilter: " + "stat = [" + stat + "], min = [" + min + "], max = [" + max + "], negate = [" + negate + "]");
         return wrapped.metricFilter(stat, min, max, negate);
