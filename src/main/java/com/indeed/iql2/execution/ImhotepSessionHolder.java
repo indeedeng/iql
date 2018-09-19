@@ -173,6 +173,13 @@ public class ImhotepSessionHolder implements Closeable {
         session.stringOrRegroup(convertField(field), terms, targetGroup, negativeGroup, positiveGroup);
     }
 
+    public int regroup(
+            final int[] fromGroups,
+            final int[] toGroups,
+            final boolean filterOutNotTargeted) throws ImhotepOutOfMemoryException {
+        return session.regroup(fromGroups, toGroups, filterOutNotTargeted);
+    }
+
     public int regroup(final QueryRemapRule rule) throws ImhotepOutOfMemoryException {
         return session.regroup(rewrite(rule));
     }
@@ -247,13 +254,6 @@ public class ImhotepSessionHolder implements Closeable {
         } else {
             return 0;
         }
-    }
-
-    // method for unconditional remapping from one groups to another.
-    // TODO: refactor this after IMTEPD-419 is implemented
-    public int remapGroups(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
-        // skip conversion since we assume that rawRuleMessages don't have RegroupConditions.
-        return regroupWithPreparedProtos(rawRuleMessages, true);
     }
 
     public int regroupWithSingleFieldRules(
