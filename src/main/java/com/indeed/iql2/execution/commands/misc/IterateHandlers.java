@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -56,7 +56,7 @@ public class IterateHandlers {
         }
 
         session.timer.push("get subset");
-        final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
+        final Map<String, ImhotepSessionHolder> sessionsSubset = Maps.newHashMap();
         for (final String s : scope) {
             // session session sessions session
             sessionsSubset.put(s, session.sessions.get(s).session);

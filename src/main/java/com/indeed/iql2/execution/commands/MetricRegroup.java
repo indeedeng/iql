@@ -17,8 +17,8 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import java.util.function.Consumer;
@@ -68,7 +68,7 @@ public class MetricRegroup implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }
@@ -102,7 +102,7 @@ public class MetricRegroup implements Command {
                                 .setNegativeGroup(newGroup)
                                 .build();
                     }
-                    session.regroupWithProtos(rules, true);
+                    session.remapGroups(rules);
                     timer.pop();
                 }
 

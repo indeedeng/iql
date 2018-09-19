@@ -15,8 +15,8 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.SessionNameGroupKeySet;
@@ -37,7 +37,7 @@ public class ExplodeSessionNames implements Command {
         final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             sessionNames.add(entry.getValue().displayName);
-            final ImhotepSession s = entry.getValue().session;
+            final ImhotepSessionHolder s = entry.getValue().session;
 
             session.timer.push("make dumb rules");
             for (int i = 0; i < messages.length; i++) {
@@ -50,8 +50,8 @@ public class ExplodeSessionNames implements Command {
             }
             session.timer.pop();
 
-            session.timer.push("regroupWithProtos(" + messages.length + " rules)");
-            s.regroupWithProtos(messages, false);
+            session.timer.push("remapGroups");
+            s.remapGroups(messages);
             session.timer.pop();
 
             index += 1;

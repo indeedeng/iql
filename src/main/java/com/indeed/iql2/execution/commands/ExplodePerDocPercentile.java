@@ -18,18 +18,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.SessionCallback;
-import java.util.function.Consumer;;
+import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
-import com.indeed.util.core.TreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.IOException;
@@ -116,18 +114,14 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         session.timer.push("compute bucket remaps");
-        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[session.numGroups];
+        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
         final List<GroupKey> nextGroupKeys = Lists.newArrayList();
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
         groupParents.add(-1);
-        final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
-                .setField(field)
-                .setIntType(true)
-                .setInequality(true);
         for (int group = 1; group <= session.numGroups; group++) {
             final IntArrayList positiveGroups = new IntArrayList();
-            final List<RegroupConditionMessage> conditions = Lists.newArrayList();
+            final LongArrayList thresholds = new LongArrayList();
             for (int bucket = 0; bucket < numBuckets; bucket++) {
                 if ((bucket > 0) && (cutoffs[group][bucket] == cutoffs[group][bucket - 1])) {
                     continue;
@@ -139,29 +133,20 @@ public class ExplodePerDocPercentile implements Command {
                 nextGroupKeys.add(new StringGroupKey(keyTerm));
                 groupParents.add(group);
                 positiveGroups.add(newGroup);
-                conditions.add(conditionBuilder.setIntTerm(cutoffs[group][bucket]).build());
+                thresholds.add(cutoffs[group][bucket]);
             }
-            rules[group - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(group)
-                    .setNegativeGroup(0)
-                    .addAllPositiveGroup(positiveGroups)
-                    .addAllCondition(conditions)
-                    .build();
+            rules[group - 1] = new SingleFieldMultiRemapRule(
+                    group,
+                    0,
+                    positiveGroups.toIntArray(),
+                    thresholds.toLongArray(),
+                    null);
         }
         session.timer.pop();
 
-        session.process(new SessionCallback() {
-            @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
-                timer.push("regroupWithProtos(" + rules.length + " rules)");
-                session.regroupWithProtos(rules, true);
-                timer.pop();
-
-                timer.push("popStat");
-                session.popStat();
-                timer.pop();
-            }
-        });
+        final FieldOptions options = new FieldOptions(field, true, true);
+        session.regroupWithSingleFieldRules(rules, options, true);
+        session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
 

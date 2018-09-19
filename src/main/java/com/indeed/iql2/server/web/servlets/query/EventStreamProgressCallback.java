@@ -16,8 +16,7 @@ package com.indeed.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.HasSessionId;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
@@ -59,14 +58,11 @@ public class EventStreamProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(ImhotepSession session) {
+    public void sessionOpened(final ImhotepSessionHolder session) {
         if (!isStream) {
             return;
         }
-        if (!(session instanceof HasSessionId)) {
-            return;
-        }
-        final String sessionId = ((HasSessionId) session).getSessionId();
+        final String sessionId = session.getSessionId();
         if (sessionId != null) {
             outputStream.println("event: sessionid");
             outputStream.println("data: " + sessionId);

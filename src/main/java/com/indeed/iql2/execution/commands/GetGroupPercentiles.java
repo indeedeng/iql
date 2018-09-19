@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
@@ -55,7 +55,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
         for (final String sessionName : scope) {
-            final ImhotepSession s = session.sessions.get(sessionName).session;
+            final ImhotepSessionHolder s = session.sessions.get(sessionName).session;
             s.pushStat("hasintfield " + field);
             final long[] stats = s.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {

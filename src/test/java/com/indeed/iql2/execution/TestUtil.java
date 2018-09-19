@@ -72,7 +72,7 @@ public class TestUtil {
                     return regroup(rules, errorOnCollisions);
                 }
             };
-            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
+            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(new ImhotepSessionHolder(session, new HashMap<>(), new HashSet<>()), "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
         }
 
         return new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null, 0, Collections.emptySet());

@@ -19,7 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import java.util.function.Consumer;;
@@ -88,7 +88,7 @@ public class GetGroupStats implements Command {
     }
 
     public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {
-        final Map<String, ImhotepSession> sessions = session.getSessionsMapRaw();
+        final Map<String, ImhotepSessionHolder> sessions = session.getSessionsMapRaw();
         final int numGroups = session.numGroups;
 
         session.timer.push("determining pushes");
@@ -131,7 +131,7 @@ public class GetGroupStats implements Command {
             final String name = entry.getKey();
             final List<QualifiedPush> pushesForSession = sessionPushes.get(name);
             final IntList positions = entry.getValue();
-            final ImhotepSession s = sessions.get(name);
+            final ImhotepSessionHolder s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
                 s.pushStats(pushesForSession.get(i).pushes);
                 allStats[positions.get(i)] = s.getGroupStats(0);

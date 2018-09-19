@@ -15,9 +15,6 @@
 package com.indeed.iql2.execution.actions;
 
 import com.google.common.collect.ImmutableSet;
-import com.indeed.flamdex.query.Query;
-import com.indeed.flamdex.query.Term;
-import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 
@@ -36,7 +33,7 @@ public class UnconditionalAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        session.regroup(new QueryRemapRule(targetGroup, Query.newTermQuery(new Term("fakeField", true, 0L, "")), newGroup, newGroup), scope);
+        session.remapGroup(targetGroup, newGroup, scope);
     }
 
     @Override

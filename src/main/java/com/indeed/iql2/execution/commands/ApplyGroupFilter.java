@@ -16,9 +16,8 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.primitives.Booleans;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.AggregateFilter;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
@@ -56,7 +55,7 @@ public class ApplyGroupFilter implements Command {
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;
@@ -73,7 +72,8 @@ public class ApplyGroupFilter implements Command {
         });
         final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
         final int keepCount = Booleans.countTrue(keep);
-        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[keepCount];
+        final int[] fromGroups = new int[keepCount];
+        final int[] toGroups = new int[keepCount];
         final List<GroupKey> newGroupKeys = new ArrayList<>();
         newGroupKeys.add(null);
         final IntList newGroupParents = new IntArrayList();
@@ -82,21 +82,14 @@ public class ApplyGroupFilter implements Command {
         for (int i = 1; i < keep.length; i++) {
             if (keep[i]) {
                 final int newGroup = newGroupParents.size();
-                rules[ruleIndex] = GroupMultiRemapMessage.newBuilder()
-                        .setTargetGroup(i)
-                        .setNegativeGroup(newGroup)
-                        .build();
+                fromGroups[ruleIndex] = i;
+                toGroups[ruleIndex] = newGroup;
                 ruleIndex++;
                 newGroupKeys.add(session.groupKeySet.groupKey(i));
                 newGroupParents.add(session.groupKeySet.parentGroup(i));
             }
         }
-        session.process(new SessionCallback() {
-            @Override
-            public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
-                session.regroupWithProtos(rules, true);
-            }
-        });
+        session.remapGroups(fromGroups, toGroups);
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
         session.numGroups = session.groupKeySet.numGroups();
         out.accept("done");

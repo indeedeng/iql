@@ -17,7 +17,7 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import java.util.function.Consumer;;
@@ -65,7 +65,7 @@ public class RandomMetricRegroup implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }
