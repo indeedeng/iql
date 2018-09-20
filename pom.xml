@@ -431,7 +431,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
 
         <imhotep.version>3.1.118</imhotep.version>
-        <ims.version>4.0.4</ims.version>
+        <ims.version>4.0.6</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>
