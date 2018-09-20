@@ -27,9 +27,10 @@ public class StatementParser {
     }
 
     public static IQLStatement parseIQLToStatement(String iql) {
-        if(selectPattern.matcher(iql).matches()) {
-            return new SelectStatement(iql);
-        }
+        // This pattern doesn't work when the query starts with a comment
+//        if(selectPattern.matcher(iql).matches()) {
+//            return new SelectStatement(iql);
+//        }
 
         final Matcher describeMatcher = describePattern.matcher(iql);
         if(describeMatcher.matches()) {
@@ -45,6 +46,8 @@ public class StatementParser {
             return new ExplainStatement(explainMatcher.group(1));
         }
 
-        return InvalidStatement.INSTANCE;
+//        return InvalidStatement.INSTANCE;
+        // assume that a query that doesn't match anything else is a select
+        return new SelectStatement(iql);
     }
 }
