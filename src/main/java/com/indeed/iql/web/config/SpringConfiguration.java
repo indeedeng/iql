@@ -176,7 +176,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         } else if(!Strings.isNullOrEmpty(zkNodes)) {
             return new ImhotepClient(zkNodes, zkPath, true);
         } else {
-            throw new IllegalArgumentException("either imhotep.daemons.zookeeper.quorum or imhotep.daemons.host config properties must be set");
+            throw new IllegalArgumentException("either imhotep.shardmaster.zookeeper.quorum or imhotep.shardmaster.host config properties must be set");
         }
     }
 
