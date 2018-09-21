@@ -17,17 +17,16 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
-import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.sets.MetricRangeGroupKeySet;
 import com.indeed.util.core.TreeTimer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class MetricRegroup implements Command {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
@@ -86,8 +85,10 @@ public class MetricRegroup implements Command {
 
                 if (withDefaultBucket) {
                     timer.push("merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
-                    final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[intermediateBuckets * groupsBefore];
-                    for (int i = 0; i < rules.length; i++) {
+                    final int rulesCount = intermediateBuckets * groupsBefore;
+                    final int[] fromGroups = new int[rulesCount];
+                    final int[] toGroups = new int[rulesCount];
+                    for (int i = 0; i < rulesCount; i++) {
                         final int group = i + 1;
                         final int groupOffset = (group - 1) % intermediateBuckets;
                         final int prevGroup = 1 + (group - 1) / intermediateBuckets;
@@ -97,12 +98,10 @@ public class MetricRegroup implements Command {
                         } else {
                             newGroup = 1 + (prevGroup - 1) * (intermediateBuckets - 1) + groupOffset;
                         }
-                        rules[i] = GroupMultiRemapMessage.newBuilder()
-                                .setTargetGroup(group)
-                                .setNegativeGroup(newGroup)
-                                .build();
+                        fromGroups[i] = group;
+                        toGroups[i] = newGroup;
                     }
-                    session.remapGroups(rules);
+                    session.regroup(fromGroups, toGroups, true);
                     timer.pop();
                 }
 

@@ -36,10 +36,7 @@ import com.google.common.io.Closer;
 import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.indeed.flamdex.query.Query;
-import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
@@ -876,18 +873,11 @@ public class Session {
             throw new IllegalStateException();
         }
 
-        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[fromGroups.length];
-        for (int i = 0; i < fromGroups.length; i++) {
-            messages[i] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(fromGroups[i])
-                    .setNegativeGroup(toGroups[i])
-                    .build();
-        }
         // TODO: Parallelize
         timer.push("remapGroups");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session:" + sessionInfo.displayName);
-            sessionInfo.session.remapGroups(messages);
+            sessionInfo.session.regroup(fromGroups, toGroups, true);
             timer.pop();
         }
         timer.pop();
@@ -935,11 +925,11 @@ public class Session {
     public void remapGroup(final int fromGroup, final int toGroup, final Set<String> scope) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
         timer.push("regroup");
-        final QueryRemapRule rule = new QueryRemapRule(fromGroup, Query.newTermQuery(new Term("fakeField", true, 0L, "")), toGroup, toGroup);
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
                 timer.push("session:" + sessions.get(s).displayName);
-                sessions.get(s).session.regroup(rule);
+                // remapping just one group, leaving other groups as-is
+                sessions.get(s).session.regroup(new int[]{fromGroup}, new int[]{toGroup}, false);
                 timer.pop();
             }
         }
