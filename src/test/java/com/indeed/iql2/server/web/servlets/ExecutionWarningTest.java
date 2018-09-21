@@ -15,13 +15,19 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarning;
 
 public class ExecutionWarningTest extends BasicTest {
+    private final Dataset dataset = OrganicDataset.create();
+
     @Test
     public void testLimit() throws Exception {
         final Dataset dataset = OrganicDataset.create();
@@ -43,5 +49,17 @@ public class ExecutionWarningTest extends BasicTest {
         // limit equal to topk
         testWarning(dataset, ImmutableList.of(),
                 "from organic yesterday today GROUP BY oji[5] LIMIT 5");
+    }
+
+    @Test
+    public void testMissingShards() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "182"));
+        QueryServletTestUtils.testAll(dataset, expected, "from organic 2year today select count()");
+
+        QueryServletTestUtils.testWarning(
+                dataset,
+                Lists.newArrayList("95% of the queried time period is missing in dataset ORGANIC: 2013-01-02/2014-12-01"),
+                "from organic 2year today select count()");
     }
 }
