@@ -43,6 +43,9 @@ public class Dataset {
 
     private static final String DIMENSION_PREFIX = "_DIMENSION_";
 
+    private List<Shard> normalShards;
+    private List<Shard> dimensionShards;
+
     Dataset(List<DatasetShard> shards) {
         this.shards = shards;
         dimensionImsClient = new AliasDimensionClient(getShards());
@@ -53,11 +56,17 @@ public class Dataset {
     }
 
     public List<Shard> getShards() {
-        return flamdexShards(false);
+        if (normalShards == null) {
+            normalShards = flamdexShards(false);
+        }
+        return normalShards;
     }
 
     public List<Shard> getDimensionShards() {
-        return flamdexShards(true);
+        if (dimensionShards == null) {
+            dimensionShards = flamdexShards(true);
+        }
+        return dimensionShards;
     }
 
     private List<Shard> flamdexShards(boolean isDimension) {
