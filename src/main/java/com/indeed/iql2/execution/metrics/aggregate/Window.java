@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.metrics.aggregate;
 
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -93,6 +94,11 @@ public class Window implements AggregateMetric {
         currentIntTerm = term;
         final double value = inner.apply(term, stats, group);
         return handle(group, value);
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        throw new UnsupportedOperationException("Window cannot be pushed up to Imhotep.");
     }
 
     @Override

@@ -16,6 +16,7 @@ package com.indeed.iql2.execution;
 
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.automaton.Automaton;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.language.util.ValidationUtil;
@@ -33,6 +34,9 @@ public interface AggregateFilter extends Pushable {
 
     boolean allow(String term, long[] stats, int group);
     boolean allow(long term, long[] stats, int group);
+
+    AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats);
+
     // return true if terms are expected in sorted order
     boolean needSorted();
     // if needGroup() returns false then group value is ignored inside allow(...) methods
@@ -58,6 +62,13 @@ public interface AggregateFilter extends Pushable {
         public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
             operand.register(metricIndexes, groupKeySet);
         }
+
+        @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(operand.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree operand);
 
         @Override
         public boolean needSorted() {
@@ -119,6 +130,13 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(left.toImhotep(atomicStats), right.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs);
+
+        @Override
         public boolean needSorted() {
             return left.needSorted() || right.needSorted();
         }
@@ -178,6 +196,13 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(left.toImhotep(atomicStats), right.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs);
+
+        @Override
         public boolean needSorted() {
             return left.needSorted() || right.needSorted();
         }
@@ -195,9 +220,11 @@ public interface AggregateFilter extends Pushable {
 
     class TermEqualsRegex implements AggregateFilter {
         private final Automaton automaton;
+        private final String rawRegex;
 
         public TermEqualsRegex(final Term value) {
-            automaton = ValidationUtil.compileRegex(value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm);
+            rawRegex = value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm;
+            automaton = ValidationUtil.compileRegex(rawRegex);
         }
 
         @Override
@@ -223,6 +250,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
             return automaton.run(String.valueOf(term));
+        }
+
+        @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return AggregateStatTree.termRegex(rawRegex);
         }
 
         @Override
@@ -274,6 +306,15 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            if (value.isIntTerm) {
+                return AggregateStatTree.termEquals(value.intTerm);
+            } else {
+                return AggregateStatTree.termEquals(value.stringTerm);
+            }
+        }
+
+        @Override
         public boolean needSorted() {
             return false;
         }
@@ -313,6 +354,11 @@ public interface AggregateFilter extends Pushable {
         public boolean allow(final long term, final long[] stats, final int group) {
             return !operand.allow(term, stats, group);
         }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree operand) {
+            return operand.not();
+        }
     }
 
     class MetricEquals extends BinaryMetric {
@@ -323,6 +369,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean eval(final double left, final double right) {
             return left == right;
+        }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.eq(rhs);
         }
     }
 
@@ -335,6 +386,11 @@ public interface AggregateFilter extends Pushable {
         public boolean eval(final double left, final double right) {
             return left != right;
         }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.neq(rhs);
+        }
     }
 
     class GreaterThan extends BinaryMetric {
@@ -345,6 +401,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean eval(final double left, final double right) {
             return left > right;
+        }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.gt(rhs);
         }
     }
 
@@ -357,6 +418,11 @@ public interface AggregateFilter extends Pushable {
         public boolean eval(final double left, final double right) {
             return left >= right;
         }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.gte(rhs);
+        }
     }
 
     class LessThan extends BinaryMetric {
@@ -367,6 +433,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean eval(final double left, final double right) {
             return left < right;
+        }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.lt(rhs);
         }
     }
 
@@ -379,6 +450,11 @@ public interface AggregateFilter extends Pushable {
         public boolean eval(final double left, final double right) {
             return left <= right;
         }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.lte(rhs);
+        }
     }
 
     class And extends Binary {
@@ -389,6 +465,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         boolean eval(final boolean left, final boolean right) {
             return left && right;
+        }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.and(rhs);
         }
     }
 
@@ -401,13 +482,20 @@ public interface AggregateFilter extends Pushable {
         boolean eval(final boolean left, final boolean right) {
             return left || right;
         }
+
+        @Override
+        AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs) {
+            return lhs.or(rhs);
+        }
     }
 
     class RegexFilter implements AggregateFilter {
+        private final String regex;
         private final Automaton automaton;
 
         public RegexFilter(final String regex) {
-            automaton = ValidationUtil.compileRegex(regex);
+            this.regex = regex;
+            automaton = ValidationUtil.compileRegex(this.regex);
         }
 
         @Override
@@ -433,6 +521,11 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
             return automaton.run(String.valueOf(term));
+        }
+
+        @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return AggregateStatTree.termRegex(regex);
         }
 
         @Override
@@ -485,6 +578,11 @@ public interface AggregateFilter extends Pushable {
         }
 
         @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return AggregateStatTree.constant(value ? 1.0 : 0.0);
+        }
+
+        @Override
         public boolean needSorted() {
             return false;
         }
@@ -524,6 +622,16 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
             return keySet.groupKey(group).isDefault();
+        }
+
+        @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            // TODO:
+            final double[] values = new double[keySet.numGroups()];
+            for (int i = 1; i <= keySet.numGroups(); i++) {
+                values[i] = keySet.groupKey(i).isDefault() ? 1.0 : 0.0;
+            }
+            return AggregateStatTree.perGroupConstant(values);
         }
 
         @Override

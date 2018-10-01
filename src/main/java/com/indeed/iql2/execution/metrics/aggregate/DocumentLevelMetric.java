@@ -15,12 +15,15 @@
 package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class DocumentLevelMetric implements AggregateMetric {
@@ -35,12 +38,17 @@ public class DocumentLevelMetric implements AggregateMetric {
 
     @Override
     public Set<QualifiedPush> requires() {
-        return Collections.singleton(new QualifiedPush(sessionName, pushes));
+        return Collections.singleton(push());
+    }
+
+    @Nonnull
+    private QualifiedPush push() {
+        return new QualifiedPush(sessionName, pushes);
     }
 
     @Override
     public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
-        this.index = metricIndexes.get(new QualifiedPush(sessionName, pushes));
+        this.index = metricIndexes.get(push());
     }
 
     @Override
@@ -60,6 +68,11 @@ public class DocumentLevelMetric implements AggregateMetric {
     @Override
     public double apply(final long term, final long[] stats, final int group) {
         return stats[index];
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        return Objects.requireNonNull(atomicStats.get(push()));
     }
 
     @Override

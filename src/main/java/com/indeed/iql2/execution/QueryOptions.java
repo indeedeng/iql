@@ -30,6 +30,9 @@ public class QueryOptions {
     // Temporary features, now in test mode.
     // After testing should be deleted or moved to main features list.
     public static class Experimental {
+        // Enable port forwarding to use rust daemon
+        public static final String USE_MULTI_FTGS = "multiftgs";
+
         private Experimental() {
         }
     }

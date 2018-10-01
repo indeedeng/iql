@@ -15,6 +15,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
@@ -238,6 +239,10 @@ public class ImhotepSessionHolder implements Closeable {
         return session.closeAndGetPerformanceStats();
     }
 
+    public RemoteImhotepMultiSession.SessionField buildSessionField(String field) {
+        return new RemoteImhotepMultiSession.SessionField(session, convertField(field));
+    }
+
     // some useful methods
 
     public String getSessionId() {
@@ -269,6 +274,10 @@ public class ImhotepSessionHolder implements Closeable {
             final GroupMultiRemapMessage[] rawRuleMessages,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         return session.regroupWithProtos(rawRuleMessages, errorOnCollisions);
+    }
+
+    public AggregateStatTree aggregateStat(final int index) {
+        return AggregateStatTree.stat(session, index);
     }
 
     // converting methods
