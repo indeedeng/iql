@@ -29,7 +29,7 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(createDataset(), expected, "from dataset yesterday today group by f[2] select count()", true);
+        QueryServletTestUtils.testAll(createDataset(), expected, "from multiValue yesterday today group by f[2] select count()", true);
     }
 
     @Test
@@ -37,27 +37,27 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(createDataset(), expected, "from dataset yesterday today group by f in (1,2) select count()", true);
+        QueryServletTestUtils.testAll(createDataset(), expected, "from multiValue yesterday today group by f in (1,2) select count()", true);
     }
 
     @Test
     public void testGroupByMultiValueInIQL1() throws Exception {
         QueryServletTestUtils.testIQL1(createDataset(),
                 ImmutableList.of(ImmutableList.of("1", "50")),
-                "from dataset yesterday today where f in (1,2) i=1 GROUP BY f", true);
+                "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
         QueryServletTestUtils.testIQL1(createDataset(),
                 ImmutableList.of(ImmutableList.of("1", "1", "50")),
-                "from dataset yesterday today where f in (1) f in (2) GROUP BY f, f", true);
+                "from multiValue yesterday today where f in (1) f in (2) GROUP BY f, f", true);
         QueryServletTestUtils.testIQL1(createDataset(),
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),
                         ImmutableList.of("1", "1", "50"),
                         ImmutableList.of("0", "2", "50")
                 ),
-                "from dataset yesterday today where f in (1,2) GROUP BY i, f", true);
+                "from multiValue yesterday today where f in (1,2) GROUP BY i, f", true);
         QueryServletTestUtils.testIQL1(createDataset(),
                 ImmutableList.of(),
-                "from dataset yesterday today where f in (1) f in (2) i = 1 GROUP BY f", true);
+                "from multiValue yesterday today where f in (1) f in (2) i = 1 GROUP BY f", true);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "50"));
         expected.add(ImmutableList.of("3", "17"));
-        QueryServletTestUtils.testIQL2(createDataset(), expected, "from dataset yesterday today where f in (1,2) i=1 GROUP BY f", true);
+        QueryServletTestUtils.testIQL2(createDataset(), expected, "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
 
         QueryServletTestUtils.testIQL2(createDataset(),
                 ImmutableList.of(
@@ -75,7 +75,7 @@ public class MultiValueRegroupTest extends BasicTest {
                         ImmutableList.of("0", "3", "17"),
                         ImmutableList.of("1", "3", "17")
                 ),
-                "from dataset yesterday today where f in (1,2) GROUP BY i, f", true);
+                "from multiValue yesterday today where f in (1,2) GROUP BY i, f", true);
     }
 
     static Dataset createDataset() {
@@ -94,7 +94,7 @@ public class MultiValueRegroupTest extends BasicTest {
             doc.addIntTerm("i", i % 2);
             flamdex.addDocument(doc);
         }
-        shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
+        shards.add(new Dataset.DatasetShard("multiValue", "index20150101", flamdex));
         return new Dataset(shards);
     }
 }

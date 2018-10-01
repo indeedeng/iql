@@ -119,11 +119,11 @@ public class EmptyClausesTest extends BasicTest {
                     ImmutableList.of("b")
                 )
         ));
-        dataset.add(new Dataset.DatasetShard("organic", "index20150101", flamdex));
+        dataset.add(new Dataset.DatasetShard("groupBySelect", "index20150101", flamdex));
         final ImmutableList<List<String>> expected = ImmutableList.of(
                 ImmutableList.of("a", "1"),
                 ImmutableList.of("b", "1")
         );
-        testAll(new Dataset(dataset), expected, "from organic yesterday today group by `select`");
+        testAll(new Dataset(dataset), expected, "from groupBySelect yesterday today group by `select`");
     }
 }

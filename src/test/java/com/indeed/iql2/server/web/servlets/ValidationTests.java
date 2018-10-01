@@ -38,7 +38,7 @@ public class ValidationTests extends BasicTest {
         doc.addIntTerm("isOrganic", 1);
         flamdex.addDocument(doc);
         return Collections.singletonList(
-            new Dataset.DatasetShard("organic", "index20150101", flamdex)
+            new Dataset.DatasetShard("trivialOrganic", "index20150101", flamdex)
         );
     }
 
@@ -50,7 +50,7 @@ public class ValidationTests extends BasicTest {
         doc.addIntTerm("isOrganic", 0);
         flamdex.addDocument(doc);
         return Collections.singletonList(
-            new Dataset.DatasetShard("sponsored", "index20150101", flamdex)
+            new Dataset.DatasetShard("trivialSponsored", "index20150101", flamdex)
         );
     }
 
@@ -60,13 +60,13 @@ public class ValidationTests extends BasicTest {
         shards.addAll(trivialOrganic());
         shards.addAll(trivialSponsored());
         final String basic =
-                "FROM organic 2015-01-01 2015-01-02, sponsored " +
-                "SELECT COUNT(), organic.COUNT(), sponsored.COUNT(), clicked, organic.clicked, sponsored.clicked, [organic.clicked], [sponsored.clicked]";
+                "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
+                "SELECT COUNT(), trivialOrganic.COUNT(), trivialSponsored.COUNT(), clicked, trivialOrganic.clicked, trivialSponsored.clicked, [trivialOrganic.clicked], [trivialSponsored.clicked]";
         final String aliases =
-                "FROM organic 2015-01-01 2015-01-02 as o, sponsored as s " +
+                "FROM trivialOrganic 2015-01-01 2015-01-02 as o, trivialSponsored as s " +
                         "SELECT COUNT(), o.COUNT(), s.COUNT(), clicked, o.clicked, s.clicked, [o.clicked], [s.clicked]";
         final String sameDataset =
-                "FROM organic 2015-01-01 2015-01-02 as o1, organic as o2 " +
+                "FROM trivialOrganic 2015-01-01 2015-01-02 as o1, trivialOrganic as o2 " +
                         "SELECT COUNT(), o1.COUNT(), o2.COUNT(), clicked, o1.clicked, o2.clicked, [o1.clicked], [o2.clicked]";
 
         final List<List<String>> expected = ImmutableList.of(Arrays.asList("", "2", "1", "1", "2", "1", "1", "1", "1"));
@@ -82,8 +82,8 @@ public class ValidationTests extends BasicTest {
         shards.addAll(trivialOrganic());
         shards.addAll(trivialSponsored());
         final String query =
-                "FROM organic 2015-01-01 2015-01-02, sponsored " +
-                "SELECT [organic.clicked + sponsored.clicked]";
+                "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
+                "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
         try {
             QueryServletTestUtils.runQuery(new Dataset(shards).getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
             Assert.fail();

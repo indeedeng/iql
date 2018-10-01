@@ -29,15 +29,15 @@ public class TermCountTest extends BasicTest {
 
         final List<List<String>> expected1 = new ArrayList<>();
         expected1.add(ImmutableList.of("", "33"));
-        QueryServletTestUtils.testIQL2(dataset, expected1, "from dataset yesterday today where inttermcount(intField) = 1", true);
+        QueryServletTestUtils.testIQL2(dataset, expected1, "from termCount yesterday today where inttermcount(intField) = 1", true);
 
         final List<List<String>> expected2 = new ArrayList<>();
         expected2.add(ImmutableList.of("", "50"));
-        QueryServletTestUtils.testIQL2(dataset, expected2, "from dataset yesterday today where inttermcount(intField) = 2", true);
+        QueryServletTestUtils.testIQL2(dataset, expected2, "from termCount yesterday today where inttermcount(intField) = 2", true);
 
         final List<List<String>> expected3 = new ArrayList<>();
         expected3.add(ImmutableList.of("", "17"));
-        QueryServletTestUtils.testIQL2(dataset, expected3, "from dataset yesterday today where inttermcount(intField) = 3", true);
+        QueryServletTestUtils.testIQL2(dataset, expected3, "from termCount yesterday today where inttermcount(intField) = 3", true);
     }
 
     @Test
@@ -46,15 +46,15 @@ public class TermCountTest extends BasicTest {
 
         final List<List<String>> expected1 = new ArrayList<>();
         expected1.add(ImmutableList.of("", "33"));
-        QueryServletTestUtils.testIQL2(dataset, expected1, "from dataset yesterday today where strtermcount(strField) = 1", true);
+        QueryServletTestUtils.testIQL2(dataset, expected1, "from termCount yesterday today where strtermcount(strField) = 1", true);
 
         final List<List<String>> expected2 = new ArrayList<>();
         expected2.add(ImmutableList.of("", "50"));
-        QueryServletTestUtils.testIQL2(dataset, expected2, "from dataset yesterday today where strtermcount(strField) = 2", true);
+        QueryServletTestUtils.testIQL2(dataset, expected2, "from termCount yesterday today where strtermcount(strField) = 2", true);
 
         final List<List<String>> expected3 = new ArrayList<>();
         expected3.add(ImmutableList.of("", "17"));
-        QueryServletTestUtils.testIQL2(dataset, expected3, "from dataset yesterday today where strtermcount(strField) = 3", true);
+        QueryServletTestUtils.testIQL2(dataset, expected3, "from termCount yesterday today where strtermcount(strField) = 3", true);
     }
 
     private static class MultiValuedDataset {
@@ -77,7 +77,7 @@ public class TermCountTest extends BasicTest {
                 flamdex.addDocument(doc);
             }
 
-            shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
+            shards.add(new Dataset.DatasetShard("termCount", "index20150101", flamdex));
 
             return new Dataset(shards);
         }

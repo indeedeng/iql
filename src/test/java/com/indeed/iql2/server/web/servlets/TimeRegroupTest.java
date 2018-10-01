@@ -194,7 +194,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("January 2015", "10", "10"));
         expected.add(ImmutableList.of("February 2015", "100", "200"));
         expected.add(ImmutableList.of("March 2015", "1", "3"));
-        QueryServletTestUtils.testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by time(1M) select count(), month");
+        QueryServletTestUtils.testIQL2(multiMonthDataset(), expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month");
     }
 
     @Test
@@ -209,7 +209,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("3", "January 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
-        QueryServletTestUtils.testIQL2(multiMonthDataset(), expected, "from dataset 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
+        QueryServletTestUtils.testIQL2(multiMonthDataset(), expected, "from multiMonth 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
     }
 
     private static Dataset multiMonthDataset() {
@@ -227,7 +227,7 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            shards.add(new Dataset.DatasetShard("dataset", "index20150101", flamdex));
+            shards.add(new Dataset.DatasetShard("multiMonth", "index20150101", flamdex));
         }
 
         {
@@ -239,7 +239,7 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            shards.add(new Dataset.DatasetShard("dataset", "index20150201", flamdex));
+            shards.add(new Dataset.DatasetShard("multiMonth", "index20150201", flamdex));
         }
 
         {
@@ -251,7 +251,7 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            shards.add(new Dataset.DatasetShard("dataset", "index20150301", flamdex));
+            shards.add(new Dataset.DatasetShard("multiMonth", "index20150301", flamdex));
         }
 
         return new Dataset(shards);
@@ -267,7 +267,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("Friday", "8", "37"));
         expected.add(ImmutableList.of("Saturday", "0", "0"));
         expected.add(ImmutableList.of("Sunday", "16", "169"));
-        QueryServletTestUtils.testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-15 group by dayofweek select count(), day");
+        QueryServletTestUtils.testIQL2(dayOfWeekDataset(), expected, "from dayOfWeek 2015-01-01 2015-01-15 group by dayofweek select count(), day");
     }
 
     @Test
@@ -287,7 +287,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Friday", "5", "10"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
-        QueryServletTestUtils.testIQL2(dayOfWeekDataset(), expected, "from dataset 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
+        QueryServletTestUtils.testIQL2(dayOfWeekDataset(), expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
     }
 
     private static Dataset dayOfWeekDataset() {
@@ -319,7 +319,7 @@ public class TimeRegroupTest extends BasicTest {
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
-            shards.add(new Dataset.DatasetShard("dataset", String.format("index201501%02d", i + 1), flamdex));
+            shards.add(new Dataset.DatasetShard("dayOfWeek", String.format("index201501%02d", i + 1), flamdex));
         }
         return new Dataset(shards);
     }

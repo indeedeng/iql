@@ -36,8 +36,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
-                "from organic yesterday today where tk in (from other 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
+                FieldInQueryDataset.create("other1", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
+                "from organic yesterday today where tk in (from other1 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -47,8 +47,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
-                "from organic yesterday today where tk not in (from other 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
+                FieldInQueryDataset.create("other2", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
+                "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -58,8 +58,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
-                "from organic yesterday today where ojc in (from other 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
+                FieldInQueryDataset.create("other3", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
+                "from organic yesterday today where ojc in (from other3 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -72,8 +72,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
-                "from organic yesterday today where ojc not in (from other 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
+                FieldInQueryDataset.create("other4", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
+                "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
     private static class FieldInQueryDataset {
