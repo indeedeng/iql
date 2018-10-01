@@ -11,7 +11,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class GroupByHavingDataset {
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
         final List<Dataset.DatasetShard> result = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();

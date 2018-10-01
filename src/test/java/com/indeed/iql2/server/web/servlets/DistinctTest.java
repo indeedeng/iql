@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.DistinctDataset;
 import org.junit.Test;
 
@@ -28,12 +29,12 @@ public class DistinctTest extends BasicTest {
 
     @Test
     public void basicDistinct() throws Exception {
-        testAll(DistinctDataset.createDataset(), ImmutableList.of(ImmutableList.of("", "4")), "from distinct yesterday 2015-01-10 select distinct(tk)");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "4")), "from distinct yesterday 2015-01-10 select distinct(tk)");
     }
 
     @Test
     public void timeDistinct() throws Exception {
-        testAll(DistinctDataset.createDataset(), ImmutableList.of(
+        testAll(AllData.DATASET, ImmutableList.of(
                 ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "0"),
                 ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "1"),
                 ImmutableList.of("[2015-01-03 00:00:00, 2015-01-04 00:00:00)", "4"),
@@ -48,7 +49,7 @@ public class DistinctTest extends BasicTest {
 
     @Test
     public void timeDistinctWindow() throws Exception {
-        testIQL2(DistinctDataset.createDataset(), ImmutableList.of(
+        testIQL2(AllData.DATASET, ImmutableList.of(
                 ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "0"),
                 ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "1"),
                 ImmutableList.of("[2015-01-03 00:00:00, 2015-01-04 00:00:00)", "4"),
@@ -69,6 +70,6 @@ public class DistinctTest extends BasicTest {
         for (int i = 3; i < 30; i++) {
             expected.add(ImmutableList.of(String.format("[2015-01-%02d 00:00:00, 2015-01-%02d 00:00:00)", i, i + 1), "4"));
         }
-        testIQL2(DistinctDataset.createDataset(), expected, "from distinct yesterday 2015-01-30 group by time(1d) select distinct_window(30, tk)");
+        testIQL2(AllData.DATASET, expected, "from distinct yesterday 2015-01-30 group by time(1d) select distinct_window(30, tk)");
     }
 }

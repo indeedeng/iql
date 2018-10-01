@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.FloatScaleDataset;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ public class FloatScaleTest extends BasicTest {
     public void testBasic() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "100", "100", "100001", "100001", "999100"));
-        QueryServletTestUtils.testAll(FloatScaleDataset.createDataset(), expected,
+        QueryServletTestUtils.testAll(AllData.DATASET, expected,
                 "from floatscaletest yesterday today select floatscale(field1, 1, 0), floatscale(field1), floatscale(field1, 1000, 0), floatscale(field1, 1000), floatscale(field2, 1, -500)");
     }
 

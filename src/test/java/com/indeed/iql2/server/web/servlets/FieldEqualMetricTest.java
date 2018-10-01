@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.FieldEqualDataset;
 import org.junit.Assert;
@@ -29,7 +30,7 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testEqualFieldMetric() throws Exception {
-        final Dataset dataset = FieldEqualDataset.create();
+        final Dataset dataset = AllData.DATASET;
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1=s2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3", "4")), "from fieldEqual yesterday today select i1=i2, count()");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today select s1=s2, i1=i2, count()");
@@ -43,7 +44,7 @@ public class FieldEqualMetricTest extends BasicTest {
     @Test
     public void testMultiDatasetEqualFieldMetric() throws Exception {
         try {
-            QueryServletTestUtils.testIQL2(FieldEqualDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2");
+            QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2");
             Assert.fail("field on different dataset should throw exception");
         } catch (Exception e) {
         }
@@ -51,7 +52,7 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testNotEqualFieldMetric() throws Exception {
-        final Dataset dataset = FieldEqualDataset.create();
+        final Dataset dataset = AllData.DATASET;
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from fieldEqual yesterday today select i1!=i2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1!=s2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "1")), "from fieldEqual yesterday today select s1!=s2, i1!=i2");

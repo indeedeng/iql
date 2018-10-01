@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.MultipleDataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
@@ -28,26 +29,26 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 public class BasicFilterTest extends BasicTest {
     @Test
     public void testBasicFilters() throws Exception {
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"a\" select count()");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where tk=\"b\" select count()");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"c\" select count()");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.<List<String>>of(ImmutableList.of("", "141")), "from organic yesterday today where tk=\"d\" select count()");
-        QueryServletTestUtils.testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "141")), "from organic yesterday today where tk:d select count()");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"a\" select count()");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today where tk=\"b\" select count()");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today where tk=\"c\" select count()");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "141")), "from organic yesterday today where tk=\"d\" select count()");
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "141")), "from organic yesterday today where tk:d select count()");
     }
 
     @Test
     public void testMultipleDatasetFilters() throws Exception {
-        QueryServletTestUtils.testIQL2(MultipleDataset.create(), ImmutableList.of(ImmutableList.of("", "2")), "from dataset1 yesterday today, dataset2 where intField1=1 select count()");
-        QueryServletTestUtils.testIQL2(MultipleDataset.create(), ImmutableList.of(ImmutableList.of("", "22")), "from dataset1 1month today, dataset2 where strField1='1' select count()");
-        QueryServletTestUtils.testIQL2(MultipleDataset.create(), ImmutableList.of(ImmutableList.of("", "3")), "from dataset1 1w today, dataset2 where dataset1.intField2=1 select dataset1.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "2")), "from dataset1 yesterday today, dataset2 where intField1=1 select count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "22")), "from dataset1 1month today, dataset2 where strField1='1' select count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "3")), "from dataset1 1w today, dataset2 where dataset1.intField2=1 select dataset1.count()");
     }
 
     @Test
     public void testNegateFilters() throws Exception {
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
-        QueryServletTestUtils.testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
-        QueryServletTestUtils.testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where -tk:c select count()");
-        QueryServletTestUtils.testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where -tk:c select count()");
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");
     }
 
 }

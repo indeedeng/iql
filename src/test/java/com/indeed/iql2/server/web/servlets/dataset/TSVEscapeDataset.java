@@ -11,7 +11,7 @@ import org.joda.time.format.DateTimeFormatter;
  * @author jwolfe
  */
 public class TSVEscapeDataset {
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));
 

@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.TSVEscapeDataset;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ public class TSVEscapingTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "1"));
         expected.add(ImmutableList.of("NormalTerm", "1"));
-        QueryServletTestUtils.testAll(TSVEscapeDataset.createDataset(), expected, "from tsvescape yesterday today group by sField", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from tsvescape yesterday today group by sField", true);
     }
 
     @Test
@@ -36,7 +37,7 @@ public class TSVEscapingTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("NormalTerm", "2", "1"));
         expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "3", "1"));
-        QueryServletTestUtils.testAll(TSVEscapeDataset.createDataset(), expected, "from tsvescape yesterday today group by sField, iField", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from tsvescape yesterday today group by sField, iField", true);
     }
 
     @Test
@@ -44,7 +45,7 @@ public class TSVEscapingTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "1"));
         expected.add(ImmutableList.of("NormalTerm", "NormalTerm", "1"));
-        QueryServletTestUtils.testAll(TSVEscapeDataset.createDataset(), expected, "from tsvescape yesterday today group by sField, sField", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from tsvescape yesterday today group by sField, sField", true);
     }
 
     @Test
@@ -52,6 +53,6 @@ public class TSVEscapingTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
         expected.add(ImmutableList.of("NormalTerm", "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
-        QueryServletTestUtils.testAll(TSVEscapeDataset.createDataset(), expected, "from tsvescape yesterday today group by sField, time(1d)", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from tsvescape yesterday today group by sField, time(1d)", true);
     }
 }

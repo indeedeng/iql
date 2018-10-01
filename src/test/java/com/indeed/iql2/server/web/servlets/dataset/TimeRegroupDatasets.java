@@ -13,7 +13,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class TimeRegroupDatasets {
-    public static Dataset multiMonthDataset() {
+    static Dataset multiMonthDataset() {
         final DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser().withZone(BasicTest.TIME_ZONE);
         // 10 documents in January 2015 with month = 1
         // 100 documents in February 2015 with month = 2
@@ -58,7 +58,7 @@ public class TimeRegroupDatasets {
         return new Dataset(shards);
     }
 
-    public static Dataset dayOfWeekDataset() {
+    static Dataset dayOfWeekDataset() {
         // 2015-01-01 THU 1
         // 2015-01-02 FRI 5
         // 2015-01-03 SAT 0

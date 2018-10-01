@@ -13,8 +13,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class GroupBySelectDataset {
-    @Nonnull
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> dataset = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         flamdex.addDocument(new FlamdexDocument(

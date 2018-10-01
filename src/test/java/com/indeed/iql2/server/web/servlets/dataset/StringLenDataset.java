@@ -9,7 +9,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class StringLenDataset {
-    public static Dataset create() {
+    static Dataset create() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         for (int i = 0; i < 100; i++) {

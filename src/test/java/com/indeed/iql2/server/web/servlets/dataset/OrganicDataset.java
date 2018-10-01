@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OrganicDataset {
-    public static Dataset create() {
+    static Dataset create() {
         return create(false);
     }
 

@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.ValidationDataset;
 import junit.framework.Assert;
@@ -27,7 +28,7 @@ import java.util.List;
 public class ValidationTests extends BasicTest {
     @Test
     public void testBasicValidationPassing() throws Exception {
-        final Dataset dataset = ValidationDataset.createDataset();
+        final Dataset dataset = AllData.DATASET;
         final String basic =
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT COUNT(), trivialOrganic.COUNT(), trivialSponsored.COUNT(), clicked, trivialOrganic.clicked, trivialSponsored.clicked, [trivialOrganic.clicked], [trivialSponsored.clicked]";
@@ -51,7 +52,7 @@ public class ValidationTests extends BasicTest {
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(ValidationDataset.createDataset().getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
+            QueryServletTestUtils.runQuery(AllData.DATASET.getShards(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
             Assert.fail();
         } catch (Exception ignored) {
         }

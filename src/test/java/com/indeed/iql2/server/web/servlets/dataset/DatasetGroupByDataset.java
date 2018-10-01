@@ -46,7 +46,7 @@ public class DatasetGroupByDataset {
      * 2015-01-13: 6000
      * 2015-01-14: 7000
      */
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             shards.add(makeShard(new LocalDate(2015, 1, 1 + i), 100 * (i + 1)));

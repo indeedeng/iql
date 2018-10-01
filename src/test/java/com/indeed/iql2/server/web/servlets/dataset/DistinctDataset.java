@@ -11,7 +11,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class DistinctDataset {
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = Lists.newArrayList();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
 

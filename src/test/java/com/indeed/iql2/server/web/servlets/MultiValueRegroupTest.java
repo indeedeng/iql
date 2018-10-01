@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.MultiValueDataset;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(MultiValueDataset.createDataset(), expected, "from multiValue yesterday today group by f[2] select count()", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from multiValue yesterday today group by f[2] select count()", true);
     }
 
     @Test
@@ -35,25 +36,25 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(MultiValueDataset.createDataset(), expected, "from multiValue yesterday today group by f in (1,2) select count()", true);
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from multiValue yesterday today group by f in (1,2) select count()", true);
     }
 
     @Test
     public void testGroupByMultiValueInIQL1() throws Exception {
-        QueryServletTestUtils.testIQL1(MultiValueDataset.createDataset(),
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("1", "50")),
                 "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
-        QueryServletTestUtils.testIQL1(MultiValueDataset.createDataset(),
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("1", "1", "50")),
                 "from multiValue yesterday today where f in (1) f in (2) GROUP BY f, f", true);
-        QueryServletTestUtils.testIQL1(MultiValueDataset.createDataset(),
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),
                         ImmutableList.of("1", "1", "50"),
                         ImmutableList.of("0", "2", "50")
                 ),
                 "from multiValue yesterday today where f in (1,2) GROUP BY i, f", true);
-        QueryServletTestUtils.testIQL1(MultiValueDataset.createDataset(),
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
                 ImmutableList.of(),
                 "from multiValue yesterday today where f in (1) f in (2) i = 1 GROUP BY f", true);
     }
@@ -63,9 +64,9 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "50"));
         expected.add(ImmutableList.of("3", "17"));
-        QueryServletTestUtils.testIQL2(MultiValueDataset.createDataset(), expected, "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
 
-        QueryServletTestUtils.testIQL2(MultiValueDataset.createDataset(),
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),
                         ImmutableList.of("1", "1", "50"),

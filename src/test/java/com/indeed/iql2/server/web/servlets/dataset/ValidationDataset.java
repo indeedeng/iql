@@ -39,7 +39,7 @@ public class ValidationDataset {
         );
     }
 
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         shards.addAll(trivialOrganic());
         shards.addAll(trivialSponsored());

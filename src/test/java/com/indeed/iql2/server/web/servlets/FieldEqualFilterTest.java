@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.FieldEqualDataset;
 import org.junit.Assert;
@@ -26,7 +27,7 @@ import java.util.List;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 public class FieldEqualFilterTest extends BasicTest {
-    final Dataset dataset = FieldEqualDataset.create();
+    final Dataset dataset = AllData.DATASET;
     @Test
     public void testEqualFieldFilter() throws Exception {
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3")), "from fieldEqual yesterday today where i1=i2");

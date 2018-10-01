@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.MultiValuedDataset;
 import org.junit.Test;
@@ -25,7 +26,7 @@ import java.util.List;
 public class TermCountTest extends BasicTest {
     @Test
     public void testIntTermCount() throws Exception {
-        final Dataset dataset = MultiValuedDataset.create();
+        final Dataset dataset = AllData.DATASET;
 
         final List<List<String>> expected1 = new ArrayList<>();
         expected1.add(ImmutableList.of("", "33"));
@@ -42,7 +43,7 @@ public class TermCountTest extends BasicTest {
 
     @Test
     public void testStrTermCount() throws Exception {
-        final Dataset dataset = MultiValuedDataset.create();
+        final Dataset dataset = AllData.DATASET;
 
         final List<List<String>> expected1 = new ArrayList<>();
         expected1.add(ImmutableList.of("", "33"));

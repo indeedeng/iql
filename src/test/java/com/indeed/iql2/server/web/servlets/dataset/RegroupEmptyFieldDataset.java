@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class RegroupEmptyFieldDataset {
     // fields [time, s1, s2, i1, i2]
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
 
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();

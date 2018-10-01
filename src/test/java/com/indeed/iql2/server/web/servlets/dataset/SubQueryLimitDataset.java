@@ -9,7 +9,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class SubQueryLimitDataset {
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = Lists.newArrayList();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         for (int i = 0; i < 105; i++) {

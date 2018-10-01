@@ -11,7 +11,7 @@ import java.util.List;
  * @author jwolfe
  */
 public class QuantilesDataset {
-    public static Dataset createDataset() {
+    static Dataset createDataset() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         shards.addAll(createShards("quantiles_mandatory", FieldType.MANDATORY));
         shards.addAll(createShards("quantiles_optional", FieldType.OPTIONAL));

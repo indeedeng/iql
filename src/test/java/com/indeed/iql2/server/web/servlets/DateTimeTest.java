@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
@@ -25,20 +26,20 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 public class DateTimeTest extends BasicTest {
     @Test
     public void testWordDate() throws Exception {
-        testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testIQL1(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago select count(), oji, ojc");
-        testIQL2(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago select count(), oji, ojc");
+        testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
+        testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago select count(), oji, ojc");
+        testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago select count(), oji, ojc");
     }
 
     @Test
     public void testQuotes() throws Exception {
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"d\" \"today\" select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"1d\" today select count(), oji, ojc");
-        testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("", "160", "2662", "315")), "from organic \"10d\" \"today\" select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"d\" \"today\" select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"1d\" today select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "160", "2662", "315")), "from organic \"10d\" \"today\" select count(), oji, ojc");
     }
 
 }

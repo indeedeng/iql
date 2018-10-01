@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.TimeRegroupDatasets;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
@@ -37,17 +38,17 @@ public class TimeRegroupTest extends BasicTest {
         }
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "23", "1", "1"));
 
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by time(24b) select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from organic yesterday today group by time(24b) select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
-        QueryServletTestUtils.testAll(OrganicDataset.create(), QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.of(
+        QueryServletTestUtils.testAll(AllData.DATASET, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
+        QueryServletTestUtils.testAll(AllData.DATASET, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(
                 ImmutableList.of("[2015-01-01 23:00:00, 2015-01-01 23:30:00)", "1", "23", "1"),
                 ImmutableList.of("[2015-01-01 23:30:00, 2015-01-02 00:00:00)", "0", "0", "0")),
                 "from organic h today group by time(30minute) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(d) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(OrganicDataset.create(), ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(d) select count(), oji, ojc");
+        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
     }
 
     @Test
@@ -66,8 +67,8 @@ public class TimeRegroupTest extends BasicTest {
 
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "0", "1"));
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h) select o1.count(), o2.count()");
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(24b) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(24b) select o1.count(), o2.count()");
     }
 
     @Test
@@ -89,8 +90,8 @@ public class TimeRegroupTest extends BasicTest {
 
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "0", "1"));
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()");
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(24b) select o1.count(), o2.count()");
     }
 
     @Test
@@ -104,7 +105,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 12h as o1, organic 12h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -118,7 +119,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 18h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -134,7 +135,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 6, 7), "1", "0"));
 
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -148,7 +149,7 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1", "1"));
         }
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 16h as o1, organic 16h 8h as o2, organic 8h today as o3 group by time(1h relative) select o1.count(), o2.count(), o3.count()");
     }
 
     @Test
@@ -164,7 +165,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "0", "1"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "0", "1"));
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 13h as o1, organic 13h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -181,7 +182,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 11, 12), "1", "0"));
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 12, 13), "1", "0"));
 
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 24h 11h as o1, organic 11h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
 
     @Test
@@ -190,7 +191,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("January 2015", "10", "10"));
         expected.add(ImmutableList.of("February 2015", "100", "200"));
         expected.add(ImmutableList.of("March 2015", "1", "3"));
-        QueryServletTestUtils.testIQL2(TimeRegroupDatasets.multiMonthDataset(), expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month");
     }
 
     @Test
@@ -205,7 +206,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("3", "January 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
-        QueryServletTestUtils.testIQL2(TimeRegroupDatasets.multiMonthDataset(), expected, "from multiMonth 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
     }
 
     @Test
@@ -218,7 +219,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("Friday", "8", "37"));
         expected.add(ImmutableList.of("Saturday", "0", "0"));
         expected.add(ImmutableList.of("Sunday", "16", "169"));
-        QueryServletTestUtils.testIQL2(TimeRegroupDatasets.dayOfWeekDataset(), expected, "from dayOfWeek 2015-01-01 2015-01-15 group by dayofweek select count(), day");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from dayOfWeek 2015-01-01 2015-01-15 group by dayofweek select count(), day");
     }
 
     @Test
@@ -238,6 +239,6 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Friday", "5", "10"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
-        QueryServletTestUtils.testIQL2(TimeRegroupDatasets.dayOfWeekDataset(), expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
     }
 }

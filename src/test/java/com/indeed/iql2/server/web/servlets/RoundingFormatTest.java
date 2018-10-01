@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.JobsearchDataset;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class RoundingFormatTest extends BasicTest {
         expected.add(ImmutableList.of("jp", "2.00"));
         expected.add(ImmutableList.of("uk", "2.00"));
         expected.add(ImmutableList.of("us", "3.00"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count() rounding 2");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from jobsearch yesterday today group by country select count() rounding 2");
     }
 
     @Test
@@ -45,7 +46,7 @@ public class RoundingFormatTest extends BasicTest {
         expected.add(ImmutableList.of("jp", "2.00", "1.00"));
         expected.add(ImmutableList.of("uk", "2.00", "1.00"));
         expected.add(ImmutableList.of("us", "3.00", "1.50"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count(), count() / 2 rounding 2");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from jobsearch yesterday today group by country select count(), count() / 2 rounding 2");
     }
 
     @Test
@@ -56,14 +57,14 @@ public class RoundingFormatTest extends BasicTest {
         expected.add(ImmutableList.of("jp", "2.00", "2"));
         expected.add(ImmutableList.of("uk", "2.00", "2"));
         expected.add(ImmutableList.of("us", "3.00", "3"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select printf(\"%.2f\", count()), count() rounding 0");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from jobsearch yesterday today group by country select printf(\"%.2f\", count()), count() rounding 0");
     }
 
     @Test
     public void testSelectRoundingMissingN() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         try {
-            QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select count() rounDing");
+            QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from jobsearch yesterday today group by country select count() rounDing");
         } catch (final Exception e){
             //expected
         }
@@ -77,6 +78,6 @@ public class RoundingFormatTest extends BasicTest {
         expected.add(ImmutableList.of("jp", "2.00", "2"));
         expected.add(ImmutableList.of("uk", "2.00", "2"));
         expected.add(ImmutableList.of("us", "3.00", "3"));
-        QueryServletTestUtils.testIQL2(JobsearchDataset.create(), expected, "from jobsearch yesterday today group by country select printf(\"%.2f\", count()), count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from jobsearch yesterday today group by country select printf(\"%.2f\", count()), count()");
     }
 }

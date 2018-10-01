@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
@@ -25,7 +26,7 @@ import java.util.List;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 public class FieldInTermsTest extends BasicTest {
-    final Dataset dataset = OrganicDataset.create();
+    final Dataset dataset = AllData.DATASET;
 
     @Test
     public void testStringFieldInTerms() throws Exception {
@@ -75,6 +76,6 @@ public class FieldInTermsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "4"));
         expected.add(ImmutableList.of("b", "2"));
-        QueryServletTestUtils.testAll(OrganicDataset.create(), expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
+        QueryServletTestUtils.testAll(dataset, expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
     }
 }

@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PredicateRegroupTest extends BasicTest {
-    final Dataset dataset = OrganicDataset.create();
+    final Dataset dataset = AllData.DATASET;
 
     @Test
     public void singleDataset() throws Exception {

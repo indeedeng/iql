@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.GroupBySelectDataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
@@ -33,14 +34,14 @@ public class EmptyClausesTest extends BasicTest {
     public void emptyVariations() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where group by");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where group by select count()");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where select count()");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today select count()");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by select count()");
+        testAll(AllData.DATASET, expected, "from organic yesterday today");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where group by");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where group by select count()");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where select count()");
+        testAll(AllData.DATASET, expected, "from organic yesterday today select count()");
+        testAll(AllData.DATASET, expected, "from organic yesterday today group by");
+        testAll(AllData.DATASET, expected, "from organic yesterday today group by select count()");
     }
 
     // Behavior changed in IQL-610 to make empty SELECT act as SELECT COUNT()
@@ -48,13 +49,13 @@ public class EmptyClausesTest extends BasicTest {
     public void emptySelectIsCountSimple() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today select");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where select");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where group by select");
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today group by select");
-        testAll(OrganicDataset.create(), expected, "select from organic yesterday today");
-        testAll(OrganicDataset.create(), expected, "select from organic yesterday today where");
-        testAll(OrganicDataset.create(), expected, "select from organic yesterday today where group by");
+        testAll(AllData.DATASET, expected, "from organic yesterday today select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where group by select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today group by select");
+        testAll(AllData.DATASET, expected, "select from organic yesterday today");
+        testAll(AllData.DATASET, expected, "select from organic yesterday today where");
+        testAll(AllData.DATASET, expected, "select from organic yesterday today where group by");
    }
 
     @Test
@@ -64,7 +65,7 @@ public class EmptyClausesTest extends BasicTest {
         // and select from where from is an aliased field name
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "2653"));
-        testAll(OrganicDataset.create(), expected, "select from from organic yesterday today aliasing (oji as from)", true);
+        testAll(AllData.DATASET, expected, "select from from organic yesterday today aliasing (oji as from)", true);
     }
 
     @Test
@@ -74,18 +75,18 @@ public class EmptyClausesTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2"));
         expected.add(ImmutableList.of("c", "4"));
         expected.add(ImmutableList.of("d", "141"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where group by tk select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where group by tk select");
     }
 
     @Test
     public void emptySelectIsCountWithWhere() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "129"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where oji = 10 select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where oji = 10 select");
 
         final List<List<String>> expected2 = new ArrayList<>();
         expected2.add(ImmutableList.of("", "141"));
-        testAll(OrganicDataset.create(), expected2, "from organic yesterday today where tk = 'd' select");
+        testAll(AllData.DATASET, expected2, "from organic yesterday today where tk = 'd' select");
     }
 
     @Test
@@ -95,7 +96,7 @@ public class EmptyClausesTest extends BasicTest {
         expected.add(ImmutableList.of("b", "1"));
         expected.add(ImmutableList.of("c", "3"));
         expected.add(ImmutableList.of("d", "121"));
-        testAll(OrganicDataset.create(), expected, "from organic yesterday today where oji = 10 group by tk select");
+        testAll(AllData.DATASET, expected, "from organic yesterday today where oji = 10 group by tk select");
     }
 
     @Test
@@ -104,6 +105,6 @@ public class EmptyClausesTest extends BasicTest {
                 ImmutableList.of("a", "1"),
                 ImmutableList.of("b", "1")
         );
-        testAll(GroupBySelectDataset.createDataset(), expected, "from groupBySelect yesterday today group by `select`");
+        testAll(AllData.DATASET, expected, "from groupBySelect yesterday today group by `select`");
     }
 }
