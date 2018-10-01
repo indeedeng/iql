@@ -15,9 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.joda.time.DateTime;
+import com.indeed.iql2.server.web.servlets.dataset.QuantilesDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -32,7 +30,7 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "20", "40", "49.5", "59"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "20", "60", "69.5", "79"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "20", "80", "89.5", "99"));
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.MANDATORY), expected, "from quantiles yesterday today group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_mandatory yesterday today group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
     @Test
@@ -43,13 +41,13 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "40", "40", "49.5", "59"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "40", "60", "69.5", "79"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "40", "80", "89.5", "99"));
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.MANDATORY), expected, "from quantiles yesterday today as A, quantiles as B group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_mandatory yesterday today as A, quantiles_mandatory as B group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testMultiValue() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.MULTI_VALUE), expected, "from quantiles yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_multi_value yesterday today group by quantiles(f, 5) select field_min(f), f / count(), field_max(f)", true);
     }
 
     @Test
@@ -60,7 +58,7 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "10", "40", "49", "58"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "10", "60", "69", "78"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "10", "80", "89", "98"));
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.OPTIONAL), expected, "from quantiles yesterday today group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_optional yesterday today group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
     @Test
@@ -71,55 +69,14 @@ public class QuantilesTest extends BasicTest {
         expected.add(ImmutableList.of("[0.4, 0.6)", "20", "40", "49", "58"));
         expected.add(ImmutableList.of("[0.6, 0.8)", "20", "60", "69", "78"));
         expected.add(ImmutableList.of("[0.8, 1.0)", "20", "80", "89", "98"));
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.OPTIONAL), expected, "from quantiles yesterday today as A, quantiles as B group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_optional yesterday today as A, quantiles_optional as B group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
     @Test
     public void testNoDocs() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[0.0, 1.0)", "0", "9223372036854776000", "NaN", "-9223372036854776000"));
-        QueryServletTestUtils.testIQL2(createDataset(FieldType.MANDATORY), expected, "from quantiles yesterday today as A, quantiles as B where f<0 group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
+        QueryServletTestUtils.testIQL2(QuantilesDataset.createDataset(), expected, "from quantiles_mandatory yesterday today as A, quantiles_mandatory as B where f<0 group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 
-    public static Dataset createDataset(final FieldType fieldType) {
-        final List<Dataset.DatasetShard> shards = new ArrayList<>();
-        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        for (int i = 0; i < 100; i++) {
-            final FlamdexDocument doc = new FlamdexDocument();
-            switch (fieldType) {
-                case MANDATORY:
-                    doc.addIntTerm("f", i);
-                    break;
-                case OPTIONAL:
-                    if ((i % 2) == 0) {
-                        doc.addIntTerm("f", i);
-                    }
-                    break;
-                case MULTI_VALUE:
-                    // re-distribute [0, 100)
-                    if ((i % 5) == 0) {
-                        doc.addIntTerm("f", i);
-                        doc.addIntTerm("f", i+1);
-                    } else if((i % 5) == 2) {
-                        doc.addIntTerm("f", i);
-                        doc.addIntTerm("f", i+1);
-                        doc.addIntTerm("f", i+2);
-                    }
-                    break;
-            }
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, TIME_ZONE).getMillis() / 1000);
-            doc.addIntTerm("fakeField", 0);
-            flamdex.addDocument(doc);
-        }
-
-        shards.add(new Dataset.DatasetShard("quantiles", "index20150101", flamdex));
-
-        return new Dataset(shards);
-    }
-
-    private enum FieldType {
-        MANDATORY,
-        OPTIONAL,
-        MULTI_VALUE;
-    }
 }

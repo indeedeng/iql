@@ -15,12 +15,9 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.iql2.server.web.servlets.dataset.StringAsIntFieldDataset;
 import org.junit.Test;
-
-import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarning;
 
@@ -28,7 +25,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarn
  *
  */
 public class StringAsIntFieldTest {
-    final Dataset dataset = createStringAsIntDataset();
+    final Dataset dataset = StringAsIntFieldDataset.create();
 
     @Test
     public void testSelectStringAsIntField() throws Exception {
@@ -56,26 +53,5 @@ public class StringAsIntFieldTest {
         testWarning(dataset, ImmutableList.of(), "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL1);
         testWarning(dataset, ImmutableList.of(), "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL1);
         testWarning(dataset, ImmutableList.of(), "from mobsearch yesterday today where page = 0");
-    }
-
-
-
-    public static Dataset createStringAsIntDataset() {
-        final List<Dataset.DatasetShard> shards = Lists.newArrayList();
-        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        for (int i = 0; i < 100; i++) {
-            flamdex.addDocument(
-                    new FlamdexDocument.Builder()
-                            .addIntTerm("id", i)
-                            .addStringTerm("page", ((i % 2) == 0) ? "0" : "1")
-                            .addStringTerm("vp", ((i % 2) == 0) ? "0" : "1")
-                            .build()
-            );
-        }
-
-        shards.add(new Dataset.DatasetShard("stringAsInt1", "index20150101", flamdex));
-        // jobsearch and mobsearch are special cased.
-        shards.add(new Dataset.DatasetShard("mobsearch", "index20150101", flamdex));
-        return new Dataset(shards);
     }
 }

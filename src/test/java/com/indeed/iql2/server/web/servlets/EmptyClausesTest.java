@@ -15,14 +15,11 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.iql2.server.web.servlets.dataset.GroupBySelectDataset;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
@@ -103,27 +100,10 @@ public class EmptyClausesTest extends BasicTest {
 
     @Test
     public void testGroupBySelect() throws Exception {
-        final List<Dataset.DatasetShard> dataset = new ArrayList<>();
-        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        flamdex.addDocument(new FlamdexDocument(
-                Collections.emptyMap(),
-                ImmutableMap.of(
-                    "select",
-                    ImmutableList.of("a")
-                )
-        ));
-        flamdex.addDocument(new FlamdexDocument(
-                Collections.emptyMap(),
-                ImmutableMap.of(
-                    "select",
-                    ImmutableList.of("b")
-                )
-        ));
-        dataset.add(new Dataset.DatasetShard("groupBySelect", "index20150101", flamdex));
         final ImmutableList<List<String>> expected = ImmutableList.of(
                 ImmutableList.of("a", "1"),
                 ImmutableList.of("b", "1")
         );
-        testAll(new Dataset(dataset), expected, "from groupBySelect yesterday today group by `select`");
+        testAll(GroupBySelectDataset.createDataset(), expected, "from groupBySelect yesterday today group by `select`");
     }
 }

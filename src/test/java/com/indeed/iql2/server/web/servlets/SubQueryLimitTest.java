@@ -15,9 +15,8 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
+import com.indeed.iql2.server.web.servlets.dataset.SubQueryLimitDataset;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubQueryLimitTest extends BasicTest {
-    final Dataset dataset = createDataset();
+    final Dataset dataset = SubQueryLimitDataset.createDataset();
 
     @Test
     public void testQueryNoLimit() throws Exception {
@@ -56,18 +55,5 @@ public class SubQueryLimitTest extends BasicTest {
             Assert.fail();
         } catch (Exception e) {
         }
-    }
-
-    public static Dataset createDataset() {
-        final List<Dataset.DatasetShard> shards = Lists.newArrayList();
-        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        for (int i = 0; i < 105; i++) {
-            final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("f", i);
-            flamdex.addDocument(doc);
-        }
-
-        shards.add(new Dataset.DatasetShard("subQueryLimit", "index20150101", flamdex));
-        return new Dataset(shards);
     }
 }

@@ -15,12 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
+import com.indeed.iql2.server.web.servlets.dataset.DatasetGroupByDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,58 +25,16 @@ import java.util.List;
  *
  */
 public class DatasetGroupByTest {
-    private static final String DATASET = "dataset";
-    public static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
-    public static final DateTimeZone DATE_TIME_ZONE = DateTimeZone.forOffsetHours(-6);
-
-    private static Dataset.DatasetShard makeShard(LocalDate day, int count) {
-        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        final FlamdexDocument document = new FlamdexDocument.Builder().addIntTerm("label", 1).addIntTerm("fakeField", 0).addIntTerm("unixtime", day.toDateTimeAtStartOfDay(DATE_TIME_ZONE).getMillis() / 1000).build();
-        for (int i = 0; i < count / 2; i++) {
-            flamdex.addDocument(document);
-        }
-        final FlamdexDocument document2 = new FlamdexDocument.Builder().addIntTerm("label", 2).addIntTerm("fakeField", 0).addIntTerm("unixtime", day.toDateTimeAtStartOfDay(DATE_TIME_ZONE).getMillis() / 1000).build();
-        for (int i = 0; i < count / 2; i++) {
-            flamdex.addDocument(document2);
-        }
-        return new Dataset.DatasetShard(DATASET, "index" + FORMATTER.print(day), flamdex);
-    }
-
-    /**
-     * 2015-01-01: 100
-     * 2015-01-02: 200
-     * 2015-01-03: 300
-     * 2015-01-04: 400
-     * 2015-01-05: 500
-     * 2015-01-06: 600
-     * 2015-01-07: 700
-     * 2015-01-08: 1000
-     * 2015-01-09: 2000
-     * 2015-01-10: 3000
-     * 2015-01-11: 4000
-     * 2015-01-12: 5000
-     * 2015-01-13: 6000
-     * 2015-01-14: 7000
-     */
-    private Dataset createDataset() {
-        final List<Dataset.DatasetShard> shards = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            shards.add(makeShard(new LocalDate(2015, 1, 1 + i), 100 * (i + 1)));
-            shards.add(makeShard(new LocalDate(2015, 1, 8 + i), 1000 * (i + 1)));
-            shards.add(makeShard(new LocalDate(2015, 1, 15 + i), 10000 * (i + 1)));
-        }
-        return new Dataset(shards);
-    }
 
     @Test
     public void basic() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("dataset", "100"));
+        expected.add(ImmutableList.of("groupByDataset", "100"));
         expected.add(ImmutableList.of("ds2", "200"));
         expected.add(ImmutableList.of("ds3", "300"));
         expected.add(ImmutableList.of("abc", "400"));
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-02, dataset 2015-01-02 2015-01-03 as ds2, dataset 2015-01-03 2015-01-04 as ds3, dataset 2015-01-04 2015-01-05 as abc " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-02, groupByDataset 2015-01-02 2015-01-03 as ds2, groupByDataset 2015-01-03 2015-01-04 as ds3, groupByDataset 2015-01-04 2015-01-05 as abc " +
                         "group by DATASET() select COUNT()"
         );
     }
@@ -110,8 +63,8 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d1", "700", "0"));
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d2", "7000", "6300"));
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d3", "70000", "63000"));
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-08 as d1, dataset 2015-01-08 2015-01-15 as d2, dataset 2015-01-15 2015-01-22 as d3 " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-08 as d1, groupByDataset 2015-01-08 2015-01-15 as d2, groupByDataset 2015-01-15 2015-01-22 as d3 " +
                 "group by time(1d relative), DATASET() select COUNT(), if (lag(1,count()) > 0) then count() - lag(1, count()) else 0"
         );
     }
@@ -122,8 +75,8 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "3"));
         expected.add(ImmutableList.of("ds2", "1.5"));
 
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by DATASET() " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by DATASET() " +
                         "select PARENT(COUNT()) / COUNT()"
         );
     }
@@ -136,8 +89,8 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("2", "ds1", "6", "3"));
         expected.add(ImmutableList.of("2", "ds2", "3", "1.5"));
 
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by label, DATASET() " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by label, DATASET() " +
                         "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
@@ -150,8 +103,8 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "2", "6", "2"));
         expected.add(ImmutableList.of("ds2", "2", "3", "2"));
 
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 group by DATASET(), label " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by DATASET(), label " +
                         "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
     }
@@ -162,8 +115,8 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "2", "2"));
         expected.add(ImmutableList.of("ds2", "2", "2"));
 
-        QueryServletTestUtils.testIQL2(createDataset(), expected,
-                "from dataset 2015-01-01 2015-01-02 as ds1, dataset 2015-01-02 2015-01-03 as ds2 " +
+        QueryServletTestUtils.testIQL2(DatasetGroupByDataset.createDataset(), expected,
+                "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 " +
                         "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))", true
         );
     }

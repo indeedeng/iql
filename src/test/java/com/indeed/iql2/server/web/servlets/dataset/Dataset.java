@@ -43,7 +43,7 @@ public class Dataset {
 
     private static final String DIMENSION_PREFIX = "_DIMENSION_";
 
-    public Dataset(List<DatasetShard> shards) {
+    Dataset(List<DatasetShard> shards) {
         this.shards = shards;
         dimensionImsClient = new AliasDimensionClient(getShards());
     }
