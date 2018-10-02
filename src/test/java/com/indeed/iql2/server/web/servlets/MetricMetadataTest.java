@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.DimensionDataset;
 import org.junit.Assert;
 import org.junit.Test;
 

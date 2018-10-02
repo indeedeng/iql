@@ -14,18 +14,25 @@
 
 package com.indeed.iql2.server.web.servlets.dataset;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.service.ShardMasterAndImhotepDaemonClusterRunner;
 import com.indeed.ims.client.DatasetInterface;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import it.unimi.dsi.fastutil.longs.LongList;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * dataset for normal and dimension shards
@@ -67,6 +74,52 @@ public class Dataset {
             dimensionShards = flamdexShards(true);
         }
         return dimensionShards;
+    }
+
+    private ImhotepClient normalClient;
+    private ShardMasterAndImhotepDaemonClusterRunner normalCluster;
+
+    public ImhotepClient getNormalClient() {
+        if (normalClient == null) {
+            try {
+                normalCluster = makeCluster();
+                normalClient = makeClient(normalCluster, getShards());
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+        return normalClient;
+    }
+
+    private ImhotepClient dimensionsClient;
+    private ShardMasterAndImhotepDaemonClusterRunner dimensionsCluster;
+
+    public ImhotepClient getDimensionsClient() {
+        if (dimensionsClient == null) {
+            try {
+                dimensionsCluster = makeCluster();
+                dimensionsClient = makeClient(dimensionsCluster, getDimensionShards());
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+        return dimensionsClient;
+    }
+
+    private static ImhotepClient makeClient(final ShardMasterAndImhotepDaemonClusterRunner cluster, final List<Shard> shards) throws IOException, TimeoutException, InterruptedException {
+        for (final Shard shard : shards) {
+            shard.addTo(cluster);
+        }
+        // TODO: is this a good idea?
+        cluster.startDaemon();
+        cluster.startDaemon();
+        cluster.startDaemon();
+        return cluster.createClient();
+    }
+
+    private static ShardMasterAndImhotepDaemonClusterRunner makeCluster() throws IOException {
+        final Path tempDir = Files.createTempDirectory("iqltest");
+        return new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
     }
 
     private List<Shard> flamdexShards(boolean isDimension) {

@@ -17,7 +17,6 @@ package com.indeed.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.StringAsIntFieldDataset;
 import org.junit.Test;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarning;

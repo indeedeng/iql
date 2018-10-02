@@ -16,8 +16,6 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.GroupBySelectDataset;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;

@@ -17,12 +17,10 @@ package com.indeed.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.client.TestImhotepClient;
-import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import com.indeed.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
@@ -36,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class CacheTest extends BasicTest {
     // Unique in the context of 1 day of hourly sharded data in organic yesterday (2015-01-01).

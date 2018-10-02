@@ -16,12 +16,9 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.FieldInQueryDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class FieldInQueryTest extends BasicTest {

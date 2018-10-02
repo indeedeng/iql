@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
