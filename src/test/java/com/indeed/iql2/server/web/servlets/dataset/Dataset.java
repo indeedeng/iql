@@ -119,7 +119,16 @@ public class Dataset {
 
     private static ShardMasterAndImhotepDaemonClusterRunner makeCluster() throws IOException {
         final Path tempDir = Files.createTempDirectory("iqltest");
-        return new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
+        tempDir.toFile().deleteOnExit();
+        final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                cluster.stop();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }));
+        return cluster;
     }
 
     private List<Shard> flamdexShards(boolean isDimension) {
