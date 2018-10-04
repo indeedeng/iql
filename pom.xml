@@ -437,12 +437,12 @@
         <maven.compiler.source>1.8</maven.compiler.source>
 
         <imhotep.version>3.1.120</imhotep.version>
-        <ims.version>4.0.6</ims.version>
+        <ims.version>4.0.9</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>
-        <jackson2.version>2.7.9</jackson2.version>
+        <jackson2.version>2.9.6</jackson2.version>
         <lucene.version>2.4.1</lucene.version>
         <hadoop.version>2.6.0-cdh5.8.2</hadoop.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>
