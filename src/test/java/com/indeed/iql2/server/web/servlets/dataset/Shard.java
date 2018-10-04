@@ -15,6 +15,9 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.MemoryFlamdex;
+import com.indeed.imhotep.service.ShardMasterAndImhotepDaemonClusterRunner;
+
+import java.io.IOException;
 
 public class Shard {
     public final String dataset;
@@ -25,6 +28,10 @@ public class Shard {
         this.dataset = dataset;
         this.shardId = shardId;
         this.flamdex = flamdex;
+    }
+
+    public void addTo(ShardMasterAndImhotepDaemonClusterRunner clusterRunner) throws IOException {
+        clusterRunner.createShardUnversioned(dataset, shardId, flamdex);
     }
 
     @Override

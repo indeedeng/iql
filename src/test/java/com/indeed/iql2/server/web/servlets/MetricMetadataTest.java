@@ -16,6 +16,7 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,7 +30,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 
 public class MetricMetadataTest extends BasicTest {
     private ImsClientInterface imsClient = new DimensionUtils.ImsClient();
-    private final Dataset dataset = DimensionUtils.createDataset();
+    private final Dataset dataset = AllData.DATASET;
     private final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create().setSkipTestDimension(true).setImsClient(imsClient);
 
     @Test

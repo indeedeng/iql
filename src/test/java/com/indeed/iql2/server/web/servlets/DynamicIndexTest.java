@@ -16,12 +16,12 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
 
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
-
+@Ignore("Test is ignored until ShardMaster supports dynamic indexes")
 public class DynamicIndexTest extends BasicTest {
     @Test
     public void testUngroupedUsingDynamicIndex() throws Exception {

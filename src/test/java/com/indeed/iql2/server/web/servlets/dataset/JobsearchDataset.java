@@ -26,7 +26,7 @@ import java.util.List;
  */
 
 public class JobsearchDataset {
-    public static Dataset create() {
+    static Dataset create() {
         final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
 
         final List<Dataset.DatasetShard> result = new ArrayList<>();

@@ -20,20 +20,18 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.client.TestImhotepClient;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.web.QueryServlet;
-import com.indeed.iql.cache.QueryCache;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.iql.cache.QueryCache;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql.web.IQLDB;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
-import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.Shard;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
@@ -69,18 +67,16 @@ public class QueryServletTestUtils extends BasicTest {
                     "",// no options
             };
 
-    public static QueryServlet create(List<Shard> shards, Options options) {
-        final ImhotepClient imhotepClient = new TestImhotepClient(shards);
-
-        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, imhotepClient, "", new FieldFrequencyCache(null), true);
+    public static QueryServlet create(ImhotepClient client, Options options) {
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), true);
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
         return new QueryServlet(
-                imhotepClient,
+                client,
                 metadataCache,
                 metadataCache,
-                new TopTermsCache(imhotepClient, "", true, false),
+                new TopTermsCache(client, "", true, false),
                 options.queryCache,
                 runningQueriesManager,
                 executorService,
@@ -96,18 +92,18 @@ public class QueryServletTestUtils extends BasicTest {
         IQL1, IQL2
     }
 
-    static List<List<String>> runQuery(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options, String optionsToTest) throws Exception {
+    static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, String optionsToTest) throws Exception {
         final String queryWithOptions = optionsToTest.isEmpty() ? query : (query + " " + optionsToTest);
-        return run(shards, queryWithOptions, version, stream, options).data;
+        return run(client, queryWithOptions, version, stream, options).data;
     }
 
-    static JsonNode getQueryHeader(List<Shard> shards, String query, LanguageVersion version, Options options) throws Exception {
-        return run(shards, query, version, true, options).header;
+    private static JsonNode getQueryHeader(final ImhotepClient client, String query, LanguageVersion version, Options options) throws Exception {
+        return run(client, query, version, true, options).header;
     }
 
     @SuppressWarnings("WeakerAccess")
-    public static QueryResult run(List<Shard> shards, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
-        final QueryServlet queryServlet = create(shards, options);
+    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
+        final QueryServlet queryServlet = create(client, options);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
@@ -217,22 +213,26 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
-    static void testWarning(List<Shard> shards, List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
-        final JsonNode header = getQueryHeader(shards, query, version, Options.create());
+    static void testWarning(ImhotepClient client, List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
+        final JsonNode header = getQueryHeader(client, query, version, Options.create());
         if (expectedWarnings.isEmpty()) {
-            Assert.assertNull(header.get("IQL-Warning"));
+            try {
+                Assert.assertNull(header.get("IQL-Warning"));
+            } catch (Error e) {
+                System.out.println("oh no");
+            }
         } else {
             Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
         }
     }
 
     static void testWarning(Dataset dataset, List<String> expectedWarnings, String query) throws Exception {
-        testWarning(dataset.getShards(), expectedWarnings, query, LanguageVersion.IQL1);
-        testWarning(dataset.getShards(), expectedWarnings, query, LanguageVersion.IQL2);
+        testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.IQL1);
+        testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.IQL2);
     }
 
     static void testWarning(Dataset dataset, List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
-        testWarning(dataset.getShards(), expectedWarnings, query, version);
+        testWarning(dataset.getNormalClient(), expectedWarnings, query, version);
     }
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
@@ -245,16 +245,16 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
-        testIQL1(dataset.getShards(), expected, query, options);
+        testIQL1(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testIQL1(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testIQL1(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
-    static void testIQL1(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+    static void testIQL1(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
         for (final String queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL1, true, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions));
         }
     }
 
@@ -266,51 +266,55 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL2(dataset, expected, query, Options.create(skipTestDimension));
     }
 
+    static void testIQL2(ImhotepClient client, List<List<String>> expected, String query) throws Exception {
+        testIQL2(client, expected, query, Options.create());
+    }
+
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
-        testIQL2(dataset.getShards(), expected, query, options);
+        testIQL2(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testIQL2(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testIQL2(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
-    static void testIQL2(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
+    static void testIQL2(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
         for (final String queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(shards, query, LanguageVersion.IQL2, true, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions));
         }
     }
 
-    static void runIQL2(List<Shard> shards, String query) throws Exception {
-        runIQL2(shards, query, Options.create());
+    static void runIQL2(ImhotepClient client, String query) throws Exception {
+        runIQL2(client, query, Options.create());
     }
 
-    static void runIQL2(List<Shard> shards, String query, Options options) throws Exception {
+    static void runIQL2(ImhotepClient client, String query, Options options) throws Exception {
         for (final String queryOptions : OPTIONS_TO_TEST) {
-            runQuery(shards, query, LanguageVersion.IQL2, false, options, queryOptions);
-            runQuery(shards, query, LanguageVersion.IQL2, true, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions);
         }
     }
 
-    static void runIQL1(List<Shard> shards, String query) throws Exception {
-        runIQL1(shards, query, Options.create());
+    private static void runIQL1(ImhotepClient client, String query) throws Exception {
+        runIQL1(client, query, Options.create());
     }
 
 
-    static void runIQL1(List<Shard> shards, String query, Options options) throws Exception {
+    private static void runIQL1(ImhotepClient client, String query, Options options) throws Exception {
         for (final String queryOptions : OPTIONS_TO_TEST) {
-            runQuery(shards, query, LanguageVersion.IQL1, false, options, queryOptions);
-            runQuery(shards, query, LanguageVersion.IQL1, true, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions);
         }
     }
 
-    static void runAll(List<Shard> shards, String query) throws Exception {
-        runIQL1(shards, query);
-        runIQL2(shards, query);
+    static void runAll(ImhotepClient client, String query) throws Exception {
+        runIQL1(client, query);
+        runIQL2(client, query);
     }
 
-    static void testAll(List<Shard> shards, List<List<String>> expected, String query, Options options) throws Exception {
-        testIQL1(shards, expected, query, options);
-        testIQL2(shards, expected, query, options);
+    static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL1(client, expected, query, options);
+        testIQL2(client, expected, query, options);
     }
 
     static void testAll(Dataset dataset, List<List<String>> expected, String query) throws Exception {
@@ -322,9 +326,9 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testAll(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
-        testAll(dataset.getShards(), expected, query, options);
+        testAll(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testAll(dataset.getDimensionShards(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testAll(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
