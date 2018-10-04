@@ -15,9 +15,6 @@
 package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
-import com.indeed.iql2.execution.QualifiedPush;
-
-import java.util.Map;
 
 public class Log extends AggregateMetric.Unary {
     public Log(final AggregateMetric value) {
