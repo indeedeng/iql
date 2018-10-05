@@ -65,7 +65,7 @@ public class Min implements AggregateMetric {
         return metrics.stream()
                 .map(x -> x.toImhotep(atomicStats))
                 .reduce(AggregateStatTree::min)
-                .orElseThrow(() -> new IllegalArgumentException("Must have at least 1 argument to max"));
+                .orElseThrow(() -> new IllegalArgumentException("Must have at least 1 argument to min"));
     }
 
     @Override

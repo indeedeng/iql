@@ -624,12 +624,15 @@ public class Session {
     }
 
     public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
+        timer.push("pushing metrics");
         final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
+        // TODO: Parallelize across sessions
         for (final QualifiedPush push : allPushes) {
             final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
-            final int index = session.pushStats(push.pushes) - 1;
+            final int index = pushStatsWithTimer(session, push.pushes, timer) - 1;
             statResults.put(push, session.aggregateStat(index));
         }
+        timer.pop();
         return statResults;
     }
 

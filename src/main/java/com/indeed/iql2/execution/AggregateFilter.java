@@ -626,7 +626,6 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
-            // TODO:
             final double[] values = new double[keySet.numGroups()];
             for (int i = 1; i <= keySet.numGroups(); i++) {
                 values[i] = keySet.groupKey(i).isDefault() ? 1.0 : 0.0;
