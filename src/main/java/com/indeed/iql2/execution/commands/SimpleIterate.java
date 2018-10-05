@@ -128,111 +128,7 @@ public class SimpleIterate implements Command {
 
         // TODO: Add a feature flag
         if (session.options.contains(QueryOptions.Experimental.USE_MULTI_FTGS) && !requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
-            session.timer.push("prepare for iteration");
-            final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
-            final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
-            final List<AggregateStatTree> filters = opts.filter.transform(x -> Collections.singletonList(x.toImhotep(atomicStats))).or(Collections.emptyList());
-            final boolean isIntField = session.isIntField(field);
-            int termLimit = opts.limit.or(Integer.MAX_VALUE);
-            final int sortStat;
-
-            if (topKMetricOrNull != null) {
-                termLimit = Math.min(termLimit, opts.topK.get().limit.or(Integer.MAX_VALUE));
-                final AggregateStatTree topKStatTree = topKMetricOrNull.toImhotep(atomicStats);
-                final int existingSortStatIndex = selects.indexOf(topKStatTree);
-                if (existingSortStatIndex != -1) {
-                    sortStat = existingSortStatIndex;
-                } else {
-                    sortStat = selects.size();
-                    selects.add(topKMetricOrNull.toImhotep(atomicStats));
-                }
-            } else {
-                sortStat = -1;
-            }
-            if (termLimit == Integer.MAX_VALUE) {
-                termLimit = 0;
-            }
-
-            final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
-            final Set<String> scope = this.scope == null ? session.sessions.keySet() : this.scope;
-            for (final String dataset : scope) {
-                final ImhotepSessionHolder sessionHolder = session.sessions.get(dataset).session;
-                sessionFields.add(sessionHolder.buildSessionField(field));
-            }
-
-            // If we do TopK, we will automatically sort in a new way
-            final boolean sorted = topKMetricOrNull == null;
-
-            session.timer.pop();
-
-            session.timer.push("multiFTGS");
-            try (FTGAIterator iterator = RemoteImhotepMultiSession.multiFtgs(
-                    sessionFields,
-                    selects,
-                    filters,
-                    isIntField,
-                    termLimit,
-                    sortStat,
-                    sorted
-            )) {
-                session.timer.pop();
-
-                session.timer.push("convert results");
-                final int numSelects = selecting.size();
-
-                final double[] statsBuf = new double[selects.size()];
-                final double[] outputStatsBuf = new double[numSelects];
-
-                final List<List<List<TermSelects>>> result = new ArrayList<>();
-
-
-                if (!streamResult) {
-                    for (int group = 1; group <= session.numGroups; group++) {
-                        result.add(Collections.singletonList(new ArrayList<>()));
-                    }
-                }
-
-                final String[] formatStrings = formFormatStrings();
-
-                Preconditions.checkState(iterator.nextField());
-                while (iterator.nextTerm()) {
-                    while (iterator.nextGroup()) {
-                        iterator.groupStats(statsBuf);
-
-                        if (streamResult) {
-                            System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
-                            if (iterator.fieldIsIntType()) {
-                                out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termIntVal(), outputStatsBuf, formatStrings));
-                            } else {
-                                out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
-                            }
-                        } else {
-                            result.get(iterator.group() - 1).get(0).add(new TermSelects(
-                                    field,
-                                    iterator.fieldIsIntType(),
-                                    iterator.termStringVal(),
-                                    iterator.termIntVal(),
-                                    Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                    iterator.group()
-                            ));
-                        }
-
-                    }
-                }
-                Preconditions.checkState(!iterator.nextField());
-                session.timer.pop();
-
-                if (!streamResult && topKMetricOrNull != null) {
-                    session.timer.push("Sorting results");
-                    for (final List<List<TermSelects>> groupResult : result) {
-                        groupResult.get(0).sort(TermSelects.COMPARATOR.reversed());
-                    }
-                    session.timer.pop();
-                }
-
-                return result;
-            }
+            return evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
         }
 
         session.timer.push("push and register metrics");
@@ -349,6 +245,117 @@ public class SimpleIterate implements Command {
             }
             session.timer.pop();
             return allTermSelects;
+        }
+    }
+
+    @Nonnull
+    private List<List<List<TermSelects>>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+        session.timer.push("prepare for iteration");
+        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
+        final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
+        final List<AggregateStatTree> filters = opts.filter.transform(x -> Collections.singletonList(x.toImhotep(atomicStats))).or(Collections.emptyList());
+        final boolean isIntField = session.isIntField(field);
+        int termLimit = opts.limit.or(Integer.MAX_VALUE);
+        final int sortStat;
+
+        if (topKMetricOrNull != null) {
+            termLimit = Math.min(termLimit, opts.topK.get().limit.or(Integer.MAX_VALUE));
+            final AggregateStatTree topKStatTree = topKMetricOrNull.toImhotep(atomicStats);
+            final int existingSortStatIndex = selects.indexOf(topKStatTree);
+            if (existingSortStatIndex != -1) {
+                sortStat = existingSortStatIndex;
+            } else {
+                sortStat = selects.size();
+                selects.add(topKMetricOrNull.toImhotep(atomicStats));
+            }
+        } else {
+            sortStat = -1;
+        }
+        if (termLimit == Integer.MAX_VALUE) {
+            termLimit = 0;
+        }
+
+        final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
+        final Set<String> scope = this.scope == null ? session.sessions.keySet() : this.scope;
+        for (final String dataset : scope) {
+            final ImhotepSessionHolder sessionHolder = session.sessions.get(dataset).session;
+            sessionFields.add(sessionHolder.buildSessionField(field));
+        }
+
+        // If we do TopK, we will automatically sort in a new way
+        final boolean sorted = topKMetricOrNull == null;
+
+        session.timer.pop();
+
+        session.timer.push("multiFTGS");
+        try (FTGAIterator iterator = RemoteImhotepMultiSession.multiFtgs(
+                sessionFields,
+                selects,
+                filters,
+                isIntField,
+                termLimit,
+                sortStat,
+                sorted
+        )) {
+            session.timer.pop();
+
+            session.timer.push("convert results");
+            final int numSelects = selecting.size();
+
+            final double[] statsBuf = new double[selects.size()];
+            final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
+
+            final List<List<List<TermSelects>>> result = new ArrayList<>();
+
+
+            if (!streamResult) {
+                for (int group = 1; group <= session.numGroups; group++) {
+                    result.add(Collections.singletonList(new ArrayList<>()));
+                }
+            }
+
+            final String[] formatStrings = formFormatStrings();
+
+            Preconditions.checkState(iterator.nextField());
+            while (iterator.nextTerm()) {
+                while (iterator.nextGroup()) {
+                    iterator.groupStats(statsBuf);
+
+                    if (streamResult) {
+                        if (statsBuf != outputStatsBuf) {
+                            System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
+                        }
+                        if (iterator.fieldIsIntType()) {
+                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termIntVal(), outputStatsBuf, formatStrings));
+                        } else {
+                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
+                        }
+                    } else {
+                        result.get(iterator.group() - 1).get(0).add(new TermSelects(
+                                field,
+                                iterator.fieldIsIntType(),
+                                iterator.termStringVal(),
+                                iterator.termIntVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
+                                iterator.group()
+                        ));
+                    }
+
+                }
+            }
+            Preconditions.checkState(!iterator.nextField());
+            session.timer.pop();
+
+            if (!streamResult && topKMetricOrNull != null) {
+                session.timer.push("Sorting results");
+                for (final List<List<TermSelects>> groupResult : result) {
+                    groupResult.get(0).sort(TermSelects.COMPARATOR.reversed());
+                }
+                session.timer.pop();
+            }
+
+            return result;
         }
     }
 
