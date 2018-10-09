@@ -27,7 +27,10 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
+import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.iql.StrictCloser;
+import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
 import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
 import com.indeed.iql2.sqltoiql.SQLToIQLParser;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -314,15 +317,20 @@ public class QueryServlet {
             // IQL1
             final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
             setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
+
+            final PrintWriter writer = resp.getWriter();
+            EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
+            final StrictCloser strictCloser = new StrictCloser();
             SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                    new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, null);
+                    new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
             try {
                 selectQuery.lock(); // blocks and waits if necessary
 
                 queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                 // actually process
-                runSelectStatementIQL1(selectQuery, queryRequestParams, resp.getWriter());
+
+                runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
             } finally {
                 // this must be closed. but we may have to defer it to the async thread finishing query processing
                 if (!selectQuery.isAsynchronousRelease()) {
@@ -335,15 +343,19 @@ public class QueryServlet {
         log.debug(timer);
     }
 
-    private void runSelectStatementIQL1(final SelectQuery selectQuery, final QueryRequestParams args, final PrintWriter outputStream) throws IOException {
+    private void runSelectStatementIQL1(
+            final SelectQuery selectQuery,
+            final QueryRequestParams args,
+            final PrintWriter outputStream,
+            final StrictCloser strictCloser
+    ) throws IOException {
         final QueryInfo queryInfo = selectQuery.queryInfo;
         final IQL1SelectStatement parsedQuery = selectQuery.parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCacheIQL1, selectQuery.limits, queryInfo);
-        selectQuery.iqlQuery = iqlQuery;
+                args.imhotepUserName, metadataCacheIQL1, selectQuery.limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
@@ -439,6 +451,9 @@ public class QueryServlet {
                 warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
             }
         } catch (ImhotepOutOfMemoryException e) {
+            throw Throwables.propagate(e);
+        } catch (final Exception e) {
+            selectQuery.checkCancelled();
             throw Throwables.propagate(e);
         } finally {
             try {
@@ -772,6 +787,7 @@ public class QueryServlet {
         final long timeTaken = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
         final String queryWithShortenedLists = queryInfo.queryStringTruncatedForPrint;
         final boolean error = errorOccurred != null;
+        final boolean cancelled = error && (errorOccurred instanceof QueryCancelledException);
         final boolean systemError = error && !isKnownError(errorOccurred);
         if (timeTaken > 5000 || systemError) {  // we've already logged the query so only log again if it took a long time to run
             logQueryToLog4J(queryWithShortenedLists, (Strings.isNullOrEmpty(clientInfo.username) ? remoteAddr : clientInfo.username), timeTaken);
@@ -859,6 +875,7 @@ public class QueryServlet {
             logEntry.setProperty("sqlQuery", sqlQuery);
         }
         logEntry.setProperty("error", error ? "1" : "0");
+        logEntry.setProperty("cancelled", cancelled ? "1" : "0");
         logEntry.setProperty("systemerror", systemError ? "1" : "0");
         if (error) {
             logEntry.setProperty("exceptiontype", errorOccurred.getClass().getSimpleName());
@@ -869,7 +886,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        QueryMetrics.logQueryMetrics(queryInfo.iqlVersion, queryInfo.statementType, error, systemError, timeTaken, metricStatsEmitter);
+        QueryMetrics.logQueryMetrics(queryInfo.iqlVersion, queryInfo.statementType, error, cancelled, systemError, timeTaken, metricStatsEmitter);
         dataLog.info(logEntry);
     }
 

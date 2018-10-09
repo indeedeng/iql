@@ -50,6 +50,10 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     }
 
     @Override
+    public void queryIdAssigned(final long queryId) {
+    }
+
+    @Override
     public void startSession(Optional<Integer> numCommands) {
     }
 
