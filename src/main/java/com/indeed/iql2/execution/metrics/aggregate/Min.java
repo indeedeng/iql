@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.metrics.aggregate;
 
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
@@ -57,6 +58,14 @@ public class Min implements AggregateMetric {
             result = Math.min(result, metrics.get(i).apply(term, stats, group));
         }
         return result;
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        return metrics.stream()
+                .map(x -> x.toImhotep(atomicStats))
+                .reduce(AggregateStatTree::min)
+                .orElseThrow(() -> new IllegalArgumentException("Must have at least 1 argument to min"));
     }
 
     @Override

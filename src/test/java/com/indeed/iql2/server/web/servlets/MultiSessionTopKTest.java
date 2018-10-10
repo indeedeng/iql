@@ -12,13 +12,13 @@ import java.util.List;
  */
 
 public class MultiSessionTopKTest extends BasicTest {
-    // This test exists because there was a funky bug.
+    // This test exists because there was a funky bug (IQL-622).
     // Probably not worth trying to understand its reason to be.
     @Test
     public void testIt() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("d", "141", "141"));
-        expected.add(ImmutableList.of("c", "4", "4"));
+        expected.add(ImmutableList.of("a", "4", "4"));
         QueryServletTestUtils.testIQL2(
                 AllData.DATASET,
                 expected,

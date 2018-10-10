@@ -15,22 +15,27 @@
 package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Doubles;
-import com.google.common.primitives.Longs;
 import com.indeed.common.datastruct.BoundedPriorityQueue;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.api.FTGAIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.DenseInt2ObjectMap;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.misc.TopK;
+
+import java.util.ArrayList;
 import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -50,6 +55,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SimpleIterate implements Command {
     public final String field;
@@ -82,15 +88,34 @@ public class SimpleIterate implements Command {
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
     }
 
+    /**
+     * Used for determining whether we have any LAG, WINDOW, or RUNNING functions
+     * and thus need to process the entire raw FTGS stream for every group within a
+     * single server.
+     * In practical terms, that means we need to process the ENTIRE FTGS stream for all
+     * terms within the IQL server. That is, this process.
+     */
+    private boolean requiresSortedRawFtgs() {
+        final boolean filterSorted = opts.filter.transform(AggregateFilter::needSorted).or(false);
+        final boolean metricsSorted = selecting.stream().anyMatch(AggregateMetric::needSorted);
+        return filterSorted || metricsSorted;
+    }
+
     public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        session.timer.push("push and register metrics");
+        session.timer.push("request metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
+        final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
-                metrics.add(topK.metric.get());
+                topKMetricOrNull = topK.metric.get();
+                metrics.add(topKMetricOrNull);
+            } else {
+                topKMetricOrNull = null;
             }
+        } else {
+            topKMetricOrNull = null;
         }
         metrics.addAll(this.selecting);
         for (final AggregateMetric metric : metrics) {
@@ -99,6 +124,14 @@ public class SimpleIterate implements Command {
         if (opts.filter.isPresent()) {
             allPushes.addAll(opts.filter.get().requires());
         }
+        session.timer.pop();
+
+        // TODO: Add a feature flag
+        if (session.options.contains(QueryOptions.Experimental.USE_MULTI_FTGS) && !requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
+            return evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
+        }
+
+        session.timer.push("push and register metrics");
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
@@ -112,26 +145,7 @@ public class SimpleIterate implements Command {
         final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
         if (opts.topK.isPresent()) {
             // TODO: Share this with Iterate. Or delete Iterate.
-            final Comparator<TermSelects> comparator = new Comparator<TermSelects>() {
-                @Override
-                public int compare(TermSelects o1, TermSelects o2) {
-                    final double v1 = Double.isNaN(o1.topMetric) ? Double.NEGATIVE_INFINITY : o1.topMetric;
-                    final double v2 = Double.isNaN(o2.topMetric) ? Double.NEGATIVE_INFINITY : o2.topMetric;
-
-                    int r = Doubles.compare(v1, v2);
-                    if (r != 0) {
-                        return r;
-                    }
-
-                    if (o1.isIntTerm) {
-                        r = Longs.compare(o1.intTerm, o2.intTerm);
-                    } else {
-                        r = o1.stringTerm.compareTo(o2.stringTerm);
-                    }
-
-                    return r;
-                }
-            };
+            final Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
             // TODO: If these queue types change, then a line below with an instanceof check will break.
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
@@ -150,18 +164,9 @@ public class SimpleIterate implements Command {
             }
         }
         final Optional<Integer> ftgsRowLimit;
-        final AggregateMetric topKMetricOrNull;
         if (opts.topK.isPresent()) {
-            final TopK topK = opts.topK.get();
-            if (topK.metric.isPresent()) {
-                topKMetricOrNull = topK.metric.get();
-                topKMetricOrNull.register(metricIndexes, session.groupKeySet);
-            } else {
-                topKMetricOrNull = null;
-            }
             ftgsRowLimit = Optional.absent();
         } else {
-            topKMetricOrNull = null;
             if (!opts.filter.isPresent()) {
                 ftgsRowLimit = opts.limit;
             } else {
@@ -240,6 +245,119 @@ public class SimpleIterate implements Command {
             }
             session.timer.pop();
             return allTermSelects;
+        }
+    }
+
+    @Nonnull
+    private List<List<List<TermSelects>>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+        session.timer.push("prepare for iteration");
+        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
+        final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
+        final List<AggregateStatTree> filters = opts.filter.transform(x -> Collections.singletonList(x.toImhotep(atomicStats))).or(Collections.emptyList());
+        final boolean isIntField = session.isIntField(field);
+        int termLimit = opts.limit.or(Integer.MAX_VALUE);
+        final int sortStat;
+
+        if (topKMetricOrNull != null) {
+            termLimit = Math.min(termLimit, opts.topK.get().limit.or(Integer.MAX_VALUE));
+            final AggregateStatTree topKStatTree = topKMetricOrNull.toImhotep(atomicStats);
+            final int existingSortStatIndex = selects.indexOf(topKStatTree);
+            if (existingSortStatIndex != -1) {
+                sortStat = existingSortStatIndex;
+            } else {
+                sortStat = selects.size();
+                selects.add(topKMetricOrNull.toImhotep(atomicStats));
+            }
+        } else {
+            sortStat = -1;
+        }
+        if (termLimit == Integer.MAX_VALUE) {
+            termLimit = 0;
+        }
+
+        final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
+        final Set<String> scope = this.scope == null ? session.sessions.keySet() : this.scope;
+        for (final String dataset : scope) {
+            final ImhotepSessionHolder sessionHolder = session.sessions.get(dataset).session;
+            sessionFields.add(sessionHolder.buildSessionField(field));
+        }
+
+        // If we do TopK, we will automatically sort in a new way
+        final boolean sorted = topKMetricOrNull == null;
+
+        session.timer.pop();
+
+        session.timer.push("multiFTGS");
+        try (FTGAIterator iterator = RemoteImhotepMultiSession.multiFtgs(
+                sessionFields,
+                selects,
+                filters,
+                isIntField,
+                termLimit,
+                sortStat,
+                sorted
+        )) {
+            session.timer.pop();
+
+            session.timer.push("convert results");
+            final int numSelects = selecting.size();
+
+            final double[] statsBuf = new double[selects.size()];
+            final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
+
+            final List<List<List<TermSelects>>> result = new ArrayList<>();
+
+
+            if (!streamResult) {
+                for (int group = 1; group <= session.numGroups; group++) {
+                    result.add(Collections.singletonList(new ArrayList<>()));
+                }
+            }
+
+            final String[] formatStrings = formFormatStrings();
+
+            Preconditions.checkState(iterator.nextField());
+            while (iterator.nextTerm()) {
+                while (iterator.nextGroup()) {
+                    iterator.groupStats(statsBuf);
+
+                    if (streamResult) {
+                        if (statsBuf != outputStatsBuf) {
+                            System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
+                        }
+                        if (iterator.fieldIsIntType()) {
+                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termIntVal(), outputStatsBuf, formatStrings));
+                        } else {
+                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
+                        }
+                    } else {
+                        result.get(iterator.group() - 1).get(0).add(new TermSelects(
+                                field,
+                                iterator.fieldIsIntType(),
+                                iterator.termStringVal(),
+                                iterator.termIntVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
+                                iterator.group()
+                        ));
+                    }
+
+                }
+            }
+            Preconditions.checkState(!iterator.nextField());
+            session.timer.pop();
+
+            session.popStats();
+
+            if (!streamResult && topKMetricOrNull != null) {
+                session.timer.push("Sorting results");
+                for (final List<List<TermSelects>> groupResult : result) {
+                    groupResult.get(0).sort(TermSelects.COMPARATOR.reversed());
+                }
+                session.timer.pop();
+            }
+
+            return result;
         }
     }
 

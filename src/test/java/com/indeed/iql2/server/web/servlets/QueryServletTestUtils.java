@@ -31,6 +31,7 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
@@ -64,7 +65,8 @@ public class QueryServletTestUtils extends BasicTest {
     // Be sure not to delete empty string (no options) from the list to test main execution path.
     private static final String[] OPTIONS_TO_TEST =
             {
-                    "",// no options
+                    "", // no options
+                    "OPTIONS [\"" + QueryOptions.Experimental.USE_MULTI_FTGS + "\"]", // multi FTGS
             };
 
     public static QueryServlet create(ImhotepClient client, Options options) {

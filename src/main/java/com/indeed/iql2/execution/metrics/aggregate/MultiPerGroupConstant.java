@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.metrics.aggregate;
 
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
@@ -51,6 +52,11 @@ public class MultiPerGroupConstant implements AggregateMetric {
     @Override
     public double apply(final long term, final long[] stats, final int group) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        throw new IllegalStateException("Cannot use MultiPerGroupConstant in a composite metric");
     }
 
     @Override

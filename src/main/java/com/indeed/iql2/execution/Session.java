@@ -45,6 +45,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
@@ -620,6 +621,19 @@ public class Session {
             }
             sessionMetricIndex.add(index);
         }
+    }
+
+    public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
+        timer.push("pushing metrics");
+        final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
+        // TODO: Parallelize across sessions
+        for (final QualifiedPush push : allPushes) {
+            final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
+            final int index = pushStatsWithTimer(session, push.pushes, timer) - 1;
+            statResults.put(push, session.aggregateStat(index));
+        }
+        timer.pop();
+        return statResults;
     }
 
     public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TreeTimer timer) throws ImhotepOutOfMemoryException {

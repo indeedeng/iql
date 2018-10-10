@@ -14,7 +14,11 @@
 
 package com.indeed.iql2.execution;
 
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Longs;
+
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
 * @author jwolfe
@@ -51,4 +55,25 @@ public class TermSelects {
                 ", group=" + group +
                 '}';
     }
+
+    public static final Comparator<TermSelects> COMPARATOR = new Comparator<TermSelects>() {
+        @Override
+        public int compare(TermSelects o1, TermSelects o2) {
+            final double v1 = Double.isNaN(o1.topMetric) ? Double.NEGATIVE_INFINITY : o1.topMetric;
+            final double v2 = Double.isNaN(o2.topMetric) ? Double.NEGATIVE_INFINITY : o2.topMetric;
+
+            int r = Doubles.compare(v1, v2);
+            if (r != 0) {
+                return r;
+            }
+
+            if (o1.isIntTerm) {
+                r = Longs.compare(o2.intTerm, o1.intTerm);
+            } else {
+                r = o2.stringTerm.compareTo(o1.stringTerm);
+            }
+
+            return r;
+        }
+    };
 }
