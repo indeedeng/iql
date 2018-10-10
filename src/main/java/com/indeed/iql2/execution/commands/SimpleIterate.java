@@ -347,6 +347,8 @@ public class SimpleIterate implements Command {
             Preconditions.checkState(!iterator.nextField());
             session.timer.pop();
 
+            session.popStats();
+
             if (!streamResult && topKMetricOrNull != null) {
                 session.timer.push("Sorting results");
                 for (final List<List<TermSelects>> groupResult : result) {
