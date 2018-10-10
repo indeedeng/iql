@@ -171,7 +171,7 @@ public class SelectQuery implements Closeable {
                 queryResourceCloser.close();
             }
         } catch (Exception e) {
-            log.warn("Failed to close IQL query" + queryInfo.queryStringTruncatedForPrint, e);
+            log.warn("Error while attempting to close IQL query" + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 

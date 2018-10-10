@@ -29,7 +29,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
@@ -39,7 +38,6 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.imhotep.io.LimitedBufferedOutputStream;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.cache.QueryCache;
@@ -320,6 +318,9 @@ public class SelectQueryExecution {
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
                     parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
+        } catch (final Exception e) {
+            selectQuery.checkCancelled();
+            throw e;
         } finally {
             if (!selectQuery.isAsynchronousRelease()) {
                 Closeables2.closeQuietly(selectQuery, log);
@@ -504,161 +505,164 @@ public class SelectQueryExecution {
             final File cacheFile;
             final BufferedWriter cacheWriter;
 
-            final String cacheFileName = computeCacheKey.cacheFileName;
-            if (cacheEnabled) {
-                timer.push("cache check");
-                final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
-                final boolean isCached = cacheInputStream != null;
-                timer.pop();
-
-                queryCached.put(query, isCached);
-
-                if (isCached) {
-                    timer.push("read cache");
-                    if (isTopLevelQuery) {
-                        boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
-                        queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
-                        // read metadata from cache
-                        // TODO: reenable
-    //                            try {
-    //                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-    //                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-    //                                queryMetadata.mergeIn(cachedMetadata);
-    //                            } catch (Exception e) {
-    //                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
-    //                            }
-                        queryMetadata.setPendingHeaders();
-                    }
-                    // TODO: Don't have this hack
-                    progressCallback.startCommand(null, null, true);
-                    final boolean hasMoreRows = sendCachedQuery(out, query.rowLimit, cacheInputStream);
+            try (final StrictCloser innerStrictCloser = new StrictCloser()) {
+                strictCloser.register(innerStrictCloser);
+                final String cacheFileName = computeCacheKey.cacheFileName;
+                if (cacheEnabled) {
+                    timer.push("cache check");
+                    final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
+                    final boolean isCached = cacheInputStream != null;
                     timer.pop();
-                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
-                            queryCached, totalBytesWritten[0], null, cacheKeys,
-                            Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
+
+                    queryCached.put(query, isCached);
+
+                    if (isCached) {
+                        timer.push("read cache");
+                        if (isTopLevelQuery) {
+                            boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
+                            queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
+                            // read metadata from cache
+                            // TODO: reenable
+                            //                            try {
+                            //                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                            //                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                            //                                queryMetadata.mergeIn(cachedMetadata);
+                            //                            } catch (Exception e) {
+                            //                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                            //                            }
+                            queryMetadata.setPendingHeaders();
+                        }
+                        // TODO: Don't have this hack
+                        progressCallback.startCommand(null, null, true);
+                        final boolean hasMoreRows = sendCachedQuery(out, query.rowLimit, cacheInputStream);
+                        timer.pop();
+                        final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
+                                queryCached, totalBytesWritten[0], null, cacheKeys,
+                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
+
+                        finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
+                        return selectExecutionInformation;
+                    }
+
+                    final Consumer<String> oldOut = out;
+                    final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
+                    cacheFile = tmpFile.toFile();
+                    // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
+                    cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
+                    out = s -> {
+                        oldOut.accept(s);
+                        try {
+                            cacheWriter.write(s);
+                            cacheWriter.newLine();
+                        } catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    };
+                } else {
+                    cacheFile = null;
+                    cacheWriter = null;
+                }
+                if (isTopLevelQuery) {
+                    queryMetadata.addItem("IQL-Cached", "false", true);
+                    queryMetadata.setPendingHeaders();
+                }
+                final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
+                if (query.rowLimit.isPresent()) {
+                    final int rowLimit = query.rowLimit.get();
+                    final Consumer<String> oldOut = out;
+                    out = new Consumer<String>() {
+                        int rowsWritten = 0;
+
+                        @Override
+                        public void accept(String s) {
+                            if (rowsWritten < rowLimit) {
+                                oldOut.accept(s);
+                                rowsWritten += 1;
+                            } else if (rowsWritten == rowLimit) {
+                                hasMoreRows.set(true);
+                            }
+                        }
+                    };
+                }
+
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
+
+                final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
+                final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
+                try {
+                    final Session.CreateSessionResult createResult = Session.createSession(
+                            imhotepClient,
+                            datasetToChosenShards,
+                            groupLimit,
+                            Sets.newHashSet(query.options),
+                            commands,
+                            datasets,
+                            innerStrictCloser,
+                            out,
+                            timer,
+                            compositeProgressCallback,
+                            mbToBytes(limits.queryFTGSIQLLimitMB),
+                            mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
+                            clientInfo.username
+                    );
+
+                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
+                            allShardsUsed,
+                            datasetsWithMissingShards,
+                            queryCached,
+                            createResult.tempFileBytesWritten + totalBytesWritten[0],
+                            createResult.imhotepPerformanceStats,
+                            cacheKeys,
+                            infoCollectingProgressCallback.getSessionIds(),
+                            infoCollectingProgressCallback.getTotalNumDocs(),
+                            infoCollectingProgressCallback.getMaxNumGroups(),
+                            infoCollectingProgressCallback.getMaxConcurrentSessions(),
+                            hasMoreRows.get());
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
-                    return selectExecutionInformation;
-                }
 
-                final Consumer<String> oldOut = out;
-                final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
-                cacheFile = tmpFile.toFile();
-                // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
-                cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
-                out = s -> {
-                    oldOut.accept(s);
-                    try {
-                        cacheWriter.write(s);
-                        cacheWriter.newLine();
-                    } catch (IOException e) {
-                        throw Throwables.propagate(e);
-                    }
-                };
-            } else {
-                cacheFile = null;
-                cacheWriter = null;
-            }
-            if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Cached", "false", true);
-                queryMetadata.setPendingHeaders();
-            }
-            final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
-            if (query.rowLimit.isPresent()) {
-                final int rowLimit = query.rowLimit.get();
-                final Consumer<String> oldOut = out;
-                out = new Consumer<String>() {
-                    int rowsWritten = 0;
+                    if (cacheEnabled) {
+                        // Cache upload
+                        cacheUploadingCounter.incrementAndGet();
 
-                    @Override
-                    public void accept(String s) {
-                        if (rowsWritten < rowLimit) {
-                            oldOut.accept(s);
-                            rowsWritten += 1;
-                        } else if (rowsWritten == rowLimit) {
-                            hasMoreRows.set(true);
-                        }
-                    }
-                };
-            }
-
-            final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
-
-            final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
-            final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
-            try {
-                final Session.CreateSessionResult createResult = Session.createSession(
-                        imhotepClient,
-                        datasetToChosenShards,
-                        groupLimit,
-                        Sets.newHashSet(query.options),
-                        commands,
-                        datasets,
-                        strictCloser,
-                        out,
-                        timer,
-                        compositeProgressCallback,
-                        mbToBytes(limits.queryFTGSIQLLimitMB),
-                        mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
-                        clientInfo.username
-                );
-
-                final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
-                        allShardsUsed,
-                        datasetsWithMissingShards,
-                        queryCached,
-                        createResult.tempFileBytesWritten + totalBytesWritten[0],
-                        createResult.imhotepPerformanceStats,
-                        cacheKeys,
-                        infoCollectingProgressCallback.getSessionIds(),
-                        infoCollectingProgressCallback.getTotalNumDocs(),
-                        infoCollectingProgressCallback.getMaxNumGroups(),
-                        infoCollectingProgressCallback.getMaxConcurrentSessions(),
-                        hasMoreRows.get());
-
-                finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
-
-                if(cacheEnabled) {
-                    // Cache upload
-                    cacheUploadingCounter.incrementAndGet();
-
-                    cacheUploadExecutorService.submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            try {
-                                if (isTopLevelQuery) {
-                                    // TODO: reenable
-    //                                        try {
-    //                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-    //                                            queryMetadata.toOutputStream(metadataCacheStream);
-    //                                            metadataCacheStream.close();
-    //                                        } catch (Exception e) {
-    //                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-    //                                        }
-                                }
+                        cacheUploadExecutorService.submit(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
                                 try {
-                                    cacheWriter.close();
-                                    queryCache.writeFromFile(cacheFileName, cacheFile);
-                                    if (!cacheFile.delete()) {
-                                        log.warn("Failed to delete  " + cacheFile);
+                                    if (isTopLevelQuery) {
+                                        // TODO: reenable
+                                        //                                        try {
+                                        //                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                        //                                            queryMetadata.toOutputStream(metadataCacheStream);
+                                        //                                            metadataCacheStream.close();
+                                        //                                        } catch (Exception e) {
+                                        //                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                        //                                        }
                                     }
-                                } catch (Exception e) {
-                                    log.warn("Failed to upload cache: " + cacheFileName, e);
+                                    try {
+                                        cacheWriter.close();
+                                        queryCache.writeFromFile(cacheFileName, cacheFile);
+                                        if (!cacheFile.delete()) {
+                                            log.warn("Failed to delete  " + cacheFile);
+                                        }
+                                    } catch (Exception e) {
+                                        log.warn("Failed to upload cache: " + cacheFileName, e);
+                                    }
+                                } finally {
+                                    if (cacheUploadingCounter.decrementAndGet() == 0) {
+                                        Closeables2.closeQuietly(selectQuery, log);
+                                    }
                                 }
-                            } finally {
-                                if (cacheUploadingCounter.decrementAndGet() == 0) {
-                                    Closeables2.closeQuietly(selectQuery, log);
-                                }
+                                return null;
                             }
-                            return null;
-                        }
-                    });
-                    selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
-                }
+                        });
+                        selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
+                    }
 
-                return selectExecutionInformation;
-            } catch (Exception e) {
-                throw Throwables.propagate(e);
+                    return selectExecutionInformation;
+                } catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
             }
         }
 

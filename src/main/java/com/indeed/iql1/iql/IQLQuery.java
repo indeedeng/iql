@@ -97,7 +97,7 @@ public final class IQLQuery implements Closeable {
     private final Set<String> datasetFields;
 
     public IQLQuery(
-            ImhotepClient client,
+            final ImhotepClient client,
             final List<Stat> stats,
             final String dataset,
             final DateTime start,
@@ -108,8 +108,8 @@ public final class IQLQuery implements Closeable {
             final String username,
             final Limits limits,
             final Set<String> fields,
-            QueryInfo queryInfo,
-            StrictCloser strictCloser
+            final QueryInfo queryInfo,
+            final StrictCloser strictCloser
     ) {
         this.stats = stats;
         this.dataset = dataset;

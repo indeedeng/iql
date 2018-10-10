@@ -319,7 +319,7 @@ public class QueryServlet {
             setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
 
             final PrintWriter writer = resp.getWriter();
-            EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
+            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
             final StrictCloser strictCloser = new StrictCloser();
             SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
                     new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);

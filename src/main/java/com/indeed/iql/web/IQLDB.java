@@ -94,8 +94,13 @@ public class IQLDB {
                 queryExecutionStartTimeSecondsSinceEpoch, id);
     }
 
-    public void cancelQuery(long id) {
-        jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ?", 1, id);
+    /**
+     * @param id the query ID
+     * @return false if there was no row for the given query ID in the database, true otherwise
+     */
+    public boolean cancelQuery(long id) {
+        final int rowsAffected = jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ?", 1, id);
+        return rowsAffected > 0;
     }
 
     public void deleteRunningQuery(long id) {

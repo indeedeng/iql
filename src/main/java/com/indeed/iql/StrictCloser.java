@@ -1,11 +1,11 @@
 package com.indeed.iql;
 
 import com.google.common.io.Closer;
-import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
 
@@ -13,23 +13,26 @@ import java.io.IOException;
  * Similar to com.google.common.io.Closer, but once it has been closed once,
  * any subsequently registered {@code Closeable} should be instantly closed.
  */
+@ThreadSafe
 public class StrictCloser implements Closeable {
 
     private static final Logger log = Logger.getLogger(StrictCloser.class);
 
     private final Closer closer = Closer.create();
+    private final Object lock = new Object();
     private boolean closed = false;
 
     @Override
     public void close() throws IOException {
-        boolean needsClose = false;
-        synchronized (this) {
-            if (!closed) {
-                closed = true;
-                needsClose = true;
-            }
+        final boolean needsClose;
+        synchronized (lock) {
+            needsClose = !closed;
+            closed = true;
         }
         if (needsClose) {
+            // This is safe to do because anyone calling register()
+            // after the above section will see the StrictCloser as closed
+            // and not attempt to register in the closer
             closer.close();
         }
     }
@@ -43,21 +46,16 @@ public class StrictCloser implements Closeable {
      * @return the given {@code closeable}
      */
     public <C extends Closeable> C register(@Nullable C closeable) {
-        boolean wasClosed = false;
-        synchronized (this) {
+        final boolean alreadyClosed;
+        synchronized (lock) {
+            alreadyClosed = closed;
             if (!closed) {
                 closer.register(closeable);
-            } else {
-                wasClosed = true;
             }
         }
-        if (wasClosed && closeable != null) {
+        if (alreadyClosed && closeable != null) {
             Closeables2.closeQuietly(closeable, log);
         }
         return closeable;
-    }
-
-    public boolean isClosed() {
-        return closed;
     }
 }

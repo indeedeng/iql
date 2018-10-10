@@ -39,11 +39,18 @@ public class KillQueryController {
 
     @RequestMapping("/killquery")
     protected void doGet(@RequestParam("queryid") final long queryId, @RequestParam("username") final String username, final HttpServletResponse resp) throws IOException {
+        boolean queryCancelled = false;
         if (iqldb != null) {
-            iqldb.cancelQuery(queryId);
-            final PrintWriter output = new PrintWriter(resp.getOutputStream());
-            log.info("Query " + queryId + " marked killed by " + username);
-            output.flush();
+            queryCancelled = iqldb.cancelQuery(queryId);
         }
+        final PrintWriter output = new PrintWriter(resp.getOutputStream());
+        if (queryCancelled) {
+            log.info("Killed query " + queryId + ", cancellation requested by " + username);
+            output.println("Killed query " + queryId);
+        } else {
+            log.info("Failed to kill query " + queryId + ", cancellation requested by " + username);
+            output.println("Failed to kill query " + queryId);
+        }
+        output.flush();
     }
 }
