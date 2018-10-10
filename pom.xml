@@ -436,7 +436,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.122</imhotep.version>
+        <imhotep.version>3.1.120-experimental-0</imhotep.version>
         <ims.version>4.0.9</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
