@@ -20,6 +20,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql2.execution.progress.ProgressCallback;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -55,7 +56,8 @@ public class SelectQuery implements Closeable {
     @Nullable
     final IQL1SelectStatement parsedStatement;
     final QueryMetadata queryMetadata;
-    Closeable iqlQuery;
+    private Closeable queryResourceCloser;
+    private final ProgressCallback progressCallback;
     boolean cancelled = false;
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
@@ -64,7 +66,19 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(QueryInfo queryInfo, RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, IQL1SelectStatement parsedStatement, byte sessions, QueryMetadata queryMetadata, Closeable iqlQuery) {
+    public SelectQuery(
+            QueryInfo queryInfo,
+            RunningQueriesManager runningQueriesManager,
+            String queryString,
+            ClientInfo clientInfo,
+            Limits limits,
+            DateTime querySubmitTimestamp,
+            IQL1SelectStatement parsedStatement,
+            byte sessions,
+            QueryMetadata queryMetadata,
+            Closeable queryResourceCloser,
+            ProgressCallback progressCallback
+    ) {
         this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
         this.clientInfo = clientInfo;
@@ -74,7 +88,8 @@ public class SelectQuery implements Closeable {
         this.queryHash = getQueryHash(queryString, null, false);
         this.sessions = sessions;
         this.queryMetadata = queryMetadata;
-        this.iqlQuery = iqlQuery;
+        this.queryResourceCloser = queryResourceCloser;
+        this.progressCallback = progressCallback;
         this.shortHash = this.queryHash.substring(0, 6);
         log.debug("Query created with hash " + shortHash);
     }
@@ -124,7 +139,7 @@ public class SelectQuery implements Closeable {
         checkCancelled();
     }
 
-    private void checkCancelled() {
+    public void checkCancelled() {
         if(cancelled) {
             throw new QueryCancelledException("The query was cancelled during execution");
         }
@@ -146,18 +161,22 @@ public class SelectQuery implements Closeable {
         }
     }
 
-//     TODO: rework since query may be killed from another daemon
-    public void kill() {
+    void kill() {
+        closeIqlQuery();
+    }
+
+    private void closeIqlQuery() {
         try {
-            if(iqlQuery != null) {
-                iqlQuery.close();
+            if(queryResourceCloser != null) {
+                queryResourceCloser.close();
             }
         } catch (Exception e) {
-            log.warn("Failed to close the Imhotep session to kill query" + queryInfo.queryStringTruncatedForPrint, e);
+            log.warn("Error while attempting to close IQL query" + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 
     public void onInserted(long id) {
+        this.progressCallback.queryIdAssigned(id);
         this.id = id;
     }
 
@@ -203,7 +222,7 @@ public class SelectQuery implements Closeable {
                 ", client='" + clientInfo.client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
                 ", parsedStatement=" + parsedStatement +
-                ", iqlQuery=" + iqlQuery +
+                ", queryResourceCloser=" + queryResourceCloser +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +
                 ", asynchronousRelease=" + asynchronousRelease +

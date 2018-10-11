@@ -67,7 +67,7 @@ public class RunningQueriesManager {
     private void tryStartingWaitingQueries() {
         try {
             synchronized (queriesWaiting) {
-                if (queriesWaiting.size() == 0) {
+                if (queriesWaiting.size() == 0 && queriesRunning.size() == 0) {
                     return;
                 }
                 // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
@@ -147,6 +147,7 @@ public class RunningQueriesManager {
                 }
 
                 if(runningQuery.killed) {
+                    log.debug("Cancelling query " + runningQuery.qHash + " before it starts running");
                     pendingQuery.cancelled = true;
                 }
 
@@ -183,6 +184,7 @@ public class RunningQueriesManager {
         for(SelectQuery runningQuery : queriesRunning) {
             if(cancelledQueries.contains(runningQuery.id)) {
                 runningQuery.cancelled = true;
+                runningQuery.kill();
             }
         }
     }

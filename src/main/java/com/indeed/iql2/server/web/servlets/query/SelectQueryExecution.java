@@ -29,7 +29,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
@@ -39,7 +38,7 @@ import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.imhotep.io.LimitedBufferedOutputStream;
+import com.indeed.iql.StrictCloser;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.web.ClientInfo;
@@ -84,13 +83,11 @@ import org.joda.time.format.ISODateTimeFormat;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -112,7 +109,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-public class SelectQueryExecution implements Closeable {
+public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -143,7 +140,6 @@ public class SelectQueryExecution implements Closeable {
     public final boolean isStream;
     public final boolean skipValidation;
     private final WallClock clock;
-    private final Closer closer = Closer.create();
 
     public boolean ran = false;
 
@@ -178,11 +174,6 @@ public class SelectQueryExecution implements Closeable {
         this.queryCache = queryCache;
         this.queryMetadata = queryMetadata;
         this.cacheUploadExecutorService = cacheUploadExecutorService;
-    }
-
-    @Override
-    public void close() {
-        Closeables2.closeQuietly(closer, log);
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -314,8 +305,9 @@ public class SelectQueryExecution implements Closeable {
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
+        final StrictCloser strictCloser = new StrictCloser();
         final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
-                null, (byte) sessions, queryMetadata,this);
+                null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
 
         try {
             timer.push("Acquire concurrent query lock");
@@ -323,7 +315,10 @@ public class SelectQueryExecution implements Closeable {
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
-                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery).executeParsedQuery();
+                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
+        } catch (final Exception e) {
+            selectQuery.checkCancelled();
+            throw e;
         } finally {
             if (!selectQuery.isAsynchronousRelease()) {
                 Closeables2.closeQuietly(selectQuery, log);
@@ -339,6 +334,7 @@ public class SelectQueryExecution implements Closeable {
 
         private final int groupLimit;
         private final SelectQuery selectQuery;
+        private final StrictCloser strictCloser;
 
         private final Query originalQuery;
 
@@ -347,7 +343,17 @@ public class SelectQueryExecution implements Closeable {
 
         private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
-        private ParsedQueryExecution(boolean isTopLevelQuery, CharStream inputStream, Consumer<String> out, Set<String> warnings, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit, SelectQuery selectQuery) {
+        private ParsedQueryExecution(
+                boolean isTopLevelQuery,
+                CharStream inputStream,
+                Consumer<String> out,
+                Set<String> warnings,
+                ProgressCallback progressCallback,
+                Query query,
+                @Nullable Integer groupLimit,
+                SelectQuery selectQuery,
+                StrictCloser strictCloser
+        ) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
@@ -356,6 +362,7 @@ public class SelectQueryExecution implements Closeable {
             this.originalQuery = query;
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
             this.selectQuery = selectQuery;
+            this.strictCloser = strictCloser;
         }
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
@@ -399,7 +406,7 @@ public class SelectQueryExecution implements Closeable {
                                                     stringTerms.add(term);
                                                 }
                                             }
-                                        }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery).executeParsedQuery();
+                                        }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                                         totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                         cacheKeys.addAll(execInfo.cacheKeys);
                                         allShardsUsed.putAll(execInfo.datasetToShards);
@@ -496,7 +503,8 @@ public class SelectQueryExecution implements Closeable {
             final File cacheFile;
             final BufferedWriter cacheWriter;
 
-            try (final Closer closer = Closer.create()) {
+            try (final StrictCloser innerStrictCloser = new StrictCloser()) {
+                strictCloser.registerOrClose(innerStrictCloser);
                 final String cacheFileName = computeCacheKey.cacheFileName;
                 if (cacheEnabled) {
                     timer.push("cache check");
@@ -513,13 +521,13 @@ public class SelectQueryExecution implements Closeable {
                             queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
                             // read metadata from cache
                             // TODO: reenable
-//                            try {
-//                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-//                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-//                                queryMetadata.mergeIn(cachedMetadata);
-//                            } catch (Exception e) {
-//                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
-//                            }
+                            //                            try {
+                            //                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                            //                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                            //                                queryMetadata.mergeIn(cachedMetadata);
+                            //                            } catch (Exception e) {
+                            //                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                            //                            }
                             queryMetadata.setPendingHeaders();
                         }
                         // TODO: Don't have this hack
@@ -587,7 +595,7 @@ public class SelectQueryExecution implements Closeable {
                             Sets.newHashSet(query.options),
                             commands,
                             datasets,
-                            closer,
+                            innerStrictCloser,
                             out,
                             timer,
                             compositeProgressCallback,
@@ -611,7 +619,7 @@ public class SelectQueryExecution implements Closeable {
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
 
-                    if(cacheEnabled) {
+                    if (cacheEnabled) {
                         // Cache upload
                         cacheUploadingCounter.incrementAndGet();
 
@@ -621,13 +629,13 @@ public class SelectQueryExecution implements Closeable {
                                 try {
                                     if (isTopLevelQuery) {
                                         // TODO: reenable
-//                                        try {
-//                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-//                                            queryMetadata.toOutputStream(metadataCacheStream);
-//                                            metadataCacheStream.close();
-//                                        } catch (Exception e) {
-//                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-//                                        }
+                                        //                                        try {
+                                        //                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                        //                                            queryMetadata.toOutputStream(metadataCacheStream);
+                                        //                                            metadataCacheStream.close();
+                                        //                                        } catch (Exception e) {
+                                        //                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                        //                                        }
                                     }
                                     try {
                                         cacheWriter.close();

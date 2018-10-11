@@ -47,6 +47,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
 import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
@@ -166,7 +167,7 @@ public class Session {
             final Set<String> optionsSet,
             final List<com.indeed.iql2.language.commands.Command> commands,
             final List<Queries.QueryDataset> datasets,
-            final Closer closer,
+            final StrictCloser strictCloser,
             final Consumer<String> out,
             final TreeTimer treeTimer,
             final ProgressCallback progressCallback,
@@ -185,7 +186,7 @@ public class Session {
 
         treeTimer.push("createSubSessions");
         final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
-                closer, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+                strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
@@ -229,7 +230,7 @@ public class Session {
             final boolean requestRust,
             final List<Queries.QueryDataset> sessionRequest,
             final Map<String, List<Shard>> datasetToChosenShards,
-            final Closer closer,
+            final StrictCloser strictCloser,
             final Map<String, ImhotepSessionInfo> sessions,
             final TreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
@@ -305,11 +306,11 @@ public class Session {
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
             treeTimer.push("build session builder (" + chosenShards.size() + " shards)");
-            final ImhotepSession build = closer.register(sessionBuilder.build());
+            final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
-            // Just in case they have resources, register the wrapped session as well.
+            // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
-            final ImhotepSessionHolder session = closer.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
+            final ImhotepSessionHolder session = strictCloser.registerOrClose(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             progressCallback.sessionOpened(session);

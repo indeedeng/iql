@@ -39,6 +39,13 @@ public class CompositeProgressCallback implements ProgressCallback {
     }
 
     @Override
+    public void queryIdAssigned(final long queryId) {
+        for (final ProgressCallback progressCallback : progressCallbacks) {
+            progressCallback.queryIdAssigned(queryId);
+        }
+    }
+
+    @Override
     public void startSession(Optional<Integer> numCommands) {
         for (final ProgressCallback progressCallback : progressCallbacks) {
             progressCallback.startSession(numCommands);

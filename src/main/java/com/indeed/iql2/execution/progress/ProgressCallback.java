@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface ProgressCallback {
+
+    // Called when we first register the query and assign it a query ID
+    void queryIdAssigned(long queryId);
+
     /**
      * Optional.absent() when a Command List is not given.
      */

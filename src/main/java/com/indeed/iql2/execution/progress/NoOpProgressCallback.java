@@ -25,6 +25,10 @@ import java.util.Map;
 
 public class NoOpProgressCallback implements ProgressCallback {
     @Override
+    public void queryIdAssigned(final long queryId) {
+    }
+
+    @Override
     public void startSession(Optional<Integer> numCommands) {
 
     }

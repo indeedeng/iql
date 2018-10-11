@@ -18,7 +18,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
-import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -27,6 +26,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.web.QueryInfo;
@@ -89,16 +89,28 @@ public final class IQLQuery implements Closeable {
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
     private final Limits limits;
-    private final Closer closer = Closer.create();
+    private final StrictCloser strictCloser;
     // session used for the current execution
     private EZImhotepSession session;
     private final Set<String> fields;
     private final QueryInfo queryInfo;
     private final Set<String> datasetFields;
 
-    public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
-                    final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, final Limits limits, final Set<String> fields, QueryInfo queryInfo) {
+    public IQLQuery(
+            final ImhotepClient client,
+            final List<Stat> stats,
+            final String dataset,
+            final DateTime start,
+            final DateTime end,
+            final @Nonnull List<Condition> conditions,
+            final @Nonnull List<Grouping> groupings,
+            final int rowLimit,
+            final String username,
+            final Limits limits,
+            final Set<String> fields,
+            final QueryInfo queryInfo,
+            final StrictCloser strictCloser
+    ) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -110,6 +122,7 @@ public final class IQLQuery implements Closeable {
         this.fields = fields;
         this.queryInfo = queryInfo;
         this.datasetFields = fields.stream().map(field -> dataset + "." + field).collect(Collectors.toSet());
+        this.strictCloser = strictCloser;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -145,7 +158,7 @@ public final class IQLQuery implements Closeable {
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
         session = new EZImhotepSession(imhotepSession, limits);
-        closer.register(session);
+        strictCloser.registerOrClose(session);
 
         final long numDocs = imhotepSession.getNumDocs();
         if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
@@ -236,7 +249,7 @@ public final class IQLQuery implements Closeable {
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
                 if(groupStatsIterator instanceof Closeable) {
-                    closer.register((Closeable) groupStatsIterator);
+                    strictCloser.registerOrClose((Closeable) groupStatsIterator);
                 }
                 queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
                 final long ftgsMillis = timer.pop();
@@ -649,7 +662,7 @@ public final class IQLQuery implements Closeable {
 
     @Override
     public void close() {
-        Closeables2.closeQuietly(closer, log);
+        Closeables2.closeQuietly(strictCloser, log);
     }
 
     @Nullable
