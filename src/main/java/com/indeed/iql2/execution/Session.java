@@ -305,11 +305,11 @@ public class Session {
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
             treeTimer.push("build session builder (" + chosenShards.size() + " shards)");
-            final ImhotepSession build = strictCloser.register(sessionBuilder.build());
+            final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
-            // Just in case they have resources, register the wrapped session as well.
+            // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
-            final ImhotepSessionHolder session = strictCloser.register(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
+            final ImhotepSessionHolder session = strictCloser.registerOrClose(wrapSession(uppercasedCombinedAliases, build, Sets.union(sessionIntFields, sessionStringFields)));
             treeTimer.pop();
 
             progressCallback.sessionOpened(session);

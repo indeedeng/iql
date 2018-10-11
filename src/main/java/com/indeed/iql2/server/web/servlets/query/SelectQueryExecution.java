@@ -83,13 +83,11 @@ import org.joda.time.format.ISODateTimeFormat;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -506,7 +504,7 @@ public class SelectQueryExecution {
             final BufferedWriter cacheWriter;
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
-                strictCloser.register(innerStrictCloser);
+                strictCloser.registerOrClose(innerStrictCloser);
                 final String cacheFileName = computeCacheKey.cacheFileName;
                 if (cacheEnabled) {
                     timer.push("cache check");

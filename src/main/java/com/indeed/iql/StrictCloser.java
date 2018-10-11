@@ -30,7 +30,7 @@ public class StrictCloser implements Closeable {
             closed = true;
         }
         if (needsClose) {
-            // This is safe to do because anyone calling register()
+            // This is safe to do because anyone calling registerOrClose()
             // after the above section will see the StrictCloser as closed
             // and not attempt to register in the closer
             closer.close();
@@ -45,7 +45,7 @@ public class StrictCloser implements Closeable {
      *
      * @return the given {@code closeable}
      */
-    public <C extends Closeable> C register(@Nullable C closeable) {
+    public <C extends Closeable> C registerOrClose(@Nullable C closeable) {
         final boolean alreadyClosed;
         synchronized (lock) {
             alreadyClosed = closed;

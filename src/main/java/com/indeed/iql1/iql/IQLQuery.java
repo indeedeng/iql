@@ -158,7 +158,7 @@ public final class IQLQuery implements Closeable {
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
         session = new EZImhotepSession(imhotepSession, limits);
-        strictCloser.register(session);
+        strictCloser.registerOrClose(session);
 
         final long numDocs = imhotepSession.getNumDocs();
         if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
@@ -249,7 +249,7 @@ public final class IQLQuery implements Closeable {
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
                 if(groupStatsIterator instanceof Closeable) {
-                    strictCloser.register((Closeable) groupStatsIterator);
+                    strictCloser.registerOrClose((Closeable) groupStatsIterator);
                 }
                 queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
                 final long ftgsMillis = timer.pop();
