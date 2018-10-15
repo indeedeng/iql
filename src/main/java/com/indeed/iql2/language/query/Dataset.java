@@ -25,9 +25,8 @@ import com.indeed.iql2.language.DocFilters;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.TimePeriods;
-import com.indeed.iql2.language.compat.Consumer;
-import com.indeed.squall.iql2.language.JQLBaseListener;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLBaseListener;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
@@ -38,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static com.indeed.iql2.language.Identifiers.parseIdentifier;
 

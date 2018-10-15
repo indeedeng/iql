@@ -16,10 +16,9 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
@@ -47,20 +46,19 @@ public class ExplodeDayOfWeek implements Command {
 
         session.timer.push("compute remapping");
         final int numBuckets = (int) ((end - start) / TimeUnit.DAY.millis);
-        final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups];
+        final int[] fromGroups = new int[numGroups];
+        final int[] toGroups = new int[numGroups];
         for (int group = 1; group <= numGroups; group++) {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
             final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
             final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
-            rules[group - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(group)
-                    .setNegativeGroup(newGroup)
-                    .build();
+            fromGroups[group - 1] = group;
+            toGroups[group - 1] = newGroup;
         }
         session.timer.pop();
         session.timer.push("shuffle regroup");
-        session.regroupWithProtos(rules, true);
+        session.remapGroups(fromGroups, toGroups);
         session.timer.pop();
         session.assumeDense(new DayOfWeekGroupKeySet(session.groupKeySet));
 

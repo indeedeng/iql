@@ -22,7 +22,9 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Document;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TestUtil;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;
+
+import com.indeed.iql2.execution.compat.NoOpConsumer;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import junit.framework.Assert;
@@ -59,7 +61,7 @@ public class TestMetricRegroup {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, false, false, false);
-            regroup.execute(session, new Consumer.NoOpConsumer<String>());
+            regroup.execute(session, new NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
@@ -84,7 +86,7 @@ public class TestMetricRegroup {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, false, false);
-            regroup.execute(session, new Consumer.NoOpConsumer<String>());
+            regroup.execute(session, new NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);
@@ -107,7 +109,7 @@ public class TestMetricRegroup {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
             final MetricRegroup regroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 5, 1, true, true, false);
-            regroup.execute(session, new Consumer.NoOpConsumer<String>());
+            regroup.execute(session, new NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("1"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);

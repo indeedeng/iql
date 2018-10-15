@@ -20,7 +20,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import org.apache.log4j.Logger;
 

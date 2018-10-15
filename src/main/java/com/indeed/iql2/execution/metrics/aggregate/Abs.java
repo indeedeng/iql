@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.execution.metrics.aggregate;
 
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
+
 public class Abs extends AggregateMetric.Unary {
     public Abs(final AggregateMetric value) {
         super(value);
@@ -22,5 +24,10 @@ public class Abs extends AggregateMetric.Unary {
     @Override
     public double eval(final double value) {
         return Math.abs(value);
+    }
+
+    @Override
+    AggregateStatTree toImhotep(final AggregateStatTree operand) {
+        return operand.abs();
     }
 }

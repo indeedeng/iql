@@ -23,7 +23,7 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
@@ -109,6 +109,7 @@ public class ExplainQueryExecution {
             dataMap.put("warnings", warnings);
             outputStream.println(OBJECT_MAPPER.writeValueAsString(dataMap));
         }
+        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     private class ParsedQueryExplain {

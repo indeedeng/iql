@@ -23,7 +23,7 @@ import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import javax.annotation.Nullable;
@@ -52,7 +52,8 @@ public class IterateAndExplode implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
-        final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayList((Commands.TermsWithExplodeOpts) null);
+        final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);
+        explodes.add(null);
         for (final List<List<TermSelects>> groupResults : iterationResults) {
             if (groupResults.size() > 0) {
                 final List<TermSelects> groupFieldResults = groupResults.get(0);
@@ -65,6 +66,6 @@ public class IterateAndExplode implements Command {
                 explodes.add(new Commands.TermsWithExplodeOpts(Collections.<Term>emptyList(), this.explodeDefaultName));
             }
         }
-        new ExplodePerGroup(explodes).execute(session, out);
+        new ExplodePerGroup(explodes, field, session.isIntField(field)).execute(session, out);
     }
 }

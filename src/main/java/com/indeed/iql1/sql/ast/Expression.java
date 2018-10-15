@@ -14,6 +14,8 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.indeed.iql.exceptions.IqlKnownException;
+
 import java.util.List;
 
 /**
@@ -63,7 +65,7 @@ public interface Expression {
         }
 
         protected Z otherwise() {
-            throw new UnsupportedOperationException();
+            throw new IqlKnownException.ParseErrorException("Query parsing failed");
         }
     }
 }

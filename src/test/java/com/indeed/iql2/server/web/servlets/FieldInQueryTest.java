@@ -15,17 +15,10 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.indeed.flamdex.writer.FlamdexDocument;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class FieldInQueryTest extends BasicTest {
@@ -36,8 +29,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
-                "from organic yesterday today where tk in (from other 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
+                AllData.DATASET, expected,
+                "from organic yesterday today where tk in (from other1 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -47,8 +40,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Collections.emptyList(), Arrays.asList("a", "b")), expected,
-                "from organic yesterday today where tk not in (from other 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
+                AllData.DATASET, expected,
+                "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -58,8 +51,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
-                "from organic yesterday today where ojc in (from other 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
+                AllData.DATASET, expected,
+                "from organic yesterday today where ojc in (from other3 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
     @Test
@@ -72,27 +65,8 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                FieldInQueryDataset.create("other", "thefield", Arrays.asList(1, 10), Collections.emptyList()), expected,
-                "from organic yesterday today where ojc not in (from other 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
+                AllData.DATASET, expected,
+                "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
-    private static class FieldInQueryDataset {
-
-        public static Dataset create(final String dataset, final String field, final List<Integer> intTerms, final List<String> stringTerms) {
-            final Dataset organicDataset = OrganicDataset.create();
-
-            final List<Dataset.DatasetShard> shards = Lists.newArrayList();
-
-            final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            for (final String term : stringTerms) {
-                flamdex.addDocument(new FlamdexDocument(Collections.<String, LongList>emptyMap(), Collections.singletonMap(field, Collections.singletonList(term))));
-            }
-            for (final Integer term : intTerms) {
-                flamdex.addDocument(new FlamdexDocument(Collections.<String, LongList>singletonMap(field, new LongArrayList(new long[]{term})), Collections.emptyMap()));
-            }
-            shards.add(new Dataset.DatasetShard(dataset, "index20150101", flamdex));
-            shards.addAll(organicDataset.shards);
-            return new Dataset(shards);
-        }
-    }
 }

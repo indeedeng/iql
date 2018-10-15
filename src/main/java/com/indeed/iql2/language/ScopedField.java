@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 
 import java.util.Collections;
 import java.util.List;

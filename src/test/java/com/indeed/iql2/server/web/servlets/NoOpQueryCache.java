@@ -15,7 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 
-import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.iql.cache.QueryCache;
 
 import java.io.File;
 import java.io.IOException;

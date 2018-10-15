@@ -27,7 +27,7 @@ import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupDistincts;
 import com.indeed.iql2.execution.commands.GetGroupStats;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.iql2.execution.progress.NoOpProgressCallback;
@@ -72,7 +72,7 @@ public class TestUtil {
                     return regroup(rules, errorOnCollisions);
                 }
             };
-            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(session, "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
+            sessionInfoMap.put(entry.getKey(), new Session.ImhotepSessionInfo(new ImhotepSessionHolder(session, new HashMap<>(), new HashSet<>()), "displayName", datasetIntFields.get(entry.getKey()), datasetStringFields.get(entry.getKey()), start, end, "unixtime"));
         }
 
         return new Session(sessionInfoMap, new TreeTimer(), new NoOpProgressCallback(), null, 0, Collections.emptySet());

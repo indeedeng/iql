@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.util.core.TreeTimer;
@@ -46,7 +46,7 @@ public class QueryAction implements Action {
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (!scope.contains(name)) {
                     return;
                 }

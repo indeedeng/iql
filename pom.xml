@@ -169,7 +169,7 @@
             <artifactId>commons-lang</artifactId>
         </dependency>
 
-        <!-- Hadoop for caching -->
+        <!-- Hadoop for HDFS caching option-->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
@@ -289,6 +289,13 @@
             </exclusions>
         </dependency>
 
+        <!-- Redis as a caching option-->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+
         <!--Spring Dependencies -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -345,6 +352,12 @@
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
             <version>${jackson2.version}</version>
         </dependency>
@@ -377,7 +390,7 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
-            <version>4.5</version>
+            <version>4.5.1</version>
         </dependency>
 
         <dependency>
@@ -401,6 +414,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
             <version>${spring.version}</version>
@@ -416,13 +436,13 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.112</imhotep.version>
-        <ims.version>4.0.4</ims.version>
+        <imhotep.version>3.1.125</imhotep.version>
+        <ims.version>4.0.9</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>
         <commons-io.version>2.2</commons-io.version>
-        <jackson2.version>2.5.2</jackson2.version>
+        <jackson2.version>2.9.6</jackson2.version>
         <lucene.version>2.4.1</lucene.version>
         <hadoop.version>2.6.0-cdh5.8.2</hadoop.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>

@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.actions.Action;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 
 import java.util.List;
 

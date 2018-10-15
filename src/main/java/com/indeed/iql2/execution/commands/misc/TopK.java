@@ -17,6 +17,7 @@ package com.indeed.iql2.execution.commands.misc;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
+// TODO: Why does this support Optionals? There's a limit one level up for the pure limit case.
 public class TopK {
     public final Optional<Integer> limit;
     public final Optional<AggregateMetric> metric;

@@ -16,12 +16,12 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Optional;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationUtil;
-import com.indeed.squall.iql2.language.JQLBaseListener;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLBaseListener;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 

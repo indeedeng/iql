@@ -15,6 +15,7 @@
 package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -87,6 +88,16 @@ public class IfThenElse implements AggregateMetric {
         } else {
             return falseResult;
         }
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        return condition
+                .toImhotep(atomicStats)
+                .conditional(
+                        trueCase.toImhotep(atomicStats),
+                        falseCase.toImhotep(atomicStats)
+                );
     }
 
     @Override

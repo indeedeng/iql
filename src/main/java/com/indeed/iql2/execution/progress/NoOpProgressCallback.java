@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.progress;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 
@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 
 public class NoOpProgressCallback implements ProgressCallback {
+    @Override
+    public void queryIdAssigned(final long queryId) {
+    }
+
     @Override
     public void startSession(Optional<Integer> numCommands) {
 
@@ -35,7 +39,7 @@ public class NoOpProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(ImhotepSession session) {
+    public void sessionOpened(final ImhotepSessionHolder session) {
 
     }
 

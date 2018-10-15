@@ -23,7 +23,9 @@ import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.Document;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TestUtil;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;
+
+import com.indeed.iql2.execution.compat.NoOpConsumer;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.Constant;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
@@ -62,10 +64,10 @@ public class TestApplyGroupFilter {
             final Session session = TestUtil.buildSession(datasetDocuments(), new DateTime(2015, 1, 1, 0, 0), new DateTime(2015, 1, 2, 0, 0), closer);
 
             final MetricRegroup metricRegroup = new MetricRegroup(ImmutableMap.of(SESSION, Collections.singletonList(FIELD)), 0, 10, 1, true, false, false);
-            metricRegroup.execute(session, new Consumer.NoOpConsumer<String>());
+            metricRegroup.execute(session, new NoOpConsumer<String>());
 
             final ApplyGroupFilter applyGroupFilter = new ApplyGroupFilter(new AggregateFilter.GreaterThan(new DocumentLevelMetric(SESSION, Arrays.asList(FIELD, "4", ">")), new Constant(0)));
-            applyGroupFilter.execute(session, new Consumer.NoOpConsumer<String>());
+            applyGroupFilter.execute(session, new NoOpConsumer<String>());
 
             final GetGroupStats getGroupStats = new GetGroupStats(Collections.<AggregateMetric>singletonList(new DocumentLevelMetric(SESSION, Collections.singletonList("2"))), Collections.singletonList(Optional.<String>absent()), false);
             final List<String> output = TestUtil.evaluateGroupStats(session, getGroupStats);

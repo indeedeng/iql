@@ -24,7 +24,8 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
+import com.indeed.iql2.execution.compat.NoOpConsumer;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -191,7 +192,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                         for (int group = 1; group <= session.numGroups; group++) {
                             storage[group] = groupResults[group][0];
                         }
-                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"min\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"min\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     case "\"max\"": {
@@ -199,7 +200,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                         for (int group = 1; group <= session.numGroups; group++) {
                             storage[group] = groupResults[group][numBootstraps - 1];
                         }
-                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"max\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"max\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     case "\"all\"": {
@@ -208,7 +209,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                             for (int group = 1; group <= session.numGroups; group++) {
                                 groupValues[group] = groupResults[group][b];
                             }
-                            new CreateGroupStatsLookup(groupValues, Optional.of(seed + "[" + numBootstraps + "].values[" + b + "]")).execute(session, new Consumer.NoOpConsumer<String>());
+                            new CreateGroupStatsLookup(groupValues, Optional.of(seed + "[" + numBootstraps + "].values[" + b + "]")).execute(session, new NoOpConsumer<String>());
                         }
                         break;
                     }
@@ -217,7 +218,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                         for (int group = 1; group <= session.numGroups; group++) {
                             storage[group] = groupTermCounts[group];
                         }
-                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"numTerms\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"numTerms\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     case "\"skippedTerms\"": {
@@ -225,15 +226,15 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                         for (int group = 1; group <= session.numGroups; group++) {
                             storage[group] = groupSkippedTermCounts[group];
                         }
-                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"skippedTerms\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "].\"skippedTerms\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     case "\"mean\"": {
-                        new CreateGroupStatsLookup(means, Optional.of(seed + "[" + numBootstraps + "].\"mean\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(means, Optional.of(seed + "[" + numBootstraps + "].\"mean\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     case "\"variance\"": {
-                        new CreateGroupStatsLookup(variances, Optional.of(seed + "[" + numBootstraps + "].\"variance\"")).execute(session, new Consumer.NoOpConsumer<String>());
+                        new CreateGroupStatsLookup(variances, Optional.of(seed + "[" + numBootstraps + "].\"variance\"")).execute(session, new NoOpConsumer<String>());
                         break;
                     }
                     default: {
@@ -246,7 +247,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                             for (int group = 1; group <= session.numGroups; group++) {
                                 storage[group] = means[group] + z * variances[group];
                             }
-                            new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "]." + vararg)).execute(session, new Consumer.NoOpConsumer<String>());
+                            new CreateGroupStatsLookup(storage, Optional.of(seed + "[" + numBootstraps + "]." + vararg)).execute(session, new NoOpConsumer<String>());
                             break;
                         } catch (final NumberFormatException e) {
                         }

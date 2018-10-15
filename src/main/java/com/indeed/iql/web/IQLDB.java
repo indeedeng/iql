@@ -73,7 +73,7 @@ public class IQLDB {
                                 "(query, qhash, username, client, submit_time, execution_start_time, hostname, sessions) " +
                                 "VALUES (?, ?, ?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), ?, ?)",
                             Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, StringUtils.abbreviate(query.queryStringTruncatedForPrint, 1000));
+                ps.setString(1, StringUtils.abbreviate(query.queryInfo.queryStringTruncatedForPrint, 1000));
                 ps.setString(2, StringUtils.abbreviate(query.queryHash, 30));
                 ps.setString(3, StringUtils.abbreviate(query.clientInfo.username, 100));
                 ps.setString(4, StringUtils.abbreviate(query.clientInfo.client, 100));
@@ -94,8 +94,13 @@ public class IQLDB {
                 queryExecutionStartTimeSecondsSinceEpoch, id);
     }
 
-    public void cancelQuery(long id) {
-        jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ?", 1, id);
+    /**
+     * @param id the query ID
+     * @return false if there was no row for the given query ID in the database, true otherwise
+     */
+    public boolean cancelQuery(long id) {
+        final int rowsAffected = jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ?", 1, id);
+        return rowsAffected > 0;
     }
 
     public void deleteRunningQuery(long id) {

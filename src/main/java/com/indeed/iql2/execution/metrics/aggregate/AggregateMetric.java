@@ -15,6 +15,7 @@
 package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.Pushable;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -30,6 +31,13 @@ public interface AggregateMetric extends Pushable {
 
     double apply(String term, long[] stats, int group);
     double apply(long term, long[] stats, int group);
+
+    /**
+     * @throws UnsupportedOperationException if needSorted() is true.
+     * @param atomicStats
+     */
+    AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats);
+
     // return true if terms are expected in sorted order
     boolean needSorted();
     // if needGroup() returns false then group value is ignored inside apply(...) methods
@@ -93,6 +101,13 @@ public interface AggregateMetric extends Pushable {
         public boolean needStats() {
             return operand.needStats();
         }
+
+        @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(operand.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree operand);
     }
 
     // Base class for binary function
@@ -138,6 +153,13 @@ public interface AggregateMetric extends Pushable {
         public double apply(final long term, final long[] stats, final int group) {
             return eval(left.apply(term, stats, group), right.apply(term, stats, group));
         }
+
+        @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(left.toImhotep(atomicStats), right.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs);
 
         @Override
         public boolean needSorted() {

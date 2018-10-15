@@ -19,8 +19,8 @@ import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
-import com.indeed.iql1.iql.SelectExecutionStats;
-import com.indeed.iql1.sql.ast2.SelectStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql2.execution.progress.ProgressCallback;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -32,7 +32,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
 
 /**
  * @author vladimir
@@ -45,21 +44,20 @@ public class SelectQuery implements Closeable {
     public static final byte VERSION_FOR_HASHING = 3;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
     private final RunningQueriesManager runningQueriesManager;
-    final String queryString;
+    final QueryInfo queryInfo;
     public final String queryHash; // this hash doesn't include the shards so is different from the caching hash
     final String shortHash; // queryHash truncated
-    public final String queryStringTruncatedForPrint;
     final ClientInfo clientInfo;
     final Limits limits;
     final DateTime querySubmitTimestamp;
     final byte sessions;    // imhotep sessions
-    final SelectExecutionStats selectExecutionStats = new SelectExecutionStats();
     /** Only in IQL1 */
     @Nullable
-    final SelectStatement parsedStatement;
-    Closeable iqlQuery;
+    final IQL1SelectStatement parsedStatement;
+    final QueryMetadata queryMetadata;
+    private Closeable queryResourceCloser;
+    private final ProgressCallback progressCallback;
     boolean cancelled = false;
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
@@ -68,17 +66,30 @@ public class SelectQuery implements Closeable {
     private boolean closed = false;
 
 
-    public SelectQuery(RunningQueriesManager runningQueriesManager, String queryString, ClientInfo clientInfo, Limits limits, DateTime querySubmitTimestamp, SelectStatement parsedStatement, byte sessions, Closeable iqlQuery) {
+    public SelectQuery(
+            QueryInfo queryInfo,
+            RunningQueriesManager runningQueriesManager,
+            String queryString,
+            ClientInfo clientInfo,
+            Limits limits,
+            DateTime querySubmitTimestamp,
+            IQL1SelectStatement parsedStatement,
+            byte sessions,
+            QueryMetadata queryMetadata,
+            Closeable queryResourceCloser,
+            ProgressCallback progressCallback
+    ) {
+        this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
-        this.queryString = queryString;
         this.clientInfo = clientInfo;
         this.limits = limits;
         this.querySubmitTimestamp = querySubmitTimestamp;
         this.parsedStatement = parsedStatement;
-        this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(queryString).replaceAll("\\($1\\.\\.\\.\\)");
         this.queryHash = getQueryHash(queryString, null, false);
         this.sessions = sessions;
-        this.iqlQuery = iqlQuery;
+        this.queryMetadata = queryMetadata;
+        this.queryResourceCloser = queryResourceCloser;
+        this.progressCallback = progressCallback;
         this.shortHash = this.queryHash.substring(0, 6);
         log.debug("Query created with hash " + shortHash);
     }
@@ -124,11 +135,11 @@ public class SelectQuery implements Closeable {
             Throwables.propagate(e);
         }
         final long queryStartedTimestamp = System.currentTimeMillis();
-        selectExecutionStats.setPhase("lockWaitMillis", queryStartedTimestamp-waitStartTime);
+        queryInfo.lockWaitMillis = queryStartedTimestamp-waitStartTime;
         checkCancelled();
     }
 
-    private void checkCancelled() {
+    public void checkCancelled() {
         if(cancelled) {
             throw new QueryCancelledException("The query was cancelled during execution");
         }
@@ -146,22 +157,26 @@ public class SelectQuery implements Closeable {
         try {
             runningQueriesManager.unregister(this);
         } catch (Exception e) {
-            log.error("Failed to release the query tracking for " + queryStringTruncatedForPrint, e);
+            log.error("Failed to release the query tracking for " + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 
-//     TODO: rework since query may be killed from another daemon
-    public void kill() {
+    void kill() {
+        closeIqlQuery();
+    }
+
+    private void closeIqlQuery() {
         try {
-            if(iqlQuery != null) {
-                iqlQuery.close();
+            if(queryResourceCloser != null) {
+                queryResourceCloser.close();
             }
         } catch (Exception e) {
-            log.warn("Failed to close the Imhotep session to kill query" + queryStringTruncatedForPrint, e);
+            log.warn("Error while attempting to close IQL query" + queryInfo.queryStringTruncatedForPrint, e);
         }
     }
 
     public void onInserted(long id) {
+        this.progressCallback.queryIdAssigned(id);
         this.id = id;
     }
 
@@ -201,15 +216,13 @@ public class SelectQuery implements Closeable {
     public String toString() {
         return "SelectQuery{" +
                 "runningQueriesManager=" + runningQueriesManager +
-                ", queryString='" + queryString + '\'' +
                 ", queryHash='" + queryHash + '\'' +
-                ", queryStringTruncatedForPrint='" + queryStringTruncatedForPrint + '\'' +
+                ", queryStringTruncatedForPrint='" + queryInfo.queryStringTruncatedForPrint + '\'' +
                 ", username='" + clientInfo.username + '\'' +
                 ", client='" + clientInfo.client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
-                ", selectExecutionStats=" + selectExecutionStats +
                 ", parsedStatement=" + parsedStatement +
-                ", iqlQuery=" + iqlQuery +
+                ", queryResourceCloser=" + queryResourceCloser +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +
                 ", asynchronousRelease=" + asynchronousRelease +

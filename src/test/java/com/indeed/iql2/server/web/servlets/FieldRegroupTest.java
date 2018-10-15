@@ -15,8 +15,8 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 public class FieldRegroupTest extends BasicTest {
-    final Dataset dataset = OrganicDataset.create();
+    final Dataset dataset = AllData.DATASET;
 
     @Test
     public void testBasicGroupBy() throws Exception {
@@ -69,9 +69,9 @@ public class FieldRegroupTest extends BasicTest {
     public void testImplicitOrderingBackwards() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         // TODO: Determinism amongst ties? This will almost certainly break
-        expected.add(ImmutableList.of("15", "1", "15"));
-        expected.add(ImmutableList.of("5", "1", "5"));
         expected.add(ImmutableList.of("2", "1", "2"));
+        expected.add(ImmutableList.of("5", "1", "5"));
+        expected.add(ImmutableList.of("15", "1", "15"));
         testAll(dataset, expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc", true);
         testIQL2(dataset, addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3], allbit select count(), ojc", true);
     }

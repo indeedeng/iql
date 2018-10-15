@@ -27,14 +27,14 @@ public class FieldEqualDataset {
     }
 
     // fields [time, s1, s2, i1, i2]
-    public static Dataset create() {
+    static Dataset create() {
         final List<Dataset.DatasetShard> shards = Lists.newArrayList();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0), 1, 1, "a", "a"));
         flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30), 1, 1, "a", "b"));
         flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15), 1, 2, "a", "b"));
         flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0), 2, 2, "b", "b"));
-        shards.add(new Dataset.DatasetShard("organic", "index20150101.00", flamdex));
+        shards.add(new Dataset.DatasetShard("fieldEqual", "index20150101.00", flamdex));
         return new Dataset(shards);
     }
 

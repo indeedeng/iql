@@ -19,7 +19,7 @@ import com.google.common.collect.Sets;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 import junit.framework.Assert;
 import org.junit.Test;

@@ -15,11 +15,11 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
-import com.indeed.squall.iql2.language.JQLParser;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.iql2.language.DocMetric.Field;
-import com.indeed.iql2.language.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import org.joda.time.DateTime;

@@ -67,7 +67,7 @@ public class RunningQueriesManager {
     private void tryStartingWaitingQueries() {
         try {
             synchronized (queriesWaiting) {
-                if (queriesWaiting.size() == 0) {
+                if (queriesWaiting.size() == 0 && queriesRunning.size() == 0) {
                     return;
                 }
                 // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
@@ -147,6 +147,7 @@ public class RunningQueriesManager {
                 }
 
                 if(runningQuery.killed) {
+                    log.debug("Cancelling query " + runningQuery.qHash + " before it starts running");
                     pendingQuery.cancelled = true;
                 }
 
@@ -183,6 +184,7 @@ public class RunningQueriesManager {
         for(SelectQuery runningQuery : queriesRunning) {
             if(cancelledQueries.contains(runningQuery.id)) {
                 runningQuery.cancelled = true;
+                runningQuery.kill();
             }
         }
     }
@@ -228,7 +230,7 @@ public class RunningQueriesManager {
                 released = true;
             } catch (Exception e) {
                 log.error("Failed to release query, going to retry. Id " + selectQuery.id
-                        + ". " + selectQuery.queryStringTruncatedForPrint, e);
+                        + ". " + selectQuery.queryInfo.queryStringTruncatedForPrint, e);
                 try {
                     Thread.sleep(1000);
                 } catch (Exception ignored) { }
@@ -257,7 +259,7 @@ public class RunningQueriesManager {
         for(SelectQuery query : queries) {
             runningQueries.add(new RunningQuery(
                     query.id,
-                    query.queryStringTruncatedForPrint,
+                    query.queryInfo.queryStringTruncatedForPrint,
                     query.queryHash,
                     query.clientInfo.username,
                     query.clientInfo.client,

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MultipleDataset {
-    public static Dataset create() {
+    static Dataset create() {
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         {
             for (int i = 1; i <= 31; i++) {

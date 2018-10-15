@@ -15,7 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,35 +27,35 @@ public class AggregateMetricsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         //log(100), log(151)
         expected.add(ImmutableList.of("", String.valueOf(4.6051702), String.valueOf(5.0172798)));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select log(100), log(count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select log(100), log(count())");
     }
 
     @Test
     public void testAbs() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "100.5", "100.5", "151"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select abs(100.5), abs(-100.5), abs(count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select abs(100.5), abs(-100.5), abs(count())");
     }
 
     @Test
     public void testModulus() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "1", "0", "0", "1"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select 3 % 2, 2 % 2, 100 % 2, count() % 2");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select 3 % 2, 2 % 2, 100 % 2, count() % 2");
     }
 
     @Test
     public void testPower() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "9", "27", String.valueOf(1.4142136), String.valueOf(151 * 151), String.valueOf(12.2882057)));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select 3 ^ 2, 3 ^ 3, 2 ^ 0.5, count() ^ 2, count() ^ 0.5");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select 3 ^ 2, 3 ^ 3, 2 ^ 0.5, count() ^ 2, count() ^ 0.5");
     }
 
     @Test
     public void testIfThenElse() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "100", "0"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select if count() > 0 then 100 else 0, if count() <= 0 then 100 else 0");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select if count() > 0 then 100 else 0, if count() <= 0 then 100 else 0");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2", "4", "4"));
         expected.add(ImmutableList.of("c", "4", "2", "2"));
         expected.add(ImmutableList.of("d", "141", "4", "4"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
                 "from organic yesterday today group by tk select count(), lag(1, count()), if (tk=\"a\"+tk=\"c\") > 0 then lag(1, count()) else lag(1, count())");
     }
 
@@ -74,7 +74,7 @@ public class AggregateMetricsTest extends BasicTest {
     public void testNamed() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "156", String.valueOf(151 * 151)));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select count() as c, c + 5, c * c");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select count() as c, c + 5, c * c");
     }
 
     @Test
@@ -84,9 +84,9 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("b", "151", "2"));
         expected.add(ImmutableList.of("c", "151", "4"));
         expected.add(ImmutableList.of("d", "151", "141"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
                 "from organic yesterday today group by tk select parent(count()), count()", true);
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), QueryServletTestUtils.addConstantColumn(1, "1", expected),
+        QueryServletTestUtils.testIQL2(AllData.DATASET, QueryServletTestUtils.addConstantColumn(1, "1", expected),
                 "from organic yesterday today group by tk, (true) having count() > 0 select parent(parent(count())), count()", true);
     }
 
@@ -118,7 +118,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 21:00:00, 2015-01-01 22:00:00)", "1", "1", "1"));
         expected.add(ImmutableList.of("[2015-01-01 22:00:00, 2015-01-01 23:00:00)", "1", "1", "1"));
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "1", "1"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) select count(), lag(1, count()), lag(2, count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by time(1h) select count(), lag(1, count()), lag(2, count())");
     }
 
     @Test
@@ -128,8 +128,8 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2", "4", "0"));
         expected.add(ImmutableList.of("c", "4", "2", "4"));
         expected.add(ImmutableList.of("d", "141", "4", "2"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by tk select count(), lag(1, count()), lag(2, count())");
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by tk select count(), lag(1, count()), lag(2, count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
                 "from organic yesterday today group by tk in (\"a\", \"b\", \"c\", \"d\") select count(), lag(1, count()), lag(2, count())");
     }
 
@@ -142,7 +142,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("100", "1", "9999"));
         expected.add(ImmutableList.of("1000", "1", "99999"));
         QueryServletTestUtils.testIQL2(
-                OrganicDataset.create(),
+                AllData.DATASET,
                 expected,
                 "from organic yesterday today group by oji in (3, 5, 7, 100, 1000) select COUNT(), if (lag(1,count()) > 0) then oji * 100 * count() - lag(1, count()) else 0",
                 true);
@@ -175,7 +175,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 21:00:00, 2015-01-01 22:00:00)", "1", "2", "5"));
         expected.add(ImmutableList.of("[2015-01-01 22:00:00, 2015-01-01 23:00:00)", "1", "2", "5"));
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "2", "5"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) select count(), window(2, count()), window(5, count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by time(1h) select count(), window(2, count()), window(5, count())");
     }
 
     @Test
@@ -205,7 +205,7 @@ public class AggregateMetricsTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 21:00:00, 2015-01-01 22:00:00)", "1", "149"));
         expected.add(ImmutableList.of("[2015-01-01 22:00:00, 2015-01-01 23:00:00)", "1", "150"));
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1", "151"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today group by time(1h) select count(), running(count())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by time(1h) select count(), running(count())");
     }
 
     // TODO: Make a real test for percentile calculations
@@ -213,15 +213,15 @@ public class AggregateMetricsTest extends BasicTest {
     public void testPercentile1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "1", "1", "1"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select percentile(allbit, 0.00001), percentile(allbit, 50), percentile(allbit, 100)", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select percentile(allbit, 0.00001), percentile(allbit, 50), percentile(allbit, 100)", true);
     }
 
     @Test
     public void sumAcross() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "4", "302"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic yesterday today select sum_over(tk, count()), sum_over(tk, 1), sum_over(tk, [2])");
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(),
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select sum_over(tk, count()), sum_over(tk, 1), sum_over(tk, [2])");
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "306", "2653", "151")),
                 "from organic yesterday today select sum_over(oji, ojc), sum_over(ojc, oji), sum_over(tk, count())", true);
     }
@@ -231,21 +231,21 @@ public class AggregateMetricsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "151", "151"));
         // SUM_OVER and RUNNING in one query cause RegroupIntoParent command to happen.
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "FROM organic yesterday today SELECT count(), SUM_OVER(time(1d), COUNT()), RUNNING(COUNT())");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "FROM organic yesterday today SELECT count(), SUM_OVER(time(1d), COUNT()), RUNNING(COUNT())");
     }
 
     @Test
     public void testAVG() throws  Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "118", "0.3"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected, "from organic 2015-01-01 00:00 2015-01-01 01:00 SELECT AVG(oji), AVG(DISTINCT(tk))");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic 2015-01-01 00:00 2015-01-01 01:00 SELECT AVG(oji), AVG(DISTINCT(tk))");
     }
 
     @Test
     public void testMultiAVG() throws  Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "118", "10", "0.3", "25.43", "25.43"));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(), expected,
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
                 "from organic 2015-01-01 00:00 2015-01-01 01:00 as o1, organic 2015-01-01 01:00 2015-01-01 02:00 as o2 " +
                         "SELECT AVG(o1.oji), AVG(o2.oji), AVG(DISTINCT(o1.tk)), PRINTF('%.2f', AVG(oji)), PRINTF('%.2f', AVG(o1.oji+o2.oji))");
     }
@@ -269,7 +269,7 @@ public class AggregateMetricsTest extends BasicTest {
     private void testBootstrapMetric(final String metric, final String expectedValue) throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", expectedValue));
-        QueryServletTestUtils.testIQL2(OrganicDataset.create(),
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
                 expected,
                 "from organic yesterday today select PRINTF('%.4f', BOOTSTRAP(tk, ojc / oji, 100, \"seed\", " + metric + "))");
     }

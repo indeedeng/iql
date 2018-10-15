@@ -14,12 +14,11 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.primitives.Ints;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
+import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
@@ -44,17 +43,9 @@ public class StringRegroupFieldIn implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
-        final GroupMultiRemapMessage[] messages = new GroupMultiRemapMessage[session.numGroups];
+        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
         final int numTerms = terms.size();
-        final RegroupConditionMessage[] conditions = new RegroupConditionMessage[numTerms];
-        final RegroupConditionMessage.Builder conditionBuilder = RegroupConditionMessage.newBuilder()
-                .setField(field)
-                .setIntType(false)
-                .setIntTerm(0L)
-                .setInequality(false);
-        for (int i = 0; i < conditions.length; i++) {
-            conditions[i] = conditionBuilder.setStringTerm(terms.get(i)).build();
-        }
+        final String[] termsArray = terms.toArray(new String[0]) ;
         for (int group = 1; group <= session.numGroups; group++) {
             final int[] positiveGroups = new int[numTerms];
             final int baseGroup = 1 + (group - 1) * (numTerms + (withDefault ? 1 : 0));
@@ -62,16 +53,17 @@ public class StringRegroupFieldIn implements Command {
                 positiveGroups[i] = baseGroup + i;
             }
             final int negativeGroup = withDefault ? (baseGroup + numTerms) : 0;
-            messages[group - 1] = GroupMultiRemapMessage.newBuilder()
-                    .setTargetGroup(group)
-                    .setNegativeGroup(negativeGroup)
-                    .addAllPositiveGroup(Ints.asList(positiveGroups))
-                    .addAllCondition(Arrays.asList(conditions))
-                    .build();
+            rules[group - 1] = new SingleFieldMultiRemapRule(
+                    group,
+                    negativeGroup,
+                    positiveGroups,
+                    null,
+                    termsArray);
         }
         session.timer.pop();
 
-        session.regroupWithProtos(messages, true);
+        final FieldOptions options = new FieldOptions(field, false, false);
+        session.regroupWithSingleFieldRules(rules, options, true);
 
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
     }

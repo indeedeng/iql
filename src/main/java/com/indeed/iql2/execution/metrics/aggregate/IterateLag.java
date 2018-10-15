@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.metrics.aggregate;
 
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -61,6 +62,11 @@ public class IterateLag implements AggregateMetric {
     public double apply(final long term, final long[] stats, final int group) {
         final double value = metric.apply(term, stats, group);
         return handle(value, group);
+    }
+
+    @Override
+    public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+        throw new UnsupportedOperationException("Cannot push IterateLag up into Imhotep Daemons.");
     }
 
     @Override

@@ -23,8 +23,10 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
+import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
@@ -55,7 +57,7 @@ import com.indeed.iql1.sql.ast.Op;
 import com.indeed.iql1.sql.ast.StringExpression;
 import com.indeed.iql1.sql.ast.TupleExpression;
 import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.SelectStatement;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.util.serialization.LongStringifier;
@@ -124,8 +126,15 @@ import static com.indeed.iql1.ez.Stats.Stat;
 public final class IQLTranslator {
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
-    public static IQLQuery translate(SelectStatement parse, ImhotepClient client, String username, ImhotepMetadataCache metadata,
-                                     Limits limits) {
+    public static IQLQuery translate(
+            IQL1SelectStatement parse,
+            ImhotepClient client,
+            String username,
+            ImhotepMetadataCache metadata,
+            Limits limits,
+            QueryInfo queryInfo,
+            StrictCloser strictCloser
+    ) {
         if(log.isTraceEnabled()) {
             log.trace(parse.toHashKeyString());
         }
@@ -179,7 +188,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, limits, fieldNames);
+                conditions, groupings, parse.limit, username, limits, fieldNames, queryInfo, strictCloser);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {

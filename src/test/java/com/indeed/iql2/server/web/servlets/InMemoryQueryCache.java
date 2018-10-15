@@ -18,7 +18,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
-import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.iql.cache.QueryCache;
 import com.indeed.util.io.Files;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteList;
@@ -36,6 +36,7 @@ import java.util.Set;
 public class InMemoryQueryCache implements QueryCache {
     private final Map<String, String> cachedValues = new HashMap<>();
     private final Set<String> readsTracked = new HashSet<>();
+    private final Set<String> writesTracked = new HashSet<>();
 
     @Override
     public boolean isEnabled() {
@@ -54,8 +55,12 @@ public class InMemoryQueryCache implements QueryCache {
 
     @Override
     public InputStream getInputStream(String cachedFileName) throws IOException {
+        final String cachedValue = cachedValues.get(cachedFileName);
+        if (cachedValue == null) {
+            return null;
+        }
         readsTracked.add(cachedFileName);
-        return new ByteArrayInputStream(cachedValues.get(cachedFileName).getBytes());
+        return new ByteArrayInputStream(cachedValue.getBytes());
     }
 
     @Override
@@ -74,6 +79,7 @@ public class InMemoryQueryCache implements QueryCache {
 
             @Override
             public void close() throws IOException {
+                writesTracked.add(cachedFileName);
                 cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
             }
         };
@@ -83,6 +89,7 @@ public class InMemoryQueryCache implements QueryCache {
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
         final String[] lines = Files.readTextFileOrDie(localFile.getAbsolutePath());
         cachedValues.put(cachedFileName, Joiner.on('\n').join(lines));
+        writesTracked.add(cachedFileName);
     }
 
     @Override
@@ -92,6 +99,10 @@ public class InMemoryQueryCache implements QueryCache {
 
     public Set<String> getReadsTracked() {
         return ImmutableSet.copyOf(readsTracked);
+    }
+
+    public Set<String> getWritesTracked() {
+        return ImmutableSet.copyOf(writesTracked);
     }
 
     public void clearReadsTracked() {

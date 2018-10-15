@@ -17,8 +17,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
+import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
@@ -27,8 +26,10 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
@@ -54,11 +55,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -89,15 +90,28 @@ public final class IQLQuery implements Closeable {
     private final ImhotepClient.SessionBuilder sessionBuilder;
     private final long shardsSelectionMillis;
     private final Limits limits;
-    private final Closer closer = Closer.create();
+    private final StrictCloser strictCloser;
     // session used for the current execution
     private EZImhotepSession session;
     private final Set<String> fields;
+    private final QueryInfo queryInfo;
     private final Set<String> datasetFields;
 
-    public IQLQuery(ImhotepClient client, final List<Stat> stats, final String dataset, final DateTime start, final DateTime end,
-                    final @Nonnull List<Condition> conditions, final @Nonnull List<Grouping> groupings, final int rowLimit,
-                    final String username, final Limits limits, final Set<String> fields) {
+    public IQLQuery(
+            final ImhotepClient client,
+            final List<Stat> stats,
+            final String dataset,
+            final DateTime start,
+            final DateTime end,
+            final @Nonnull List<Condition> conditions,
+            final @Nonnull List<Grouping> groupings,
+            final int rowLimit,
+            final String username,
+            final Limits limits,
+            final Set<String> fields,
+            final QueryInfo queryInfo,
+            final StrictCloser strictCloser
+    ) {
         this.stats = stats;
         this.dataset = dataset;
         this.start = start;
@@ -107,7 +121,9 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.limits = limits;
         this.fields = fields;
+        this.queryInfo = queryInfo;
         this.datasetFields = fields.stream().map(field -> dataset + "." + field).collect(Collectors.toSet());
+        this.strictCloser = strictCloser;
 
         long shardsSelectionStartTime = System.currentTimeMillis();
         sessionBuilder = client.sessionBuilder(dataset, start, end)
@@ -134,16 +150,16 @@ public final class IQLQuery implements Closeable {
     /**
      * Not thread safe due to session reference caching for close().
      */
-    public ExecutionResult execute(boolean progress, OutputStream outputStream, boolean getTotals, SelectExecutionStats selectExecutionStats) throws ImhotepOutOfMemoryException {
-        selectExecutionStats.setPhase("shardsSelectionMillis", shardsSelectionMillis);
+    public ExecutionResult execute(boolean progress, PrintWriter outputStream, boolean getTotals) throws ImhotepOutOfMemoryException {
+        queryInfo.shardsSelectionMillis = shardsSelectionMillis;
         //if outputStream passed, update on progress
-        final PrintWriter out = progress ? new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8)) : null;
+        final PrintWriter out = progress ? outputStream : null;
 
         final TreeTimer timer = new TreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
         session = new EZImhotepSession(imhotepSession, limits);
-        closer.register(session);
+        strictCloser.registerOrClose(session);
 
         final long numDocs = imhotepSession.getNumDocs();
         if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
@@ -151,16 +167,16 @@ public final class IQLQuery implements Closeable {
             throw new IqlKnownException.DocumentsLimitExceededException("The query on " + df.format(numDocs) +
                     " documents exceeds the limit of " + df.format(limits.queryDocumentCountLimitBillions * 1_000_000_000L) + ". Please reduce the time range.");
         }
-        selectExecutionStats.numDocs = numDocs;
+        queryInfo.numDocs = numDocs;
         final String imhotepSessionId;
         if(imhotepSession instanceof HasSessionId) {
             imhotepSessionId = ((HasSessionId) imhotepSession).getSessionId();
-            selectExecutionStats.sessionId = imhotepSessionId;
+            queryInfo.sessionIDs = Collections.singleton(imhotepSessionId);
         } else {
             imhotepSessionId = null;
         }
 
-        selectExecutionStats.setPhase("createSessionMillis", timer.pop());
+        queryInfo.createSessionMillis = (long)timer.pop();
 
         final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
 
@@ -178,7 +194,7 @@ public final class IQLQuery implements Closeable {
             }
             timer.push("Time filter");
             timeFilter(session);
-            selectExecutionStats.setPhase("timeFilterMillis", timer.pop());
+            queryInfo.timeFilterMillis = (long)timer.pop();
             if(progress) {
                 out.print(": Time filtering finished" + EVENT_SOURCE_END);
                 out.flush();
@@ -193,9 +209,11 @@ public final class IQLQuery implements Closeable {
                 conditionFilterMillis += timer.pop();
                 count = updateProgress(progress, out, count);
             }
-            selectExecutionStats.setPhase("conditionFilterMillis", conditionFilterMillis);
+            queryInfo.conditionFilterMillis = conditionFilterMillis;
 
+            queryInfo.maxGroups = 0;
             long pushStatsMillis = 0;
+            final ExecutionResult executionResult;
             if (groupings.size() > 0) {
                 List<StatReference> statRefs = null;
                 double[] totals = new double[0];
@@ -215,42 +233,46 @@ public final class IQLQuery implements Closeable {
                     checkTimeout(timeoutTS);
                     timer.push("Regroup " + (i + 1));
                     groupKeys = groupings.get(i).regroup(session, groupKeys);
-                    selectExecutionStats.maxImhotepGroups = Math.max(selectExecutionStats.maxImhotepGroups, session.getNumGroups());
+                    queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
                     regroupMillis += timer.pop();
                     count = updateProgress(progress, out, count);
                 }
-                selectExecutionStats.setPhase("regroupMillis", regroupMillis);
+                queryInfo.regroupMillis = regroupMillis;
                 checkTimeout(timeoutTS);
                 if(!getTotals) {
                     timer.push("Pushing stats");
                     statRefs = pushStats(session);
                     pushStatsMillis += timer.pop();
                 }
-                selectExecutionStats.setPhase("pushStatsMillis", pushStatsMillis);
+                queryInfo.pushStatsMillis = pushStatsMillis;
 
                 // do FTGS on the last grouping
                 timer.push("FTGS");
                 final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
                 if(groupStatsIterator instanceof Closeable) {
-                    closer.register((Closeable) groupStatsIterator);
+                    strictCloser.registerOrClose((Closeable) groupStatsIterator);
                 }
-                selectExecutionStats.maxImhotepGroups = Math.max(selectExecutionStats.maxImhotepGroups, session.getNumGroups());
+                queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
                 final long ftgsMillis = timer.pop();
-                selectExecutionStats.setPhase("ftgsMillis", ftgsMillis);
+                queryInfo.ftgsMillis = ftgsMillis;
                 updateProgress(progress, out, count);
-                return new ExecutionResult(groupStatsIterator, totals, timer.toString(), session.getTempFilesBytesWritten());
+
+                executionResult = new ExecutionResult(groupStatsIterator, totals);
             } else {
                 timer.push("Pushing stats");
                 final List<StatReference> statRefs = pushStats(session);
-                selectExecutionStats.setPhase("pushStatsMillis", timer.pop());
+                queryInfo.pushStatsMillis = (long) timer.pop();
                 timer.push("Getting stats");
                 final double[] stats = getStats(statRefs);
-                selectExecutionStats.setPhase("getStatsMillis", timer.pop());
+                queryInfo.getStatsMillis = (long) timer.pop();
                 count = updateProgress(progress, out, count);
                 final List<GroupStats> result = Lists.newArrayList();
                 result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));
-                return new ExecutionResult(result.iterator(), stats, timer.toString(), session.getTempFilesBytesWritten());
+                executionResult = new ExecutionResult(result.iterator(), stats);
             }
+            queryInfo.timingTreeReport = timer.toString();
+            queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
+            return executionResult;
         } catch (Throwable t) {
             log.error("Error while executing the query", t);
             throw Throwables.propagate(t);
@@ -279,14 +301,10 @@ public final class IQLQuery implements Closeable {
     public static class ExecutionResult {
         private final Iterator<GroupStats> rows;
         private final double[] totals;
-        private final String timings;
-        private final long imhotepTempFilesBytesWritten;
 
-        public ExecutionResult(Iterator<GroupStats> rows, double[] totals, String timings, long imhotepTempFilesBytesWritten) {
+        public ExecutionResult(Iterator<GroupStats> rows, double[] totals) {
             this.rows = rows;
             this.totals = totals;
-            this.timings = timings;
-            this.imhotepTempFilesBytesWritten = imhotepTempFilesBytesWritten;
         }
 
         public Iterator<GroupStats> getRows() {
@@ -295,14 +313,6 @@ public final class IQLQuery implements Closeable {
 
         public double[] getTotals() {
             return totals;
-        }
-
-        public String getTimings() {
-            return timings;
-        }
-
-        public long getImhotepTempFilesBytesWritten() {
-            return imhotepTempFilesBytesWritten;
         }
     }
 
@@ -386,14 +396,12 @@ public final class IQLQuery implements Closeable {
         public final int rowsWritten;
         public final File unsortedFile;
         public final Iterator<GroupStats> resultCacheIterator;
-        public final long timeTaken;
         public final boolean exceedsLimit;
 
-        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, long timeTaken, boolean exceedsLimit) {
+        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, boolean exceedsLimit) {
             this.rowsWritten = rowsWritten;
             this.unsortedFile = unsortedFile;
             this.resultCacheIterator = resultCacheIterator;
-            this.timeTaken = timeTaken;
             this.exceedsLimit = exceedsLimit;
         }
 
@@ -403,12 +411,12 @@ public final class IQLQuery implements Closeable {
     }
 
     @Nonnull
-    public WriteResults outputResults(final Iterator<GroupStats> rows, OutputStream httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
+    public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
         final long timeStarted = System.currentTimeMillis();
         final boolean requiresSorting = requiresSorting();
         if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);
-            return new WriteResults(rowsWritten, null, null, System.currentTimeMillis() - timeStarted, rows.hasNext());
+            return new WriteResults(rowsWritten, null, null, rows.hasNext());
         }
 
         List<GroupStats> resultsCache = Lists.newArrayList();
@@ -427,11 +435,13 @@ public final class IQLQuery implements Closeable {
             // TODO: in memory sort if necessary? or just always defer to gnu sort?
             final int rowsWritten = writeRowsToStream(resultsCache.iterator(), httpOutStream, csv, rowLimit, progress);
             final boolean exceedsRowLimit = rowsLoaded >= rowLimit && rows.hasNext();
-            return new WriteResults(rowsWritten, null, resultsCache.iterator(), System.currentTimeMillis() - timeStarted, exceedsRowLimit);
+            return new WriteResults(rowsWritten, null, resultsCache.iterator(), exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
             try {
                 final File unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
-                final FileOutputStream fileOutputStream = new FileOutputStream(unsortedFile);
+                // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
+                final PrintWriter fileOutputStream = new PrintWriter(new OutputStreamWriter(
+                        new BufferedOutputStream(new FileOutputStream(unsortedFile)), Charsets.UTF_8));
                 final long started = System.currentTimeMillis();
                 int rowsWritten = 0;
                 // flush cache
@@ -454,7 +464,7 @@ public final class IQLQuery implements Closeable {
                 copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
 
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
-                return new WriteResults(rowsWritten, unsortedFile, null, System.currentTimeMillis() - timeStarted, exceedsRowLimit);
+                return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
@@ -510,22 +520,22 @@ public final class IQLQuery implements Closeable {
      * Copies everything from input stream to the output stream, limiting to the requested number of lines if necessary.
      * Input stream is closed; output stream is flushed but not closed when done.
      */
-    public static int copyStream(InputStream inputStream, OutputStream outputStream, int lineLimit, boolean eventSource) {
-        final String EVENT_NAME = "resultstream";
+    public static int copyStream(InputStream inputStream, PrintWriter outputStream, int lineLimit, boolean eventSource) {
         try {
             if(!eventSource && (lineLimit == Integer.MAX_VALUE || lineLimit <= 0)) {
                 // no need to count rows so copy streams completely
                 // we can't do this if we need the eventSource data
-                ByteStreams.copy(inputStream, outputStream);
+                CharStreams.copy(new InputStreamReader(inputStream, Charsets.UTF_8), outputStream);
                 outputStream.flush();
                 return 0;    // unknown how many rows were copied as we haven't counted
             }
 
             // have to count the lines as we copy to enforce the limit
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, Charsets.UTF_8));
-            final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, Charsets.UTF_8));
+            final BufferedWriter writer = new BufferedWriter(outputStream);
 
             if(eventSource) {
+                final String EVENT_NAME = "resultstream";
                 writer.write("event: " + EVENT_NAME);
                 writer.newLine();
             }
@@ -534,7 +544,7 @@ public final class IQLQuery implements Closeable {
             int linesCopied = 0;
             while(line != null) {
                 if(eventSource) {
-                    line = "data: " + line;
+                    writer.write("data: ");
                 }
                 writer.write(line);
                 writer.newLine();
@@ -555,11 +565,10 @@ public final class IQLQuery implements Closeable {
         }
     }
 
-    public static int writeRowsToStream(final Iterator<GroupStats> rows, OutputStream os, final boolean csv, final int rowLimit, final boolean progress) {
+    public static int writeRowsToStream(final Iterator<GroupStats> rows, PrintWriter out, final boolean csv, final int rowLimit, final boolean progress) {
         // TODO: how much precision do we want?
         final DecimalFormat format = new DecimalFormat("#.#######");
         final String tsvDelimiter = "\t";
-        final PrintWriter out = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(os), Charsets.UTF_8));
 
         final CSVWriter csvWriter;
         final List<String> csvFields;
@@ -660,9 +669,13 @@ public final class IQLQuery implements Closeable {
 
     public DateTime getEnd() { return end; }
 
+    public String getDataset() {
+        return dataset;
+    }
+
     @Override
     public void close() {
-        Closeables2.closeQuietly(closer, log);
+        Closeables2.closeQuietly(strictCloser, log);
     }
 
     @Nullable

@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.progress;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.ImhotepSession;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 
@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface ProgressCallback {
+
+    // Called when we first register the query and assign it a query ID
+    void queryIdAssigned(long queryId);
+
     /**
      * Optional.absent() when a Command List is not given.
      */
@@ -33,7 +37,7 @@ public interface ProgressCallback {
     void preSessionOpen(Map<String, List<Shard>> datasetToChosenShards);
 
     // Provided separately in order to allow early termination.
-    void sessionOpened(ImhotepSession session);
+    void sessionOpened(ImhotepSessionHolder session);
 
     void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions);
 

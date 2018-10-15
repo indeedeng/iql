@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.execution;
 
-import com.indeed.iql2.execution.compat.Consumer;
+import java.util.function.Consumer;;
 
 /**
  * @author jwolfe

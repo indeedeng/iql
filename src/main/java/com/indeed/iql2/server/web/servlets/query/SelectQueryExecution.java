@@ -22,7 +22,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -30,27 +29,27 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.iql1.iql.cache.QueryCache;
+import com.indeed.iql.StrictCloser;
+import com.indeed.iql.web.QueryInfo;
+import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.web.QueryMetadata;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.compat.Consumer;
 import com.indeed.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import com.indeed.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
@@ -77,16 +76,17 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.joda.time.Interval;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -103,16 +103,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
-public class SelectQueryExecution implements Closeable {
+public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String METADATA_FILE_SUFFIX = ".meta";
 
     // IQL2 server systems
     private final QueryCache queryCache;
+    private final QueryMetadata queryMetadata;
+    private final ExecutorService cacheUploadExecutorService;
 
     // Query sanity limits
     public final Limits limits;
@@ -134,10 +140,8 @@ public class SelectQueryExecution implements Closeable {
     public final boolean isStream;
     public final boolean skipValidation;
     private final WallClock clock;
-    private final Closer closer = Closer.create();
 
     public boolean ran = false;
-    public long queryStartTimestamp = -1L;
 
     public SelectQueryExecution(
             final QueryCache queryCache,
@@ -152,8 +156,9 @@ public class SelectQueryExecution implements Closeable {
             final int version,
             final boolean isStream,
             final boolean skipValidation,
-            final WallClock clock
-    ) {
+            final WallClock clock,
+            QueryMetadata queryMetadata,
+            ExecutorService cacheUploadExecutorService) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
@@ -167,14 +172,11 @@ public class SelectQueryExecution implements Closeable {
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
         this.queryCache = queryCache;
+        this.queryMetadata = queryMetadata;
+        this.cacheUploadExecutorService = cacheUploadExecutorService;
     }
 
-    @Override
-    public void close() {
-        Closeables2.closeQuietly(closer, log);
-    }
-
-    public void processSelect(final RunningQueriesManager runningQueriesManager) throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
         // .. just in case.
         synchronized (this) {
             if (ran) {
@@ -183,32 +185,20 @@ public class SelectQueryExecution implements Closeable {
             ran = true;
         }
 
-        final long startTime = clock.currentTimeMillis();
-        queryStartTimestamp = System.currentTimeMillis(); // ignore time spent waiting
         if (isStream) {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
         final Consumer<String> out;
         if (isStream) {
-            out = new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    outputStream.print("data: ");
-                    outputStream.println(s);
-                }
+            out = s -> {
+                outputStream.print("data: ");
+                outputStream.println(s);
             };
         } else {
-            out = new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    outputStream.println(s);
-                }
-            };
+            out = outputStream::println;
         }
 
-        final CountingConsumer<String> countingOut = new CountingConsumer<>(out);
-        final Set<String> warnings = new HashSet<>();
         final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
         ProgressCallback progressCallback;
 
@@ -222,45 +212,13 @@ public class SelectQueryExecution implements Closeable {
             progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
         }
 
-        final SelectExecutionInformation execInfo = executeSelect(runningQueriesManager, queryInfo, query, version == 1, countingOut, progressCallback, new com.indeed.iql2.language.compat.Consumer<String>() {
-            @Override
-            public void accept(String s) {
-                warnings.add(s);
-            }
-        });
-        extractCompletedQueryInfoData(execInfo, warnings, countingOut);
-        if (isStream) {
-            outputStream.println();
-            outputStream.println("event: header");
-
-            // TODO: Fix these headers
-            final Map<String, Object> headerMap = new HashMap<>();
-            headerMap.put("IQL-Cached", execInfo.allCached());
-            headerMap.put("IQL-Timings", timer.toString().replaceAll("\n", "\t"));
-            headerMap.put("IQL-Shard-Lists", execInfo.perDatasetShardIds().toString());
-            headerMap.put("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(execInfo.newestStaticShard().or(-1L)));
-            headerMap.put("IQL-Imhotep-Temp-Bytes-Written", execInfo.imhotepTempBytesWritten);
-            headerMap.put("Imhotep-Session-IDs", execInfo.sessionIds);
-            headerMap.put("IQL-Execution-Time", ISODateTimeFormat.dateTime().print(startTime));
-            if (!warnings.isEmpty()) {
-                headerMap.put("IQL-Warning", Joiner.on('\n').join(warnings));
-            }
-            if (queryInfo.cpuSlotsExecTimeMs != null) {
-                headerMap.put("Imhotep-CPU-Slots-Execution-Time-MS", queryInfo.cpuSlotsExecTimeMs);
-            }
-            outputStream.println("data: " + OBJECT_MAPPER.writeValueAsString(headerMap));
-            outputStream.println();
-
-            outputStream.println("event: complete");
-            outputStream.println("data: :)");
-            outputStream.println();
-        }
+        executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, progressCallback);
     }
 
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
         int shardCount = 0;
         Duration totalShardPeriod = Duration.ZERO;
-        for (final List<Shard> shardList : execInfo.shards.values()) {
+        for (final List<Shard> shardList : execInfo.datasetToShards.values()) {
             shardCount += shardList.size();
             for (final Shard shardInfo : shardList) {
                 ShardInfo.DateTimeRange range = shardInfo.getRange();
@@ -268,7 +226,7 @@ public class SelectQueryExecution implements Closeable {
             }
         }
         queryInfo.numShards = shardCount;
-        queryInfo.totalShardPeriod = totalShardPeriod;
+        queryInfo.totalShardPeriodHours = totalShardPeriod.toStandardHours().getHours();
         queryInfo.cached = execInfo.allCached();
         queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;
         queryInfo.sessionIDs = execInfo.sessionIds;
@@ -278,37 +236,26 @@ public class SelectQueryExecution implements Closeable {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
-        final PerformanceStats imhotepPerfStats = execInfo.imhotepPerformanceStats;
-        if (imhotepPerfStats != null) {
-            queryInfo.imhotepcputimems = imhotepPerfStats.cpuTime / 1000000;   // nanoseconds to ms;
-            queryInfo.imhoteprammb = imhotepPerfStats.maxMemoryUsage / 1024 / 1024;
-            queryInfo.imhotepftgsmb = imhotepPerfStats.ftgsTempFileSize / 1024 / 1024;
-            queryInfo.imhotepfieldfilesmb = imhotepPerfStats.fieldFilesReadSize / 1024 / 1024;
-            queryInfo.cpuSlotsExecTimeMs = imhotepPerfStats.cpuSlotsExecTimeMs;
-            queryInfo.cpuSlotsWaitTimeMs = imhotepPerfStats.cpuSlotsWaitTimeMs;
-            queryInfo.ioSlotsExecTimeMs = imhotepPerfStats.ioSlotsExecTimeMs;
-            queryInfo.ioSlotsWaitTimeMs = imhotepPerfStats.ioSlotsWaitTimeMs;
-        }
+        queryInfo.setFromPerformanceStats(execInfo.imhotepPerformanceStats);
 
         if (execInfo.hasMoreRows) {
             warnings.add(String.format("Only first %d rows returned sorted on the last group by column", queryInfo.rows));
         }
     }
 
-    // TODO: These parameters are nuts
     private SelectExecutionInformation executeSelect(
             final RunningQueriesManager runningQueriesManager,
             final QueryInfo queryInfo,
             final String q,
             final boolean useLegacy,
             final Consumer<String> out,
-            final ProgressCallback progressCallback,
-            final com.indeed.iql2.language.compat.Consumer<String> warn
-    ) throws IOException, ImhotepOutOfMemoryException, ImhotepKnownException {
-        timer.push(q.replaceAll("\\s+", " "));
+            final ProgressCallback progressCallback
+    ) throws IOException {
+        final Set<String> warnings = new HashSet<>();
+        timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warn, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warnings::add, clock);
         timer.pop();
 
         {
@@ -330,7 +277,7 @@ public class SelectQueryExecution implements Closeable {
                 queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
-            queryInfo.totalDatasetRange = datasetRangeSum;
+            queryInfo.totalDatasetRangeDays = datasetRangeSum.toStandardDays().getDays();
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
@@ -358,49 +305,74 @@ public class SelectQueryExecution implements Closeable {
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
-        final SelectQuery selectQuery = new SelectQuery(runningQueriesManager, query, clientInfo, limits, new DateTime(queryStartTimestamp),
-                null, (byte) sessions, this);
+        final StrictCloser strictCloser = new StrictCloser();
+        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
 
         try {
             timer.push("Acquire concurrent query lock");
             selectQuery.lock();
             timer.pop();
-            queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
-            return new ParsedQueryExecution(parseResult.inputStream, out, warn, progressCallback, parseResult.query, limits.queryInMemoryRowsLimit).executeParsedQuery();
+            queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
+            return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
+                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
+        } catch (final Exception e) {
+            selectQuery.checkCancelled();
+            throw e;
         } finally {
             if (!selectQuery.isAsynchronousRelease()) {
                 Closeables2.closeQuietly(selectQuery, log);
             }
-            timer.pop();
         }
     }
 
     private class ParsedQueryExecution {
+        private final boolean isTopLevelQuery;
         private final CharStream inputStream;
         private final Consumer<String> externalOutput;
-        private final com.indeed.iql2.language.compat.Consumer warn;
+        private final Set<String> warnings;
 
         private final int groupLimit;
+        private final SelectQuery selectQuery;
+        private final StrictCloser strictCloser;
 
         private final Query originalQuery;
 
         private final ProgressCallback progressCallback;
         private final Map<Query, Boolean> queryCached = new HashMap<>();
 
-        private ParsedQueryExecution(CharStream inputStream, Consumer<String> out, com.indeed.iql2.language.compat.Consumer warn, ProgressCallback progressCallback, Query query, @Nullable Integer groupLimit) {
+        private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
+
+        private ParsedQueryExecution(
+                boolean isTopLevelQuery,
+                CharStream inputStream,
+                Consumer<String> out,
+                Set<String> warnings,
+                ProgressCallback progressCallback,
+                Query query,
+                @Nullable Integer groupLimit,
+                SelectQuery selectQuery,
+                StrictCloser strictCloser
+        ) {
+            this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
-            this.warn = warn;
+            this.warnings = warnings;
             this.progressCallback = progressCallback;
             this.originalQuery = query;
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
+            this.selectQuery = selectQuery;
+            this.strictCloser = strictCloser;
         }
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
             final int[] totalBytesWritten = {0};
             final Set<String> cacheKeys = new HashSet<>();
             final ListMultimap<String, List<Shard>> allShardsUsed = ArrayListMultimap.create();
+            final List<DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
 
+            // TODO: subqueries should be executed at a later stage after the query hash is calculated
+            // to support "head only" requests for shard related headers
             final Query query = originalQuery.transform(
                     Functions.<GroupBy>identity(),
                     Functions.<AggregateMetric>identity(),
@@ -421,7 +393,7 @@ public class SelectQueryExecution implements Closeable {
                                     timer.push("Execute sub-query: \"" + q + "\"");
                                     try {
                                         // TODO: This use of ProgressCallbacks looks wrong.
-                                        final SelectExecutionInformation execInfo = new ParsedQueryExecution(inputStream, new Consumer<String>() {
+                                        final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
                                             @Override
                                             public void accept(String s) {
                                                 if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
@@ -434,10 +406,11 @@ public class SelectQueryExecution implements Closeable {
                                                     stringTerms.add(term);
                                                 }
                                             }
-                                        }, warn, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit).executeParsedQuery();
+                                        }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                                         totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                                         cacheKeys.addAll(execInfo.cacheKeys);
-                                        allShardsUsed.putAll(execInfo.shards);
+                                        allShardsUsed.putAll(execInfo.datasetToShards);
+                                        datasetsWithMissingShards.addAll(execInfo.datasetsWithMissingShards);
                                     } catch (IOException e) {
                                         throw Throwables.propagate(e);
                                     }
@@ -485,9 +458,7 @@ public class SelectQueryExecution implements Closeable {
                     throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
                 }
                 if (warnings.size() != 0) {
-                    for (String warning : warnings) {
-                        warn.accept(warning);
-                    }
+                    this.warnings.addAll(warnings);
                 }
                 timer.pop();
             }
@@ -495,70 +466,103 @@ public class SelectQueryExecution implements Closeable {
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
             if (conflictFieldsUsed.size() > 0) {
                 final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
-                warn.accept(conflictWarning);
+                warnings.add(conflictWarning);
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
+            datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
+            if (isTopLevelQuery) {
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), true);
 
-            final AtomicBoolean errorOccurred = new AtomicBoolean(false);
+                for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
+                    warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
+                            datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
+                }
+
+                if(datasetsWithMissingShards.size() > 0) {
+                    final List<Interval> missingIntervals = datasetsWithMissingShards.stream()
+                            .map(DatasetWithMissingShards::getTimeIntervalsMissingShards).collect(ArrayList::new, List::addAll, List::addAll);
+                    final String missingIntervalsString = QueryServlet.intervalListToString(missingIntervals);
+                    queryMetadata.addItem("IQL-Missing-Shards", missingIntervalsString, true);
+                }
+            }
+
+            // TODO: if HEAD query, return here
 
             cacheKeys.add(computeCacheKey.rawHash);
 
-            Consumer<String> out = externalOutput;
+            final CountingConsumer<String> countingExternalOutput = new CountingConsumer<>(externalOutput);
+
+            Consumer<String> out = countingExternalOutput;
 
             final boolean skipCache = query.options.contains(QueryOptions.NO_CACHE);
 
-            try (final Closer closer = Closer.create()) {
-                if (queryCache.isEnabled() && !skipCache) {
+            final boolean cacheEnabled = queryCache.isEnabled() && !skipCache;
+            final File cacheFile;
+            final BufferedWriter cacheWriter;
+
+            try (final StrictCloser innerStrictCloser = new StrictCloser()) {
+                strictCloser.registerOrClose(innerStrictCloser);
+                final String cacheFileName = computeCacheKey.cacheFileName;
+                if (cacheEnabled) {
                     timer.push("cache check");
-                    final boolean isCached = queryCache.isFileCached(computeCacheKey.cacheFileName);
+                    final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
+                    final boolean isCached = cacheInputStream != null;
                     timer.pop();
 
                     queryCached.put(query, isCached);
 
                     if (isCached) {
                         timer.push("read cache");
+                        if (isTopLevelQuery) {
+                            boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
+                            queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
+                            // read metadata from cache
+                            // TODO: reenable
+                            //                            try {
+                            //                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                            //                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                            //                                queryMetadata.mergeIn(cachedMetadata);
+                            //                            } catch (Exception e) {
+                            //                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                            //                            }
+                            queryMetadata.setPendingHeaders();
+                        }
                         // TODO: Don't have this hack
                         progressCallback.startCommand(null, null, true);
-                        final boolean hasMoreRows = sendCachedQuery(computeCacheKey.cacheFileName, out, query.rowLimit, queryCache);
+                        final boolean hasMoreRows = sendCachedQuery(out, query.rowLimit, cacheInputStream);
                         timer.pop();
-                        return new SelectExecutionInformation(allShardsUsed, queryCached, totalBytesWritten[0], null, cacheKeys,
+                        final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
+                                queryCached, totalBytesWritten[0], null, cacheKeys,
                                 Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
-                    } else {
-                        final Consumer<String> oldOut = out;
-                        final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
-                        final File cacheFile = tmpFile.toFile();
-                        final BufferedWriter cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
-                        closer.register(new Closeable() {
-                            @Override
-                            public void close() throws IOException {
-                                // TODO: Do this stuff asynchronously
-                                timer.push("Cache upload");
-                                cacheWriter.close();
-                                if (!errorOccurred.get()) {
-                                    queryCache.writeFromFile(computeCacheKey.cacheFileName, cacheFile);
-                                }
-                                if (!cacheFile.delete()) {
-                                    log.warn("Failed to delete  " + cacheFile);
-                                }
-                                timer.pop();
-                            }
-                        });
-                        out = new Consumer<String>() {
-                            @Override
-                            public void accept(String s) {
-                                oldOut.accept(s);
-                                try {
-                                    cacheWriter.write(s);
-                                    cacheWriter.newLine();
-                                } catch (IOException e) {
-                                    throw Throwables.propagate(e);
-                                }
-                            }
-                        };
+
+                        finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
+                        return selectExecutionInformation;
                     }
+
+                    final Consumer<String> oldOut = out;
+                    final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
+                    cacheFile = tmpFile.toFile();
+                    // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
+                    cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
+                    out = s -> {
+                        oldOut.accept(s);
+                        try {
+                            cacheWriter.write(s);
+                            cacheWriter.newLine();
+                        } catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    };
+                } else {
+                    cacheFile = null;
+                    cacheWriter = null;
+                }
+                if (isTopLevelQuery) {
+                    queryMetadata.addItem("IQL-Cached", "false", true);
+                    queryMetadata.setPendingHeaders();
                 }
                 final AtomicBoolean hasMoreRows = new AtomicBoolean(false);
                 if (query.rowLimit.isPresent()) {
@@ -591,7 +595,7 @@ public class SelectQueryExecution implements Closeable {
                             Sets.newHashSet(query.options),
                             commands,
                             datasets,
-                            closer,
+                            innerStrictCloser,
                             out,
                             timer,
                             compositeProgressCallback,
@@ -599,8 +603,10 @@ public class SelectQueryExecution implements Closeable {
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
                             clientInfo.username
                     );
-                    return new SelectExecutionInformation(
+
+                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
                             allShardsUsed,
+                            datasetsWithMissingShards,
                             queryCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
                             createResult.imhotepPerformanceStats,
@@ -610,11 +616,81 @@ public class SelectQueryExecution implements Closeable {
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
                             hasMoreRows.get());
+
+                    finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
+
+                    if (cacheEnabled) {
+                        // Cache upload
+                        cacheUploadingCounter.incrementAndGet();
+
+                        cacheUploadExecutorService.submit(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                try {
+                                    if (isTopLevelQuery) {
+                                        // TODO: reenable
+                                        //                                        try {
+                                        //                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                        //                                            queryMetadata.toOutputStream(metadataCacheStream);
+                                        //                                            metadataCacheStream.close();
+                                        //                                        } catch (Exception e) {
+                                        //                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                        //                                        }
+                                    }
+                                    try {
+                                        cacheWriter.close();
+                                        queryCache.writeFromFile(cacheFileName, cacheFile);
+                                        if (!cacheFile.delete()) {
+                                            log.warn("Failed to delete  " + cacheFile);
+                                        }
+                                    } catch (Exception e) {
+                                        log.warn("Failed to upload cache: " + cacheFileName, e);
+                                    }
+                                } finally {
+                                    if (cacheUploadingCounter.decrementAndGet() == 0) {
+                                        Closeables2.closeQuietly(selectQuery, log);
+                                    }
+                                }
+                                return null;
+                            }
+                        });
+                        selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
+                    }
+
+                    return selectExecutionInformation;
                 } catch (Exception e) {
-                    errorOccurred.set(true);
                     throw Throwables.propagate(e);
                 }
             }
+        }
+
+        private void finalizeQueryExecution(CountingConsumer<String> countingExternalOutput, SelectExecutionInformation selectExecutionInformation) {
+            if(!isTopLevelQuery) {
+                return;
+            }
+            extractCompletedQueryInfoData(selectExecutionInformation, warnings, countingExternalOutput);
+            timer.pop(); // "Select query execution" from executeSelect
+            queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
+            queryInfo.timingTreeReport = timer.toString();
+
+            if (isStream) {
+                outputStream.println();
+                outputStream.println("event: header");
+
+                if (!warnings.isEmpty()) {
+                    queryMetadata.addItem("IQL-Warning", Joiner.on('\n').join(warnings), false);
+                }
+                queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
+
+                outputStream.println("data: " + queryMetadata.toJSONForClients());
+                outputStream.println();
+
+                outputStream.println("event: complete");
+                outputStream.println("data: :)");
+                outputStream.println();
+            }
+            outputStream.close(); // only close on success because on error the stack trace is printed
         }
     }
 
@@ -637,6 +713,24 @@ public class SelectQueryExecution implements Closeable {
         return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 
+    private static class DatasetWithMissingShards {
+        public final String dataset;
+        public final DateTime start;
+        public final DateTime end;
+        public final List<Interval> timeIntervalsMissingShards;
+
+        public DatasetWithMissingShards(String dataset, DateTime start, DateTime end, List<Interval> timeIntervalsMissingShards) {
+            this.dataset = dataset;
+            this.start = start;
+            this.end = end;
+            this.timeIntervalsMissingShards = timeIntervalsMissingShards;
+        }
+
+        public List<Interval> getTimeIntervalsMissingShards() {
+            return timeIntervalsMissingShards;
+        }
+    }
+
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
         timer.push("compute dataset normalization");
         final List<String> datasets = imhotepClient.getDatasetNames();
@@ -650,6 +744,7 @@ public class SelectQueryExecution implements Closeable {
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
         final Map<String, List<Shard>> datasetToChosenShards = Maps.newHashMap();
+        final List<DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
             final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
@@ -657,7 +752,12 @@ public class SelectQueryExecution implements Closeable {
                 throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset.dataset.unwrap());
             }
             final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
-            final List<Shard> chosenShards = imhotepClient.findShardsForTimeRange(actualDataset, dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap());
+            final DateTime startTime = dataset.startInclusive.unwrap();
+            final DateTime endTime = dataset.endExclusive.unwrap();
+            ImhotepClient.SessionBuilder imhotepSessionBuilder =
+                    imhotepClient.sessionBuilder(actualDataset, startTime, endTime);
+            final List<Shard> chosenShards = imhotepSessionBuilder.getChosenShards();
+            datasetsWithMissingShards.add(new DatasetWithMissingShards(sessionName, startTime, endTime, imhotepSessionBuilder.getTimeIntervalsMissingShards()));
             timer.pop();
             for (final Shard chosenShard : chosenShards) {
                 // This needs to be associated with the session name, not just the actualDataset.
@@ -677,14 +777,14 @@ public class SelectQueryExecution implements Closeable {
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
-        return new ComputeCacheKey(datasetToChosenShards, queryHash, cacheFileName);
+        return new ComputeCacheKey(datasetToChosenShards, datasetsWithMissingShards, queryHash, cacheFileName);
     }
 
-    private static boolean sendCachedQuery(String cacheFile, Consumer<String> out, Optional<Integer> rowLimit, QueryCache queryCache) throws IOException {
+    private static boolean sendCachedQuery(Consumer<String> out, Optional<Integer> rowLimit, InputStream cacheInputStream) throws IOException {
         final int limit = rowLimit.or(Integer.MAX_VALUE);
         int rowsWritten = 0;
         boolean hasMoreRows = false;
-        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(queryCache.getInputStream(cacheFile)))) {
+        try (final BufferedReader stream = new BufferedReader(new InputStreamReader(cacheInputStream))) {
             String line;
             while ((line = stream.readLine()) != null) {
                 out.accept(line);
@@ -733,54 +833,48 @@ public class SelectQueryExecution implements Closeable {
         return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 
-    static class QueryInfo {
-        @Nullable String statementType;
-        @Nullable Set<String> datasets;
-        @Nullable Duration totalDatasetRange; // SUM(dataset (End - Start))
-        @Nullable Duration totalShardPeriod; // SUM(shard (end-start))
-        @Nullable Long ftgsMB;
-        @Nullable Long imhotepcputimems;
-        @Nullable Long imhoteprammb;
-        @Nullable Long imhotepftgsmb;
-        @Nullable Long imhotepfieldfilesmb;
-        @Nullable Long cpuSlotsExecTimeMs;
-        @Nullable Long cpuSlotsWaitTimeMs;
-        @Nullable Long ioSlotsExecTimeMs;
-        @Nullable Long ioSlotsWaitTimeMs;
-        @Nullable Collection<String> sessionIDs;
-        @Nullable Integer numShards;
-        @Nullable Long numDocs;
-        @Nullable Boolean cached;
-        @Nullable Integer rows;
-        @Nullable Set<String> cacheHashes;
-        @Nullable Integer maxGroups;
-        @Nullable Integer maxConcurrentSessions;
-        @Nullable Set<String> datasetFields;
-
+    public static Optional<Long> newestStaticShard(Multimap<String, List<Shard>> datasetToShards) {
+        long newestStatic = -1;
+        for (final List<Shard> shardset : datasetToShards.values()) {
+            for (final Shard shard : shardset) {
+                if (!DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
+                    newestStatic = Math.max(newestStatic, shard.getVersion());
+                }
+            }
+        }
+        if (newestStatic == -1) {
+            return Optional.absent();
+        } else {
+            return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
+        }
     }
 
     private static class SelectExecutionInformation {
-        public final Multimap<String, List<Shard>> shards;
+        public final Multimap<String, List<Shard>> datasetToShards;
+        public final List<DatasetWithMissingShards> datasetsWithMissingShards;
         public final Map<Query, Boolean> queryCached;
         public final long imhotepTempBytesWritten;
         @Nullable
         public final PerformanceStats imhotepPerformanceStats;
         public final Set<String> cacheKeys;
 
-        public final List<String> sessionIds;
+        public final Set<String> sessionIds;
         public final long totalNumDocs;
         public final int maxNumGroups;
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
-        private SelectExecutionInformation(Multimap<String, List<Shard>> shards, Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats, Set<String> cacheKeys, List<String> sessionIds,
-                                           long totalNumDocs, int maxNumGroups, int maxConcurrentSessions, final boolean hasMoreRows) {
-            this.shards = shards;
+        private SelectExecutionInformation(Multimap<String, List<Shard>> datasetToShards, List<DatasetWithMissingShards> datasetsWithMissingShards,
+                                           Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
+                                           Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
+                                           final boolean hasMoreRows) {
+            this.datasetToShards = datasetToShards;
+            this.datasetsWithMissingShards = datasetsWithMissingShards;
             this.queryCached = queryCached;
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
             this.imhotepPerformanceStats = imhotepPerformanceStats;
             this.cacheKeys = ImmutableSet.copyOf(cacheKeys);
-            this.sessionIds = ImmutableList.copyOf(sessionIds);
+            this.sessionIds = ImmutableSet.copyOf(sessionIds);
             this.totalNumDocs = totalNumDocs;
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;
@@ -794,30 +888,6 @@ public class SelectQueryExecution implements Closeable {
                 }
             }
             return true;
-        }
-
-        public Multimap<String, List<String>> perDatasetShardIds() {
-            return Multimaps.transformValues(shards, new Function<List<Shard>, List<String>>() {
-                public List<String> apply(List<Shard> shardsForDataset) {
-                    return Shard.keepShardIds(shardsForDataset);
-                }
-            });
-        }
-
-        public Optional<Long> newestStaticShard() {
-            long newestStatic = -1;
-            for (final List<Shard> shardset : shards.values()) {
-                for (final Shard shard : shardset) {
-                    if (!DynamicIndexSubshardDirnameUtil.isValidDynamicShardId(shard.getShardId())) {
-                        newestStatic = Math.max(newestStatic, shard.getVersion());
-                    }
-                }
-            }
-            if (newestStatic == -1) {
-                return Optional.absent();
-            } else {
-                return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
-            }
         }
     }
 
@@ -867,11 +937,13 @@ public class SelectQueryExecution implements Closeable {
 
     public static class ComputeCacheKey {
         public final Map<String, List<Shard>> datasetToChosenShards;
+        public final List<DatasetWithMissingShards> datasetsWithMissingShards;
         public final String rawHash;
         public final String cacheFileName;
 
-        private ComputeCacheKey(Map<String, List<Shard>> datasetToChosenShards, String rawHash, String cacheFileName) {
+        private ComputeCacheKey(Map<String, List<Shard>> datasetToChosenShards, List<DatasetWithMissingShards> datasetsWithMissingShards, String rawHash, String cacheFileName) {
             this.datasetToChosenShards = datasetToChosenShards;
+            this.datasetsWithMissingShards = datasetsWithMissingShards;
             this.rawHash = rawHash;
             this.cacheFileName = cacheFileName;
         }

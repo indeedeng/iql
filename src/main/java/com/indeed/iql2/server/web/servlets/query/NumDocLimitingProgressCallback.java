@@ -16,8 +16,8 @@ package com.indeed.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
@@ -30,6 +30,10 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
 
     public NumDocLimitingProgressCallback(long docLimit) {
         this.docLimit = docLimit;
+    }
+
+    @Override
+    public void queryIdAssigned(final long queryId) {
     }
 
     @Override
@@ -48,7 +52,8 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(ImhotepSession session) {
+    public void sessionOpened(final ImhotepSessionHolder session) {
+        checkDocLimit(session.getNumDocs());
     }
 
     @Override

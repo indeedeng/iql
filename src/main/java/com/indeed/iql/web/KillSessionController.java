@@ -37,7 +37,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author jsgroth
+ *
+ * TODO Delete once IQLWeb starts using /killquery instead of /killsession
  */
+@Deprecated
 @Controller
 public class KillSessionController {
     private static final Logger log = Logger.getLogger(KillSessionController.class);
