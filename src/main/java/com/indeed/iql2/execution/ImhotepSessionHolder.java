@@ -4,7 +4,9 @@ import com.google.common.base.Throwables;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
+import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
+import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
@@ -13,15 +15,12 @@ import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.io.RequestTools;
+import com.indeed.imhotep.local.MTImhotepLocalMultiSession;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.QueryMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.Closeable;
@@ -52,7 +51,7 @@ public class ImhotepSessionHolder implements Closeable {
             final Set<String> fieldNames) {
         this.session = session;
         aliases = new HashMap<>();
-        for (Map.Entry<String, String> entry : fieldAliases.entrySet()) {
+        for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
             aliases.put(entry.getKey().toUpperCase(), entry.getValue());
         }
         upperCaseToActual = new HashMap<>();
@@ -185,11 +184,15 @@ public class ImhotepSessionHolder implements Closeable {
         return session.regroup(rewrite(rule));
     }
 
-    public int regroupWithProtos(
-            final GroupMultiRemapMessage[] rawRuleMessages,
+    public int regroup(
+            final GroupMultiRemapRule[] rawRules,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        final GroupMultiRemapMessage[] converted = rewriteProtos(rawRuleMessages);
-        return session.regroupWithProtos(converted, errorOnCollisions);
+        if (isRemoteSession()) {
+            throw new IllegalStateException("Use this method only for local sessions");
+        }
+
+        final GroupMultiRemapRule[] converted = rewriteRules(rawRules);
+        return session.regroup(converted, errorOnCollisions);
     }
 
     public FTGSIterator getSubsetFTGSIterator(
@@ -261,19 +264,36 @@ public class ImhotepSessionHolder implements Closeable {
         }
     }
 
-    public int regroupWithSingleFieldRules(
-            final SingleFieldMultiRemapRule[] rules,
-            final FieldOptions options,
-            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        final FieldOptions convertedOptions = new FieldOptions(convertField(options.field), options.intType, options.inequality);
-        final GroupMultiRemapMessage[] converted = ImhotepMarshallerInIQL.marshal(rules, convertedOptions);
-        return session.regroupWithProtos(converted, errorOnCollisions);
+    public boolean isRemoteSession() {
+        if (session instanceof RemoteImhotepMultiSession) {
+            return true;
+        }
+
+        if (session instanceof MTImhotepLocalMultiSession) {
+            return false;
+        }
+
+        throw new IllegalStateException("Unexpected session type");
     }
 
-    public int regroupWithPreparedProtos(
-            final GroupMultiRemapMessage[] rawRuleMessages,
+    public int regroupWithPreparedRules(
+            final GroupMultiRemapRule[] rawRules,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return session.regroupWithProtos(rawRuleMessages, errorOnCollisions);
+        if (isRemoteSession()) {
+            throw new IllegalStateException("Use this method only for local sessions");
+        }
+
+        return session.regroup(rawRules, errorOnCollisions);
+    }
+
+    public int regroupWithSender(
+            final RequestTools.GroupMultiRemapRuleSender sender,
+            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        if (isRemoteSession()) {
+            return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+        }
+
+        throw new IllegalStateException("Use this method only for remote sessions");
     }
 
     public AggregateStatTree aggregateStat(final int index) {
@@ -411,19 +431,19 @@ public class ImhotepSessionHolder implements Closeable {
         }
     }
 
-    private GroupMultiRemapMessage rewriteProto(final GroupMultiRemapMessage message) {
-        final GroupMultiRemapMessage.Builder builder = message.toBuilder();
-        for (int i = 0; i < builder.getConditionCount(); i++) {
-            final RegroupConditionMessage.Builder conditionBuilder = builder.getCondition(i).toBuilder();
-            builder.setCondition(i, conditionBuilder.setField(convertField(conditionBuilder.getField())));
+    private GroupMultiRemapRule rewriteRule(final GroupMultiRemapRule rule) {
+        final RegroupCondition[] convertedConditions = new RegroupCondition[rule.conditions.length];
+        for (int i = 0; i < rule.conditions.length; i++) {
+            final RegroupCondition c = rule.conditions[i];
+            convertedConditions[i] = new RegroupCondition(convertField(c.field), c.intType, c.intTerm, c.stringTerm, c.inequality);
         }
-        return builder.build();
+        return new GroupMultiRemapRule(rule.targetGroup, rule.negativeGroup, rule.positiveGroups, convertedConditions);
     }
 
-    private GroupMultiRemapMessage[] rewriteProtos(final GroupMultiRemapMessage[] rawRuleMessages) {
-        final GroupMultiRemapMessage[] converted = new GroupMultiRemapMessage[rawRuleMessages.length];
-        for (int i = 0; i < rawRuleMessages.length; i++) {
-            converted[i] = rewriteProto(rawRuleMessages[i]);
+    private GroupMultiRemapRule[] rewriteRules(final GroupMultiRemapRule[] rawRules) {
+        final GroupMultiRemapRule[] converted = new GroupMultiRemapRule[rawRules.length];
+        for (int i = 0; i < rawRules.length; i++) {
+            converted[i] = rewriteRule(rawRules[i]);
         }
         return converted;
     }

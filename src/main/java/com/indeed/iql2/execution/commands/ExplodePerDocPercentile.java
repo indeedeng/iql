@@ -18,10 +18,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
+import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
@@ -34,6 +32,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class ExplodePerDocPercentile implements Command {
     public final String field;
@@ -114,7 +113,7 @@ public class ExplodePerDocPercentile implements Command {
         }
 
         session.timer.push("compute bucket remaps");
-        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
+        final SingleFieldRegroupTools.SingleFieldRulesBuilder rulesBuilder = session.createRuleBuilder(field, true, true);
         final List<GroupKey> nextGroupKeys = Lists.newArrayList();
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
@@ -135,17 +134,16 @@ public class ExplodePerDocPercentile implements Command {
                 positiveGroups.add(newGroup);
                 thresholds.add(cutoffs[group][bucket]);
             }
-            rules[group - 1] = new SingleFieldMultiRemapRule(
+            rulesBuilder.addIntRule(
                     group,
                     0,
                     positiveGroups.toIntArray(),
-                    thresholds.toLongArray(),
-                    null);
+                    thresholds.toLongArray());
         }
         session.timer.pop();
 
-        final FieldOptions options = new FieldOptions(field, true, true);
-        session.regroupWithSingleFieldRules(rules, options, true);
+        final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, true, true);
+        session.regroupWithSingleFieldRules(rulesBuilder, options, true);
         session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
