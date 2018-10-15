@@ -71,6 +71,7 @@ import static com.indeed.iql1.ez.Stats.Stat;
  */
 public final class IQLQuery implements Closeable {
     private static final int IN_MEMORY_ROW_LIMIT = 50000;
+    private static final int QUERY_ROW_LIMIT = Integer.MAX_VALUE;
     private static final Logger log = Logger.getLogger(IQLQuery.class);
     private static final Period executionTimeout = Period.minutes(6);
     public static final String TEMP_FILE_PREFIX = "iql_tmp";
@@ -641,6 +642,18 @@ public final class IQLQuery implements Closeable {
 
     public int getRowLimit() {
         return rowLimit;
+    }
+
+    public static int getQueryRowLimit() {
+        return QUERY_ROW_LIMIT;
+    }
+
+    public static int incrementedQueryLimit(int limit) {
+        if (limit < getQueryRowLimit()) {
+            return limit+1;
+        } else {
+            return limit;
+        }
     }
 
     public DateTime getStart(){ return start; }

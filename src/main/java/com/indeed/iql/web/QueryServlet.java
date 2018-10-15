@@ -415,7 +415,7 @@ public class QueryServlet {
                 final long beginSendToClientMillis = System.currentTimeMillis();
                 writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.progress, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
                 selectExecutionStats.setPhase("sendToClientMillis", System.currentTimeMillis() - beginSendToClientMillis);
-                if (writeResults.exceedsLimit) {
+                if (writeResults.exceedsLimit || writeResults.rowsWritten == IQLQuery.getQueryRowLimit()) {
                     warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
                 }
 
