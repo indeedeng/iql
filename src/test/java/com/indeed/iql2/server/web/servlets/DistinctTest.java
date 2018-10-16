@@ -32,6 +32,13 @@ public class DistinctTest extends BasicTest {
     }
 
     @Test
+    public void distinctHaving() throws Exception {
+        testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "3")), "from organic yesterday today select distinct(tk having count() > 2)");
+        testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select distinct(tk having count() < 3)");
+        testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "4", "3", "1")), "from organic yesterday today select distinct(tk), distinct(tk having count() > 2), distinct(tk having count() < 3)");
+    }
+
+    @Test
     public void timeDistinct() throws Exception {
         testAll(AllData.DATASET, ImmutableList.of(
                 ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "0"),

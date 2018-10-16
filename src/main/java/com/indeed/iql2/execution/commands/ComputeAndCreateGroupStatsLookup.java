@@ -18,12 +18,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
+import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Object computation;
@@ -36,6 +37,12 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        if (name.isPresent()) {
+            if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>((Command) computation, name.get())))) {
+                return;
+            }
+        }
+
         // TODO: Seriously? Serializing to JSON and then back? To the same program?
         final AtomicReference<String> reference = new AtomicReference<>();
         final Object computation = this.computation;

@@ -18,22 +18,33 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
+import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
+import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.QualifiedPush;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.util.core.Pair;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ComputeAndCreateGroupStatsLookups implements Command {
     private final List<Pair<Command, String>> namedComputations;
@@ -44,6 +55,10 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> ignored) throws ImhotepOutOfMemoryException, IOException {
+        if (tryMultiDistinct(session, namedComputations)) {
+            return;
+        }
+
         final List<IterateHandler<Void>> handlerables = Lists.newArrayListWithCapacity(namedComputations.size());
         final Set<String> fields = Sets.newHashSet();
         session.timer.push("get IterateHandlers");
@@ -130,6 +145,95 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             IterateHandlers.executeMulti(session, theField, handlerables);
             session.timer.pop();
         }
+    }
+
+    static boolean tryMultiDistinct(Session session, List<Pair<Command, String>> namedComputations) throws IOException, ImhotepOutOfMemoryException {
+        if (!session.options.contains(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT)) {
+            return false;
+        }
+
+        session.timer.push("checking aggregate distinct eligibility");
+        final Map<String, AggregateFilter> namedFilters = new TreeMap<>();
+        boolean allDistinct = true;
+        boolean allNonWindowed = true;
+        boolean allNonOrdered = true;
+        final Set<String> fields = new HashSet<>();
+        final Set<Set<String>> scopes = new HashSet<>();
+        for (final Pair<Command, String> computation : namedComputations) {
+            final Command command = computation.getFirst();
+            allDistinct &= (command instanceof GetGroupDistincts || command instanceof GetSimpleGroupDistincts);
+            if (command instanceof GetGroupDistincts) {
+                final GetGroupDistincts distinct = (GetGroupDistincts) command;
+                allNonWindowed &= distinct.windowSize == 1;
+                fields.add(distinct.field);
+                scopes.add(distinct.scope);
+                final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
+                allNonOrdered &= !filter.needSorted();
+                namedFilters.put(computation.getSecond(), filter);
+            }
+            if (command instanceof GetSimpleGroupDistincts) {
+                final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
+                fields.add(distinct.field);
+                scopes.add(Collections.singleton(distinct.scope));
+                namedFilters.put(computation.getSecond(), new AggregateFilter.Constant(true));
+            }
+        }
+        session.timer.pop();
+
+        if (!(allDistinct && allNonWindowed && allNonOrdered)) {
+            return false;
+        }
+
+        session.timer.push("preparing for aggregate distinct");
+        // We should not be able to have an instance of this class with different desired fields
+        Preconditions.checkState((long) fields.size() == 1);
+        // We should not be able to have an instance of this class with different desired scopes
+        Preconditions.checkState((long) scopes.size() == 1);
+
+        // safe because of checkState above
+        final String field = fields.stream().findFirst().get();
+        final Set<String> scope = scopes.stream().findFirst().get();
+
+        final List<RemoteImhotepMultiSession.SessionField> sessionFields = scope.stream()
+                .map(x -> session.sessions.get(x).session.buildSessionField(field))
+                .collect(Collectors.toList());
+
+        final List<Map.Entry<String, AggregateFilter>> filters = new ArrayList<>(namedFilters.entrySet());
+
+        final Set<QualifiedPush> allPushes = filters.stream()
+                .flatMap(x -> x.getValue().requires().stream())
+                .collect(Collectors.toSet());
+        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
+        final List<AggregateStatTree> filterTrees = filters.stream()
+                .map(x -> x.getValue().toImhotep(atomicStats))
+                .collect(Collectors.toList());
+
+        final int numFilters = filters.size();
+        final double[][] results = new double[numFilters][];
+        for (int i = 0; i < results.length; i++) {
+            results[i] = new double[session.numGroups + 1];
+        }
+        session.timer.pop();
+
+        session.timer.push("requesting aggregate distinct");
+        try (GroupStatsIterator groupStatsIterator = RemoteImhotepMultiSession.aggregateDistinct(sessionFields, filterTrees, session.isIntField(field))) {
+            session.timer.pop();
+            session.timer.push("consuming aggregate distinct");
+            int i = 0;
+            while (groupStatsIterator.hasNext()) {
+                final int group = i / numFilters;
+                final int filter = i % numFilters;
+                results[filter][group] = (double) groupStatsIterator.nextLong();
+                i += 1;
+            }
+        }
+
+        for (int i = 0; i < numFilters; i++) {
+            new CreateGroupStatsLookup(results[i], Optional.of(filters.get(i).getKey())).execute(session, s -> {});
+        }
+        session.timer.pop();
+
+        return true;
     }
 
     public static double[] longToDouble(long[] v) {
