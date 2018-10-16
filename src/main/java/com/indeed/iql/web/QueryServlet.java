@@ -435,7 +435,6 @@ public class QueryServlet {
         try {
             // TODO: should we always get totals? opt out http param?
             executionResult = iqlQuery.execute(args.isEventStream, outputStream, true);
-
             queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
 
             queryMetadata.setPendingHeaders();

@@ -653,18 +653,6 @@ public final class IQLQuery implements Closeable {
         return rowLimit;
     }
 
-    public static int getQueryRowLimit() {
-        return QUERY_ROW_LIMIT;
-    }
-
-    public static int incrementedQueryLimit(int limit) {
-        if (limit < getQueryRowLimit()) {
-            return limit+1;
-        } else {
-            return limit;
-        }
-    }
-
     public DateTime getStart(){ return start; }
 
     public DateTime getEnd() { return end; }
