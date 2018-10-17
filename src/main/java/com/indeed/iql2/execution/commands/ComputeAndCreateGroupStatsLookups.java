@@ -233,6 +233,10 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
         session.timer.pop();
 
+        session.timer.push("pop stats");
+        session.popStats();
+        session.timer.pop();
+
         return true;
     }
 
