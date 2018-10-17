@@ -41,7 +41,7 @@ public class KillQueryController {
     protected void doGet(@RequestParam("queryid") final long queryId, @RequestParam("username") final String username, final HttpServletResponse resp) throws IOException {
         boolean queryCancelled = false;
         if (iqldb != null) {
-            queryCancelled = iqldb.cancelQuery(queryId);
+            queryCancelled = iqldb.cancelQuery(queryId, username);
         }
         final PrintWriter output = new PrintWriter(resp.getOutputStream());
         if (queryCancelled) {

@@ -96,10 +96,11 @@ public class IQLDB {
 
     /**
      * @param id the query ID
+     * @param username the username of the user who is cancelling the query
      * @return false if there was no row for the given query ID in the database, true otherwise
      */
-    public boolean cancelQuery(long id) {
-        final int rowsAffected = jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ?", 1, id);
+    public boolean cancelQuery(final long id, final String username) {
+        final int rowsAffected = jdbcTemplate.update("UPDATE tblrunning SET killed = ? WHERE id = ? AND username = ?", 1, id, username);
         return rowsAffected > 0;
     }
 
