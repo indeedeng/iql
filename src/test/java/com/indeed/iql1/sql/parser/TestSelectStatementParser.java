@@ -20,6 +20,7 @@ import com.indeed.iql1.sql.ast.NameExpression;
 import com.indeed.iql1.sql.ast.Op;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -40,5 +41,29 @@ public class TestSelectStatementParser {
                 Lists.newArrayList((Expression)new NameExpression("grp")));
 
         assertEquals(expected, SelectStatementParser.parseSelectStatement(testQuery, null));
+    }
+
+    @Test
+    public void testLimitParser() {
+        String testQuery = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc";
+        IQL1SelectStatement expected = SelectStatementParser.parseSelectStatement(testQuery, null);
+        assertEquals(expected.limit, Integer.MAX_VALUE - 1);
+
+        String testQueryLimitZero = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 0";
+        IQL1SelectStatement expectedLimitZero = SelectStatementParser.parseSelectStatement(testQueryLimitZero, null);
+        assertEquals(expectedLimitZero.limit, Integer.MAX_VALUE - 1);
+
+        String testQueryLimitOverflow = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 9999999999 ";
+        IQL1SelectStatement expectedLimitOverflow = SelectStatementParser.parseSelectStatement(testQueryLimitOverflow, null);
+        assertEquals(expectedLimitOverflow.limit, Integer.MAX_VALUE - 1);
+
+        String testQueryLimitNegative = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit -400";
+        IQL1SelectStatement expectedLimitNegative = SelectStatementParser.parseSelectStatement(testQueryLimitNegative, null);
+        assertEquals(expectedLimitNegative.limit, Integer.MAX_VALUE - 1);
+
+        String testQueryLimitNormal = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 5000";
+        IQL1SelectStatement expectedLimitNormal = SelectStatementParser.parseSelectStatement(testQueryLimitNormal, null);
+        assertEquals(expectedLimitNormal.limit, 5000);
+
     }
 }
