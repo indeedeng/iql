@@ -14,6 +14,7 @@
  package com.indeed.iql1.sql.parser;
 
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.NameExpression;
@@ -48,22 +49,32 @@ public class TestSelectStatementParser {
         String testQuery = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc";
         IQL1SelectStatement expected = SelectStatementParser.parseSelectStatement(testQuery, null);
         assertEquals(expected.limit, Integer.MAX_VALUE - 1);
+    }
 
+    @Test(expected = IqlKnownException.RowLimitErrorException.class)
+    public void testLimitParserZero() {
         String testQueryLimitZero = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 0";
         IQL1SelectStatement expectedLimitZero = SelectStatementParser.parseSelectStatement(testQueryLimitZero, null);
-        assertEquals(expectedLimitZero.limit, Integer.MAX_VALUE - 1);
+    }
 
+    @Test(expected = IqlKnownException.RowLimitErrorException.class)
+    public void testLimitParserOverflow() {
         String testQueryLimitOverflow = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 9999999999 ";
         IQL1SelectStatement expectedLimitOverflow = SelectStatementParser.parseSelectStatement(testQueryLimitOverflow, null);
-        assertEquals(expectedLimitOverflow.limit, Integer.MAX_VALUE - 1);
 
+    }
+
+    @Test(expected = IqlKnownException.RowLimitErrorException.class)
+    public void testLimitParserNegative() {
         String testQueryLimitNegative = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit -400";
         IQL1SelectStatement expectedLimitNegative = SelectStatementParser.parseSelectStatement(testQueryLimitNegative, null);
-        assertEquals(expectedLimitNegative.limit, Integer.MAX_VALUE - 1);
+    }
 
+    @Test
+    public void testLimitParserNormal() {
         String testQueryLimitNormal = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 5000";
         IQL1SelectStatement expectedLimitNormal = SelectStatementParser.parseSelectStatement(testQueryLimitNormal, null);
         assertEquals(expectedLimitNormal.limit, 5000);
-
     }
+
 }
