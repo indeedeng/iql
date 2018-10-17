@@ -31,6 +31,7 @@ public class QueryOptions {
     // After testing should be deleted or moved to main features list.
     public static class Experimental {
         public static final String USE_MULTI_FTGS = "multiftgs";
+        public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
 
         private Experimental() {
         }

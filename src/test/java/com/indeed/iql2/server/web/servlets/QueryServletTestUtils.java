@@ -67,6 +67,7 @@ public class QueryServletTestUtils extends BasicTest {
             {
                     "", // no options
                     "OPTIONS [\"" + QueryOptions.Experimental.USE_MULTI_FTGS + "\"]", // multi FTGS
+                    "OPTIONS [\"" + QueryOptions.Experimental.USE_AGGREGATE_DISTINCT + "\"]", // aggregate distinct
             };
 
     public static QueryServlet create(ImhotepClient client, Options options) {
