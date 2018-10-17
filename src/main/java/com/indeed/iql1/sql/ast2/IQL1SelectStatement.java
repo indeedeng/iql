@@ -52,7 +52,7 @@ public class IQL1SelectStatement extends ValueObject {
     public IQL1SelectStatement(
             List<Expression> projections, FromClause from, Expression where,
             List<Expression> groupBy) {
-        this(projections, from, where, groupBy, Integer.MAX_VALUE);
+        this(projections, from, where, groupBy, Integer.MAX_VALUE - 1);
     }
 
     /**

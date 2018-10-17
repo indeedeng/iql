@@ -93,11 +93,11 @@ public class SelectStatementParser {
     private static int parseLimit(String limit) {
         try {
             int limitInt = Integer.valueOf(limit);
-            if( limitInt >= 0 && limitInt <= Integer.MAX_VALUE - 1) {
+            if( limitInt > 0 && limitInt <= Integer.MAX_VALUE - 1) {
                 return limitInt;
             }
-        } catch (NumberFormatException e) {}
-        throw new IqlKnownException.RowLimitErrorException("Query limit must be positive, not exceeding " + (Integer.MAX_VALUE - 1));
+        } catch (NumberFormatException ignored) {}
+        return Integer.MAX_VALUE - 1;
     }
 
     static GroupByClause parseGroupByClause(String text) {
