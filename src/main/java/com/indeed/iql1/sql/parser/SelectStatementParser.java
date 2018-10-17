@@ -97,7 +97,7 @@ public class SelectStatementParser {
                 return limitInt;
             }
         } catch (NumberFormatException e) {}
-        throw new IqlKnownException.RowLimitErrorException("Query limit cannot exceed " + (Integer.MAX_VALUE - 1));
+        throw new IqlKnownException.RowLimitErrorException("Query limit must be positive, not exceeding " + (Integer.MAX_VALUE - 1));
     }
 
     static GroupByClause parseGroupByClause(String text) {
