@@ -4,19 +4,14 @@ import com.google.common.base.Throwables;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
-import com.indeed.imhotep.GroupMultiRemapRule;
 import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.RegroupCondition;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
-import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.io.RequestTools;
-import com.indeed.imhotep.local.MTImhotepLocalMultiSession;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
@@ -39,14 +34,14 @@ import java.util.regex.Pattern;
  *
  */
 public class ImhotepSessionHolder implements Closeable {
-    private final ImhotepSession session;
+    private final RemoteImhotepMultiSession session;
     // map from uppercase alias to real field
     private final Map<String, String> aliases;
     // map from uppercase field name to real field name
     private final Map<String, String> upperCaseToActual;
 
     public ImhotepSessionHolder(
-            final ImhotepSession session,
+            final RemoteImhotepMultiSession session,
             final Map<String, String> fieldAliases,
             final Set<String> fieldNames) {
         this.session = session;
@@ -184,17 +179,6 @@ public class ImhotepSessionHolder implements Closeable {
         return session.regroup(rewrite(rule));
     }
 
-    public int regroup(
-            final GroupMultiRemapRule[] rawRules,
-            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        if (isRemoteSession()) {
-            throw new IllegalStateException("Use this method only for local sessions");
-        }
-
-        final GroupMultiRemapRule[] converted = rewriteRules(rawRules);
-        return session.regroup(converted, errorOnCollisions);
-    }
-
     public FTGSIterator getSubsetFTGSIterator(
             final Map<String, long[]> intFields,
             final Map<String, String[]> stringFields) {
@@ -249,51 +233,17 @@ public class ImhotepSessionHolder implements Closeable {
     // some useful methods
 
     public String getSessionId() {
-        if (session instanceof HasSessionId) {
-            return ((HasSessionId) session).getSessionId();
-        }
-        return null;
+        return session.getSessionId();
     }
 
     public long getTempFilesBytesWritten() {
-        if (session instanceof RemoteImhotepMultiSession) {
-            final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) session;
-            return remoteImhotepMultiSession.getTempFilesBytesWritten();
-        } else {
-            return 0;
-        }
-    }
-
-    public boolean isRemoteSession() {
-        if (session instanceof RemoteImhotepMultiSession) {
-            return true;
-        }
-
-        if (session instanceof MTImhotepLocalMultiSession) {
-            return false;
-        }
-
-        throw new IllegalStateException("Unexpected session type");
-    }
-
-    public int regroupWithPreparedRules(
-            final GroupMultiRemapRule[] rawRules,
-            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        if (isRemoteSession()) {
-            throw new IllegalStateException("Use this method only for local sessions");
-        }
-
-        return session.regroup(rawRules, errorOnCollisions);
+        return session.getTempFilesBytesWritten();
     }
 
     public int regroupWithSender(
             final RequestTools.GroupMultiRemapRuleSender sender,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        if (isRemoteSession()) {
-            return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
-        }
-
-        throw new IllegalStateException("Use this method only for remote sessions");
+        return session.regroupWithRuleSender(sender, errorOnCollisions);
     }
 
     public AggregateStatTree aggregateStat(final int index) {
@@ -429,23 +379,6 @@ public class ImhotepSessionHolder implements Closeable {
         } else {
             return Term.stringTerm(convertField(term.getFieldName()), term.getTermStringVal());
         }
-    }
-
-    private GroupMultiRemapRule rewriteRule(final GroupMultiRemapRule rule) {
-        final RegroupCondition[] convertedConditions = new RegroupCondition[rule.conditions.length];
-        for (int i = 0; i < rule.conditions.length; i++) {
-            final RegroupCondition c = rule.conditions[i];
-            convertedConditions[i] = new RegroupCondition(convertField(c.field), c.intType, c.intTerm, c.stringTerm, c.inequality);
-        }
-        return new GroupMultiRemapRule(rule.targetGroup, rule.negativeGroup, rule.positiveGroups, convertedConditions);
-    }
-
-    private GroupMultiRemapRule[] rewriteRules(final GroupMultiRemapRule[] rawRules) {
-        final GroupMultiRemapRule[] converted = new GroupMultiRemapRule[rawRules.length];
-        for (int i = 0; i < rawRules.length; i++) {
-            converted[i] = rewriteRule(rawRules[i]);
-        }
-        return converted;
     }
 
     private QueryRemapRule rewrite(final QueryRemapRule rule) {

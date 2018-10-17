@@ -38,7 +38,7 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.GroupMultiRemapRule;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
@@ -398,8 +398,12 @@ public class Session {
         return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().toUpperCase(), Map.Entry::getValue));
     }
 
-    private static ImhotepSessionHolder wrapSession(Map<String, String> fieldAliases, ImhotepSession build, Set<String> fieldNames) {
-        return new ImhotepSessionHolder(build, fieldAliases, fieldNames);
+    private static ImhotepSessionHolder wrapSession(
+            final Map<String, String> fieldAliases,
+            final ImhotepSession build,
+            final Set<String> fieldNames) {
+        Preconditions.checkState(build instanceof RemoteImhotepMultiSession, "Unexpected session type");
+        return new ImhotepSessionHolder((RemoteImhotepMultiSession) build, fieldAliases, fieldNames);
     }
 
     // this datetime is serialized by standard Datetime by iql2-language
@@ -866,27 +870,7 @@ public class Session {
         // Rules (in memory or cached in data stream) could be created once.
         final SingleFieldRegroupTools.FieldOptions realField =
                 new SingleFieldRegroupTools.FieldOptions(realFields.iterator().next(), intType, inequality);
-        if (allSessionsAreRemote()) {
-            return new SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached(realField);
-        } else {
-            return new SingleFieldRegroupTools.SingleFieldRulesBuilder.Simple(realField);
-        }
-    }
-
-    private boolean allSessionsAreRemote() {
-        int remoteSessionCount = 0;
-
-        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            if (sessionInfo.session.isRemoteSession()) {
-                remoteSessionCount++;
-            }
-        }
-
-        if ((remoteSessionCount != 0) && (remoteSessionCount != sessions.size())) {
-            throw new IllegalStateException("All sessions must have same type: remote or local");
-        }
-
-        return remoteSessionCount == sessions.size();
+        return new SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached(realField);
     }
 
     public void regroupWithSingleFieldRules(
@@ -902,19 +886,6 @@ public class Session {
             for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
                 timer.push("session: " + sessionInfo.displayName);
                 sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
-                timer.pop();
-            }
-            timer.pop();
-            return;
-        }
-
-        if (builder instanceof SingleFieldRegroupTools.SingleFieldRulesBuilder.Simple) {
-            timer.push("regroupOnSingleField(GroupMultRemapRule[])");
-            // one real field, all session are local
-            final GroupMultiRemapRule[] rules = ((SingleFieldRegroupTools.SingleFieldRulesBuilder.Simple) builder).getRules();
-            for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-                timer.push("session: " + sessionInfo.displayName);
-                sessionInfo.session.regroup(rules, errorOnCollisions);
                 timer.pop();
             }
             timer.pop();
@@ -939,33 +910,17 @@ public class Session {
                 realFieldToSessions.get(realField).add(sessionInfo);
             }
 
-            final boolean allSessionsAreRemote = allSessionsAreRemote();
-
             for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
                 final String realField = entry.getKey();
                 timer.push("real field: " + realField);
-                final SingleFieldRegroupTools.FieldOptions realOptions
-                        = new SingleFieldRegroupTools.FieldOptions(realField, options.intType, options.inequality);
-                if (allSessionsAreRemote) {
-                    final Iterator<GroupMultiRemapMessage> messages =
-                            Iterators.transform(Arrays.asList(rules).iterator(),
-                                    rule -> SingleFieldRegroupTools.marshal(rule, options));
-                    final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
-                    for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
-                        timer.push("remote session:" + sessionInfo.displayName);
-                        sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
-                        timer.pop();
-                    }
-                } else {
-                    final GroupMultiRemapRule[] realRules = new GroupMultiRemapRule[rules.length];
-                    for (int i = 0; i < rules.length; i++) {
-                        realRules[i] = SingleFieldRegroupTools.createMultiRule(rules[i], realOptions);
-                    }
-                    for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
-                        timer.push("local session:" + sessionInfo.displayName);
-                        sessionInfo.session.regroupWithPreparedRules(realRules, errorOnCollisions);
-                        timer.pop();
-                    }
+                final Iterator<GroupMultiRemapMessage> messages =
+                        Iterators.transform(Arrays.asList(rules).iterator(),
+                                rule -> SingleFieldRegroupTools.marshal(rule, options));
+                final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
+                for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
+                    timer.push("session:" + sessionInfo.displayName);
+                    sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
+                    timer.pop();
                 }
                 timer.pop();
             }
