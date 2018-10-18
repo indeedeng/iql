@@ -78,4 +78,12 @@ public class DistinctTest extends BasicTest {
         }
         testIQL2(AllData.DATASET, expected, "from distinct yesterday 2015-01-30 group by time(1d) select distinct_window(30, tk)");
     }
+
+    @Test
+    // Not guaranteed to continue to test what we want, but will do the job for the IQL-682 fix
+    public void testPopAfterDistinct() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "4", "4"));
+        testIQL2(AllData.DATASET, expected, "from distinct yesterday 2015-01-30 select distinct(tk having count() > 1), tk=\"a\"");
+    }
 }
