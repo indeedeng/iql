@@ -166,7 +166,8 @@ public final class IQLTranslator {
         }
 
         final List<Grouping> groupings = Lists.newArrayList();
-        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit, limits, fieldNames);
+        // fetch one extra row to add a warning if actual number of data rows is greater than the limit set.
+        final GroupByMatcher groupByMatcher = new GroupByMatcher(datasetMetadata, fromClause.getStart(), fromClause.getEnd(), parse.limit + 1, limits, fieldNames);
         if (parse.groupBy != null) {
             for (Expression groupBy : parse.groupBy.groupings) {
                 groupings.add(groupBy.match(groupByMatcher));
