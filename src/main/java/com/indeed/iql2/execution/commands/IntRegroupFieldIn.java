@@ -15,10 +15,8 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
+import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
@@ -28,6 +26,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class IntRegroupFieldIn implements Command {
     private final String field;
@@ -43,7 +42,7 @@ public class IntRegroupFieldIn implements Command {
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
-        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
+        final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, true, false);
         final int numTerms = intTerms.size();
         final long[] terms = new long[numTerms];
         for (int i = 0; i < terms.length; i++) {
@@ -56,16 +55,15 @@ public class IntRegroupFieldIn implements Command {
                 positiveGroups[i] = baseGroup + i;
             }
             final int negativeGroup = withDefault ? (baseGroup + numTerms) : 0;
-            rules[group -1] = new SingleFieldMultiRemapRule(
+            rules.addIntRule(
                     group,
                     negativeGroup,
                     positiveGroups,
-                    terms,
-                    null);
+                    terms);
         }
         session.timer.pop();
 
-        final FieldOptions fieldOptions = new FieldOptions(field, true, false);
+        final SingleFieldRegroupTools.FieldOptions fieldOptions = new SingleFieldRegroupTools.FieldOptions(field, true, false);
         session.regroupWithSingleFieldRules(rules, fieldOptions, true);
 
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms, withDefault));

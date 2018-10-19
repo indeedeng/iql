@@ -28,6 +28,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
@@ -37,6 +38,7 @@ import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
@@ -45,13 +47,12 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.io.RequestTools;
+import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -84,6 +85,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -396,8 +398,12 @@ public class Session {
         return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().toUpperCase(), Map.Entry::getValue));
     }
 
-    private static ImhotepSessionHolder wrapSession(Map<String, String> fieldAliases, ImhotepSession build, Set<String> fieldNames) {
-        return new ImhotepSessionHolder(build, fieldAliases, fieldNames);
+    private static ImhotepSessionHolder wrapSession(
+            final Map<String, String> fieldAliases,
+            final ImhotepSession build,
+            final Set<String> fieldNames) {
+        Preconditions.checkState(build instanceof RemoteImhotepMultiSession, "Unexpected session type");
+        return new ImhotepSessionHolder((RemoteImhotepMultiSession) build, fieldAliases, fieldNames);
     }
 
     // this datetime is serialized by standard Datetime by iql2-language
@@ -842,44 +848,87 @@ public class Session {
         timer.pop();
     }
 
-    public void regroupWithProtos(GroupMultiRemapMessage[] messages, boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        // TODO: Parallelize
-        timer.push("regroupWithProtos(" + messages.length + " rules)");
+    public SingleFieldRegroupTools.SingleFieldRulesBuilder createRuleBuilder(
+            final String field,
+            final boolean intType,
+            final boolean inequality) {
+
+        final Set<String> realFields = new HashSet<>();
+
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
-            sessionInfo.session.regroupWithProtos(messages, errorOnCollisions);
-            timer.pop();
+            final String realField = sessionInfo.session.convertField(field);
+            realFields.add(realField);
         }
-        timer.pop();
+
+        if (realFields.size() > 1) {
+            // several datasets with different field names. Cannot create rules on-the-fly.
+            // Collecting single field rules for futher conversion.
+            return new SingleFieldRegroupTools.SingleFieldRulesBuilder.SingleField();
+        }
+
+        // real field name match in all sessions.
+        // Rules (in memory or cached in data stream) could be created once.
+        final SingleFieldRegroupTools.FieldOptions realField =
+                new SingleFieldRegroupTools.FieldOptions(realFields.iterator().next(), intType, inequality);
+        return new SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached(realField);
     }
 
     public void regroupWithSingleFieldRules(
-            final SingleFieldMultiRemapRule[] rules,
-            final FieldOptions options,
+            final SingleFieldRegroupTools.SingleFieldRulesBuilder builder,
+            final SingleFieldRegroupTools.FieldOptions options,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        timer.push("regroupWithSingleFieldRules(" + rules.length + " rules)");
 
-        // Gather sessions with same real fields name together
-        // to convert messages only once for each unique real field name.
-        final Map<String, List<ImhotepSessionInfo>> realFieldToSessions = new HashMap<>();
-        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            final String realField = sessionInfo.session.convertField(options.field);
-            if (!realFieldToSessions.containsKey(realField)) {
-                realFieldToSessions.put(realField, new ArrayList<>());
-            }
-            realFieldToSessions.get(realField).add(sessionInfo);
-        }
-
-        for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
-            final FieldOptions realOptions = new FieldOptions(entry.getKey(), options.intType, options.inequality);
-            final GroupMultiRemapMessage[] convertedMessages = ImhotepMarshallerInIQL.marshal(rules, realOptions);
-            for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
-                timer.push("session:" + sessionInfo.displayName);
-                sessionInfo.session.regroupWithPreparedProtos(convertedMessages, errorOnCollisions);
+        if (builder instanceof SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached) {
+            timer.push("regroupOnSingleField(GroupMultiRemapRuleSender)");
+            // one real field, all sessions are remote.
+            final RequestTools.GroupMultiRemapRuleSender sender =
+                    ((SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached) builder).createSender();
+            for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+                timer.push("session: " + sessionInfo.displayName);
+                sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
                 timer.pop();
             }
+            timer.pop();
+            return;
         }
-        timer.pop();
+
+        if (builder instanceof SingleFieldRegroupTools.SingleFieldRulesBuilder.SingleField) {
+            // several real fields
+            timer.push("regroupOnSingleField(several real field names)");
+
+            final SingleFieldRegroupTools.SingleFieldMultiRemapRule[] rules =
+                    ((SingleFieldRegroupTools.SingleFieldRulesBuilder.SingleField) builder).getRules();
+
+            // Gather sessions with same real fields name together
+            // to convert messages only once for each unique real field name.
+            final Map<String, List<ImhotepSessionInfo>> realFieldToSessions = new HashMap<>();
+            for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
+                final String realField = sessionInfo.session.convertField(options.field);
+                if (!realFieldToSessions.containsKey(realField)) {
+                    realFieldToSessions.put(realField, new ArrayList<>());
+                }
+                realFieldToSessions.get(realField).add(sessionInfo);
+            }
+
+            for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
+                final String realField = entry.getKey();
+                timer.push("real field: " + realField);
+                final Iterator<GroupMultiRemapMessage> messages =
+                        Iterators.transform(Arrays.asList(rules).iterator(),
+                                rule -> SingleFieldRegroupTools.marshal(rule, options));
+                final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
+                for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
+                    timer.push("session:" + sessionInfo.displayName);
+                    sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
+                    timer.pop();
+                }
+                timer.pop();
+            }
+            timer.pop();
+            return;
+        }
+
+        throw new IllegalStateException("Unexpected builder type");
     }
 
     public void remapGroups(final int[] fromGroups, final int[] toGroups) throws ImhotepOutOfMemoryException {

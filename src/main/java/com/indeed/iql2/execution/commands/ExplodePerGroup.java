@@ -17,11 +17,9 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
+import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
@@ -33,6 +31,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class ExplodePerGroup implements Command {
     public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
@@ -54,7 +53,7 @@ public class ExplodePerGroup implements Command {
         checkNumGroups(session);
 
         session.timer.push("form rules");
-        final SingleFieldMultiRemapRule[] rules = new SingleFieldMultiRemapRule[session.numGroups];
+        final SingleFieldRegroupTools.SingleFieldRulesBuilder ruleBuilder = session.createRuleBuilder(field, isIntType, false);
         int nextGroup = 1;
         final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
         final IntList nextGroupParents = new IntArrayList();
@@ -69,14 +68,6 @@ public class ExplodePerGroup implements Command {
 
             final List<Term> terms = termsWithExplodeOpts.terms;
             if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
-                // TODO: don't create this dummy message.
-                // count message count upfront and create only nontrivial messages
-                rules[group - 1] = new SingleFieldMultiRemapRule(
-                        group,
-                        0,
-                        new int[0],
-                        isIntType ? new long[0] : null,
-                        isIntType ? null : new String[0]);
                 continue;
             }
 
@@ -120,17 +111,16 @@ public class ExplodePerGroup implements Command {
             } else {
                 negativeGroup = 0;
             }
-            rules[group - 1] = new SingleFieldMultiRemapRule(
-                    group,
-                    negativeGroup,
-                    positiveGroups,
-                    longTerms,
-                    stringTerms);
+            if (isIntType) {
+                ruleBuilder.addIntRule(group, negativeGroup, positiveGroups, longTerms);
+            } else {
+                ruleBuilder.addStringRule(group, negativeGroup, positiveGroups, stringTerms);
+            }
         }
         session.timer.pop();
 
-        final FieldOptions options = new FieldOptions(field, isIntType, false);
-        session.regroupWithSingleFieldRules(rules, options, true);
+        final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, isIntType, false);
+        session.regroupWithSingleFieldRules(ruleBuilder, options, true);
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
 

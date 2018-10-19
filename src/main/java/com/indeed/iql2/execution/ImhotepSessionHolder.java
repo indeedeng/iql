@@ -9,19 +9,13 @@ import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
-import com.indeed.imhotep.api.HasSessionId;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.marshal.ImhotepDaemonMarshaller;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
-import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.QueryMessage;
-import com.indeed.imhotep.protobuf.RegroupConditionMessage;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.FieldOptions;
-import com.indeed.iql.marshal.ImhotepMarshallerInIQL.SingleFieldMultiRemapRule;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.Closeable;
@@ -40,19 +34,19 @@ import java.util.regex.Pattern;
  *
  */
 public class ImhotepSessionHolder implements Closeable {
-    private final ImhotepSession session;
+    private final RemoteImhotepMultiSession session;
     // map from uppercase alias to real field
     private final Map<String, String> aliases;
     // map from uppercase field name to real field name
     private final Map<String, String> upperCaseToActual;
 
     public ImhotepSessionHolder(
-            final ImhotepSession session,
+            final RemoteImhotepMultiSession session,
             final Map<String, String> fieldAliases,
             final Set<String> fieldNames) {
         this.session = session;
         aliases = new HashMap<>();
-        for (Map.Entry<String, String> entry : fieldAliases.entrySet()) {
+        for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {
             aliases.put(entry.getKey().toUpperCase(), entry.getValue());
         }
         upperCaseToActual = new HashMap<>();
@@ -185,13 +179,6 @@ public class ImhotepSessionHolder implements Closeable {
         return session.regroup(rewrite(rule));
     }
 
-    public int regroupWithProtos(
-            final GroupMultiRemapMessage[] rawRuleMessages,
-            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        final GroupMultiRemapMessage[] converted = rewriteProtos(rawRuleMessages);
-        return session.regroupWithProtos(converted, errorOnCollisions);
-    }
-
     public FTGSIterator getSubsetFTGSIterator(
             final Map<String, long[]> intFields,
             final Map<String, String[]> stringFields) {
@@ -246,34 +233,17 @@ public class ImhotepSessionHolder implements Closeable {
     // some useful methods
 
     public String getSessionId() {
-        if (session instanceof HasSessionId) {
-            return ((HasSessionId) session).getSessionId();
-        }
-        return null;
+        return session.getSessionId();
     }
 
     public long getTempFilesBytesWritten() {
-        if (session instanceof RemoteImhotepMultiSession) {
-            final RemoteImhotepMultiSession remoteImhotepMultiSession = (RemoteImhotepMultiSession) session;
-            return remoteImhotepMultiSession.getTempFilesBytesWritten();
-        } else {
-            return 0;
-        }
+        return session.getTempFilesBytesWritten();
     }
 
-    public int regroupWithSingleFieldRules(
-            final SingleFieldMultiRemapRule[] rules,
-            final FieldOptions options,
+    public int regroupWithSender(
+            final RequestTools.GroupMultiRemapRuleSender sender,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        final FieldOptions convertedOptions = new FieldOptions(convertField(options.field), options.intType, options.inequality);
-        final GroupMultiRemapMessage[] converted = ImhotepMarshallerInIQL.marshal(rules, convertedOptions);
-        return session.regroupWithProtos(converted, errorOnCollisions);
-    }
-
-    public int regroupWithPreparedProtos(
-            final GroupMultiRemapMessage[] rawRuleMessages,
-            final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return session.regroupWithProtos(rawRuleMessages, errorOnCollisions);
+        return session.regroupWithRuleSender(sender, errorOnCollisions);
     }
 
     public AggregateStatTree aggregateStat(final int index) {
@@ -409,23 +379,6 @@ public class ImhotepSessionHolder implements Closeable {
         } else {
             return Term.stringTerm(convertField(term.getFieldName()), term.getTermStringVal());
         }
-    }
-
-    private GroupMultiRemapMessage rewriteProto(final GroupMultiRemapMessage message) {
-        final GroupMultiRemapMessage.Builder builder = message.toBuilder();
-        for (int i = 0; i < builder.getConditionCount(); i++) {
-            final RegroupConditionMessage.Builder conditionBuilder = builder.getCondition(i).toBuilder();
-            builder.setCondition(i, conditionBuilder.setField(convertField(conditionBuilder.getField())));
-        }
-        return builder.build();
-    }
-
-    private GroupMultiRemapMessage[] rewriteProtos(final GroupMultiRemapMessage[] rawRuleMessages) {
-        final GroupMultiRemapMessage[] converted = new GroupMultiRemapMessage[rawRuleMessages.length];
-        for (int i = 0; i < rawRuleMessages.length; i++) {
-            converted[i] = rewriteProto(rawRuleMessages[i]);
-        }
-        return converted;
     }
 
     private QueryRemapRule rewrite(final QueryRemapRule rule) {
