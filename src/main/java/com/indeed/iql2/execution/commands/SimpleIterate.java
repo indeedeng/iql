@@ -34,9 +34,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.misc.TopK;
-
-import java.util.ArrayList;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -47,6 +44,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,7 +53,10 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+;
 
 public class SimpleIterate implements Command {
     public final String field;
@@ -82,7 +83,9 @@ public class SimpleIterate implements Command {
 
     @Override
     public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<List<TermSelects>>> result = this.evaluate(session, out);
+        // TODO: this code seems to be dead.
+        // evaluate() method is always in use
+        final List<List<TermSelects>> result = this.evaluate(session, out);
         final StringBuilder sb = new StringBuilder();
         Session.writeTermSelectsJson(session.groupKeySet, result, sb);
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
@@ -101,7 +104,7 @@ public class SimpleIterate implements Command {
         return filterSorted || metricsSorted;
     }
 
-    public List<List<List<TermSelects>>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("request metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
@@ -227,21 +230,19 @@ public class SimpleIterate implements Command {
             return Collections.emptyList();
         } else {
             session.timer.push("convert results");
-            final List<List<List<TermSelects>>> allTermSelects = Lists.newArrayList();
+            final List<List<TermSelects>> allTermSelects = new ArrayList<>(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
-                final List<List<TermSelects>> groupTermSelects = Lists.newArrayList();
                 final Queue<TermSelects> pq = pqs.get(group);
-                final List<TermSelects> listTermSelects = Lists.newArrayList();
+                final List<TermSelects> listTermSelects = new ArrayList<>(pq.size());
                 while (!pq.isEmpty()) {
                     listTermSelects.add(pq.poll());
                 }
                 // TODO: This line is very fragile
                 if (pq instanceof BoundedPriorityQueue || pq instanceof PriorityQueue) {
-                    groupTermSelects.add(Lists.reverse(listTermSelects));
+                    allTermSelects.add(Lists.reverse(listTermSelects));
                 } else {
-                    groupTermSelects.add(listTermSelects);
+                    allTermSelects.add(listTermSelects);
                 }
-                allTermSelects.add(groupTermSelects);
             }
             session.timer.pop();
             return allTermSelects;
@@ -249,7 +250,7 @@ public class SimpleIterate implements Command {
     }
 
     @Nonnull
-    private List<List<List<TermSelects>>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+    private List<List<TermSelects>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
         session.timer.push("prepare for iteration");
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
@@ -305,12 +306,11 @@ public class SimpleIterate implements Command {
             final double[] statsBuf = new double[selects.size()];
             final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
 
-            final List<List<List<TermSelects>>> result = new ArrayList<>();
-
+            final List<List<TermSelects>> result = new ArrayList<>(session.numGroups);
 
             if (!streamResult) {
                 for (int group = 1; group <= session.numGroups; group++) {
-                    result.add(Collections.singletonList(new ArrayList<>()));
+                    result.add(new ArrayList<>());
                 }
             }
 
@@ -331,7 +331,7 @@ public class SimpleIterate implements Command {
                             out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
                         }
                     } else {
-                        result.get(iterator.group() - 1).get(0).add(new TermSelects(
+                        result.get(iterator.group() - 1).add(new TermSelects(
                                 field,
                                 iterator.fieldIsIntType(),
                                 iterator.termStringVal(),
@@ -341,7 +341,6 @@ public class SimpleIterate implements Command {
                                 iterator.group()
                         ));
                     }
-
                 }
             }
             Preconditions.checkState(!iterator.nextField());
@@ -351,8 +350,8 @@ public class SimpleIterate implements Command {
 
             if (!streamResult && topKMetricOrNull != null) {
                 session.timer.push("Sorting results");
-                for (final List<List<TermSelects>> groupResult : result) {
-                    groupResult.get(0).sort(TermSelects.COMPARATOR.reversed());
+                for (final List<TermSelects> groupResult : result) {
+                    groupResult.sort(TermSelects.COMPARATOR.reversed());
                 }
                 session.timer.pop();
             }

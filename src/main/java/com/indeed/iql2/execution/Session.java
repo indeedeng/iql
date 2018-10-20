@@ -454,7 +454,7 @@ public class Session {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
-                    final List<List<List<TermSelects>>> result = simpleIterate.evaluate(this, out);
+                    final List<List<TermSelects>> result = simpleIterate.evaluate(this, out);
                     //noinspection StatementWithEmptyBody
                     if (simpleIterate.streamResult) {
                         // result already sent
@@ -465,8 +465,7 @@ public class Session {
                             formatStrings[i] = opt.isPresent() ? opt.get() : null;
                         }
 
-                        for (final List<List<TermSelects>> groupFieldTerms : result) {
-                            final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+                        for (final List<TermSelects> groupTerms : result) {
                             for (final TermSelects termSelect : groupTerms) {
                                 if (!groupKeySet.isPresent(termSelect.group)) {
                                     continue;
@@ -536,9 +535,8 @@ public class Session {
         }
     }
 
-    public static void writeTermSelectsJson(GroupKeySet groupKeySet, List<List<List<TermSelects>>> results, StringBuilder sb) {
-        for (final List<List<TermSelects>> groupFieldTerms : results) {
-            final List<TermSelects> groupTerms = groupFieldTerms.get(0);
+    public static void writeTermSelectsJson(GroupKeySet groupKeySet, List<List<TermSelects>> results, StringBuilder sb) {
+        for (final List<TermSelects> groupTerms : results) {
             for (final TermSelects termSelects : groupTerms) {
                 if (!groupKeySet.isPresent(termSelects.group)) {
                     continue;
