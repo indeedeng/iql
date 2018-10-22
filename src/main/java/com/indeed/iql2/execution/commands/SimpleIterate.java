@@ -85,7 +85,7 @@ public class SimpleIterate implements Command {
         // evaluate() method is always in use
         final List<List<TermSelects>> result = this.evaluate(session, out);
         final StringBuilder sb = new StringBuilder();
-        Session.writeTermSelectsJson(session.groupKeySet, result, sb);
+        Session.writeTermSelectsJson(session.groupKeySet, result, session.isIntField(field), sb);
         out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
     }
 

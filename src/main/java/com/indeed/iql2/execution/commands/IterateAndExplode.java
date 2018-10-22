@@ -56,10 +56,11 @@ public class IterateAndExplode implements Command {
         final List<List<TermSelects>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);
         explodes.add(null);
+        final boolean isIntField = session.isIntField(field);
         for (final List<TermSelects> groupResults : iterationResults) {
             final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
             for (final TermSelects result : groupResults) {
-                terms.add(new Term(field, result.isIntTerm, result.intTerm, result.stringTerm));
+                terms.add(new Term(field, isIntField, result.intTerm, result.stringTerm));
             }
             explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }

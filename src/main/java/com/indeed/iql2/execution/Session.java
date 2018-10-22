@@ -465,13 +465,14 @@ public class Session {
                             formatStrings[i] = opt.isPresent() ? opt.get() : null;
                         }
 
+                        final boolean isIntField = isIntField(simpleIterate.field);
                         for (final List<TermSelects> groupTerms : result) {
                             for (final TermSelects termSelect : groupTerms) {
                                 if (!groupKeySet.isPresent(termSelect.group)) {
                                     continue;
                                 }
                                 // TODO: propagate PRINTF info
-                                if (termSelect.isIntTerm) {
+                                if (isIntField) {
                                     out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects, formatStrings));
                                 } else {
                                     out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.stringTerm, termSelect.selects, formatStrings));
@@ -535,7 +536,11 @@ public class Session {
         }
     }
 
-    public static void writeTermSelectsJson(GroupKeySet groupKeySet, List<List<TermSelects>> results, StringBuilder sb) {
+    public static void writeTermSelectsJson(
+            final GroupKeySet groupKeySet,
+            final List<List<TermSelects>> results,
+            final boolean isIntField,
+            final StringBuilder sb) {
         for (final List<TermSelects> groupTerms : results) {
             for (final TermSelects termSelects : groupTerms) {
                 if (!groupKeySet.isPresent(termSelects.group)) {
@@ -546,7 +551,7 @@ public class Session {
                     appendGroupString(k, sb);
                     sb.append('\t');
                 }
-                if (termSelects.isIntTerm) {
+                if (isIntField) {
                     sb.append(termSelects.intTerm).append('\t');
                 } else {
                     sb.append(termSelects.stringTerm).append('\t');

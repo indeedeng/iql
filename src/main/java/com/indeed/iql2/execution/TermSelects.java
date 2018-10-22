@@ -24,7 +24,6 @@ import java.util.Comparator;
 * @author jwolfe
 */
 public class TermSelects {
-    public final boolean isIntTerm;
     public final String stringTerm;
     public final long intTerm;
 
@@ -39,7 +38,6 @@ public class TermSelects {
             final int group) {
         this.stringTerm = null;
         this.intTerm = intTerm;
-        this.isIntTerm = true;
         this.selects = selects;
         this.topMetric = topMetric;
         this.group = group;
@@ -52,7 +50,6 @@ public class TermSelects {
             final int group) {
         this.stringTerm = stringTerm;
         this.intTerm = 0;
-        this.isIntTerm = false;
         this.selects = selects;
         this.topMetric = topMetric;
         this.group = group;
@@ -61,7 +58,6 @@ public class TermSelects {
     @Override
     public String toString() {
         return "TermSelects{" +
-                "isIntTerm=" + isIntTerm +
                 ", stringTerm='" + stringTerm + '\'' +
                 ", intTerm=" + intTerm +
                 ", selects=" + Arrays.toString(selects) +
@@ -81,7 +77,7 @@ public class TermSelects {
                 return r;
             }
 
-            if (o1.isIntTerm) {
+            if (o1.stringTerm == null) {
                 r = Longs.compare(o2.intTerm, o1.intTerm);
             } else {
                 r = o2.stringTerm.compareTo(o1.stringTerm);
