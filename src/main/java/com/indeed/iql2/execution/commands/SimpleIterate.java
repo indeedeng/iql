@@ -56,8 +56,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-;
-
 public class SimpleIterate implements Command {
     public final String field;
     public final FieldIterateOpts opts;
@@ -325,21 +323,27 @@ public class SimpleIterate implements Command {
                         if (statsBuf != outputStatsBuf) {
                             System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
                         }
-                        if (iterator.fieldIsIntType()) {
+                        if (isIntField) {
                             out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termIntVal(), outputStatsBuf, formatStrings));
                         } else {
                             out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
                         }
                     } else {
-                        result.get(iterator.group() - 1).add(new TermSelects(
-                                field,
-                                iterator.fieldIsIntType(),
-                                iterator.termStringVal(),
-                                iterator.termIntVal(),
-                                Arrays.copyOf(statsBuf, numSelects),
-                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                iterator.group()
-                        ));
+                        if (isIntField) {
+                            result.get(iterator.group() - 1).add(new TermSelects(
+                                    iterator.termIntVal(),
+                                    Arrays.copyOf(statsBuf, numSelects),
+                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
+                                    iterator.group()
+                            ));
+                        } else {
+                            result.get(iterator.group() - 1).add(new TermSelects(
+                                    iterator.termStringVal(),
+                                    Arrays.copyOf(statsBuf, numSelects),
+                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
+                                    iterator.group()
+                            ));
+                        }
                     }
                 }
             }
@@ -434,7 +438,7 @@ public class SimpleIterate implements Command {
                 // We have several options what to do:
                 // 1. Leave as is (sorted) for backward compatibility.
                 // 2. Request unsorted and sort after processing
-                // 3. Return to cliend in unsorted order.
+                // 3. Return to client in unsorted order.
                 // 4. Add param so client can claim sorted or unsorted result.
                 return true;
             }
@@ -483,11 +487,11 @@ public class SimpleIterate implements Command {
                 final Queue<TermSelects> pq = pqs.get(group);
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group));
+                        pq.offer(new TermSelects(term, selectBuffer, value, group));
                         return ;
                     }
                 }
-                if (!pq.offer(new TermSelects(field, false, term, 0L, selectBuffer, value, group))) {
+                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
                     return ;
                 }
                 ++createdGroupCount;
@@ -566,11 +570,11 @@ public class SimpleIterate implements Command {
                 final Queue<TermSelects> pq = pqs.get(group);
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group));
+                        pq.offer(new TermSelects(term, selectBuffer, value, group));
                         return ;
                     }
                 }
-                if (!pq.offer(new TermSelects(field, true, null, term, selectBuffer, value, group))) {
+                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
                     return ;
                 }
                 ++createdGroupCount;

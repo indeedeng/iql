@@ -59,7 +59,7 @@ public class IterateAndExplode implements Command {
         for (final List<TermSelects> groupResults : iterationResults) {
             final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
             for (final TermSelects result : groupResults) {
-                terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
+                terms.add(new Term(field, result.isIntTerm, result.intTerm, result.stringTerm));
             }
             explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }
