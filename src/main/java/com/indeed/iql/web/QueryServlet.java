@@ -30,12 +30,13 @@ import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.StrictCloser;
-import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
-import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
-import com.indeed.iql2.sqltoiql.SQLToIQLParser;
+import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.language.DescribeStatement;
 import com.indeed.iql.language.ExplainStatement;
+import com.indeed.iql.language.IQLStatement;
 import com.indeed.iql.language.SelectStatement;
+import com.indeed.iql.language.ShowStatement;
 import com.indeed.iql.language.StatementParser;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
@@ -43,18 +44,18 @@ import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.iql.GroupStats;
 import com.indeed.iql1.iql.IQLQuery;
-import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql1.sql.IQLTranslator;
-import com.indeed.iql.language.DescribeStatement;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql.language.IQLStatement;
-import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
-import com.indeed.iql.language.ShowStatement;
+import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.IQL2Options;
+import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
 import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
+import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
+import com.indeed.iql2.sqltoiql.SQLToIQLParser;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.StoppedClock;
@@ -135,6 +136,7 @@ public class QueryServlet {
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
+    private final IQL2Options defaultIQL2Options;
     private final SQLToIQLParser sqlToIQLParser;
 
     @Autowired
@@ -148,7 +150,8 @@ public class QueryServlet {
                         final AccessControl accessControl,
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
-                        final WallClock clock) {
+                        final WallClock clock,
+                        final IQL2Options defaultIQL2Options) {
         this.imhotepClient = imhotepClient;
         this.metadataCacheIQL1 = metadataCacheIQL1;
         this.metadataCacheIQL2 = metadataCacheIQL2;
@@ -160,6 +163,7 @@ public class QueryServlet {
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
         this.clock = clock;
+        this.defaultIQL2Options = defaultIQL2Options;
         this.sqlToIQLParser = new SQLToIQLParser(new AntlrParserGenerator());
     }
 
@@ -311,7 +315,7 @@ public class QueryServlet {
                     queryCache, limits, imhotepClient,
                     metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                     queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
-                    clock, queryMetadata, cacheUploadExecutorService);
+                    clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
             selectQueryExecution.processSelect(runningQueriesManager);
         } else {
             // IQL1
@@ -630,7 +634,7 @@ public class QueryServlet {
             resp.setHeader("Content-Type", "application/json");
         }
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock);
+                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
         explainQueryExecution.processExplain();
     }
 

@@ -16,6 +16,8 @@ package com.indeed.iql2.server.web.fieldExtractor;
 
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
+
+import java.util.Collections;
 import java.util.function.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.util.FieldExtractor;
@@ -53,7 +55,8 @@ public class BaseTest {
 				query,
 				false,
 				new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true).get(),
-				new Consumer<String>() {
+                Collections.emptySet(),
+                new Consumer<String>() {
 					@Override
 					public void accept(String s) {}
 				},

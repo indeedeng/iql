@@ -39,15 +39,16 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.iql.StrictCloser;
-import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.cache.QueryCache;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.web.QueryInfo;
+import com.indeed.iql.web.QueryMetadata;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.SelectQuery;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.web.QueryMetadata;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.progress.CompositeProgressCallback;
@@ -60,7 +61,6 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.ScopedField;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
@@ -119,6 +119,7 @@ public class SelectQueryExecution {
     private final QueryCache queryCache;
     private final QueryMetadata queryMetadata;
     private final ExecutorService cacheUploadExecutorService;
+    private final Set<String> defaultIQL2Options;
 
     // Query sanity limits
     public final Limits limits;
@@ -157,8 +158,9 @@ public class SelectQueryExecution {
             final boolean isStream,
             final boolean skipValidation,
             final WallClock clock,
-            QueryMetadata queryMetadata,
-            ExecutorService cacheUploadExecutorService) {
+            final QueryMetadata queryMetadata,
+            final ExecutorService cacheUploadExecutorService,
+            final ImmutableSet<String> defaultIQL2Options) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
@@ -174,6 +176,7 @@ public class SelectQueryExecution {
         this.queryCache = queryCache;
         this.queryMetadata = queryMetadata;
         this.cacheUploadExecutorService = cacheUploadExecutorService;
+        this.defaultIQL2Options = defaultIQL2Options;
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -255,7 +258,7 @@ public class SelectQueryExecution {
         timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, warnings::add, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
         {

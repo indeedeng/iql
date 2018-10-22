@@ -22,21 +22,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.commands.Command;
-import java.util.function.Consumer;
-import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.execution.passes.FixDistinctFilterRunning;
-import com.indeed.iql2.language.execution.passes.GroupIterations;
-import com.indeed.iql2.language.execution.passes.OptimizeLast;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.optimizations.CollapseFilters;
-import com.indeed.iql2.language.passes.ExtractNames;
-import com.indeed.iql2.language.passes.ExtractPrecomputed;
-import com.indeed.iql2.language.passes.FixTopKHaving;
-import com.indeed.iql2.language.passes.HandleWhereClause;
-import com.indeed.iql2.language.passes.RemoveNames;
-import com.indeed.iql2.language.passes.SubstituteDimension;
-import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
 import com.indeed.iql2.language.AggregateMetric;
@@ -51,6 +37,19 @@ import com.indeed.iql2.language.JQLLexer;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.UpperCaseInputStream;
+import com.indeed.iql2.language.commands.Command;
+import com.indeed.iql2.language.execution.ExecutionStep;
+import com.indeed.iql2.language.execution.passes.FixDistinctFilterRunning;
+import com.indeed.iql2.language.execution.passes.GroupIterations;
+import com.indeed.iql2.language.execution.passes.OptimizeLast;
+import com.indeed.iql2.language.optimizations.CollapseFilters;
+import com.indeed.iql2.language.passes.ExtractNames;
+import com.indeed.iql2.language.passes.ExtractPrecomputed;
+import com.indeed.iql2.language.passes.FixTopKHaving;
+import com.indeed.iql2.language.passes.HandleWhereClause;
+import com.indeed.iql2.language.passes.RemoveNames;
+import com.indeed.iql2.language.passes.SubstituteDimension;
+import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
@@ -71,6 +70,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Queries {
@@ -183,8 +183,8 @@ public class Queries {
         return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, WallClock clock) {
-        return parseQuery(q, useLegacy, datasetsMetadata, new Consumer<String>() {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock) {
+        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, new Consumer<String>() {
             @Override
             public void accept(String s) {
 
@@ -192,9 +192,9 @@ public class Queries {
         }, clock);
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetsMetadata, warn, clock));
+        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetsMetadata, defaultOptions, warn, clock));
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context, Set<Interval> seenComments) {
@@ -224,10 +224,10 @@ public class Queries {
         }
     }
 
-    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, WallClock clock) {
+    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock) {
         Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, DatasetsMetadata.empty(), clock).query;
+        final Query parsed = parseQuery(q, useLegacy, DatasetsMetadata.empty(), defaultOptions, clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;

@@ -18,19 +18,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.web.print.LevelPrinter;
+import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.commands.Command;
-import java.util.function.Consumer;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.time.WallClock;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql.web.print.LevelPrinter;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 public class ExplainQueryExecution {
     private static final Logger log = Logger.getLogger(ExplainQueryExecution.class);
@@ -52,6 +53,7 @@ public class ExplainQueryExecution {
     private final DatasetsMetadata datasetsMetadata;
     private final boolean isJSON;
     private final WallClock clock;
+    private final Set<String> defaultIQL2Options;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -69,7 +71,8 @@ public class ExplainQueryExecution {
             final String query,
             final int version,
             final boolean isJSON,
-            final WallClock clock
+            final WallClock clock,
+            final IQL2Options defaultIQL2Options
     ) {
         this.datasetsMetadata = datasetsMetadata;
         this.outputStream = outputStream;
@@ -77,6 +80,7 @@ public class ExplainQueryExecution {
         this.version = version;
         this.isJSON = isJSON;
         this.clock = clock;
+        this.defaultIQL2Options = defaultIQL2Options.getOptions();
         this.printer = new LevelPrinter();
     }
 
@@ -90,7 +94,7 @@ public class ExplainQueryExecution {
             }
         };
 
-        final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, warn, clock).query;
+        final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, defaultIQL2Options, warn, clock).query;
         new ParsedQueryExplain(parsedQuery, errors, warnings).explainParsedQuery();
         if (!isJSON) {
             outputStream.println(printer.toString());

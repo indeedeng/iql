@@ -16,8 +16,8 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.StoppedClock;
 import org.joda.time.DateTime;
@@ -25,12 +25,16 @@ import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  *
  */
 public class QueriesTest {
+
+    private static final Set<String> NO_OPTIONS = Collections.emptySet();
 
     @Test
     public void testSplitQuery() {
@@ -42,7 +46,7 @@ public class QueriesTest {
                             ImmutableList.of(), ImmutableList.of(), "jobsearch",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, true, clock));
+                    Queries.parseSplitQuery(query, true, NO_OPTIONS, clock));
         }
         {
             String query = "FROM jobsearch(ojc < 10 tk='a') 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0], ctk SELECT count(), oji";
@@ -53,7 +57,7 @@ public class QueriesTest {
                             ImmutableList.of("country[TOP BY ojc HAVING oji > 0]", "ctk"), ImmutableList.of("count()", "oji"), "jobsearch",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
         }
         {
             String query = "FROM jobsearch 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0] AS myalias, ctk SELECT count(), oji";
@@ -64,7 +68,7 @@ public class QueriesTest {
                             ImmutableList.of("country[TOP BY ojc HAVING oji > 0] AS myalias", "ctk"), ImmutableList.of("count()", "oji"), "jobsearch",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
         }
         {
             final String query = "FROM jobsearch 1d 0d /* mid */, mobsearch /* after */ " +
@@ -80,7 +84,7 @@ public class QueriesTest {
                             ImmutableList.of("country", "ctk"), ImmutableList.of("count()", "oji"),
                             "", "", "", "", "",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
         }
     }
 
@@ -104,7 +108,7 @@ public class QueriesTest {
 
     private List<String> extractHeadersHelper(final String q, final boolean useLegacy) {
         final Query query = Queries.parseQuery(
-                q, useLegacy, DatasetsMetadata.empty(), new DefaultWallClock()).query;
+                q, useLegacy, DatasetsMetadata.empty(), NO_OPTIONS, new DefaultWallClock()).query;
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
         return Queries.extractHeaders(query, queryContext.start.getInputStream());
     }

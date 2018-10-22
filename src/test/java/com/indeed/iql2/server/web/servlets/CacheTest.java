@@ -49,7 +49,7 @@ public class CacheTest extends BasicTest {
     );
 
     private static String getCacheKey(ImhotepClient imhotepClient, String queryString) {
-        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, DatasetsMetadata.empty(), new Consumer<String>() {
+        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, DatasetsMetadata.empty(), Collections.emptySet(), new Consumer<String>() {
             @Override
             public void accept(String s) {
 

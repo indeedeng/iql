@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collections;
 import java.util.HashMap;
 
 @Controller
@@ -39,7 +40,7 @@ public class SplitServlet {
         final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         response.setHeader("Content-Type", "application/json");
         try {
-            return Queries.parseSplitQuery(q, version == 1, new StoppedClock());
+            return Queries.parseSplitQuery(q, version == 1, Collections.emptySet(), new StoppedClock());
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("clause", "where");

@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -31,8 +32,6 @@ import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimeUnit;
-import java.util.function.Consumer;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
@@ -53,6 +52,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class PrettyPrint {
     private static final Function<String, String> RENDER_STRING = new Function<String, String>() {
@@ -76,7 +76,7 @@ public class PrettyPrint {
             }
         };
         WallClock clock = new StoppedClock();
-        Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), consumer, clock);
+        Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), Collections.emptySet(), consumer, clock);
         return prettyPrint(queryContext, query, datasetsMetadata, consumer, clock);
     }
 

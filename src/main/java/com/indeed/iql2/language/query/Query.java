@@ -18,7 +18,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.indeed.iql.exceptions.IqlKnownException;
-import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
@@ -44,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Query extends AbstractPositional {
@@ -158,8 +158,9 @@ public class Query extends AbstractPositional {
         return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, options, rowLimit, useLegacy);
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock) {
         final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
+        options.addAll(defaultOptions);
         final Query query = parseQuery(
                 queryContext.fromContents(),
                 Optional.fromNullable(queryContext.whereContents()),

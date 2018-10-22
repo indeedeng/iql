@@ -25,6 +25,7 @@ import org.apache.log4j.SimpleLayout;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
 
 public class CompatibilityTest {
     private static final Logger log = Logger.getLogger(CompatibilityTest.class);
@@ -45,7 +46,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Queries.parseQuery(q, true, DatasetsMetadata.empty(), new DefaultWallClock());
+                    Queries.parseQuery(q, true, DatasetsMetadata.empty(), Collections.emptySet(), new DefaultWallClock());
                 } catch (Exception e) {
                     successes--;
                     failures++;

@@ -31,6 +31,7 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
+import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.util.core.threads.NamedThreadFactory;
@@ -87,7 +88,9 @@ public class QueryServletTestUtils extends BasicTest {
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
-                options.wallClock);
+                options.wallClock,
+                new IQL2Options()
+        );
     }
 
     @SuppressWarnings("WeakerAccess")

@@ -16,28 +16,29 @@
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.ims.client.ImsClient;
+import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.ims.server.SpringContextAware;
+import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.cache.QueryCacheFactory;
-import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.CORSInterceptor;
 import com.indeed.iql.web.DataSourceLoader;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql.web.IQLDB;
 import com.indeed.iql.web.ImhotepClientPinger;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
-import com.indeed.ims.client.ImsClient;
-import com.indeed.ims.client.ImsClientInterface;
-import com.indeed.ims.server.SpringContextAware;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql1.web.SplitterServlet;
+import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.server.web.servlets.ServletsPackageMarker;
 import com.indeed.iql2.server.web.servlets.SplitServlet;
 import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
@@ -290,6 +291,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 env.getProperty("user.concurrent.imhotep.sessions.limit", Integer.class)
 
         );
+    }
+
+    @Bean
+    public IQL2Options defaultIQLOptions() {
+        return new IQL2Options();
     }
 
     @Bean
