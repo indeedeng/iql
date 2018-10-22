@@ -24,21 +24,32 @@ import java.util.Comparator;
 * @author jwolfe
 */
 public class TermSelects {
-    public final String field;
-
-    public boolean isIntTerm;
-    public String stringTerm;
-    public long intTerm;
+    public final String stringTerm;
+    public final long intTerm;
 
     public final double[] selects;
-    public double topMetric;
+    public final double topMetric;
     public final int group;
 
-    public TermSelects(String field, boolean isIntTerm, String stringTerm, long intTerm, double[] selects, double topMetric, int group) {
-        this.field = field;
-        this.stringTerm = stringTerm;
+    public TermSelects(
+            final long intTerm,
+            final double[] selects,
+            final double topMetric,
+            final int group) {
+        this.stringTerm = null;
         this.intTerm = intTerm;
-        this.isIntTerm = isIntTerm;
+        this.selects = selects;
+        this.topMetric = topMetric;
+        this.group = group;
+    }
+
+    public TermSelects(
+            final String stringTerm,
+            final double[] selects,
+            final double topMetric,
+            final int group) {
+        this.stringTerm = stringTerm;
+        this.intTerm = 0;
         this.selects = selects;
         this.topMetric = topMetric;
         this.group = group;
@@ -47,7 +58,6 @@ public class TermSelects {
     @Override
     public String toString() {
         return "TermSelects{" +
-                "isIntTerm=" + isIntTerm +
                 ", stringTerm='" + stringTerm + '\'' +
                 ", intTerm=" + intTerm +
                 ", selects=" + Arrays.toString(selects) +
@@ -67,7 +77,7 @@ public class TermSelects {
                 return r;
             }
 
-            if (o1.isIntTerm) {
+            if (o1.stringTerm == null) {
                 r = Longs.compare(o2.intTerm, o1.intTerm);
             } else {
                 r = o2.stringTerm.compareTo(o1.stringTerm);

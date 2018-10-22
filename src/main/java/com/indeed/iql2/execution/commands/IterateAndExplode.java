@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import javax.annotation.Nullable;
@@ -31,6 +30,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class IterateAndExplode implements Command {
     public final String field;
@@ -51,20 +53,16 @@ public class IterateAndExplode implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<List<TermSelects>>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
+        final List<List<TermSelects>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);
         explodes.add(null);
-        for (final List<List<TermSelects>> groupResults : iterationResults) {
-            if (groupResults.size() > 0) {
-                final List<TermSelects> groupFieldResults = groupResults.get(0);
-                final List<Term> terms = Lists.newArrayListWithCapacity(groupFieldResults.size());
-                for (final TermSelects result : groupFieldResults) {
-                    terms.add(new Term(result.field, result.isIntTerm, result.intTerm, result.stringTerm));
-                }
-                explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
-            } else {
-                explodes.add(new Commands.TermsWithExplodeOpts(Collections.<Term>emptyList(), this.explodeDefaultName));
+        final boolean isIntField = session.isIntField(field);
+        for (final List<TermSelects> groupResults : iterationResults) {
+            final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
+            for (final TermSelects result : groupResults) {
+                terms.add(new Term(field, isIntField, result.intTerm, result.stringTerm));
             }
+            explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }
         new ExplodePerGroup(explodes, field, session.isIntField(field)).execute(session, out);
     }
