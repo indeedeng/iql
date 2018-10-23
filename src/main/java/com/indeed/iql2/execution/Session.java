@@ -916,9 +916,10 @@ public class Session {
             for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
                 final String realField = entry.getKey();
                 timer.push("real field: " + realField);
+                final SingleFieldRegroupTools.FieldOptions realFieldOptions = new SingleFieldRegroupTools.FieldOptions(realField, options.intType, options.inequality);
                 final Iterator<GroupMultiRemapMessage> messages =
                         Iterators.transform(Arrays.asList(rules).iterator(),
-                                rule -> SingleFieldRegroupTools.marshal(rule, options));
+                                rule -> SingleFieldRegroupTools.marshal(rule, realFieldOptions));
                 final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
                 for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
                     timer.push("session:" + sessionInfo.displayName);
