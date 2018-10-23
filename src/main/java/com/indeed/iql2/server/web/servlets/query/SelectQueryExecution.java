@@ -88,6 +88,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -525,14 +526,14 @@ public class SelectQueryExecution {
                             boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
                             queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
                             // read metadata from cache
-                            // TODO: reenable
-                            //                            try {
-                            //                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                            //                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                            //                                queryMetadata.mergeIn(cachedMetadata);
-                            //                            } catch (Exception e) {
-                            //                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
-                            //                            }
+                            try {
+                                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                                queryMetadata.mergeIn(cachedMetadata);
+                                queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                            } catch (Exception e) {
+                                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                            }
                             queryMetadata.setPendingHeaders();
                         }
                         // TODO: Don't have this hack
@@ -633,14 +634,12 @@ public class SelectQueryExecution {
                             public Void call() throws Exception {
                                 try {
                                     if (isTopLevelQuery) {
-                                        // TODO: reenable
-                                        //                                        try {
-                                        //                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                        //                                            queryMetadata.toOutputStream(metadataCacheStream);
-                                        //                                            metadataCacheStream.close();
-                                        //                                        } catch (Exception e) {
-                                        //                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-                                        //                                        }
+                                        try {
+                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                            queryMetadata.toOutputStream(metadataCacheStream);
+                                        } catch (Exception e) {
+                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                        }
                                     }
                                     try {
                                         cacheWriter.close();

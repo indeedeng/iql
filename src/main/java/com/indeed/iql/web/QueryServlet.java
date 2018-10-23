@@ -478,7 +478,8 @@ public class QueryServlet {
                 @Override
                 public Void call() throws Exception {
                     try {
-                        try (final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX)) {
+                        try {
+                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
                             queryMetadata.toOutputStream(metadataCacheStream);
                         } catch (Exception e) {
                             log.warn("Failed to upload metadata cache: " + cacheFileName, e);
@@ -610,9 +611,10 @@ public class QueryServlet {
     private void uploadResultsToCache(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
         if(writeResults.resultCacheIterator != null) {
             // use the memory cached data
-            try (final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(queryCache.getOutputStream(cachedFileName)))) {
-                IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
-            }
+            final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(queryCache.getOutputStream(cachedFileName)));
+            IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
+            // only close on success
+            cacheWriter.close();
         } else if(writeResults.unsortedFile != null) {
             // cache overflowed to disk so read from file
             try {

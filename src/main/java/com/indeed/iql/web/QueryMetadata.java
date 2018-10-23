@@ -101,13 +101,14 @@ public class QueryMetadata {
 
     /**
      * Serializes this object to the stream as JSON.
-     * Closes the stream after.
+     * Closes the stream after but only on success.
      */
     public void toOutputStream(OutputStream outputStream) {
         final String stringSerialization = toJSONForCaching();
         try {
             final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8);
             outputStreamWriter.write(stringSerialization);
+            // only close on success
             outputStreamWriter.close();
         } catch (IOException e) {
             throw Throwables.propagate(e);

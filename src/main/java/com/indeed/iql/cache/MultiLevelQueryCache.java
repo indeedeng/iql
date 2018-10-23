@@ -125,12 +125,6 @@ public class MultiLevelQueryCache implements QueryCache {
                 bytesBuffered += length;
                 if(bytesBuffered > maxFileSizeForPrimaryCacheBytes) {
                     overflowed = true;
-                    // write a mark to the primary cache to know that we have data in the secondary cache
-                    try (final OutputStream primaryCacheOutputStream = primaryCache.getOutputStream(cachedFileName)) {
-                        for(int markByte: MARK_OF_LARGE_DATA_CACHE_USED) {
-                            primaryCacheOutputStream.write(markByte);
-                        }
-                    }
 
                     // copy all cached data from in memory buffer to the large data cache
                     final OutputStream largeDataCacheOutputStream = largeDataCache.getOutputStream(cachedFileName);
@@ -143,11 +137,17 @@ public class MultiLevelQueryCache implements QueryCache {
 
             @Override
             public void close() throws IOException {
-                if (!overflowed) {
-                    try(final OutputStream cacheStream = primaryCache.getOutputStream(cachedFileName)) {
-                        cacheStream.write(inMemoryCacheStream.toByteArray());
+                final OutputStream primaryCacheStream = primaryCache.getOutputStream(cachedFileName);
+                if (overflowed) {
+                    // write a mark to the primary cache to know that we have data in the secondary cache
+                    for (int markByte : MARK_OF_LARGE_DATA_CACHE_USED) {
+                        primaryCacheStream.write(markByte);
                     }
+                } else {
+                    // write actual data to the primary cache
+                    primaryCacheStream.write(inMemoryCacheStream.toByteArray());
                 }
+                primaryCacheStream.close(); // only close on success
                 outputStream.close();
             }
         };
@@ -155,11 +155,12 @@ public class MultiLevelQueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        try(final OutputStream cacheStream = getOutputStream(cachedFileName)) {
-            try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
-                ByteStreams.copy(fileIn, cacheStream);
-            }
+        final OutputStream cacheStream = getOutputStream(cachedFileName);
+        try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
+            ByteStreams.copy(fileIn, cacheStream);
         }
+        // only close on success
+        cacheStream.close();
     }
 
     @Override

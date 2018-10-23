@@ -49,12 +49,13 @@ public class RedisQueryCache implements QueryCache {
         final String redisPassword = props.getProperty("query.cache.redis.password");
         final int redisMaxIdleConnections = props.getProperty("query.cache.redis.max.idle.connections", Integer.class, 1);
         final int redisMaxTotalConnections = props.getProperty("query.cache.redis.max.total.connections", Integer.class, 20);
+        final int redisMaxAttempts = props.getProperty("query.cache.redis.max.attempts", Integer.class, 2);
         final int redisTimeout = props.getProperty("query.cache.redis.timeout.ms", Integer.class, 20000);
 
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(redisMaxTotalConnections); // maximum active connections
         poolConfig.setMaxIdle(redisMaxIdleConnections);  // maximum idle connections
-        redis = new JedisCluster(hostAndPorts, redisTimeout, redisTimeout, 0, redisPassword, poolConfig);
+        redis = new JedisCluster(hostAndPorts, redisTimeout, redisTimeout, redisMaxAttempts, redisPassword, poolConfig);
     }
 
     /**
@@ -142,11 +143,12 @@ public class RedisQueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        try(final OutputStream cacheStream = getOutputStream(cachedFileName)) {
-            try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
-                ByteStreams.copy(fileIn, cacheStream);
-            }
+        final OutputStream cacheStream = getOutputStream(cachedFileName);
+        try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
+            ByteStreams.copy(fileIn, cacheStream);
         }
+        // only close on success
+        cacheStream.close();
     }
 
     /**
@@ -155,9 +157,8 @@ public class RedisQueryCache implements QueryCache {
      */
     @Override
     public void healthcheck() {
-            if (!"test".equals(redis.echo("test"))) {
-                throw new RuntimeException("redis cache test failed");
-            }
-//        }
+        if (!"test".equals(redis.echo("test"))) {
+            throw new RuntimeException("redis cache test failed");
+        }
     }
 }
