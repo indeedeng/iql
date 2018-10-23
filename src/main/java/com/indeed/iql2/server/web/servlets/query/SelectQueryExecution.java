@@ -284,6 +284,7 @@ public class SelectQueryExecution {
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
+            queryInfo.datasets = Sets.newHashSet();
 
             for (final FieldExtractor.DatasetField datasetField : datasetFields) {
                 final String actualDataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
@@ -300,6 +301,7 @@ public class SelectQueryExecution {
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);
+                    queryInfo.datasets.add(datasetField.dataset);
                 }
             }
         }

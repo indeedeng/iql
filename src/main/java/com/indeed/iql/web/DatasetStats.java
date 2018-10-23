@@ -51,6 +51,12 @@ public class DatasetStats {
     public DateTime firstDataTime;
     public DateTime lastDataTime;
 
+    public boolean deprecated;
+    public boolean hasDescription;
+    public int fieldsWithDescription;
+    public String owner;
+    public String project;
+
     public DateTime reportGenerationTime;
 
     public DatasetStats() {
@@ -137,6 +143,26 @@ public class DatasetStats {
 
     public String getLastDataTime() {
         return shardDateToString(lastDataTime);
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public boolean isHasDescription() {
+        return hasDescription;
+    }
+
+    public int getFieldsWithDescription() {
+        return fieldsWithDescription;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public String getProject() {
+        return project;
     }
 
     public String getReportGenerationTime() {

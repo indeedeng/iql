@@ -121,6 +121,8 @@ public class ImhotepMetadataCache {
                     if (newDatasets.containsKey(datasetYaml.getName())) {
                         DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
                         newDataset.setDescription(datasetYaml.getDescription());
+                        newDataset.setOwner(datasetYaml.getOwner());
+                        newDataset.setProject(datasetYaml.getBuilderJiraProject());
                         if (datasetYaml.getDeprecated() != null) {
                             newDataset.setDeprecated(datasetYaml.getDeprecated());
                         }
@@ -248,7 +250,7 @@ public class ImhotepMetadataCache {
 
     @Nonnull
     public DatasetMetadata getDataset(String dataset) {
-        return get().getMetadata(dataset).or(new DatasetMetadata(false, dataset, "", false));    // empty)
+        return get().getMetadata(dataset).or(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
     }
 
     // applicable to all indexes

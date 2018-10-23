@@ -42,6 +42,8 @@ public class DatasetMetadata {
     private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
+    @Nullable public String owner;
+    @Nullable public String project;
     public boolean deprecated;
     public final TreeSet<FieldMetadata> intFields;
     public final TreeSet<FieldMetadata> stringFields;
@@ -54,19 +56,21 @@ public class DatasetMetadata {
     @Nonnull Map<String, String> iql1Aliases = Maps.newHashMap();
 
     public DatasetMetadata(boolean iql2mode, String name) {
-        this(iql2mode, name, null, false);
+        this(iql2mode, name, null, null, null, false);
     }
 
-    public DatasetMetadata(boolean iql2mode, String name, String description, boolean deprecated) {
-        this(iql2mode, name, description, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
+    public DatasetMetadata(boolean iql2mode, String name, String description, String owner, String project, boolean deprecated) {
+        this(iql2mode, name, description, owner, project, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
     }
 
-    public DatasetMetadata(final boolean iql2mode, final String name, final String description, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
+    public DatasetMetadata(final boolean iql2mode, final String name, final String description, String owner, String project, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, MetricMetadata> fieldToDimension) {
         fieldMetadataComparator = iql2mode ? FieldMetadata.CASE_INSENSITIVE_ORDER : FieldMetadata.CASE_SENSITIVE_ORDER;
         fieldNameComparator = iql2mode ? String.CASE_INSENSITIVE_ORDER : null;
         this.iql2mode = iql2mode;
         this.name = name;
+        this.owner = owner;
+        this.project = project;
         this.deprecated = deprecated;
         this.intFields = toCaseInsensitive(intFields);
         this.stringFields = toCaseInsensitive(stringFields);
@@ -86,6 +90,14 @@ public class DatasetMetadata {
 
     public void setDescription(@Nullable String description) {
         this.description = description;
+    }
+
+    public void setOwner(@Nullable String owner) {
+        this.owner = owner;
+    }
+
+    public void setProject(@Nullable String project) {
+        this.project = project;
     }
 
     public void setDeprecated(boolean deprecated) {
@@ -203,6 +215,12 @@ public class DatasetMetadata {
             jsonNode.put("deprecated", true);
         }
         jsonNode.put("description", Strings.nullToEmpty(description));
+        if (owner != null) {
+            jsonNode.put("owner", owner);
+        }
+        if (project != null) {
+            jsonNode.put("project", project);
+        }
         if(summaryOnly) {
             return;
         }

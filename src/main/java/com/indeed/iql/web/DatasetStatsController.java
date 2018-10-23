@@ -62,7 +62,7 @@ public class DatasetStatsController {
     private synchronized void updateDatasetStatsCache() {
         if (cached == null || DateTime.now().isAfter(lastCacheUpdate.plus(CACHE_EXPIRATION))) {
             long computationStartTime = System.currentTimeMillis();
-            cached = DatasetStatsCollector.computeStats(imhotepClient);
+            cached = DatasetStatsCollector.computeStats(imhotepClient, metadataCacheIQL2);
             lastCacheUpdate = DateTime.now();
             long timeTaken = System.currentTimeMillis() - computationStartTime;
             log.info("Computed Imhotep datasets stats in " + timeTaken + " ms. Cached for " + CACHE_EXPIRATION);

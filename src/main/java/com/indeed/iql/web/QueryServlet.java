@@ -363,6 +363,7 @@ public class QueryServlet {
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
+        queryInfo.datasets = Sets.newHashSet(iqlQuery.getDataset());
 
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query

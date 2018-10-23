@@ -14,12 +14,15 @@
 
 package com.indeed.iql.web;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
-import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -28,7 +31,12 @@ import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author vladimir
@@ -39,7 +47,7 @@ public class DatasetStatsCollector {
     public static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
-    public static List<DatasetStats> computeStats(ImhotepClient client) {
+    public static List<DatasetStats> computeStats(ImhotepClient client, ImhotepMetadataCache metadataCacheIQL2) {
         final List<DatasetStats> statsList = Lists.newArrayList();
         Map<String, DatasetInfo> datasetToDatasetInfo = client.getDatasetToDatasetInfo();
         Map<String, Collection<ShardInfo>> datasetToShardList = client.queryDatasetToFullShardList();
@@ -125,6 +133,15 @@ public class DatasetStatsCollector {
             } else {
                 log.error("Failed to parse time range end for " + datasetInfo.getDataset());
             }
+
+            // add metadata related info from metadata cache
+            final DatasetMetadata datasetMetadata = metadataCacheIQL2.getDataset(datasetInfo.getDataset());
+            stats.deprecated = datasetMetadata.deprecated;
+            stats.owner = datasetMetadata.owner;
+            stats.project = datasetMetadata.project;
+            stats.hasDescription = !Strings.isNullOrEmpty(datasetMetadata.description);
+            stats.fieldsWithDescription = (int) Sets.union(datasetMetadata.intFields, datasetMetadata.stringFields).stream()
+                    .filter((FieldMetadata field) -> !Strings.isNullOrEmpty(field.getDescription())).count();
 
             stats.reportGenerationTime = DateTime.now();
         }
