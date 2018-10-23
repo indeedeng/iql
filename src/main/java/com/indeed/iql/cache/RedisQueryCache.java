@@ -38,14 +38,13 @@ import java.util.stream.Collectors;
  */
 
 public class RedisQueryCache implements QueryCache {
-    static final Logger log = Logger.getLogger(RedisQueryCache.class);
+    private static final Logger log = Logger.getLogger(RedisQueryCache.class);
     // redis client
-//    private final JedisPool redisPool;
     private final JedisCluster redis;
 
     public RedisQueryCache(PropertyResolver props) {
-        final String redisHost = props.getProperty("query.cache.redis.hosts");
-        Set<redis.clients.jedis.HostAndPort> hostAndPorts = Arrays.stream(redisHost.split(","))
+        final String redisHosts = props.getProperty("query.cache.redis.hosts");
+        Set<redis.clients.jedis.HostAndPort> hostAndPorts = Arrays.stream(redisHosts.split(","))
                 .map(HostAndPort::fromString).map(hostAndPort -> new redis.clients.jedis.HostAndPort(hostAndPort.getHostText(), hostAndPort.getPort())).collect(Collectors.toSet());
         final String redisPassword = props.getProperty("query.cache.redis.password");
         final int redisMaxIdleConnections = props.getProperty("query.cache.redis.max.idle.connections", Integer.class, 1);
@@ -55,7 +54,6 @@ public class RedisQueryCache implements QueryCache {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(redisMaxTotalConnections); // maximum active connections
         poolConfig.setMaxIdle(redisMaxIdleConnections);  // maximum idle connections
-//        redisPool = new JedisPool(poolConfig, redisHost, redisPort, redisTimeout, redisPassword);
         redis = new JedisCluster(hostAndPorts, redisTimeout, redisTimeout, 0, redisPassword, poolConfig);
     }
 
@@ -78,9 +76,7 @@ public class RedisQueryCache implements QueryCache {
     @Override
     public boolean isFileCached(String fileName) {
         try {
-//            try (Jedis redis = redisPool.getResource()) {
-                return redis.exists(fileName);
-//            }
+            return redis.exists(fileName);
         } catch (Exception e) {
             return false;
         }
@@ -89,8 +85,7 @@ public class RedisQueryCache implements QueryCache {
 
     @Override
     @Nullable
-    public InputStream getInputStream(String cachedFileName) throws IOException {
-//        try (Jedis redis = redisPool.getResource()) {
+    public InputStream getInputStream(String cachedFileName) {
         try {
             final byte[] content = redis.get(cachedFileName.getBytes());
             if(content == null) {
@@ -104,7 +99,7 @@ public class RedisQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(String cachedFileName) throws IOException {
+    public OutputStream getOutputStream(String cachedFileName) {
         final ByteArrayOutputStream inMemoryCacheStream = new ByteArrayOutputStream(1000);
         
         return new OutputStream() {
@@ -116,7 +111,7 @@ public class RedisQueryCache implements QueryCache {
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(byte[] b, int off, int len) {
                 inMemoryCacheStream.write(b, off, len);
             }
 
@@ -126,7 +121,7 @@ public class RedisQueryCache implements QueryCache {
             }
 
             @Override
-            public void write(int b) throws IOException {
+            public void write(int b) {
                 inMemoryCacheStream.write(b);
             }
 
@@ -136,7 +131,6 @@ public class RedisQueryCache implements QueryCache {
                     return;
                 }
                 closed = true;
-//                try (Jedis redis = redisPool.getResource()) {
                 try {
                     redis.set(cachedFileName.getBytes(), inMemoryCacheStream.toByteArray());
                 } finally {
@@ -160,8 +154,7 @@ public class RedisQueryCache implements QueryCache {
      * @throws IOException
      */
     @Override
-    public void healthcheck() throws IOException {
-//        try(Jedis redis = redisPool.getResource()) {
+    public void healthcheck() {
             if (!"test".equals(redis.echo("test"))) {
                 throw new RuntimeException("redis cache test failed");
             }

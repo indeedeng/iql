@@ -25,6 +25,8 @@ import com.indeed.ims.server.SpringContextAware;
 import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.cache.QueryCacheFactory;
+import com.indeed.iql.cache.RedisHostsOverride;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.CORSInterceptor;
@@ -36,7 +38,6 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
-import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql1.web.SplitterServlet;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.server.web.servlets.ServletsPackageMarker;
@@ -53,6 +54,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertyResolver;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -125,13 +127,15 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
-//    @Autowired
-    QueryCache queryCache() throws PropertyException {
-//        if(queryCache != null) {
-//            return queryCache;
-//        } else {
-            return QueryCacheFactory.newQueryCache(env);
-//        }
+    QueryCache queryCache(@Autowired(required = false) RedisHostsOverride redisHostsOverride) throws PropertyException {
+        final PropertyResolver propertyResolver;
+        if(redisHostsOverride != null) {
+            propertyResolver = redisHostsOverride.applyOverride(env);
+        } else {
+            propertyResolver = env;
+        }
+
+        return QueryCacheFactory.newQueryCache(propertyResolver);
     }
 
     @Bean

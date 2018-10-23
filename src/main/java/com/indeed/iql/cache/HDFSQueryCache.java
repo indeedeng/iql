@@ -37,7 +37,7 @@ import java.io.OutputStream;
  */
 
 public class HDFSQueryCache implements QueryCache {
-    static final Logger log = Logger.getLogger(HDFSQueryCache.class);
+    private static final Logger log = Logger.getLogger(HDFSQueryCache.class);
 
     private FileSystem hdfs;
     private Path cachePath;

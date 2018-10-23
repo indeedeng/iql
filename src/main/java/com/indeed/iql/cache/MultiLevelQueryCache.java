@@ -30,7 +30,7 @@ import java.io.OutputStream;
  */
 
 public class MultiLevelQueryCache implements QueryCache {
-    static final Logger log = Logger.getLogger(MultiLevelQueryCache.class);
+    private static final Logger log = Logger.getLogger(MultiLevelQueryCache.class);
 
     private QueryCache primaryCache;
     private QueryCache largeDataCache;

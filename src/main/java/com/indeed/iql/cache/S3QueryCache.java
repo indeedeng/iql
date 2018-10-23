@@ -35,7 +35,7 @@ import java.io.OutputStream;
  */
 
 public class S3QueryCache implements QueryCache {
-    static final Logger log = Logger.getLogger(S3QueryCache.class);
+    private static final Logger log = Logger.getLogger(S3QueryCache.class);
 
     private AmazonS3Client client;
     private String bucket;
