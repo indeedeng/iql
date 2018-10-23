@@ -91,8 +91,7 @@ public class CacheTest extends BasicTest {
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
             final List<List<String>> result1 = QueryServletTestUtils.runQuery(imhotepClient, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            // TODO: change to 2 when metadata caching is enabled
-            final int expectedCachedFiles = 1; // should have 2 files: metadata and data
+            final int expectedCachedFiles = 2; // should have 2 files: metadata and data
             final long waitStart = System.currentTimeMillis();
             while(queryCache.getWritesTracked().size() != expectedCachedFiles) {
                 if(System.currentTimeMillis() - waitStart > 1000) {
