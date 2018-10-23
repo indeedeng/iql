@@ -40,8 +40,8 @@ import java.util.concurrent.CountDownLatch;
 public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
-    // this can be incremented to invalidate the old cache
-    public static final byte VERSION_FOR_HASHING = 4;
+    // this can be incremented to invalidate the old cache. It should be changed through query.cache.version config property
+    public static byte VERSION_FOR_HASHING = 4;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     private final RunningQueriesManager runningQueriesManager;

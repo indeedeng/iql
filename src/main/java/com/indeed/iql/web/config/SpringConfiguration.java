@@ -26,6 +26,7 @@ import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.cache.QueryCacheFactory;
 import com.indeed.iql.cache.RedisHostsOverride;
+import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
@@ -128,6 +129,10 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     QueryCache queryCache(@Autowired(required = false) RedisHostsOverride redisHostsOverride) throws PropertyException {
+        final Byte versionForHashing = env.getProperty("query.cache.version", Byte.class);
+        if(versionForHashing != null) {
+            SelectQuery.VERSION_FOR_HASHING = versionForHashing;
+        }
         final PropertyResolver propertyResolver;
         if(redisHostsOverride != null) {
             propertyResolver = redisHostsOverride.applyOverride(env);
