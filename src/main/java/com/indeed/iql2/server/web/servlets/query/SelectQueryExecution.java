@@ -73,6 +73,7 @@ import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -682,7 +683,8 @@ public class SelectQueryExecution {
                 outputStream.println("event: header");
 
                 if (!warnings.isEmpty()) {
-                    queryMetadata.addItem("IQL-Warning", Joiner.on('\n').join(warnings), false);
+                    String warning = "[\"" + StringUtils.join(warnings, "\",\"") + "\"]";
+                    queryMetadata.addItem("IQL-Warning", warning, false);
                 }
                 queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
                 queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
