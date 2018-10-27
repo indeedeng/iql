@@ -14,11 +14,12 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 
 import java.io.IOException;
+import java.util.function.Consumer;
+
+;
 
 /**
  * Corner case of distinct calculation for one dataset without filter
@@ -33,9 +34,13 @@ public class GetSimpleGroupDistincts implements Command {
     }
 
     @Override
-    public void execute(final Session session, final Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] groupCounts = session.getSimpleDistinct(field, scope);
+    public void execute(final Session session, final Consumer<String> out) throws IOException {
+        final long[] groupCounts = evaluate(session);
         out.accept(Session.MAPPER.writeValueAsString(groupCounts));
+    }
+
+    public long[] evaluate(final Session session) {
+        return session.getSimpleDistinct(field, scope);
     }
 
     @Override

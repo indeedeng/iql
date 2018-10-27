@@ -17,9 +17,11 @@ package com.indeed.iql2.execution.commands;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
+
+;
 
 public class CreateGroupStatsLookup implements Command {
     public final double[] stats;
@@ -32,6 +34,11 @@ public class CreateGroupStatsLookup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws JsonProcessingException {
+        final String lookupName = execute(session);
+        out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName)));
+    }
+
+    public String execute(final Session session) {
         final int depth = session.currentDepth;
         final double[] stats = this.stats;
         final Session.SavedGroupStats savedStats = new Session.SavedGroupStats(depth, stats);
@@ -45,6 +52,6 @@ public class CreateGroupStatsLookup implements Command {
             throw new IllegalArgumentException("Name already in use!: [" + lookupName + "]");
         }
         session.savedGroupStats.put(lookupName, savedStats);
-        out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName)));
+        return lookupName;
     }
 }
