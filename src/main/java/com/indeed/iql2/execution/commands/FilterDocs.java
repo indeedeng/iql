@@ -20,11 +20,13 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
-import java.util.function.Consumer;;
 import com.indeed.util.core.TreeTimer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+
+;
 
 public class FilterDocs implements Command {
     public final Map<String, List<String>> perDatasetFilterMetric;
@@ -39,6 +41,11 @@ public class FilterDocs implements Command {
 
     @Override
     public void execute(Session s, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(s);
+        out.accept("{}");
+    }
+
+    public void execute(final Session s) throws ImhotepOutOfMemoryException {
         s.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
@@ -61,6 +68,5 @@ public class FilterDocs implements Command {
                 timer.pop();
             }
         });
-        out.accept("{}");
     }
 }

@@ -18,9 +18,11 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.GroupLookupMergeType;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 
 import java.util.Map;
+import java.util.function.Consumer;
+
+;
 
 public class RegroupIntoParent implements Command {
     public final GroupLookupMergeType mergeType;
@@ -31,6 +33,11 @@ public class RegroupIntoParent implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(session);
+        out.accept("RegroupedIntoParent");
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("compute remapping");
         final int prevNumGroups = session.groupKeySet.previous().numGroups();
         final Map<String, Session.SavedGroupStats> newSavedGroupStatsEntries = Maps.newHashMap();
@@ -87,7 +94,5 @@ public class RegroupIntoParent implements Command {
         session.currentDepth -= 1;
         session.numGroups = prevNumGroups;
         session.groupKeySet = session.groupKeySet.previous();
-
-        out.accept("RegroupedIntoParent");
     }
 }

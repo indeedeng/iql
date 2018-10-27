@@ -18,9 +18,11 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.actions.Action;
-import java.util.function.Consumer;;
 
 import java.util.List;
+import java.util.function.Consumer;
+
+;
 
 public class ApplyFilterActions implements Command {
     public final ImmutableList<Action> actions;
@@ -31,11 +33,15 @@ public class ApplyFilterActions implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(session);
+        out.accept("Applied filters");
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         for (final Action action : actions) {
             session.timer.push("action.apply " + action);
             action.apply(session);
             session.timer.pop();
         }
-        out.accept("Applied filters");
     }
 }

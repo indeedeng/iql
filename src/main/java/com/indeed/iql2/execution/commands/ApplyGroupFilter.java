@@ -21,7 +21,6 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.util.core.TreeTimer;
@@ -35,6 +34,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class ApplyGroupFilter implements Command {
     private static final Logger log = Logger.getLogger(ApplyGroupFilter.class);
@@ -47,6 +49,11 @@ public class ApplyGroupFilter implements Command {
 
     @Override
     public void execute(final Session session, final Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        execute(session);
+        out.accept("done");
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final Set<QualifiedPush> requires = filter.requires();
         final Map<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final Map<String, IntList> sessionMetricIndexes = new HashMap<>();
@@ -92,6 +99,5 @@ public class ApplyGroupFilter implements Command {
         session.remapGroups(fromGroups, toGroups);
         session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
         session.numGroups = session.groupKeySet.numGroups();
-        out.accept("done");
     }
 }

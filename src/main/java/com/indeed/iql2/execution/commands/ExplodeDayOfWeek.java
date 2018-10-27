@@ -18,10 +18,13 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
+
+import java.util.function.Consumer;
+
+;
 
 public class ExplodeDayOfWeek implements Command {
     public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
@@ -35,6 +38,11 @@ public class ExplodeDayOfWeek implements Command {
 
     @Override
     public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(session);
+        out.accept("success");
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.checkGroupLimit(session.numGroups * 7);
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
@@ -61,7 +69,5 @@ public class ExplodeDayOfWeek implements Command {
         session.remapGroups(fromGroups, toGroups);
         session.timer.pop();
         session.assumeDense(new DayOfWeekGroupKeySet(session.groupKeySet));
-
-        out.accept("success");
     }
 }

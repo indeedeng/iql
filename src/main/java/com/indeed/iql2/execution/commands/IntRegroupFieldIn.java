@@ -41,6 +41,10 @@ public class IntRegroupFieldIn implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        execute(session);
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, true, false);
         final int numTerms = intTerms.size();

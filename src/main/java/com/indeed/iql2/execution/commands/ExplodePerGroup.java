@@ -54,7 +54,7 @@ public class ExplodePerGroup implements Command {
         out.accept("success");
     }
 
-    public void execute(Session session) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         checkNumGroups(session);
 
         session.timer.push("form rules");

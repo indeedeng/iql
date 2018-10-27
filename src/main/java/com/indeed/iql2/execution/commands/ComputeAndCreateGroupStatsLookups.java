@@ -53,6 +53,10 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> ignored) throws ImhotepOutOfMemoryException, IOException {
+        execute(session);
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         if (tryMultiDistinct(session, namedComputations)) {
             return;
         }
