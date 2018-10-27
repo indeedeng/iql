@@ -22,7 +22,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -31,6 +30,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Command {
     public final Set<String> scope;
@@ -45,8 +47,12 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[][] results = IterateHandlers.executeSingle(session, field, iterateHandler(session));
+        final long[][] results = evaluate(session);
         out.accept(Session.MAPPER.writeValueAsString(results));
+    }
+
+    public long[][] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override

@@ -22,7 +22,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
 import java.io.IOException;
@@ -30,6 +29,9 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     public final Set<String> scope;
@@ -44,9 +46,14 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         this.windowSize = windowSize;
     }
 
+    @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] groupCounts = IterateHandlers.executeSingle(session, field, iterateHandler(session));
+        final long[] groupCounts = evaluate(session);
         out.accept(Session.MAPPER.writeValueAsString(groupCounts));
+    }
+
+    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     public IterateHandler<long[]> iterateHandler(Session session) {

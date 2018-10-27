@@ -20,7 +20,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import org.apache.log4j.Logger;
 
@@ -29,6 +28,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class GetFieldMax implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMax.class);
@@ -43,8 +45,12 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] result = IterateHandlers.executeSingle(session, field, iterateHandler(session));
+        final long[] result = evaluate(session);
         out.accept(Session.MAPPER.writeValueAsString(result));
+    }
+
+    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override

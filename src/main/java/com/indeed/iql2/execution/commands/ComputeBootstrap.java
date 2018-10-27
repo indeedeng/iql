@@ -65,6 +65,10 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        execute(session);
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         IterateHandlers.executeSingle(session, field, new IterateHandlerImpl(session));
     }
 

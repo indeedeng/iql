@@ -23,13 +23,15 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+
+;
 
 public class SumAcross implements IterateHandlerable<double[]>, Command {
     public final Set<String> scope;
@@ -63,7 +65,11 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        out.accept(Session.MAPPER.writeValueAsString(IterateHandlers.executeSingle(session, field, iterateHandler(session))));
+        out.accept(Session.MAPPER.writeValueAsString(evaluate(session)));
+    }
+
+    public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override
