@@ -30,8 +30,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-;
-
 public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;

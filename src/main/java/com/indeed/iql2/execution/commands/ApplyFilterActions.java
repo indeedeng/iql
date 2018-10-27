@@ -21,8 +21,6 @@ import com.indeed.iql2.execution.actions.Action;
 
 import java.util.List;
 
-;
-
 public class ApplyFilterActions implements Command {
     public final ImmutableList<Action> actions;
 

@@ -29,8 +29,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-;
-
 public class GetFieldMax implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMax.class);
 
@@ -43,7 +41,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) {
         // this Command needs special processing since it returns some data.
         throw new IllegalStateException("Call evaluate() method instead");
     }
@@ -53,7 +51,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
     }
 
     @Override
-    public IterateHandler<long[]> iterateHandler(Session session) throws ImhotepOutOfMemoryException, IOException {
+    public IterateHandler<long[]> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
 

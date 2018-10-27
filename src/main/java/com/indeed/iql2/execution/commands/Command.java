@@ -19,8 +19,6 @@ import com.indeed.iql2.execution.Session;
 
 import java.io.IOException;
 
-;
-
 public interface Command {
     void execute(Session session) throws ImhotepOutOfMemoryException, IOException;
 }

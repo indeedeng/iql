@@ -22,8 +22,6 @@ import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
 
-;
-
 public class ExplodeDayOfWeek implements Command {
     public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 

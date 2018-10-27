@@ -34,7 +34,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
     }
 
     @Override
-    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         if (name.isPresent()) {
             if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>((Command) computation, name.get())))) {
                 return;

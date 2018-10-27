@@ -23,8 +23,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
 
-;
-
 public class ExplodeMonthOfYear implements Command {
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {

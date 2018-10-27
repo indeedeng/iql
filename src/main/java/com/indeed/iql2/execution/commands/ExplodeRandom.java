@@ -22,10 +22,6 @@ import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
 import com.indeed.util.core.TreeTimer;
 
-import java.io.IOException;
-
-;
-
 /**
  *
  */
@@ -41,7 +37,7 @@ public class ExplodeRandom implements Command {
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final boolean isIntField = session.isIntField(field);
         final int numGroups = session.numGroups;
         if (numGroups != 1) {

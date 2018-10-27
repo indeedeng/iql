@@ -34,7 +34,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.misc.TopK;
-import com.indeed.iql2.execution.compat.NoOpConsumer;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -81,7 +80,7 @@ public class SimpleIterate implements Command {
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) {
         // this Command needs special processing since it returns some data.
         throw new IllegalStateException("Call evaluate() method instead");
     }
@@ -106,7 +105,6 @@ public class SimpleIterate implements Command {
             final List<AggregateMetric> selecting,
             final FieldIterateOpts fieldOpts,
             final Set<String> scope) throws ImhotepOutOfMemoryException, IOException {
-        final Consumer<String> out = new NoOpConsumer<>();
         return new SimpleIterate(
                 field,
                 fieldOpts,
@@ -114,7 +112,7 @@ public class SimpleIterate implements Command {
                 Collections.nCopies(selecting.size(), Optional.<String>absent()),
                 false,
                 scope)
-                .evaluate(session, out);
+                .evaluate(session, s -> {});
     }
 
     public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {

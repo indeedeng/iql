@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import it.unimi.dsi.fastutil.longs.LongList;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -39,7 +38,7 @@ public class IntRegroupFieldIn implements Command {
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, true, false);
         final int numTerms = intTerms.size();

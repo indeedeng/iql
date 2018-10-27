@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-;
-
 /**
  *
  */
@@ -68,7 +66,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
     }
 
     @Override
-    public IterateHandler<Void> iterateHandler(Session session) throws ImhotepOutOfMemoryException, IOException {
+    public IterateHandler<Void> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session);
     }
 

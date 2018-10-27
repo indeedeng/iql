@@ -18,8 +18,6 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 
-;
-
 public class ExplodeTimeBuckets implements Command {
     public final int numBuckets;
     public final Optional<String> timeField;

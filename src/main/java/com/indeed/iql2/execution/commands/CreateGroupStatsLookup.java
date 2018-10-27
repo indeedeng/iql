@@ -17,8 +17,6 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.Session;
 
-;
-
 public class CreateGroupStatsLookup implements Command {
     public final double[] stats;
     public final Optional<String> name;

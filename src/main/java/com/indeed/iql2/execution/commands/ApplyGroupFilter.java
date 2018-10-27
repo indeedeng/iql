@@ -28,14 +28,11 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-;
 
 public class ApplyGroupFilter implements Command {
     private static final Logger log = Logger.getLogger(ApplyGroupFilter.class);
@@ -47,7 +44,7 @@ public class ApplyGroupFilter implements Command {
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final Set<QualifiedPush> requires = filter.requires();
         final Map<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final Map<String, IntList> sessionMetricIndexes = new HashMap<>();

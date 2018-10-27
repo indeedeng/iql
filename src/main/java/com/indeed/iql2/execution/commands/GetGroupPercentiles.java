@@ -31,8 +31,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-;
-
 public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Command {
     public final Set<String> scope;
     public final String field;
@@ -45,7 +43,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
     }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) {
         // this Command needs special processing since it returns some data.
         throw new IllegalStateException("Call evaluate() method instead");
     }

@@ -30,8 +30,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-;
-
 public class SumAcross implements IterateHandlerable<double[]>, Command {
     public final Set<String> scope;
     public final String field;
@@ -63,7 +61,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
 //    }
 
     @Override
-    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) {
         // this Command needs special processing since it returns some data.
         throw new IllegalStateException("Call evaluate() method instead");
     }

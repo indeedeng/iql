@@ -21,8 +21,6 @@ import com.indeed.iql2.execution.Session;
 
 import java.util.Map;
 
-;
-
 public class RegroupIntoParent implements Command {
     public final GroupLookupMergeType mergeType;
 
