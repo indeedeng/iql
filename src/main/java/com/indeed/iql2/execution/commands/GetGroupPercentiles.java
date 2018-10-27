@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 ;
 
@@ -46,9 +45,9 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[][] results = evaluate(session);
-        out.accept(Session.MAPPER.writeValueAsString(results));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     public long[][] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {

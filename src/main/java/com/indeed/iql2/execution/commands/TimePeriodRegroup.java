@@ -19,8 +19,6 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
 
-import java.util.function.Consumer;
-
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
     public final Optional<String> timeField;
@@ -35,11 +33,6 @@ public class TimePeriodRegroup implements Command {
     }
 
     @Override
-    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
-        execute(session);
-        out.accept("TimePeriodRegrouped");
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long shardStart;
         final long shardEnd;

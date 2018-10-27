@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class GetFieldMin implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMin.class);
@@ -42,9 +41,9 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] result = evaluate(session);
-        out.accept(Session.MAPPER.writeValueAsString(result));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {

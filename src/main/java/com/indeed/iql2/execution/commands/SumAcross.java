@@ -29,7 +29,6 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 ;
 
@@ -64,8 +63,9 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
 //    }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        out.accept(Session.MAPPER.writeValueAsString(evaluate(session)));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {

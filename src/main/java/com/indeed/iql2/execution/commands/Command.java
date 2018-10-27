@@ -16,10 +16,11 @@ package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 
 import java.io.IOException;
 
+;
+
 public interface Command {
-    void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException;
+    void execute(Session session) throws ImhotepOutOfMemoryException, IOException;
 }

@@ -423,7 +423,7 @@ public class Session {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
             try {
-                command.execute(this, s -> {});
+                command.execute(this);
             } finally {
                 progressCallback.endCommand(this, command);
             }

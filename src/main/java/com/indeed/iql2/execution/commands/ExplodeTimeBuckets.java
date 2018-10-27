@@ -18,8 +18,6 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 
-import java.util.function.Consumer;
-
 ;
 
 public class ExplodeTimeBuckets implements Command {
@@ -34,11 +32,6 @@ public class ExplodeTimeBuckets implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
-        execute(session);
-        out.accept("TimePeriodRegrouped"); // from TimePeriodRegroup
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long latestEnd = session.getLatestEnd();

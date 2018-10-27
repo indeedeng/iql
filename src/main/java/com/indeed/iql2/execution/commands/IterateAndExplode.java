@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 ;
 
@@ -51,11 +50,6 @@ public class IterateAndExplode implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-        out.accept("success"); // from ExplodePerGroup
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final List<List<TermSelects>> iterationResults = SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);

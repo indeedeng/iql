@@ -22,7 +22,6 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -32,6 +31,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+;
 
 public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
@@ -45,8 +46,9 @@ public class GetGroupStats implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        out.accept(stringify(evaluate(session)));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     private String stringify(List<Session.GroupStats> groupStatses) {

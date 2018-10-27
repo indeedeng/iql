@@ -23,14 +23,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ExplodeSessionNames implements Command {
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final int numSessions = session.sessions.size();
         // TODO: Parallelize

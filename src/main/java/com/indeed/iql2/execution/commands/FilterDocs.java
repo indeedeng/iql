@@ -24,7 +24,6 @@ import com.indeed.util.core.TreeTimer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 ;
 
@@ -40,11 +39,6 @@ public class FilterDocs implements Command {
     }
 
     @Override
-    public void execute(Session s, Consumer<String> out) throws ImhotepOutOfMemoryException {
-        execute(s);
-        out.accept("{}");
-    }
-
     public void execute(final Session s) throws ImhotepOutOfMemoryException {
         s.process(new SessionCallback() {
             @Override

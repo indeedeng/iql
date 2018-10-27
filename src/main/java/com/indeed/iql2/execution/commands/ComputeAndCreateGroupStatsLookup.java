@@ -21,10 +21,8 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Command computation;
@@ -36,17 +34,10 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final String lookupName = evaluate(session);
-        if (lookupName != null) {
-            out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName))); // from CreateGroupStatsLookup
-        }
-    }
-
-    public String evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(Session session) throws ImhotepOutOfMemoryException, IOException {
         if (name.isPresent()) {
             if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>((Command) computation, name.get())))) {
-                return null;
+                return;
             }
         }
 
@@ -73,15 +64,15 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
                 results[i] = groupStats.get(i).stats[0];
             }
         } else if (computation instanceof ComputeBootstrap) {
-            ((ComputeBootstrap)computation).execute(session);
+            computation.execute(session);
             // This already did stuff internally
-            return "ABSTRACT NONSENSE";
+            return;
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }
         if (longResults != null) {
             results = ComputeAndCreateGroupStatsLookups.longToDouble(longResults);
         }
-        return new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session);
+        new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session);
     }
 }

@@ -22,8 +22,6 @@ import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
 
-import java.util.function.Consumer;
-
 ;
 
 public class ExplodeDayOfWeek implements Command {
@@ -37,11 +35,6 @@ public class ExplodeDayOfWeek implements Command {
     }
 
     @Override
-    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
-        execute(session);
-        out.accept("success");
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.checkGroupLimit(session.numGroups * 7);
 

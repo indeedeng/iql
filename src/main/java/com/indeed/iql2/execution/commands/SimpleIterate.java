@@ -81,13 +81,9 @@ public class SimpleIterate implements Command {
     }
 
     @Override
-    public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        // TODO: this code seems to be dead.
-        // evaluate() method is always in use
-        final List<List<TermSelects>> result = this.evaluate(session, out);
-        final StringBuilder sb = new StringBuilder();
-        Session.writeTermSelectsJson(session.groupKeySet, result, session.isIntField(field), sb);
-        out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     /**

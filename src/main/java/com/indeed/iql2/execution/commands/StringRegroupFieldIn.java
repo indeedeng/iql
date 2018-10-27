@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class StringRegroupFieldIn implements Command {
     private final String field;
@@ -40,10 +39,6 @@ public class StringRegroupFieldIn implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, false, false);

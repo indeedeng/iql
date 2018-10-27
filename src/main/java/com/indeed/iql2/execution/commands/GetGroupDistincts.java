@@ -29,7 +29,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 ;
 
@@ -47,9 +46,9 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] groupCounts = evaluate(session);
-        out.accept(Session.MAPPER.writeValueAsString(groupCounts));
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {

@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 ;
 
@@ -49,11 +48,6 @@ public class RandomMetricRegroup implements Command {
     }
 
     @Override
-    public void execute(final Session session, final Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-        out.accept("success");
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final int numGroups = session.numGroups;
         if (numGroups != 1) {

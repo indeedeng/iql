@@ -26,7 +26,6 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class IntRegroupFieldIn implements Command {
     private final String field;
@@ -40,10 +39,6 @@ public class IntRegroupFieldIn implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, true, false);

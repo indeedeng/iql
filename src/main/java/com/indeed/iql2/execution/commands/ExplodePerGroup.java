@@ -31,7 +31,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ExplodePerGroup implements Command {
     public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
@@ -49,11 +48,6 @@ public class ExplodePerGroup implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
-        execute(session);
-        out.accept("success");
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         checkNumGroups(session);
 

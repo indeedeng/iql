@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ComputeAndCreateGroupStatsLookups implements Command {
@@ -52,10 +51,6 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> ignored) throws ImhotepOutOfMemoryException, IOException {
-        execute(session);
-    }
-
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         if (tryMultiDistinct(session, namedComputations)) {
             return;
