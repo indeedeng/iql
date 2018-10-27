@@ -199,7 +199,7 @@ public class Session {
             if (isLast) {
                 session.evaluateCommandToTSV(command, out, optionsList);
             } else {
-                session.evaluateCommand(command, s -> {}, optionsList);
+                session.evaluateCommand(command, optionsList);
             }
             if (session.numGroups == 0) {
                 break;
@@ -416,7 +416,6 @@ public class Session {
     }
 
     public void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
-                                final Consumer<String> out,
                                 final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = lCommand.toString();
         timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
@@ -424,7 +423,7 @@ public class Session {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
             try {
-                command.execute(this, out);
+                command.execute(this, s -> {});
             } finally {
                 progressCallback.endCommand(this, command);
             }

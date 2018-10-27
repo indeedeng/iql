@@ -34,6 +34,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.misc.TopK;
+import com.indeed.iql2.execution.compat.NoOpConsumer;
 import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -100,6 +101,24 @@ public class SimpleIterate implements Command {
         final boolean filterSorted = opts.filter.transform(AggregateFilter::needSorted).or(false);
         final boolean metricsSorted = selecting.stream().anyMatch(AggregateMetric::needSorted);
         return filterSorted || metricsSorted;
+    }
+
+    // evaluate results to memory
+    public static List<List<TermSelects>> evaluate(
+            final Session session,
+            final String field,
+            final List<AggregateMetric> selecting,
+            final FieldIterateOpts fieldOpts,
+            final Set<String> scope) throws ImhotepOutOfMemoryException, IOException {
+        final Consumer<String> out = new NoOpConsumer<>();
+        return new SimpleIterate(
+                field,
+                fieldOpts,
+                selecting,
+                Collections.nCopies(selecting.size(), Optional.<String>absent()),
+                false,
+                scope)
+                .evaluate(session, out);
     }
 
     public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {

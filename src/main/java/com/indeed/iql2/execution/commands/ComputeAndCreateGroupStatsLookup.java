@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -36,9 +37,16 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+        final String lookupName = evaluate(session);
+        if (lookupName != null) {
+            out.accept(Session.MAPPER.writeValueAsString(Arrays.asList(lookupName))); // from CreateGroupStatsLookup
+        }
+    }
+
+    public String evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
         if (name.isPresent()) {
             if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>((Command) computation, name.get())))) {
-                return;
+                return null;
             }
         }
 
@@ -67,14 +75,13 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if (computation instanceof ComputeBootstrap) {
             ((ComputeBootstrap)computation).execute(session);
             // This already did stuff internally
-            out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList("ABSTRACT NONSENSE")));
-            return;
+            return "ABSTRACT NONSENSE";
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }
         if (longResults != null) {
             results = ComputeAndCreateGroupStatsLookups.longToDouble(longResults);
         }
-        new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session, out);
+        return new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session);
     }
 }

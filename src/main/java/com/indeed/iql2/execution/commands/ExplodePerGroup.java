@@ -50,6 +50,11 @@ public class ExplodePerGroup implements Command {
 
     @Override
     public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(session);
+        out.accept("success");
+    }
+
+    public void execute(Session session) throws ImhotepOutOfMemoryException {
         checkNumGroups(session);
 
         session.timer.push("form rules");
@@ -123,8 +128,6 @@ public class ExplodePerGroup implements Command {
         session.regroupWithSingleFieldRules(ruleBuilder, options, true);
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
-
-        out.accept("success");
     }
 
     private void checkNumGroups(Session session) {

@@ -17,8 +17,9 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
+
+import java.util.function.Consumer;
 
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
@@ -35,6 +36,11 @@ public class TimePeriodRegroup implements Command {
 
     @Override
     public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+        execute(session);
+        out.accept("TimePeriodRegrouped");
+    }
+
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long shardStart;
         final long shardEnd;
         if (!isRelative) {
@@ -60,7 +66,6 @@ public class TimePeriodRegroup implements Command {
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
         final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format);
         session.assumeDense(groupKeySet);
-        out.accept("TimePeriodRegrouped");
     }
 
 }
