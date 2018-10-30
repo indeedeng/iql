@@ -48,7 +48,8 @@ public class GetGroupStats implements Command {
         throw new IllegalStateException("Call evaluate() method instead");
     }
 
-    public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {
+    // returns result as double[numStats][numGroups]
+    public double[][] evaluate(final Session session) throws ImhotepOutOfMemoryException {
         final Map<String, ImhotepSessionHolder> sessions = session.getSessionsMapRaw();
         final int numGroups = session.numGroups;
 
@@ -113,30 +114,19 @@ public class GetGroupStats implements Command {
             }
         }
 
-        final double[][] results = new double[numGroups+1][totalStats];
+        final double[][] groupStats = new double[totalStats][];
         int statIndex = 0;
         for (final AggregateMetric metric : selectedMetrics) {
             if (metric instanceof MultiPerGroupConstant) {
                 for (final double[] value : ((MultiPerGroupConstant) metric).values) {
-                    for (int j = 1; j <= numGroups; j++) {
-                        results[j][statIndex] = value[j];
-                    }
+                    groupStats[statIndex] = value;
                     statIndex += 1;
                 }
             } else {
                 final double[] statGroups = metric.getGroupStats(allStats, numGroups);
-                for (int j = 1; j <= numGroups; j++) {
-                    results[j][statIndex] = statGroups[j];
-                }
+                groupStats[statIndex] = statGroups;
                 statIndex += 1;
             }
-        }
-        session.timer.pop();
-
-        session.timer.push("creating result");
-        final List<Session.GroupStats> groupStats = Lists.newArrayList();
-        for (int i = 1; i <= numGroups; i++) {
-            groupStats.add(new Session.GroupStats(i, results[i]));
         }
         session.timer.pop();
 

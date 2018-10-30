@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.execution;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -473,7 +471,7 @@ public class Session {
                     }
                 } else if (command instanceof GetGroupStats) {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
-                    final List<GroupStats> results = getGroupStats.evaluate(this);
+                    final double[][] results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
 
                     final String[] formatStrings = new String[getGroupStats.metrics.size()];
@@ -482,11 +480,11 @@ public class Session {
                         formatStrings[i] = opt.isPresent() ? opt.get() : null;
                     }
 
-                    for (final GroupStats result : results) {
-                        if (!groupKeySet.isPresent(result.group)) {
+                    for (int group = 1; group <= numGroups; group++) {
+                        if (!groupKeySet.isPresent(group)) {
                             continue;
                         }
-                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, result.group);
+                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, group);
                         if (keyColumns.isEmpty()) {
                             sb.append("\t");
                         } else {
@@ -495,9 +493,8 @@ public class Session {
                                 sb.append('\t');
                             }
                         }
-                        final double[] stats = result.stats;
-                        writeDoubleStatsWithFormatString(stats, formatStrings, sb);
-                        if (keyColumns.size() + result.stats.length > 0) {
+                        writeDoubleStatsWithFormatString(results, group, formatStrings, sb);
+                        if (keyColumns.size() + results.length > 0) {
                             sb.setLength(sb.length() - 1);
                         }
                         out.accept(sb.toString());
@@ -514,16 +511,29 @@ public class Session {
         }
     }
 
+    public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb) {
+        if (formatString != null) {
+            sb.append(String.format(formatString, stat)).append('\t');
+        } else if (DoubleMath.isMathematicalInteger(stat)) {
+            sb.append(String.format("%.0f", stat)).append('\t');
+        } else {
+            sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
+        }
+    }
+
     public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
         for (int i = 0; i < stats.length; i++) {
-            final double stat = stats[i];
-            if (i < formatStrings.length && formatStrings[i] != null) {
-                sb.append(String.format(formatStrings[i], stat)).append('\t');
-            } else if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append(String.format("%.0f", stat)).append('\t');
-            } else {
-                sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
-            }
+            writeDoubleStatWithFormatString(stats[i], formatStrings[i], sb);
+        }
+    }
+
+    public static void writeDoubleStatsWithFormatString(
+            final double[][] stats,
+            final int group,
+            final String[] formatStrings,
+            final StringBuilder sb) {
+        for (int i = 0; i < stats.length; i++) {
+            writeDoubleStatWithFormatString(stats[i][group], formatStrings[i], sb);
         }
     }
 
@@ -1535,17 +1545,6 @@ public class Session {
         }
         if (state.presenceIndex != null) {
             dst[state.presenceIndex] = 1;
-        }
-    }
-
-    public static class GroupStats {
-        public final int group;
-        public final double[] stats;
-
-        @JsonCreator
-        public GroupStats(@JsonProperty("group") int group, @JsonProperty("stats") double[] stats) {
-            this.group = group;
-            this.stats = stats;
         }
     }
 

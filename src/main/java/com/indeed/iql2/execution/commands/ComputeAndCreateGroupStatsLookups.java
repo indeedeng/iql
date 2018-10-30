@@ -34,6 +34,7 @@ import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -86,11 +87,8 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                     }
                 }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
-                final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
-                final double[] results = new double[session.numGroups + 1];
-                for (final Session.GroupStats groupStat : groupStats) {
-                    results[groupStat.group] = groupStat.stats[0];
-                }
+                final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
+                final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
                 new CreateGroupStatsLookup(results, name).execute(session);
             } else if (computation instanceof GetFieldMax) {
                 final GetFieldMax getFieldMax = (GetFieldMax) computation;
