@@ -18,7 +18,6 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -26,7 +25,7 @@ import org.joda.time.Months;
 
 public class ExplodeMonthOfYear implements Command {
     @Override
-    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long latestEnd = session.getLatestEnd();
         final TimeUnit timeUnit = TimeUnit.MONTH;

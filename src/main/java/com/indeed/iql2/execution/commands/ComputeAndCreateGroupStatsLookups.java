@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -42,8 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ComputeAndCreateGroupStatsLookups implements Command {
@@ -54,7 +51,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> ignored) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         if (tryMultiDistinct(session, namedComputations)) {
             return;
         }
@@ -63,7 +60,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         final Set<String> fields = Sets.newHashSet();
         session.timer.push("get IterateHandlers");
         for (final Pair<Command, String> namedComputation : namedComputations) {
-            final Object computation = namedComputation.getFirst();
+            final Command computation = namedComputation.getFirst();
             final String name = namedComputation.getSecond();
             if (computation instanceof GetGroupDistincts) {
                 final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) computation;
@@ -74,11 +71,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                     }
                 }, getGroupDistincts.iterateHandler(session), name));
             } else if (computation instanceof GetSimpleGroupDistincts) {
-                final AtomicReference<String> reference = new AtomicReference<>();
-                ((Command) computation).execute(session, reference::set);
-                final long[] groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<long[]>() {});
+                final long[] groupStats = ((GetSimpleGroupDistincts)computation).evaluate(session);
                 final double[] results = longToDouble(groupStats);
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session, s -> {});
+                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
@@ -92,21 +87,12 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                     }
                 }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
-                final AtomicReference<String> reference = new AtomicReference<>();
-                ((Command) computation).execute(session, new Consumer<String>() {
-                    public void accept(String s) {
-                        reference.set(s);
-                    }
-                });
-                final List<Session.GroupStats> groupStats = Session.MAPPER.readValue(reference.get(), new TypeReference<List<Session.GroupStats>>() {});
+                final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
                 final double[] results = new double[groupStats.size()];
                 for (int i = 0; i < groupStats.size(); i++) {
                     results[i] = groupStats.get(i).stats[0];
                 }
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session, new Consumer<String>() {
-                    public void accept(String s) {
-                    }
-                });
+                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
             } else if (computation instanceof GetFieldMax) {
                 final GetFieldMax getFieldMax = (GetFieldMax) computation;
                 fields.add(getFieldMax.field);
@@ -229,7 +215,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         for (int i = 0; i < numFilters; i++) {
-            new CreateGroupStatsLookup(results[i], Optional.of(filters.get(i).getKey())).execute(session, s -> {});
+            new CreateGroupStatsLookup(results[i], Optional.of(filters.get(i).getKey())).execute(session);
         }
         session.timer.pop();
 
@@ -262,10 +248,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         private void nameIt(Session session, double[] value) throws ImhotepOutOfMemoryException, IOException {
-            new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)).execute(session, new Consumer<String>() {
-                public void accept(String s) {
-                }
-            });
+            new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)).execute(session);
         }
 
         @Override

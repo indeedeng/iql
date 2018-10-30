@@ -22,11 +22,9 @@ import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class StringRegroupFieldIn implements Command {
     private final String field;
@@ -40,7 +38,7 @@ public class StringRegroupFieldIn implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, false, false);
         final int numTerms = terms.size();

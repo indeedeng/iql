@@ -26,7 +26,6 @@ import com.indeed.util.core.TreeTimer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class MetricRegroup implements Command {
     public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
@@ -52,7 +51,7 @@ public class MetricRegroup implements Command {
     }
 
     @Override
-    public void execute(final Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long max = this.max;
         final long min = this.min;
         final long interval = this.interval;
@@ -112,7 +111,5 @@ public class MetricRegroup implements Command {
         });
 
         session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate));
-
-        out.accept("success");
     }
 }

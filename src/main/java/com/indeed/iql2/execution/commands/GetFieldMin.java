@@ -20,7 +20,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
-import java.util.function.Consumer;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import org.apache.log4j.Logger;
 
@@ -42,13 +41,17 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final long[] result = IterateHandlers.executeSingle(session, field, iterateHandler(session));
-        out.accept(Session.MAPPER.writeValueAsString(result));
+    public void execute(final Session session) {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
+    }
+
+    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override
-    public IterateHandler<long[]> iterateHandler(Session session) throws ImhotepOutOfMemoryException, IOException {
+    public IterateHandler<long[]> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
 

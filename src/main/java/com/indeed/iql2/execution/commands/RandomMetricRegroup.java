@@ -20,11 +20,9 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
 import com.indeed.util.core.TreeTimer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +45,7 @@ public class RandomMetricRegroup implements Command {
     }
 
     @Override
-    public void execute(final Session session, final Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final int numGroups = session.numGroups;
         if (numGroups != 1) {
             throw new IllegalArgumentException("Can only use RANDOM() regroup as first GROUP BY");
@@ -88,7 +86,5 @@ public class RandomMetricRegroup implements Command {
         });
 
         session.assumeDense(new RandomGroupKeySet(session.groupKeySet, k + 1));
-
-        out.accept("success");
     }
 }

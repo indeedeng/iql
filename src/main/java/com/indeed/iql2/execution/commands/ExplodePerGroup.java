@@ -31,7 +31,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ExplodePerGroup implements Command {
     public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
@@ -49,7 +48,7 @@ public class ExplodePerGroup implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         checkNumGroups(session);
 
         session.timer.push("form rules");
@@ -123,8 +122,6 @@ public class ExplodePerGroup implements Command {
         session.regroupWithSingleFieldRules(ruleBuilder, options, true);
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
-
-        out.accept("success");
     }
 
     private void checkNumGroups(Session session) {

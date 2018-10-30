@@ -27,12 +27,8 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
-
-;
 
 public class IterateAndExplode implements Command {
     public final String field;
@@ -52,8 +48,8 @@ public class IterateAndExplode implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<TermSelects>> iterationResults = new SimpleIterate(field, fieldOpts, selecting, Collections.nCopies(selecting.size(), Optional.<String>absent()), false, scope).evaluate(session, out);
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
+        final List<List<TermSelects>> iterationResults = SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope);
         final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);
         explodes.add(null);
         final boolean isIntField = session.isIntField(field);
@@ -64,6 +60,6 @@ public class IterateAndExplode implements Command {
             }
             explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
         }
-        new ExplodePerGroup(explodes, field, session.isIntField(field)).execute(session, out);
+        new ExplodePerGroup(explodes, field, session.isIntField(field)).execute(session);
     }
 }

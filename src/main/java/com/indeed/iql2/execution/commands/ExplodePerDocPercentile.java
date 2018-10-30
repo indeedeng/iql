@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ExplodePerDocPercentile implements Command {
     public final String field;
@@ -44,7 +43,7 @@ public class ExplodePerDocPercentile implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final String field = this.field;
         final int numBuckets = this.numBuckets;
 
@@ -147,7 +146,5 @@ public class ExplodePerDocPercentile implements Command {
         session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
-
-        out.accept("ExplodedPerDocPercentile");
     }
 }

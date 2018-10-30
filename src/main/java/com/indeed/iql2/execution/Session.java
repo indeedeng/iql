@@ -16,8 +16,6 @@ package com.indeed.iql2.execution;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -118,12 +116,6 @@ public class Session {
 
     public int numGroups = 1;
 
-    public static final ObjectMapper MAPPER = new ObjectMapper();
-
-    static {
-        MAPPER.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
-    }
-
     public static final String INFINITY_SYMBOL = "∞";
     public static final String DEFAULT_FORMAT_STRING = "#.#######";
     public static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = new ThreadLocal<DecimalFormat>() {
@@ -199,7 +191,7 @@ public class Session {
             if (isLast) {
                 session.evaluateCommandToTSV(command, out, optionsList);
             } else {
-                session.evaluateCommand(command, s -> {}, optionsList);
+                session.evaluateCommand(command, optionsList);
             }
             if (session.numGroups == 0) {
                 break;
@@ -416,7 +408,6 @@ public class Session {
     }
 
     public void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
-                                final Consumer<String> out,
                                 final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = lCommand.toString();
         timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
@@ -424,7 +415,7 @@ public class Session {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
             try {
-                command.execute(this, out);
+                command.execute(this);
             } finally {
                 progressCallback.endCommand(this, command);
             }
@@ -534,40 +525,6 @@ public class Session {
                 sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
             }
         }
-    }
-
-    public static void writeTermSelectsJson(
-            final GroupKeySet groupKeySet,
-            final List<List<TermSelects>> results,
-            final boolean isIntField,
-            final StringBuilder sb) {
-        for (final List<TermSelects> groupTerms : results) {
-            for (final TermSelects termSelects : groupTerms) {
-                if (!groupKeySet.isPresent(termSelects.group)) {
-                    continue;
-                }
-                final List<String> keyColumns = GroupKeySets.asList(groupKeySet, termSelects.group);
-                for (final String k : keyColumns) {
-                    appendGroupString(k, sb);
-                    sb.append('\t');
-                }
-                if (isIntField) {
-                    sb.append(termSelects.intTerm).append('\t');
-                } else {
-                    sb.append(termSelects.stringTerm).append('\t');
-                }
-                for (final double stat : termSelects.selects) {
-                    if (DoubleMath.isMathematicalInteger(stat)) {
-                        sb.append((long) stat).append('\t');
-                    } else {
-                        sb.append(stat).append('\t');
-                    }
-                }
-                sb.setLength(sb.length() - 1);
-                sb.append('\n');
-            }
-        }
-        sb.setLength(sb.length() - 1);
     }
 
     public int findPercentile(double v, double[] percentiles) {

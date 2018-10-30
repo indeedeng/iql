@@ -17,7 +17,6 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 
 public class ExplodeTimeBuckets implements Command {
     public final int numBuckets;
@@ -31,10 +30,10 @@ public class ExplodeTimeBuckets implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException {
+    public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
         final long latestEnd = session.getLatestEnd();
         final long bucketSize = (latestEnd - earliestStart) / numBuckets;
-        new TimePeriodRegroup(bucketSize, timeField, timeFormat, false).execute(session, out);
+        new TimePeriodRegroup(bucketSize, timeField, timeFormat, false).execute(session);
     }
 }

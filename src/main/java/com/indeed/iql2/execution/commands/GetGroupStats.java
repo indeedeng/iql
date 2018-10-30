@@ -22,13 +22,11 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
-import java.util.function.Consumer;;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,46 +43,9 @@ public class GetGroupStats implements Command {
     }
 
     @Override
-    public void execute(Session session, Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        out.accept(stringify(evaluate(session)));
-    }
-
-    private String stringify(List<Session.GroupStats> groupStatses) {
-        final String[] formatStrings = new String[metrics.size()];
-        for (int i = 0; i < formatStrings.length; i++) {
-            formatStrings[i] = this.formatStrings.get(i).orNull();
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        // TODO: This is all horrible. Like seriously.
-        sb.append('[');
-        boolean firstGs = true;
-        for (final Session.GroupStats gs : groupStatses) {
-            if (!firstGs) {
-                sb.append(',');
-            }
-            firstGs = false;
-            sb.append('{');
-            sb.append("\"group\":").append(gs.group);
-            sb.append(',').append("\"stats\":");
-            sb.append('[');
-            double[] stats = gs.stats;
-            for (int i = 0; i < stats.length; i++) {
-                final double stat = stats[i];
-                if (i > 0) {
-                    sb.append(',');
-                }
-                if (formatStrings[i] == null) {
-                    sb.append(String.valueOf(stat));
-                } else {
-                    sb.append(String.format(formatStrings[i], stat));
-                }
-            }
-            sb.append(']');
-            sb.append('}');
-        }
-        sb.append(']');
-        return sb.toString();
+    public void execute(final Session session) {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     public List<Session.GroupStats> evaluate(Session session) throws ImhotepOutOfMemoryException {

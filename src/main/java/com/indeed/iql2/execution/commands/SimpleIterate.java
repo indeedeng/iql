@@ -80,13 +80,9 @@ public class SimpleIterate implements Command {
     }
 
     @Override
-    public void execute(Session session, @Nonnull Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
-        // TODO: this code seems to be dead.
-        // evaluate() method is always in use
-        final List<List<TermSelects>> result = this.evaluate(session, out);
-        final StringBuilder sb = new StringBuilder();
-        Session.writeTermSelectsJson(session.groupKeySet, result, session.isIntField(field), sb);
-        out.accept(Session.MAPPER.writeValueAsString(Collections.singletonList(sb.toString())));
+    public void execute(final Session session) {
+        // this Command needs special processing since it returns some data.
+        throw new IllegalStateException("Call evaluate() method instead");
     }
 
     /**
@@ -100,6 +96,23 @@ public class SimpleIterate implements Command {
         final boolean filterSorted = opts.filter.transform(AggregateFilter::needSorted).or(false);
         final boolean metricsSorted = selecting.stream().anyMatch(AggregateMetric::needSorted);
         return filterSorted || metricsSorted;
+    }
+
+    // evaluate results to memory
+    public static List<List<TermSelects>> evaluate(
+            final Session session,
+            final String field,
+            final List<AggregateMetric> selecting,
+            final FieldIterateOpts fieldOpts,
+            final Set<String> scope) throws ImhotepOutOfMemoryException, IOException {
+        return new SimpleIterate(
+                field,
+                fieldOpts,
+                selecting,
+                Collections.nCopies(selecting.size(), Optional.absent()),
+                false,
+                scope)
+                .evaluate(session, null);
     }
 
     public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
