@@ -73,7 +73,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof GetSimpleGroupDistincts) {
                 final long[] groupStats = ((GetSimpleGroupDistincts)computation).evaluate(session);
                 final double[] results = longToDouble(groupStats);
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
+                new CreateGroupStatsLookup(results, Optional.of(name)).execute(session);
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
@@ -88,11 +88,11 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
-                final double[] results = new double[groupStats.size()];
-                for (int i = 0; i < groupStats.size(); i++) {
-                    results[i] = groupStats.get(i).stats[0];
+                final double[] results = new double[session.numGroups + 1];
+                for (final Session.GroupStats groupStat : groupStats) {
+                    results[groupStat.group] = groupStat.stats[0];
                 }
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
+                new CreateGroupStatsLookup(results, Optional.of(name)).execute(session);
             } else if (computation instanceof GetFieldMax) {
                 final GetFieldMax getFieldMax = (GetFieldMax) computation;
                 fields.add(getFieldMax.field);
@@ -248,7 +248,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         private void nameIt(Session session, double[] value) {
-            new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)).execute(session);
+            new CreateGroupStatsLookup(value, Optional.of(name)).execute(session);
         }
 
         @Override

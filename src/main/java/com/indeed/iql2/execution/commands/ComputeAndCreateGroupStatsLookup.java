@@ -59,9 +59,9 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             longResults = percentiles[0];
         } else if (computation instanceof GetGroupStats) {
             final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
-            results = new double[groupStats.size()];
-            for (int i = 0; i < groupStats.size(); i++) {
-                results[i] = groupStats.get(i).stats[0];
+            results = new double[session.numGroups +1];
+            for (final Session.GroupStats groupStat : groupStats) {
+                results[groupStat.group] = groupStat.stats[0];
             }
         } else if (computation instanceof ComputeBootstrap) {
             computation.execute(session);
@@ -73,6 +73,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         if (longResults != null) {
             results = ComputeAndCreateGroupStatsLookups.longToDouble(longResults);
         }
-        new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session);
+        new CreateGroupStatsLookup(results, this.name).execute(session);
     }
 }

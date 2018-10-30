@@ -113,20 +113,20 @@ public class GetGroupStats implements Command {
             }
         }
 
-        final double[][] results = new double[numGroups][totalStats];
+        final double[][] results = new double[numGroups+1][totalStats];
         int statIndex = 0;
         for (final AggregateMetric metric : selectedMetrics) {
             if (metric instanceof MultiPerGroupConstant) {
                 for (final double[] value : ((MultiPerGroupConstant) metric).values) {
                     for (int j = 1; j <= numGroups; j++) {
-                        results[j - 1][statIndex] = value[j];
+                        results[j][statIndex] = value[j];
                     }
                     statIndex += 1;
                 }
             } else {
                 final double[] statGroups = metric.getGroupStats(allStats, numGroups);
                 for (int j = 1; j <= numGroups; j++) {
-                    results[j - 1][statIndex] = statGroups[j];
+                    results[j][statIndex] = statGroups[j];
                 }
                 statIndex += 1;
             }
@@ -135,8 +135,8 @@ public class GetGroupStats implements Command {
 
         session.timer.push("creating result");
         final List<Session.GroupStats> groupStats = Lists.newArrayList();
-        for (int i = 0; i < numGroups; i++) {
-            groupStats.add(new Session.GroupStats(i + 1, results[i]));
+        for (int i = 1; i <= numGroups; i++) {
+            groupStats.add(new Session.GroupStats(i, results[i]));
         }
         session.timer.pop();
 

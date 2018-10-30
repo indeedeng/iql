@@ -88,7 +88,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
         public IterateHandlerImpl(int numGroups, double[][] requiredCounts) {
             this.requiredCounts = requiredCounts;
-            this.results = new long[percentiles.length][numGroups];
+            this.results = new long[percentiles.length][numGroups + 1];
             this.runningCounts = new long[numGroups + 1];
         }
 
@@ -142,7 +142,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
                 for (int i = 0; i < percentiles.length; i++) {
                     final double minRequired = groupRequiredCountsArray[i];
                     if (newCount >= minRequired && oldCount < minRequired) {
-                        results[i][group - 1] = term;
+                        results[i][group] = term;
                     }
                 }
 

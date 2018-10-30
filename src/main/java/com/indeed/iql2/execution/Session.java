@@ -550,13 +550,6 @@ public class Session {
         return result;
     }
 
-    // TODO: Any call sites of this could be optimized.
-    public static double[] prependZero(double[] in) {
-        final double[] out = new double[in.length + 1];
-        System.arraycopy(in, 0, out, 1, in.length);
-        return out;
-    }
-
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, groupKeySet);
@@ -989,7 +982,7 @@ public class Session {
     }
 
     public long[] getSimpleDistinct(final String field, final String scope) {
-        final long[] result = new long[numGroups];
+        final long[] result = new long[numGroups+1];
         if (!sessions.containsKey(scope)) {
             return result; // or error?
         }
@@ -1007,13 +1000,7 @@ public class Session {
         timer.push("getSimpleDistinct session:" + info.displayName);
         try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
             timer.pop();
-            // skipping group zero
-            if (!iterator.hasNext()) {
-                return result;
-            }
-            iterator.nextLong();
-            // extracting result for other groups
-            final int size = Math.min(iterator.getNumGroups() - 1, result.length);
+            final int size = Math.min(iterator.getNumGroups(), result.length);
             for (int i = 0; i < size; i++) {
                 result[i] += iterator.nextLong();
             }
@@ -1021,7 +1008,8 @@ public class Session {
             while (iterator.hasNext()) {
                 iterator.nextLong();
             }
-
+            // nullifying group zero just in case.
+            result[0] = 0;
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

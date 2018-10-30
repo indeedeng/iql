@@ -59,7 +59,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         private long[] min;
 
         public IterateHandlerImpl(int numGroups) {
-            min = new long[numGroups];
+            min = new long[numGroups + 1];
             Arrays.fill(min, Long.MAX_VALUE);
         }
 
@@ -73,7 +73,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
             return new Session.IntIterateCallback() {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
-                    min[group - 1] = Math.min(min[group - 1], term);
+                    min[group] = Math.min(min[group], term);
                 }
 
                 @Override
@@ -100,7 +100,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
                 public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
-                        min[group - 1] = Math.min(min[group - 1], v);
+                        min[group] = Math.min(min[group], v);
                     } catch (NumberFormatException ignored) {
                     }
                 }
