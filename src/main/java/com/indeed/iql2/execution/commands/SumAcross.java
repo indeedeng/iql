@@ -116,7 +116,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
         }
 
         @Override
-        public double[] finish() throws ImhotepOutOfMemoryException {
+        public double[] finish() {
             return groupSums;
         }
 

@@ -123,7 +123,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() throws ImhotepOutOfMemoryException, IOException {
+        public long[] finish() {
             return min;
         }
 

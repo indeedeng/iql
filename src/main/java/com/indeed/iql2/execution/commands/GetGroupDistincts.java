@@ -100,7 +100,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() throws ImhotepOutOfMemoryException {
+        public long[] finish() {
             if (windowSize > 1) {
                 updateAllSeenGroups();
             }

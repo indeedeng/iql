@@ -132,7 +132,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
         }
 
         @Override
-        public Void finish() throws ImhotepOutOfMemoryException, IOException {
+        public Void finish() {
             // TODO: Multi-thread?
             session.timer.push("sample metrics");
             final int maxStatIndex = Ints.max(statIndexes);

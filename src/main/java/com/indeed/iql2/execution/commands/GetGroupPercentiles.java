@@ -124,7 +124,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         }
 
         @Override
-        public long[][] finish() throws ImhotepOutOfMemoryException {
+        public long[][] finish() {
             return results;
         }
 

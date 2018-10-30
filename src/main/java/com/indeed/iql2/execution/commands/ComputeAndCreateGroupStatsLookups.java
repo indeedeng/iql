@@ -247,7 +247,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             this.name = name;
         }
 
-        private void nameIt(Session session, double[] value) throws ImhotepOutOfMemoryException, IOException {
+        private void nameIt(Session session, double[] value) {
             new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)).execute(session);
         }
 
@@ -267,7 +267,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         @Override
-        public Void finish() throws ImhotepOutOfMemoryException, IOException {
+        public Void finish() {
             final T result = inner.finish();
             nameIt(session, transform.apply(result));
             return null;
