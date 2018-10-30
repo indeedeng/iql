@@ -16,6 +16,7 @@ package com.indeed.iql.web;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.indeed.iql.exceptions.IqlKnownException;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -83,15 +84,10 @@ public class AccessControl {
     }
 
 
-    public void checkAllowedAccess(String username) {
-        if(bannedUsers.contains(username)) {
-            throw new AccessDeniedException("Access denied");
-        }
-    }
-
-    public static class AccessDeniedException extends RuntimeException {
-        public AccessDeniedException(String message) {
-            super(message);
+    public void checkAllowedAccess(String username, String client) {
+        if(bannedUsers.contains(username) ||
+                !getLimitsForIdentity(username, client).satisfiesConcurrentQueriesLimit(1)) {
+            throw new IqlKnownException.AccessDeniedException("Access denied");
         }
     }
 }

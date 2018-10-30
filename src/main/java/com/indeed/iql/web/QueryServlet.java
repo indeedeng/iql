@@ -204,7 +204,7 @@ public class QueryServlet {
                         "'username' is the LDAP name of the user that requested the query to be performed " +
                         "or in case of automated tools the Google group of the team responsible for the tool.");
             }
-            accessControl.checkAllowedAccess(userName);
+            accessControl.checkAllowedAccess(userName, client);
 
             final IQLStatement iqlStatement = StatementParser.parseIQLToStatement(query);
             queryInfo.statementType = iqlStatement.getStatementType();
