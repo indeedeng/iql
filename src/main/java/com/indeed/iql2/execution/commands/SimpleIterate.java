@@ -109,10 +109,10 @@ public class SimpleIterate implements Command {
                 field,
                 fieldOpts,
                 selecting,
-                Collections.nCopies(selecting.size(), Optional.<String>absent()),
+                Collections.nCopies(selecting.size(), Optional.absent()),
                 false,
                 scope)
-                .evaluate(session, s -> {});
+                .evaluate(session, null);
     }
 
     public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
