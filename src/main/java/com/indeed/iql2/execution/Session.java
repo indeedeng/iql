@@ -774,15 +774,6 @@ public class Session {
         return new PerGroupConstant(stats);
     }
 
-    public static void unchecked(RunnableWithException runnable) {
-        try {
-            runnable.run();
-        } catch (final Throwable t) {
-            log.error("unchecked error", t);
-            throw Throwables.propagate(t);
-        }
-    }
-
     public void checkGroupLimitWithoutLog(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
@@ -1546,10 +1537,6 @@ public class Session {
         if (state.presenceIndex != null) {
             dst[state.presenceIndex] = 1;
         }
-    }
-
-    public interface RunnableWithException {
-        void run() throws Throwable;
     }
 
     public static class SavedGroupStats {
