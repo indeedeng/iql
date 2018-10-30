@@ -17,7 +17,6 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
@@ -36,6 +35,7 @@ import com.indeed.iql2.language.commands.RegroupFieldIn;
 import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
+import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
@@ -68,7 +68,7 @@ public interface ExecutionStep {
             final Precomputed.Precomputation precomputation = computation.commands(scope);
             final List<Command> result = new ArrayList<>();
             result.addAll(precomputation.beforeCommands);
-            result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, Optional.of(name)));
+            result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, name));
             result.addAll(precomputation.afterCommands);
             return result;
         }

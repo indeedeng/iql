@@ -15,7 +15,6 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
@@ -26,9 +25,9 @@ import java.util.Objects;
 
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Command computation;
-    public final Optional<String> name;
+    public final String name;
 
-    public ComputeAndCreateGroupStatsLookup(Command computation, Optional<String> name) {
+    public ComputeAndCreateGroupStatsLookup(Command computation, String name) {
         this.computation = computation;
         this.name = name;
     }
