@@ -7,6 +7,7 @@ DISTINCT : 'DISTINCT' ;
 DISTINCT_WINDOW : 'DISTINCT_WINDOW' ;
 WINDOW : 'WINDOW' ;
 PERCENTILE : 'PERCENTILE' ;
+MEDIAN : 'MEDIAN' ;
 PDIFF : 'PDIFF' ;
 DIFF : 'DIFF' ;
 RATIODIFF: 'RATIODIFF';
@@ -120,7 +121,7 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 
 // TODO: How to keep this up to date with new lexer tokens..?
 identifier
-    : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | PDIFF | DIFF | RATIODIFF | SINGLESCORE
+    : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | MEDIAN | PDIFF | DIFF | RATIODIFF | SINGLESCORE
     | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
@@ -177,6 +178,7 @@ jqlAggregateMetric
     | DISTINCT_WINDOW '(' NAT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow
     | (old=WINDOW | WINDOW_SUM) '(' NAT ',' jqlAggregateMetric ')' # AggregateWindow
     | PERCENTILE '(' scopedField ',' number ')' # AggregatePercentile
+    | MEDIAN '(' scopedField ')' # AggregateMedian
     | PDIFF '(' expected=jqlAggregateMetric ',' actual=jqlAggregateMetric ')' # AggregatePDiff
     | DIFF '(' controlGrp = jqlAggregateMetric ',' testGrp = jqlAggregateMetric ')' #AggregateDiff
     | RATIODIFF '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioDiff

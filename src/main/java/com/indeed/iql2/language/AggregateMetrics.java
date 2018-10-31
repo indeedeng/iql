@@ -391,6 +391,12 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateMedian(JQLParser.AggregateMedianContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.scopedField());
+                accept(scopedField.wrap(new AggregateMetric.Percentile(scopedField.field, 50)));
+            }
+
+            @Override
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
                 accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), options, datasetsMetadata, warn, clock)));
             }
