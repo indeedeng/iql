@@ -1009,8 +1009,6 @@ public class Session {
             while (iterator.hasNext()) {
                 iterator.nextLong();
             }
-            // nullifying group zero just in case.
-            result[0] = 0;
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
