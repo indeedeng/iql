@@ -892,7 +892,7 @@ public class QueryServlet {
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
 
-        QueryMetrics.logQueryMetrics(queryInfo.iqlVersion, queryInfo.statementType, error, cancelled, systemError, timeTaken, metricStatsEmitter);
+        QueryMetrics.logQueryMetrics(queryInfo.iqlVersion, queryInfo.statementType, queryInfo.cached, error, cancelled, systemError, timeTaken, metricStatsEmitter);
         dataLog.info(logEntry);
     }
 
