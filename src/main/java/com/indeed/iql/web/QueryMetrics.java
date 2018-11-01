@@ -27,6 +27,7 @@ public final class QueryMetrics {
     public static void logQueryMetrics(
             final int iqlVersion,
             final String queryType,
+            final boolean cached,
             final boolean errorOccurred,
             final boolean cancelled,
             final boolean systemErrorOccurred,
@@ -36,6 +37,7 @@ public final class QueryMetrics {
         final List<Pair<String, String>> metricTags = new ArrayList<>();
         metricTags.add(new Pair<>("iqlversion", Integer.toString(iqlVersion)));
         metricTags.add(new Pair<>("statement", queryType));
+        metricTags.add(new Pair<>("cached", cached ? "1" : "0"));
         metricTags.add(new Pair<>("error", errorOccurred ? "1" : "0"));
         metricTags.add(new Pair<>("cancelled", cancelled ? "1" : "0"));
         metricTags.add(new Pair<>("systemerror", systemErrorOccurred ? "1" : "0"));
