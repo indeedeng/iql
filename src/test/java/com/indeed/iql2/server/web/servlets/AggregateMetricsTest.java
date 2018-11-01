@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
@@ -214,6 +215,28 @@ public class AggregateMetricsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "1", "1", "1"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select percentile(allbit, 0.00001), percentile(allbit, 50), percentile(allbit, 100)", true);
+    }
+
+    @Test
+    public void testMedian() throws Exception {
+        List<String> percentileQueries = new ArrayList<>();
+        percentileQueries.add("from organic yesterday today select percentile(allbit, 50)");
+        percentileQueries.add("from organic yesterday today select percentile(oji,50)");
+        percentileQueries.add("from organic yesterday today select percentile(ojc,50)");
+
+        List<String> medianQueries = new ArrayList<>();
+        medianQueries.add("from organic yesterday today select median(allbit)");
+        medianQueries.add("from organic yesterday today select median(oji)");
+        medianQueries.add("from organic yesterday today select median(ojc)");
+
+        for (int i=0;i<percentileQueries.size();i++) {
+            final List<List<String>> expected = QueryServletTestUtils.runQuery(AllData.DATASET.getNormalClient(), percentileQueries.get(i), QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
+            QueryServletTestUtils.testIQL2(AllData.DATASET, expected, medianQueries.get(i), true);
+        }
+
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "1"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select median(allbit)", true);
     }
 
     @Test
