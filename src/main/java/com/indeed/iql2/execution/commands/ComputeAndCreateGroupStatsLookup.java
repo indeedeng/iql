@@ -14,31 +14,28 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Command computation;
-    public final Optional<String> name;
+    public final String name;
 
-    public ComputeAndCreateGroupStatsLookup(final Command computation, final Optional<String> name) {
+    public ComputeAndCreateGroupStatsLookup(final Command computation, final String name) {
         this.computation = computation;
         this.name = name;
     }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
-        if (name.isPresent()) {
-            if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>((Command) computation, name.get())))) {
-                return;
-            }
+        if (ComputeAndCreateGroupStatsLookups.tryMultiDistinct(session, Collections.singletonList(new Pair<>(computation, name)))) {
+            return;
         }
 
         double[] results = null;
@@ -58,11 +55,8 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             Preconditions.checkState(percentiles.length == 1, "Only one percentile expected");
             longResults = percentiles[0];
         } else if (computation instanceof GetGroupStats) {
-            final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
-            results = new double[groupStats.size()];
-            for (int i = 0; i < groupStats.size(); i++) {
-                results[i] = groupStats.get(i).stats[0];
-            }
+            final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
+            results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
         } else if (computation instanceof ComputeBootstrap) {
             computation.execute(session);
             // This already did stuff internally
@@ -73,6 +67,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         if (longResults != null) {
             results = ComputeAndCreateGroupStatsLookups.longToDouble(longResults);
         }
-        new CreateGroupStatsLookup(Session.prependZero(results), this.name).execute(session);
+        new CreateGroupStatsLookup(results, this.name).execute(session);
     }
 }

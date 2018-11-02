@@ -66,7 +66,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         private final Session session;
 
         private IterateHandlerImpl(Session session) {
-            this.groupCounts = new long[session.numGroups];
+            this.groupCounts = new long[session.numGroups + 1];
             this.session = session;
         }
 
@@ -100,7 +100,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() throws ImhotepOutOfMemoryException {
+        public long[] finish() {
             if (windowSize > 1) {
                 updateAllSeenGroups();
             }
@@ -125,7 +125,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                     updateGroups(group, groupSeen);
                 }
                 if (groupSeen.get(group)) {
-                    groupCounts[group - 1]++;
+                    groupCounts[group]++;
                 }
             }
 
@@ -163,7 +163,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                     updateGroups(group, groupSeen);
                 }
                 if (groupSeen.get(group)) {
-                    groupCounts[group - 1]++;
+                    groupCounts[group]++;
                 }
             }
 
@@ -185,13 +185,13 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
         private void updateAllSeenGroups() {
             while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                groupCounts[lastGroup - 1]++;
+                groupCounts[lastGroup]++;
             }
         }
 
         private void updateSeenGroupsUntil(int group) {
             while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
-                groupCounts[lastGroup - 1]++;
+                groupCounts[lastGroup]++;
             }
         }
 
