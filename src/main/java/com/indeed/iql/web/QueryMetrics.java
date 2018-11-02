@@ -17,6 +17,7 @@ package com.indeed.iql.web;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.util.core.Pair;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public final class QueryMetrics {
     public static void logQueryMetrics(
             final int iqlVersion,
             final String queryType,
-            final boolean cached,
+            @Nullable final Boolean cached,
             final boolean errorOccurred,
             final boolean cancelled,
             final boolean systemErrorOccurred,
@@ -37,7 +38,9 @@ public final class QueryMetrics {
         final List<Pair<String, String>> metricTags = new ArrayList<>();
         metricTags.add(new Pair<>("iqlversion", Integer.toString(iqlVersion)));
         metricTags.add(new Pair<>("statement", queryType));
-        metricTags.add(new Pair<>("cached", cached ? "1" : "0"));
+        if (cached != null) {
+            metricTags.add(new Pair<>("cached", cached ? "1" : "0"));
+        }
         metricTags.add(new Pair<>("error", errorOccurred ? "1" : "0"));
         metricTags.add(new Pair<>("cancelled", cancelled ? "1" : "0"));
         metricTags.add(new Pair<>("systemerror", systemErrorOccurred ? "1" : "0"));
