@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -228,6 +229,7 @@ public class QueryServletTestUtils extends BasicTest {
                 System.out.println("oh no");
             }
         } else {
+            expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
             Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
         }
     }

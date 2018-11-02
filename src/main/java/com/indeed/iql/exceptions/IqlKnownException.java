@@ -106,6 +106,12 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
+    public static class AccessDeniedException extends IqlKnownException {
+        public AccessDeniedException(String message) {
+            super(message);
+        }
+    }
+
     // Legacy parsing exception from Iql 1.
     // Renamed, previously was IQLParseException
     public static class StatementParseException extends IqlKnownException {
