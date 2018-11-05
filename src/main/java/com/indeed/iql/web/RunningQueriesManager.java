@@ -16,6 +16,7 @@ package com.indeed.iql.web;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -34,6 +35,7 @@ import java.util.Set;
 
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
+    public static final int USER_SUBMITTED_QUERIES_LIMIT = 10;
     private final IQLDB iqldb;
 
     private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
@@ -197,6 +199,18 @@ public class RunningQueriesManager {
             selectQuery.onInserted(-1L);
             selectQuery.onStarted(DateTime.now());
             return;
+        }
+
+        final List<RunningQuery> userQueries = iqldb.getPendingQueriesForUser(selectQuery.getUsername());
+
+        // Theoretically we can still get above the limit, but this is probably good
+        // enough to not worry about it too much.
+        if (userQueries.size() >= USER_SUBMITTED_QUERIES_LIMIT) {
+            throw new IqlKnownException.TooManyPendingQueriesException(
+                    "Number of currently pending queries for user \"" + selectQuery.getUsername() + "\" is too high" +
+                    "(" + userQueries.size() + " >= " + USER_SUBMITTED_QUERIES_LIMIT + "). " +
+                    "Please wait for earlier queries to complete before submitting new queries."
+            );
         }
         iqldb.insertRunningQuery(selectQuery);
         synchronized (queriesWaiting) {
