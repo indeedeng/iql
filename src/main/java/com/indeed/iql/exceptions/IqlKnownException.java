@@ -112,12 +112,6 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
-    public static class TooManyPendingQueriesException extends IqlKnownException {
-        public TooManyPendingQueriesException(final String message) {
-            super(message);
-        }
-    }
-
     // Legacy parsing exception from Iql 1.
     // Renamed, previously was IQLParseException
     public static class StatementParseException extends IqlKnownException {
