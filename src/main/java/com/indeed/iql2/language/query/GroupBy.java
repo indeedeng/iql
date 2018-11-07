@@ -392,8 +392,8 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public String toString() {
             return "GroupByMonth{" +
-                    "field=" + timeField +
-                    ", format=" + timeFormat +
+                    "timeField=" + timeField +
+                    ", timeFormat=" + timeFormat +
                     '}';
         }
     }
