@@ -218,7 +218,6 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testMedian() throws Exception {
-
         QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","1")), "from organic yesterday today select median(allbit)", true);
         QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","10")), "from organic 2015-01-01 00:00:00  2015-01-01 01:00:00 select median(oji)", true);
         QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","13")), "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 select median(oji)", true);
