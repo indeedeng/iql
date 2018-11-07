@@ -67,7 +67,7 @@ public class QueryServletTestUtils extends BasicTest {
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
     // Each tested query will run with each option from this list.
-    // Be sure not to delete empty list (no options) from the list to test main execution path.
+    // Be sure not to delete empty set (no options) from the list to test main execution path.
     private static final List<Set<String>> OPTIONS_TO_TEST =
             ImmutableList.of(
                     Collections.emptySet(), // no options
