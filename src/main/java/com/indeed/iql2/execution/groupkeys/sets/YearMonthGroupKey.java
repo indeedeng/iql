@@ -16,6 +16,7 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.execution.groupkeys.TimeRangeGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -29,13 +30,21 @@ public class YearMonthGroupKey implements GroupKeySet {
     private final DateTime startMonth;
     private final String formatString;
     private final DateTimeFormatter formatter;
+    private final boolean useTimeRangeKeys;
 
-    public YearMonthGroupKey(GroupKeySet previous, int numMonths, DateTime startMonth, String formatString) {
+    public YearMonthGroupKey(
+            final GroupKeySet previous,
+            final int numMonths,
+            final DateTime startMonth,
+            final String formatString,
+            final boolean useTimeRangeKeys
+    ) {
         this.previous = previous;
         this.numMonths = numMonths;
         this.startMonth = startMonth;
         this.formatString = formatString;
         this.formatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
+        this.useTimeRangeKeys = useTimeRangeKeys;
     }
 
     @Override
@@ -52,7 +61,11 @@ public class YearMonthGroupKey implements GroupKeySet {
     public GroupKey groupKey(int group) {
         final int monthOffset = (group - 1) % numMonths;
         final DateTime month = startMonth.plusMonths(monthOffset);
-        return new StringGroupKey(formatter.print(month));
+        if (useTimeRangeKeys) {
+            return new TimeRangeGroupKey(formatString, month.getMillis(), month.plusMonths(1).getMillis());
+        } else {
+            return new StringGroupKey(formatter.print(month));
+        }
     }
 
     @Override

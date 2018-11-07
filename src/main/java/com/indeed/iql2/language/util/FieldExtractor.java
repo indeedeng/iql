@@ -590,8 +590,8 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByMonth groupByMonth) throws RuntimeException {
-				if (groupByMonth.field.isPresent()) {
-					return ImmutableSet.of(new DatasetField(groupByMonth.field.get()));
+				if (groupByMonth.timeField.isPresent()) {
+					return ImmutableSet.of(new DatasetField(groupByMonth.timeField.get()));
 				}
 				return ImmutableSet.of();
 			}

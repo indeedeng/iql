@@ -18,6 +18,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.service.MetricStatsEmitter;
@@ -46,6 +48,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -64,15 +67,15 @@ public class QueryServletTestUtils extends BasicTest {
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
     // Each tested query will run with each option from this list.
-    // Be sure not to delete empty string (no options) from the list to test main execution path.
-    private static final String[] OPTIONS_TO_TEST =
-            {
-                    "", // no options
-                    "OPTIONS [\"" + QueryOptions.Experimental.USE_MULTI_FTGS + "\"]", // multi FTGS
-                    "OPTIONS [\"" + QueryOptions.Experimental.USE_AGGREGATE_DISTINCT + "\"]", // aggregate distinct
-            };
+    // Be sure not to delete empty list (no options) from the list to test main execution path.
+    private static final List<Set<String>> OPTIONS_TO_TEST =
+            ImmutableList.of(
+                    Collections.emptySet(), // no options
+                    ImmutableSet.of(QueryOptions.Experimental.USE_MULTI_FTGS), // multi FTGS
+                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT) // aggregate distinct
+            );
 
-    public static QueryServlet create(ImhotepClient client, Options options) {
+    public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), true);
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
@@ -90,7 +93,7 @@ public class QueryServletTestUtils extends BasicTest {
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
                 options.wallClock,
-                new IQL2Options()
+                defaultOptions
         );
     }
 
@@ -99,18 +102,19 @@ public class QueryServletTestUtils extends BasicTest {
         IQL1, IQL2
     }
 
-    static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, String optionsToTest) throws Exception {
-        final String queryWithOptions = optionsToTest.isEmpty() ? query : (query + " " + optionsToTest);
-        return run(client, queryWithOptions, version, stream, options).data;
+    static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, Set<String> extraQueryOptions) throws Exception {
+        final IQL2Options defaultOptions = new IQL2Options();
+        defaultOptions.addOptions(extraQueryOptions);
+        return run(client, query, version, stream, options, defaultOptions).data;
     }
 
     private static JsonNode getQueryHeader(final ImhotepClient client, String query, LanguageVersion version, Options options) throws Exception {
-        return run(client, query, version, true, options).header;
+        return run(client, query, version, true, options, new IQL2Options()).header;
     }
 
     @SuppressWarnings("WeakerAccess")
-    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options) throws Exception {
-        final QueryServlet queryServlet = create(client, options);
+    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, final IQL2Options defaultOptions) throws Exception {
+        final QueryServlet queryServlet = create(client, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
@@ -260,7 +264,7 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL1(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        for (final String queryOptions : OPTIONS_TO_TEST) {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
             Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions));
             Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions));
         }
@@ -286,7 +290,7 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL2(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        for (final String queryOptions : OPTIONS_TO_TEST) {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
             Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions));
             Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions));
         }
@@ -297,7 +301,7 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void runIQL2(ImhotepClient client, String query, Options options) throws Exception {
-        for (final String queryOptions : OPTIONS_TO_TEST) {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
             runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions);
             runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions);
         }
@@ -309,7 +313,7 @@ public class QueryServletTestUtils extends BasicTest {
 
 
     private static void runIQL1(ImhotepClient client, String query, Options options) throws Exception {
-        for (final String queryOptions : OPTIONS_TO_TEST) {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
             runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions);
             runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions);
         }

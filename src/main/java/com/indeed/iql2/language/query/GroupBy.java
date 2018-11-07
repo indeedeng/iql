@@ -329,12 +329,12 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByMonth extends GroupBy {
-        public final Optional<Positioned<String>> field;
-        public final Optional<String> format;
+        public final Optional<Positioned<String>> timeField;
+        public final Optional<String> timeFormat;
 
-        public GroupByMonth(Optional<Positioned<String>> field, Optional<String> format) {
-            this.field = field;
-            this.format = format;
+        public GroupByMonth(Optional<Positioned<String>> timeField, Optional<String> timeFormat) {
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
         }
 
         @Override
@@ -354,7 +354,10 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeMonthOfYear();
+            return new ExecutionStep.ExplodeMonthOfYear(
+                    timeField.transform(Positioned::unwrap),
+                    timeFormat
+            );
         }
 
         @Override
@@ -374,23 +377,23 @@ public abstract class GroupBy extends AbstractPositional {
 
             GroupByMonth that = (GroupByMonth) o;
 
-            if (field != null ? !field.equals(that.field) : that.field != null) return false;
-            return !(format != null ? !format.equals(that.format) : that.format != null);
+            if (timeField != null ? !timeField.equals(that.timeField) : that.timeField != null) return false;
+            return !(timeFormat != null ? !timeFormat.equals(that.timeFormat) : that.timeFormat != null);
 
         }
 
         @Override
         public int hashCode() {
-            int result = field != null ? field.hashCode() : 0;
-            result = 31 * result + (format != null ? format.hashCode() : 0);
+            int result = timeField != null ? timeField.hashCode() : 0;
+            result = 31 * result + (timeFormat != null ? timeFormat.hashCode() : 0);
             return result;
         }
 
         @Override
         public String toString() {
             return "GroupByMonth{" +
-                    "field=" + field +
-                    ", format=" + format +
+                    "field=" + timeField +
+                    ", format=" + timeFormat +
                     '}';
         }
     }

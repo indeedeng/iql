@@ -89,7 +89,7 @@ public class CacheTest extends BasicTest {
             final InMemoryQueryCache queryCache = new InMemoryQueryCache();
             options.setQueryCache(queryCache);
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            final List<List<String>> result1 = QueryServletTestUtils.runQuery(imhotepClient, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
+            final List<List<String>> result1 = QueryServletTestUtils.runQuery(imhotepClient, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, Collections.emptySet());
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
             final int expectedCachedFiles = 2; // should have 2 files: metadata and data
             final long waitStart = System.currentTimeMillis();
@@ -100,7 +100,7 @@ public class CacheTest extends BasicTest {
                 }
                 Thread.sleep(1);
             }
-            final List<List<String>> result2 = QueryServletTestUtils.runQuery(imhotepClient, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, "");
+            final List<List<String>> result2 = QueryServletTestUtils.runQuery(imhotepClient, query, QueryServletTestUtils.LanguageVersion.IQL2, true, options, Collections.emptySet());
             Assert.assertEquals("Didn't read from cache when it was expected to", expectedCachedFiles, queryCache.getReadsTracked().size());
             Assert.assertEquals(result1, result2);
         }

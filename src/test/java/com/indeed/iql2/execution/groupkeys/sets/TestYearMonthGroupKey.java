@@ -29,7 +29,7 @@ import java.util.Arrays;
 public class TestYearMonthGroupKey {
     private static YearMonthGroupKey create() {
         final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.create(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new YearMonthGroupKey(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), TimeUnit.MONTH.formatString);
+        return new YearMonthGroupKey(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), TimeUnit.MONTH.formatString, false);
     }
 
     @Test

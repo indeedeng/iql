@@ -21,6 +21,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class ValidationTests extends BasicTest {
@@ -50,7 +51,7 @@ public class ValidationTests extends BasicTest {
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(AllData.DATASET.getNormalClient(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
+            QueryServletTestUtils.runQuery(AllData.DATASET.getNormalClient(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), Collections.emptySet());
             Assert.fail();
         } catch (Exception ignored) {
         }

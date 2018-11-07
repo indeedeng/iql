@@ -16,14 +16,26 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKey;
+import com.indeed.iql2.language.Positioned;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
 
 public class ExplodeMonthOfYear implements Command {
+    private static final DateTimeZone IMHOTEP_TIME = DateTimeZone.forOffsetHours(-6);
+
+    private final Optional<String> timeField;
+    private final Optional<String> timeFormat;
+
+    public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+        this.timeField = timeField;
+        this.timeFormat = timeFormat;
+    }
+
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final long earliestStart = session.getEarliestStart();
@@ -46,15 +58,15 @@ public class ExplodeMonthOfYear implements Command {
         final int oldNumGroups = session.numGroups;
 
         final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
-        final DateTime startMonth = new DateTime(earliestStart, zone).withDayOfMonth(1).withTimeAtStartOfDay();
-        final DateTime endMonthExclusive = new DateTime(latestEnd, zone).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
+        final DateTime startMonth = new DateTime(realStart, IMHOTEP_TIME).withDayOfMonth(1).withTimeAtStartOfDay();
+        final DateTime endMonthExclusive = new DateTime(realEnd, IMHOTEP_TIME).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
         final int numMonths = Months.monthsBetween(
                 startMonth,
                 endMonthExclusive
         ).getMonths();
         session.checkGroupLimit(numMonths * session.numGroups);
 
-        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, Optional.<String>absent(), false);
+        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false);
         session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");
@@ -67,7 +79,7 @@ public class ExplodeMonthOfYear implements Command {
                 final int base = 1 + (outerGroup - 1) * numBuckets + innerGroup;
                 final int newBase = 1 + (outerGroup - 1) * numMonths;
 
-                final DateTime date = new DateTime(start, zone).withDayOfMonth(1).withTimeAtStartOfDay();
+                final DateTime date = new DateTime(start, IMHOTEP_TIME).withDayOfMonth(1).withTimeAtStartOfDay();
                 final int newGroup = newBase + Months.monthsBetween(startMonth, date).getMonths();
                 fromGroups[index] = base;
                 toGroups[index] = newGroup;
@@ -78,6 +90,14 @@ public class ExplodeMonthOfYear implements Command {
 
         session.remapGroups(fromGroups, toGroups);
 
-        session.assumeDense(new YearMonthGroupKey(session.groupKeySet, numMonths, startMonth, TimeUnit.MONTH.formatString));
+        final boolean useTimeRangekeys = session.options.contains(QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS);
+        final YearMonthGroupKey groupKeySet = new YearMonthGroupKey(
+                session.groupKeySet,
+                numMonths,
+                startMonth,
+                timeFormat.or(useTimeRangekeys ? TimeUnit.SECOND.formatString : TimeUnit.MONTH.formatString),
+                useTimeRangekeys
+        );
+        session.assumeDense(groupKeySet);
     }
 }
