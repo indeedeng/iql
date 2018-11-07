@@ -234,6 +234,13 @@ public class AggregateMetricsTest extends BasicTest {
                 "from organic yesterday today, distinct select sum_over(organic.oji, organic.ojc)",
                 true
         );
+
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "1180")),
+                "from organic yesterday today, distinct select sum_over(organic.tk HAVING count() < 60, oji)",
+                true
+        );
     }
 
     @Test
