@@ -219,24 +219,11 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testMedian() throws Exception {
-        List<String> percentileQueries = new ArrayList<>();
-        percentileQueries.add("from organic yesterday today select percentile(allbit, 50)");
-        percentileQueries.add("from organic yesterday today select percentile(oji,50)");
-        percentileQueries.add("from organic yesterday today select percentile(ojc,50)");
 
-        List<String> medianQueries = new ArrayList<>();
-        medianQueries.add("from organic yesterday today select median(allbit)");
-        medianQueries.add("from organic yesterday today select median(oji)");
-        medianQueries.add("from organic yesterday today select median(ojc)");
-
-        for (int i=0;i<percentileQueries.size();i++) {
-            final List<List<String>> expected = QueryServletTestUtils.runQuery(AllData.DATASET.getNormalClient(), percentileQueries.get(i), QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), "");
-            QueryServletTestUtils.testIQL2(AllData.DATASET, expected, medianQueries.get(i), true);
-        }
-
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "1"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select median(allbit)", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","1")), "from organic yesterday today select median(allbit)", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","10")), "from organic 2015-01-01 00:00:00  2015-01-01 01:00:00 select median(oji)", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","13")), "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 select median(oji)", true);
+        QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("","1")), "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 select median(ojc)", true);
     }
 
     @Test
