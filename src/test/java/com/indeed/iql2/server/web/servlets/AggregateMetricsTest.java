@@ -227,6 +227,16 @@ public class AggregateMetricsTest extends BasicTest {
     }
 
     @Test
+    public void multiDatasetSumAcross() throws Exception {
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "306")),
+                "from organic yesterday today, distinct select sum_over(organic.oji, organic.ojc)",
+                true
+        );
+    }
+
+    @Test
     public void testRegroupIntoParent() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151", "151", "151"));

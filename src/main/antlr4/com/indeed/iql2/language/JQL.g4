@@ -194,6 +194,7 @@ jqlAggregateMetric
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
+    | SUM_OVER '(' field=scopedField (HAVING jqlAggregateFilter)? ',' jqlAggregateMetric ')' # AggregateSumAcross2
     | AVG_OVER '(' field=scopedField ((havingBrackets='[' HAVING jqlAggregateFilter ']')|(HAVING jqlAggregateFilter))? ',' jqlAggregateMetric ')' # AggregateAverageAcross
     | M '(' jqlAggregateFilter ')' # AggregateMetricFilter
     | jqlDocMetricAtom # AggregateDocMetricAtom

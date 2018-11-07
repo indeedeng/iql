@@ -414,6 +414,19 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateSumAcross2(final JQLParser.AggregateSumAcross2Context ctx) {
+                final Optional<AggregateFilter> filter;
+                if (ctx.jqlAggregateFilter() != null) {
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), options, datasetsMetadata, warn, clock));
+                } else {
+                    filter = Optional.absent();
+                }
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
+                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                accept(scopedField.wrap(new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), options, datasetsMetadata, warn, clock))));
+            }
+
+            @Override
             public void enterAggregateAverageAcross(JQLParser.AggregateAverageAcrossContext ctx) {
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() != null) {
