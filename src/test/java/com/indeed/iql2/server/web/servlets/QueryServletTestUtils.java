@@ -175,7 +175,7 @@ public class QueryServletTestUtils extends BasicTest {
 
     @SuppressWarnings("WeakerAccess")
     public static class Options {
-        private Long subQueryTermLimit = -1L;
+        private Long subQueryTermLimit = 1_000_000L;
         private QueryCache queryCache = new NoOpQueryCache();
         private ImsClientInterface imsClient;
         private boolean skipTestDimension = false;

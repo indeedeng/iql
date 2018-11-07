@@ -356,6 +356,9 @@ public class SimpleIterate implements Command {
                                     iterator.group()
                             ));
                         }
+
+                        createdGroupCount += 1;
+                        session.checkGroupLimitWithoutLog(createdGroupCount);
                     }
                 }
             }
