@@ -25,7 +25,7 @@ public class BigDataset {
     static Dataset create() {
         final List<Dataset.DatasetShard> result = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        for (int i = 0; i < 1_500_000; i++) {
+        for (int i = 0; i < 6_000; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
             doc.addIntTerm("field", i);
             flamdex.addDocument(doc);

@@ -252,8 +252,8 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
 
-    static void testIQL1(Dataset dataset, List<List<String>> expected, String query, boolean testDimension) throws Exception {
-        testIQL1(dataset, expected, query, Options.create(testDimension));
+    static void testIQL1(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testIQL1(dataset, expected, query, Options.create(skipTestDimension));
     }
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
