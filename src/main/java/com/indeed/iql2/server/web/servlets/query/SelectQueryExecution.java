@@ -105,6 +105,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -779,7 +780,8 @@ public class SelectQueryExecution {
                 throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
             }
         }
-        final String queryHash = computeQueryHash(commands, query.rowLimit, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING);
+        final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -804,7 +806,7 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -829,6 +831,11 @@ public class SelectQueryExecution {
             });
             for (final FieldAlias fieldAlias : sortedFieldAliases) {
                 sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
+            }
+        }
+        for (final String option : sortedOptions) {
+            if (QueryOptions.includeInCacheKey(option)) {
+                sha1.update(option.getBytes(Charsets.UTF_8));
             }
         }
         sha1.update(Ints.toByteArray(rowLimit.or(-1)));

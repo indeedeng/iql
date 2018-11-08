@@ -38,6 +38,10 @@ public class QueryOptions {
         }
     }
 
+    public static boolean includeInCacheKey(final String option) {
+        return Experimental.CONSISTENT_TIME_BUCKETS.equals(option);
+    }
+
     private QueryOptions() {
     }
 }
