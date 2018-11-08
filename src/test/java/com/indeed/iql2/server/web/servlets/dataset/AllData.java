@@ -33,6 +33,7 @@ public class AllData {
         datasets.add(TimeRegroupDatasets.multiMonthDataset());
         datasets.add(TSVEscapeDataset.createDataset());
         datasets.add(ValidationDataset.createDataset());
+        datasets.add(BigDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {
