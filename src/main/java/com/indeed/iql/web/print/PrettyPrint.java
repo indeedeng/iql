@@ -343,7 +343,7 @@ public class PrettyPrint {
             @Override
             public Void visit(GroupBy.GroupByMonth groupByMonth) {
                 sb.append("time(1month");
-                timeFieldAndFormat(groupByMonth.field, groupByMonth.format);
+                timeFieldAndFormat(groupByMonth.timeField, groupByMonth.timeFormat);
                 sb.append(')');
                 return null;
             }

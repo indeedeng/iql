@@ -59,7 +59,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         private long[] max;
 
         public IterateHandlerImpl(int numGroups) {
-            max = new long[numGroups];
+            max = new long[numGroups + 1];
             Arrays.fill(max, Long.MIN_VALUE);
         }
 
@@ -73,7 +73,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
             return new Session.IntIterateCallback() {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
-                    max[group - 1] = Math.max(max[group - 1], term);
+                    max[group] = Math.max(max[group], term);
                 }
 
                 @Override
@@ -100,7 +100,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
                 public void term(final String term, final long[] stats, final int group) {
                     try {
                         final long v = Long.parseLong(term);
-                        max[group - 1] = Math.max(max[group - 1], v);
+                        max[group] = Math.max(max[group], v);
                     } catch (final NumberFormatException ignored) {
                     }
                 }
@@ -123,7 +123,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() throws ImhotepOutOfMemoryException, IOException {
+        public long[] finish() {
             return max;
         }
 

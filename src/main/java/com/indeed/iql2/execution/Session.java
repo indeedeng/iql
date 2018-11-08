@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.execution;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -473,7 +471,7 @@ public class Session {
                     }
                 } else if (command instanceof GetGroupStats) {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
-                    final List<GroupStats> results = getGroupStats.evaluate(this);
+                    final double[][] results = getGroupStats.evaluate(this);
                     final StringBuilder sb = new StringBuilder();
 
                     final String[] formatStrings = new String[getGroupStats.metrics.size()];
@@ -482,11 +480,11 @@ public class Session {
                         formatStrings[i] = opt.isPresent() ? opt.get() : null;
                     }
 
-                    for (final GroupStats result : results) {
-                        if (!groupKeySet.isPresent(result.group)) {
+                    for (int group = 1; group <= numGroups; group++) {
+                        if (!groupKeySet.isPresent(group)) {
                             continue;
                         }
-                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, result.group);
+                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, group);
                         if (keyColumns.isEmpty()) {
                             sb.append("\t");
                         } else {
@@ -495,9 +493,8 @@ public class Session {
                                 sb.append('\t');
                             }
                         }
-                        final double[] stats = result.stats;
-                        writeDoubleStatsWithFormatString(stats, formatStrings, sb);
-                        if (keyColumns.size() + result.stats.length > 0) {
+                        writeDoubleStatsWithFormatString(results, group, formatStrings, sb);
+                        if (keyColumns.size() + results.length > 0) {
                             sb.setLength(sb.length() - 1);
                         }
                         out.accept(sb.toString());
@@ -514,16 +511,29 @@ public class Session {
         }
     }
 
+    public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb) {
+        if (formatString != null) {
+            sb.append(String.format(formatString, stat)).append('\t');
+        } else if (DoubleMath.isMathematicalInteger(stat)) {
+            sb.append(String.format("%.0f", stat)).append('\t');
+        } else {
+            sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
+        }
+    }
+
     public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
         for (int i = 0; i < stats.length; i++) {
-            final double stat = stats[i];
-            if (i < formatStrings.length && formatStrings[i] != null) {
-                sb.append(String.format(formatStrings[i], stat)).append('\t');
-            } else if (DoubleMath.isMathematicalInteger(stat)) {
-                sb.append(String.format("%.0f", stat)).append('\t');
-            } else {
-                sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
-            }
+            writeDoubleStatWithFormatString(stats[i], formatStrings[i], sb);
+        }
+    }
+
+    public static void writeDoubleStatsWithFormatString(
+            final double[][] stats,
+            final int group,
+            final String[] formatStrings,
+            final StringBuilder sb) {
+        for (int i = 0; i < stats.length; i++) {
+            writeDoubleStatWithFormatString(stats[i][group], formatStrings[i], sb);
         }
     }
 
@@ -548,13 +558,6 @@ public class Session {
             result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
         }
         return result;
-    }
-
-    // TODO: Any call sites of this could be optimized.
-    public static double[] prependZero(double[] in) {
-        final double[] out = new double[in.length + 1];
-        System.arraycopy(in, 0, out, 1, in.length);
-        return out;
     }
 
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
@@ -771,15 +774,6 @@ public class Session {
         return new PerGroupConstant(stats);
     }
 
-    public static void unchecked(RunnableWithException runnable) {
-        try {
-            runnable.run();
-        } catch (final Throwable t) {
-            log.error("unchecked error", t);
-            throw Throwables.propagate(t);
-        }
-    }
-
     public void checkGroupLimitWithoutLog(int numGroups) {
         if (groupLimit > 0 && numGroups > groupLimit) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
@@ -989,7 +983,7 @@ public class Session {
     }
 
     public long[] getSimpleDistinct(final String field, final String scope) {
-        final long[] result = new long[numGroups];
+        final long[] result = new long[numGroups+1];
         if (!sessions.containsKey(scope)) {
             return result; // or error?
         }
@@ -1007,13 +1001,7 @@ public class Session {
         timer.push("getSimpleDistinct session:" + info.displayName);
         try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
             timer.pop();
-            // skipping group zero
-            if (!iterator.hasNext()) {
-                return result;
-            }
-            iterator.nextLong();
-            // extracting result for other groups
-            final int size = Math.min(iterator.getNumGroups() - 1, result.length);
+            final int size = Math.min(iterator.getNumGroups(), result.length);
             for (int i = 0; i < size; i++) {
                 result[i] += iterator.nextLong();
             }
@@ -1021,7 +1009,6 @@ public class Session {
             while (iterator.hasNext()) {
                 iterator.nextLong();
             }
-
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
@@ -1548,21 +1535,6 @@ public class Session {
         if (state.presenceIndex != null) {
             dst[state.presenceIndex] = 1;
         }
-    }
-
-    public static class GroupStats {
-        public final int group;
-        public final double[] stats;
-
-        @JsonCreator
-        public GroupStats(@JsonProperty("group") int group, @JsonProperty("stats") double[] stats) {
-            this.group = group;
-            this.stats = stats;
-        }
-    }
-
-    public interface RunnableWithException {
-        void run() throws Throwable;
     }
 
     public static class SavedGroupStats {

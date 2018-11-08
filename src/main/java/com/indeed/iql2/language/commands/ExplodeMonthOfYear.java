@@ -15,14 +15,25 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 
 import java.util.List;
 
 public class ExplodeMonthOfYear implements Command {
+    private final Optional<String> timeField;
+    private final Optional<String> timeFormat;
+
+    public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+        this.timeField = timeField;
+        this.timeFormat = timeFormat;
+    }
+
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
 
@@ -30,22 +41,28 @@ public class ExplodeMonthOfYear implements Command {
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new com.indeed.iql2.execution.commands.ExplodeMonthOfYear();
+        return new com.indeed.iql2.execution.commands.ExplodeMonthOfYear(timeField, timeFormat);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return obj instanceof ExplodeMonthOfYear;
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ExplodeMonthOfYear that = (ExplodeMonthOfYear) o;
+        return Objects.equal(timeField, that.timeField) &&
+                Objects.equal(timeFormat, that.timeFormat);
     }
 
     @Override
     public int hashCode() {
-        // TODO: ???
-        return 83;
+        return Objects.hashCode(timeField, timeFormat);
     }
 
     @Override
     public String toString() {
-        return "ExplodeMonthOfYear{}";
+        return "ExplodeMonthOfYear{" +
+                "timeField=" + timeField +
+                ", timeFormat=" + timeFormat +
+                '}';
     }
 }

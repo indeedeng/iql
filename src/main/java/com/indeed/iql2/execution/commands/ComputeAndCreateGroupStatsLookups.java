@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -35,6 +34,7 @@ import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -73,7 +73,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof GetSimpleGroupDistincts) {
                 final long[] groupStats = ((GetSimpleGroupDistincts)computation).evaluate(session);
                 final double[] results = longToDouble(groupStats);
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
+                new CreateGroupStatsLookup(results, name).execute(session);
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
@@ -87,12 +87,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                     }
                 }, getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
-                final List<Session.GroupStats> groupStats = ((GetGroupStats)computation).evaluate(session);
-                final double[] results = new double[groupStats.size()];
-                for (int i = 0; i < groupStats.size(); i++) {
-                    results[i] = groupStats.get(i).stats[0];
-                }
-                new CreateGroupStatsLookup(Session.prependZero(results), Optional.of(name)).execute(session);
+                final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
+                final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
+                new CreateGroupStatsLookup(results, name).execute(session);
             } else if (computation instanceof GetFieldMax) {
                 final GetFieldMax getFieldMax = (GetFieldMax) computation;
                 fields.add(getFieldMax.field);
@@ -215,7 +212,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         for (int i = 0; i < numFilters; i++) {
-            new CreateGroupStatsLookup(results[i], Optional.of(filters.get(i).getKey())).execute(session);
+            new CreateGroupStatsLookup(results[i], filters.get(i).getKey()).execute(session);
         }
         session.timer.pop();
 
@@ -247,8 +244,8 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             this.name = name;
         }
 
-        private void nameIt(Session session, double[] value) throws ImhotepOutOfMemoryException, IOException {
-            new CreateGroupStatsLookup(Session.prependZero(value), Optional.of(name)).execute(session);
+        private void nameIt(Session session, double[] value) {
+            new CreateGroupStatsLookup(value, name).execute(session);
         }
 
         @Override
@@ -267,7 +264,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         @Override
-        public Void finish() throws ImhotepOutOfMemoryException, IOException {
+        public Void finish() {
             final T result = inner.finish();
             nameIt(session, transform.apply(result));
             return null;

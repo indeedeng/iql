@@ -79,7 +79,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
         private final double[] groupSums;
 
         public IterateHandlerImpl(int numGroups) {
-            this.groupSums = new double[numGroups];
+            this.groupSums = new double[numGroups+1];
         }
 
         @Override
@@ -116,7 +116,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
         }
 
         @Override
-        public double[] finish() throws ImhotepOutOfMemoryException {
+        public double[] finish() {
             return groupSums;
         }
 
@@ -126,10 +126,10 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
                 final double v = metric.apply(term, stats, group);
                 if (filter.isPresent()) {
                     if (filter.get().allow(term, stats, group)) {
-                        groupSums[group - 1] += v;
+                        groupSums[group] += v;
                     }
                 } else {
-                    groupSums[group - 1] += v;
+                    groupSums[group] += v;
                 }
             }
 
@@ -138,10 +138,10 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
                 final double v = metric.apply(term, stats, group);
                 if (filter.isPresent()) {
                     if (filter.get().allow(term, stats, group)) {
-                        groupSums[group - 1] += v;
+                        groupSums[group] += v;
                     }
                 } else {
-                    groupSums[group - 1] += v;
+                    groupSums[group] += v;
                 }
             }
 

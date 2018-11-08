@@ -17,10 +17,10 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
@@ -36,6 +36,7 @@ import com.indeed.iql2.language.commands.RegroupFieldIn;
 import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
+import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
@@ -68,7 +69,7 @@ public interface ExecutionStep {
             final Precomputed.Precomputation precomputation = computation.commands(scope);
             final List<Command> result = new ArrayList<>();
             result.addAll(precomputation.beforeCommands);
-            result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, Optional.of(name)));
+            result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, name));
             result.addAll(precomputation.afterCommands);
             return result;
         }
@@ -399,9 +400,17 @@ public interface ExecutionStep {
     }
 
     class ExplodeMonthOfYear implements ExecutionStep {
+        private final Optional<String> timeField;
+        private final Optional<String> timeFormat;
+
+        public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
+
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.ExplodeMonthOfYear());
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeMonthOfYear(timeField, timeFormat));
         }
 
         @Override
@@ -411,7 +420,10 @@ public interface ExecutionStep {
 
         @Override
         public String toString() {
-            return "ExplodeMonthOfYear{}";
+            return "ExplodeMonthOfYear{" +
+                    "timeField=" + timeField +
+                    ", timeFormat=" + timeFormat +
+                    '}';
         }
     }
 

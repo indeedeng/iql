@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
@@ -202,6 +203,24 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
         expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
+    }
+
+    @Test
+    public void testConsistentMonthRegroup() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "10", "10"));
+        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "100", "200"));
+        expected.add(ImmutableList.of("[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "1", "3"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month OPTIONS [\"" + QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS + "\"]");
+    }
+
+    @Test
+    public void testConsistentMonthRegroupCustomFormat() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01, 2015-02-01)", "10", "10"));
+        expected.add(ImmutableList.of("[2015-02-01, 2015-03-01)", "100", "200"));
+        expected.add(ImmutableList.of("[2015-03-01, 2015-04-01)", "1", "3"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M, 'yyyy-MM-dd') select count(), month OPTIONS [\"" + QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS + "\"]");
     }
 
     @Test

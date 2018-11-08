@@ -26,7 +26,6 @@ import com.indeed.imhotep.api.FTGAIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.AggregateFilter;
-import com.indeed.iql2.execution.DenseInt2ObjectMap;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.QueryOptions;
@@ -156,7 +155,7 @@ public class SimpleIterate implements Command {
         session.timer.pop();
 
         session.timer.push("prepare for iteration");
-        final DenseInt2ObjectMap<Queue<TermSelects>> pqs = new DenseInt2ObjectMap<>();
+        final Queue<TermSelects>[] pqs = new Queue[session.numGroups + 1];
         if (opts.topK.isPresent()) {
             // TODO: Share this with Iterate. Or delete Iterate.
             final Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
@@ -164,17 +163,17 @@ public class SimpleIterate implements Command {
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
                 for (int i = 1; i <= session.numGroups; i++) {
-                    pqs.put(i, BoundedPriorityQueue.newInstance(limit, comparator));
+                    pqs[i] = BoundedPriorityQueue.newInstance(limit, comparator);
                 }
             } else {
                 // TODO: HOW MUCH CAPACITY?
                 for (int i = 1; i <= session.numGroups; i++) {
-                    pqs.put(i, new PriorityQueue<>(100, comparator));
+                    pqs[i] = new PriorityQueue<>(100, comparator);
                 }
             }
         } else {
             for (int i = 1; i <= session.numGroups; i++) {
-                pqs.put(i, new ArrayDeque<TermSelects>());
+                pqs[i] = new ArrayDeque<>();
             }
         }
         final Optional<Integer> ftgsRowLimit;
@@ -243,7 +242,7 @@ public class SimpleIterate implements Command {
             session.timer.push("convert results");
             final List<List<TermSelects>> allTermSelects = new ArrayList<>(session.numGroups);
             for (int group = 1; group <= session.numGroups; group++) {
-                final Queue<TermSelects> pq = pqs.get(group);
+                final Queue<TermSelects> pq = pqs[group];
                 final List<TermSelects> listTermSelects = new ArrayList<>(pq.size());
                 while (!pq.isEmpty()) {
                     listTermSelects.add(pq.poll());
@@ -357,6 +356,9 @@ public class SimpleIterate implements Command {
                                     iterator.group()
                             ));
                         }
+
+                        createdGroupCount += 1;
+                        session.checkGroupLimitWithoutLog(createdGroupCount);
                     }
                 }
             }
@@ -480,7 +482,7 @@ public class SimpleIterate implements Command {
         return formatStrings;
     }
 
-    private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final DenseInt2ObjectMap<Queue<TermSelects>> pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
+    private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
         return new Session.StringIterateCallback() {
             @Override
             public void term(final String term, final long[] stats, final int group) {
@@ -497,7 +499,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                final Queue<TermSelects> pq = pqs.get(group);
+                final Queue<TermSelects> pq = pqs[group];
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
                         pq.offer(new TermSelects(term, selectBuffer, value, group));
@@ -563,7 +565,7 @@ public class SimpleIterate implements Command {
         };
     }
 
-    private Session.IntIterateCallback nonStreamingIntCallback(final Session session, final DenseInt2ObjectMap<Queue<TermSelects>> pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
+    private Session.IntIterateCallback nonStreamingIntCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
         return new Session.IntIterateCallback() {
             @Override
             public void term(final long term, final long[] stats, final int group) {
@@ -580,7 +582,7 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                final Queue<TermSelects> pq = pqs.get(group);
+                final Queue<TermSelects> pq = pqs[group];
                 if (pq instanceof BoundedPriorityQueue)  {
                     if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
                         pq.offer(new TermSelects(term, selectBuffer, value, group));
