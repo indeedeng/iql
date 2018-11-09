@@ -398,4 +398,9 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
         return new ScheduledThreadPoolExecutor(4);
     }
+
+    @Bean
+    public File tmpDir() {
+        return null;
+    }
 }
