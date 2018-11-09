@@ -138,6 +138,7 @@ public class HDFSQueryCache implements QueryCache {
                 if(closed) {
                     return;
                 }
+                boolean renamed = false;
                 try {
                     closed = true;
                     fileOut.close();
@@ -145,10 +146,13 @@ public class HDFSQueryCache implements QueryCache {
                     if (completed) {
                         // Move to the final file location
                         hdfs.rename(tempPath, filePath);
+                        renamed = true;
                     }
                 } finally {
-                    // "If the file does not exist the filesystem state does not change"
-                    hdfs.delete(tempPath, false);
+                    if (!renamed) {
+                        // "If the file does not exist the filesystem state does not change"
+                        hdfs.delete(tempPath, false);
+                    }
                 }
             }
         };
