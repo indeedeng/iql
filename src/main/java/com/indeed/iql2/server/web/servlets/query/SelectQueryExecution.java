@@ -39,6 +39,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.iql.StrictCloser;
+import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -637,7 +638,7 @@ public class SelectQueryExecution {
                                 try {
                                     if (isTopLevelQuery) {
                                         try {
-                                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
                                             queryMetadata.toOutputStream(metadataCacheStream);
                                         } catch (Exception e) {
                                             log.warn("Failed to upload metadata cache: " + cacheFileName, e);

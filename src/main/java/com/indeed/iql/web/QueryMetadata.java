@@ -23,6 +23,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
+import com.indeed.iql.cache.CompletableOutputStream;
 import org.apache.commons.lang.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
@@ -103,13 +104,13 @@ public class QueryMetadata {
      * Serializes this object to the stream as JSON.
      * Closes the stream after but only on success.
      */
-    public void toOutputStream(OutputStream outputStream) {
+    public void toOutputStream(CompletableOutputStream outputStream) {
         final String stringSerialization = toJSONForCaching();
-        try {
-            final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8);
+        try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new BufferedOutputStream(outputStream), Charsets.UTF_8)) {
             outputStreamWriter.write(stringSerialization);
-            // only close on success
-            outputStreamWriter.close();
+            // Don't consider successful if final flush before close() fails.
+            outputStreamWriter.flush();
+            outputStream.complete();
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

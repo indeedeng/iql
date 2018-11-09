@@ -103,14 +103,14 @@ public class HDFSQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
         makeSurePathExists(cachePath);
         final Path filePath = new Path(cachePath, cachedFileName);
         final Path tempPath = new Path(filePath.toString() + "." + (System.currentTimeMillis() % 100000) + ".tmp");
 
         final FSDataOutputStream fileOut = hdfs.create(tempPath);
         // Wrap the returned OutputStream so that we can finish when it is closed
-        return new OutputStream() {
+        return new CompletableOutputStream() {
             private boolean closed = false;
 
             @Override
@@ -138,23 +138,20 @@ public class HDFSQueryCache implements QueryCache {
                 if(closed) {
                     return;
                 }
-                closed = true;
-                fileOut.close();
+                try {
+                    closed = true;
+                    fileOut.close();
 
-                // Move to the final file location
-                hdfs.rename(tempPath, filePath);
+                    if (completed) {
+                        // Move to the final file location
+                        hdfs.rename(tempPath, filePath);
+                    }
+                } finally {
+                    // "If the file does not exist the filesystem state does not change"
+                    hdfs.delete(tempPath, false);
+                }
             }
         };
-    }
-
-    @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        final OutputStream cacheStream = getOutputStream(cachedFileName);
-        try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
-            ByteStreams.copy(fileIn, cacheStream);
-        }
-        // only close on success
-        cacheStream.close();
     }
 
     private void makeSurePathExists(Path path) throws IOException {

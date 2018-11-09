@@ -13,11 +13,14 @@
  */
  package com.indeed.iql.cache;
 
+import com.google.common.io.ByteStreams;
+
 import javax.annotation.Nullable;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 public interface QueryCache {
 
@@ -47,14 +50,21 @@ public interface QueryCache {
      * Note that for S3 cache this actually writes to a memory buffer first, so large data should be uploaded with writeFromFile().
      * @param cachedFileName Name of the file to upload to
      */
-    public OutputStream getOutputStream(String cachedFileName) throws IOException;
+    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException;
 
     /**
      * Better optimized than getOutputStream when whole data is available in a file.
      * @param cachedFileName Name of the file to upload to
      * @param localFile Local File instance to upload from
      */
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException;
+    public default void writeFromFile(String cachedFileName, File localFile) throws IOException {
+        try (final CompletableOutputStream cacheStream = getOutputStream(cachedFileName)) {
+            try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
+                ByteStreams.copy(fileIn, cacheStream);
+            }
+            cacheStream.complete();
+        }
+    }
 
     public void healthcheck() throws IOException;
 

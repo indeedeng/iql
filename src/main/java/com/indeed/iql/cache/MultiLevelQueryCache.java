@@ -13,6 +13,7 @@
  */
  package com.indeed.iql.cache;
 
+import com.google.common.base.Preconditions;
 import com.google.common.io.ByteStreams;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
@@ -87,13 +88,15 @@ public class MultiLevelQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
         final ByteArrayOutputStream inMemoryCacheStream = new ByteArrayOutputStream(1000);
+        //noinspection IOResourceOpenedButNotSafelyClosed
+        final DelegatingCompletableOutputStream wrappedInMemoryStream = new DelegatingCompletableOutputStream(inMemoryCacheStream);
 
-        return new OutputStream() {
+        return new CompletableOutputStream() {
             private long bytesBuffered = 0;
             private boolean overflowed = false;
-            private OutputStream outputStream = inMemoryCacheStream;
+            private CompletableOutputStream outputStream = wrappedInMemoryStream;
 
             @Override
             public void write(int b) throws IOException {
@@ -126,41 +129,54 @@ public class MultiLevelQueryCache implements QueryCache {
                 if(bytesBuffered > maxFileSizeForPrimaryCacheBytes) {
                     overflowed = true;
 
+                    Preconditions.checkState(outputStream == wrappedInMemoryStream);
+
                     // copy all cached data from in memory buffer to the large data cache
-                    final OutputStream largeDataCacheOutputStream = largeDataCache.getOutputStream(cachedFileName);
+                    final CompletableOutputStream largeDataCacheOutputStream = largeDataCache.getOutputStream(cachedFileName);
                     largeDataCacheOutputStream.write(inMemoryCacheStream.toByteArray());
-                    inMemoryCacheStream.close();
                     // future writes will go directly to the large data cache and bypass the memory buffer
+                    outputStream.close();
                     outputStream = largeDataCacheOutputStream;
                 }
             }
 
             @Override
             public void close() throws IOException {
-                final OutputStream primaryCacheStream = primaryCache.getOutputStream(cachedFileName);
-                if (overflowed) {
-                    // write a mark to the primary cache to know that we have data in the secondary cache
-                    for (int markByte : MARK_OF_LARGE_DATA_CACHE_USED) {
-                        primaryCacheStream.write(markByte);
+                // This is really gross for a reason.
+                // We want to guarantee clean up resources associated with the all caches regardless of whether we
+                // successfully wrote into them.
+                // We do however need to keep track of whether we successfully wrote into them.
+                // The first invariant is that we only complete a successful write into the primary
+                // cache if all operations up until this point, plus the final operation inside of this code succeeds.
+                // The second invariant is that we only complete a successful write to the outputStream (which may
+                // be the secondary cache) if all operations up to this point were successful and the write to the
+                // primary cache was successful (indicated by the close() call succeeding).
+                final CompletableOutputStream primaryCacheStream = primaryCache.getOutputStream(cachedFileName);
+                try {
+                    if (completed) {
+                        if (overflowed) {
+                            // write a mark to the primary cache to know that we have data in the secondary cache
+                            for (int markByte : MARK_OF_LARGE_DATA_CACHE_USED) {
+                                primaryCacheStream.write(markByte);
+                            }
+                        } else {
+                            // write actual data to the primary cache
+                            primaryCacheStream.write(inMemoryCacheStream.toByteArray());
+                        }
+                        primaryCacheStream.complete();
                     }
-                } else {
-                    // write actual data to the primary cache
-                    primaryCacheStream.write(inMemoryCacheStream.toByteArray());
+                } finally {
+                    try {
+                        primaryCacheStream.close();
+                        if (primaryCacheStream.completed) {
+                            outputStream.complete();
+                        }
+                    } finally {
+                        outputStream.close();
+                    }
                 }
-                primaryCacheStream.close(); // only close on success
-                outputStream.close();
             }
         };
-    }
-
-    @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        final OutputStream cacheStream = getOutputStream(cachedFileName);
-        try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
-            ByteStreams.copy(fileIn, cacheStream);
-        }
-        // only close on success
-        cacheStream.close();
     }
 
     @Override

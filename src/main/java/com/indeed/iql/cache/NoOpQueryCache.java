@@ -3,7 +3,6 @@ package com.indeed.iql.cache;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * Query cache that doesn't do anything
@@ -37,7 +36,7 @@ public class NoOpQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
         throw new IllegalStateException("Can't send data to cache as it is disabled");
     }
 

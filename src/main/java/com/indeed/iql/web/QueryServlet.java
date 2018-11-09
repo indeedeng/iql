@@ -30,6 +30,7 @@ import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.iql.StrictCloser;
+import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.language.DescribeStatement;
@@ -479,7 +480,7 @@ public class QueryServlet {
                 public Void call() throws Exception {
                     try {
                         try {
-                            final OutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
                             queryMetadata.toOutputStream(metadataCacheStream);
                         } catch (Exception e) {
                             log.warn("Failed to upload metadata cache: " + cacheFileName, e);
@@ -611,10 +612,15 @@ public class QueryServlet {
     private void uploadResultsToCache(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
         if(writeResults.resultCacheIterator != null) {
             // use the memory cached data
-            final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(queryCache.getOutputStream(cachedFileName)));
-            IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
-            // only close on success
-            cacheWriter.close();
+            try (
+                final CompletableOutputStream innerCacheOutputStream = queryCache.getOutputStream(cachedFileName);
+                final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(innerCacheOutputStream))
+            ) {
+                IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
+                // Don't consider successful if final flush before close() fails.
+                cacheWriter.flush();
+                innerCacheOutputStream.complete();
+            }
         } else if(writeResults.unsortedFile != null) {
             // cache overflowed to disk so read from file
             try {

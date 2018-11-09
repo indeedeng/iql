@@ -100,10 +100,10 @@ public class RedisQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(String cachedFileName) {
+    public CompletableOutputStream getOutputStream(String cachedFileName) {
         final ByteArrayOutputStream inMemoryCacheStream = new ByteArrayOutputStream(1000);
         
-        return new OutputStream() {
+        return new CompletableOutputStream() {
             private boolean closed = false;
 
             @Override
@@ -133,22 +133,14 @@ public class RedisQueryCache implements QueryCache {
                 }
                 closed = true;
                 try {
-                    redis.set(cachedFileName.getBytes(), inMemoryCacheStream.toByteArray());
+                    if (completed) {
+                        redis.set(cachedFileName.getBytes(), inMemoryCacheStream.toByteArray());
+                    }
                 } finally {
                     inMemoryCacheStream.close();
                 }
             }
         };
-    }
-
-    @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        final OutputStream cacheStream = getOutputStream(cachedFileName);
-        try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
-            ByteStreams.copy(fileIn, cacheStream);
-        }
-        // only close on success
-        cacheStream.close();
     }
 
     /**

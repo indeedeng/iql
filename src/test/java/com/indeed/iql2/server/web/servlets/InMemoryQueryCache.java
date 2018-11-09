@@ -18,6 +18,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
+import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.util.io.Files;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
@@ -27,7 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -64,9 +64,9 @@ public class InMemoryQueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(final String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(final String cachedFileName) throws IOException {
         final ByteList bytes = new ByteArrayList();
-        return new OutputStream() {
+        return new CompletableOutputStream() {
             @Override
             public void write(int b) throws IOException {
                 bytes.addAll(Bytes.asList(Ints.toByteArray(b)));
@@ -74,13 +74,15 @@ public class InMemoryQueryCache implements QueryCache {
 
             @Override
             public void flush() throws IOException {
-                cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
+                // cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
             }
 
             @Override
             public void close() throws IOException {
-                writesTracked.add(cachedFileName);
-                cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
+                if (completed) {
+                    writesTracked.add(cachedFileName);
+                    cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
+                }
             }
         };
     }

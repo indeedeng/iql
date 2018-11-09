@@ -28,7 +28,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * @author darren
@@ -102,10 +101,10 @@ public class S3QueryCache implements QueryCache {
     }
 
     @Override
-    public OutputStream getOutputStream(final String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(final String cachedFileName) throws IOException {
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         // Wrap the returned OutputStream so that we can write to buffer and do actual write on close()
-        return new OutputStream() {
+        return new CompletableOutputStream() {
             private boolean closed = false;
 
             @Override
@@ -136,12 +135,14 @@ public class S3QueryCache implements QueryCache {
                 closed = true;
                 os.close();
 
-                // do actual write
-                byte[] csvData = os.toByteArray();
-                ByteArrayInputStream is = new ByteArrayInputStream(csvData);
-                ObjectMetadata metadata = new ObjectMetadata();
-                metadata.setContentLength(csvData.length);
-                client.putObject(bucket, cachedFileName, is, metadata);
+                if (completed) {
+                    // do actual write
+                    final byte[] csvData = os.toByteArray();
+                    final ByteArrayInputStream is = new ByteArrayInputStream(csvData);
+                    final ObjectMetadata metadata = new ObjectMetadata();
+                    metadata.setContentLength(csvData.length);
+                    client.putObject(bucket, cachedFileName, is, metadata);
+                }
             }
         };
     }
