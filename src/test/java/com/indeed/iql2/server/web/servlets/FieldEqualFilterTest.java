@@ -30,6 +30,7 @@ public class FieldEqualFilterTest extends BasicTest {
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3")), "from fieldEqual yesterday today where i1=i2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today where s1=s2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today where i1=i2 and s1=s2");
+        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today, jobsearch(false) where fieldEqual.i1=fieldEqual.i2 and fieldEqual.s1=fieldEqual.s2");
 
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "2"));

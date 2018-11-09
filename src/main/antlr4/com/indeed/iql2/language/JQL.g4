@@ -132,6 +132,7 @@ identifier
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
     ;
+identifierTerminal : identifier EOF ;
 timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -220,6 +221,7 @@ singlyScopedField
     : field=identifier
     | oneScope=identifier '.' field=identifier
     ;
+singlyScopedFieldTerminal : singlyScopedField EOF ;
 
 syntacticallyAtomicJqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts

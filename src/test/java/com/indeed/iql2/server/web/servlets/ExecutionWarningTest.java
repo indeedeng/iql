@@ -59,7 +59,7 @@ public class ExecutionWarningTest extends BasicTest {
 
         QueryServletTestUtils.testWarning(
                 dataset,
-                Lists.newArrayList("95% of the queried time period is missing in dataset ORGANIC: 2013-01-02/2014-12-01"),
+                Lists.newArrayList("95% of the queried time period is missing in dataset organic: 2013-01-02/2014-12-01"),
                 "from organic 2year today select count()");
     }
 }

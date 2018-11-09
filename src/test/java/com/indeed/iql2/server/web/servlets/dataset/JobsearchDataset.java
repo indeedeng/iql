@@ -75,6 +75,11 @@ public class JobsearchDataset {
         doc.addStringTerm("country", country);
         doc.addStringTerm("ctkrcvd", ctkrcvd);
 
+        // Nonsense terms for PrettyPrintTest
+        doc.addStringTerm("escaped", "");
+        doc.addIntTerm("oji", 10);
+        doc.addIntTerm("ojc", 5);
+
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.
         doc.addIntTerm("fakeField", 0);
 

@@ -16,9 +16,11 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
@@ -27,11 +29,11 @@ import java.util.List;
 import java.util.Objects;
 
 public class IterateAndExplode implements Command {
-    public final String field;
+    public final FieldSet field;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
 
-    public IterateAndExplode(String field, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName) {
+    public IterateAndExplode(FieldSet field, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName) {
         this.field = field;
         this.fieldOpts = fieldOpts;
         this.explodeDefaultName = explodeDefaultName;
@@ -39,7 +41,8 @@ public class IterateAndExplode implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(validationHelper.datasets(), field, validationHelper, validator, this);
+        Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
+        ValidationUtil.validateField(field, validationHelper, validator, this);
 
         if (fieldOpts.topK.isPresent()) {
             final TopK topK = fieldOpts.topK.get();

@@ -19,21 +19,20 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 
 import java.util.Set;
 
 public class IntOrAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final ImmutableSet<Long> terms;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public IntOrAction(Set<String> scope, String field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public IntOrAction(FieldSet field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         this.terms = ImmutableSet.copyOf(terms);
         this.targetGroup = targetGroup;
@@ -43,15 +42,14 @@ public class IntOrAction implements Action {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        for (final String dataset : scope) {
-            validationHelper.validateIntField(dataset, field, validator, this);
+        for (final String dataset : field.datasets()) {
+            validationHelper.validateIntField(dataset, field.datasetFieldName(dataset), validator, this);
         }
     }
 
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.actions.IntOrAction(
-                scope,
                 field,
                 terms,
                 targetGroup,
@@ -63,8 +61,7 @@ public class IntOrAction implements Action {
     @Override
     public String toString() {
         return "IntOrAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", terms=" + terms +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

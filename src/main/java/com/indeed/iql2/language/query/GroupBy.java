@@ -26,6 +26,7 @@ import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.execution.ExecutionStep;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -164,11 +165,11 @@ public abstract class GroupBy extends AbstractPositional {
 
     public static class GroupByTime extends GroupBy {
         public final long periodMillis;
-        public final Optional<Positioned<String>> field;
+        public final Optional<FieldSet> field;
         public final Optional<String> format;
         public final boolean isRelative;
 
-        public GroupByTime(long periodMillis, Optional<Positioned<String>> field, Optional<String> format, boolean isRelative) {
+        public GroupByTime(long periodMillis, Optional<FieldSet> field, Optional<String> format, boolean isRelative) {
             this.periodMillis = periodMillis;
             this.field = field;
             this.format = format;
@@ -192,11 +193,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field.transform(new Function<Positioned<String>, String>() {
-                public String apply(Positioned<String> stringPositioned) {
-                    return stringPositioned.unwrap();
-                }
-            }), format, isRelative);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, isRelative);
         }
 
         @Override
@@ -255,10 +252,10 @@ public abstract class GroupBy extends AbstractPositional {
 
     public static class GroupByTimeBuckets extends GroupBy {
         public final int numBuckets;
-        public final Optional<Positioned<String>> field;
+        public final Optional<FieldSet> field;
         public final Optional<String> format;
 
-        public GroupByTimeBuckets(int numBuckets, Optional<Positioned<String>> field, Optional<String> format) {
+        public GroupByTimeBuckets(int numBuckets, Optional<FieldSet> field, Optional<String> format) {
             this.numBuckets = numBuckets;
             this.field = field;
             this.format = format;
@@ -281,11 +278,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field.transform(new Function<Positioned<String>, String>() {
-                public String apply(Positioned<String> stringPositioned) {
-                    return stringPositioned.unwrap();
-                }
-            }), format);
+            return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field, format);
         }
 
         @Override
@@ -330,11 +323,11 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByMonth extends GroupBy {
-        public final Optional<Positioned<String>> timeField;
+        public final Optional<FieldSet> timeField;
         public final Optional<String> timeFormat;
 
-        public GroupByMonth(Optional<Positioned<String>> timeField, Optional<String> timeFormat) {
-            this.timeField = timeField;
+        public GroupByMonth(Optional<FieldSet> field, Optional<String> timeFormat) {
+            this.timeField = field;
             this.timeFormat = timeFormat;
         }
 
@@ -356,7 +349,7 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             return new ExecutionStep.ExplodeMonthOfYear(
-                    timeField.transform(Positioned::unwrap),
+                    timeField,
                     timeFormat
             );
         }
@@ -400,12 +393,12 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByFieldIn extends GroupBy {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final LongList intTerms;
         public final List<String> stringTerms;
         public final boolean withDefault;
 
-        public GroupByFieldIn(Positioned<String> field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
+        public GroupByFieldIn(FieldSet field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
             this.field = field;
             this.intTerms = intTerms;
             this.stringTerms = stringTerms;
@@ -443,9 +436,9 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
             if (intTerms.size() > 0) {
-                return ExecutionStep.ExplodeFieldIn.intExplode(scope, field.unwrap(), intTerms, withDefault);
+                return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
             } else {
-                return ExecutionStep.ExplodeFieldIn.stringExplode(scope, field.unwrap(), stringTerms, withDefault);
+                return ExecutionStep.ExplodeFieldIn.stringExplode(field, stringTerms, withDefault);
             }
         }
 
@@ -487,13 +480,13 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByFieldInQuery extends GroupBy {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final Query query;
         public final boolean isNegated;
         public final boolean withDefault;
 
         public GroupByFieldInQuery(
-                final Positioned<String> field,
+                final FieldSet field,
                 final Query query,
                 final boolean isNegated,
                 final boolean withDefault) {
@@ -570,14 +563,14 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByField extends GroupBy {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
         public final boolean forceNonStreaming;
 
-        public GroupByField(Positioned<String> field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
+        public GroupByField(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -627,7 +620,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeAndRegroup(field.unwrap(), filter, limit, metric, withDefault, forceNonStreaming);
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
         }
 
         @Override
@@ -774,10 +767,10 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByQuantiles extends GroupBy {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final int numBuckets;
 
-        public GroupByQuantiles(Positioned<String> field, int numBuckets) {
+        public GroupByQuantiles(FieldSet field, int numBuckets) {
             this.field = field;
             this.numBuckets = numBuckets;
         }
@@ -799,7 +792,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodePerDocPercentile(field.unwrap(), numBuckets);
+            return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
         }
 
         @Override
@@ -904,11 +897,11 @@ public abstract class GroupBy extends AbstractPositional {
     }
 
     public static class GroupByRandom extends GroupBy {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final int k;
         public final String salt;
 
-        public GroupByRandom(Positioned<String> field, int k, String salt) {
+        public GroupByRandom(FieldSet field, int k, String salt) {
             this.field = field;
             this.k = k;
             this.salt = salt;
@@ -931,7 +924,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeRandom(field.unwrap(), k, salt);
+            return new ExecutionStep.ExplodeRandom(field, k, salt);
         }
 
         @Override

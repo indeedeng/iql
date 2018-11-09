@@ -36,6 +36,7 @@ import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nonnull;
@@ -52,7 +53,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SimpleIterate implements Command {
-    public final String field;
+    public final FieldSet field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     public final List<Optional<String>> formatStrings;
@@ -61,7 +62,7 @@ public class SimpleIterate implements Command {
     private int createdGroupCount = 0;
 
     public SimpleIterate(
-            final String field,
+            final FieldSet field,
             final FieldIterateOpts opts,
             final List<AggregateMetric> selecting,
             final List<Optional<String>> formatStrings,
@@ -98,7 +99,7 @@ public class SimpleIterate implements Command {
     // evaluate results to memory
     public static void evaluate(
             final Session session,
-            final String field,
+            final FieldSet field,
             final List<AggregateMetric> selecting,
             final FieldIterateOpts fieldOpts,
             final ResultCollector out) throws ImhotepOutOfMemoryException, IOException {
@@ -248,7 +249,8 @@ public class SimpleIterate implements Command {
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final ImhotepSessionHolder sessionHolder = entry.getValue().session;
-            sessionFields.add(sessionHolder.buildSessionField(field));
+            final String dataset = sessionHolder.getDatasetName();
+            sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset)));
         }
 
         // If we do TopK, we will automatically sort in a new way

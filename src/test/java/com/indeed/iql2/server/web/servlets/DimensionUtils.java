@@ -107,7 +107,7 @@ public class DimensionUtils {
             metrics.add(aggMetric1);
 
             DatasetYaml dimensionDataset = new DatasetYaml();
-            dimensionDataset.setName("dimension");
+            dimensionDataset.setName("DIMension");
             dimensionDataset.setType("Imhotep");
             dimensionDataset.setDescription("dimension dataset");
             dimensionDataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));

@@ -61,13 +61,13 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positioned;
-import com.indeed.iql2.language.ScopedField;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.TreeTimer;
@@ -275,16 +275,11 @@ public class SelectQueryExecution {
         {
             queryInfo.statementType = "select";
 
-            final Map<String, String> upperCaseToActualDataset = new HashMap<>();
-            for (final String dataset : imhotepClient.getDatasetNames()) {
-                upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
-            }
-
             final List<Dataset> allDatasets = Queries.findAllDatasets(parseResult.query);
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
-                final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap().toUpperCase());
+                final String actualDataset = dataset.dataset.unwrap();
                 if (actualDataset == null) {
                     continue;
                 }
@@ -297,11 +292,6 @@ public class SelectQueryExecution {
             queryInfo.datasetFields = Sets.newHashSet();
 
             for (final FieldExtractor.DatasetField datasetField : datasetFields) {
-                final String actualDataset = upperCaseToActualDataset.get(datasetField.dataset.toUpperCase());
-                if (actualDataset == null) {
-                    continue;
-                }
-                datasetField.dataset = actualDataset;
                 final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
                 final Collection<String> intFields = datasetInfo.getIntFields();
                 final Collection<String> stringFields = datasetInfo.getStringFields();
@@ -445,13 +435,13 @@ public class SelectQueryExecution {
                                     queryToResults.put(q, subqueryResult);
                                 }
                                 final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
-                                final ScopedField scopedField = fieldInQuery.field;
+                                final FieldSet field = fieldInQuery.field;
 
                                 final List<DocFilter> filters = new ArrayList<>();
                                 if (result.getSecond() != null) {
-                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, scopedField.field, result.getSecond()));
+                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, field, result.getSecond()));
                                 } else if (result.getFirst() != null) {
-                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, scopedField.field, result.getFirst()));
+                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
                                 }
                                 final DocFilter.Ors orred = new DocFilter.Ors(filters);
                                 final DocFilter maybeNegated;
@@ -460,7 +450,7 @@ public class SelectQueryExecution {
                                 } else {
                                     maybeNegated = orred;
                                 }
-                                return scopedField.wrap(maybeNegated);
+                                return maybeNegated;
                             }
                             return input;
                         }
@@ -815,14 +805,6 @@ public class SelectQueryExecution {
     }
 
     public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
-        timer.push("compute dataset normalization");
-        final List<String> datasets = imhotepClient.getDatasetNames();
-        final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());
-        for (final String dataset : datasets) {
-            upperCaseToActualDataset.put(dataset.toUpperCase(), dataset);
-        }
-        timer.pop();
-
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
@@ -830,10 +812,7 @@ public class SelectQueryExecution {
         final List<DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
             timer.push("get chosen shards");
-            final String actualDataset = upperCaseToActualDataset.get(dataset.dataset.unwrap());
-            if (actualDataset == null) {
-                throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset.dataset.unwrap());
-            }
+            final String actualDataset = dataset.dataset.unwrap();
             final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
             final DateTime startTime = dataset.startInclusive.unwrap();
             final DateTime endTime = dataset.endExclusive.unwrap();

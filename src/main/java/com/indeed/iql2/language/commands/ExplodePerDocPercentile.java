@@ -15,9 +15,11 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
@@ -25,17 +27,18 @@ import java.util.List;
 import java.util.Objects;
 
 public class ExplodePerDocPercentile implements Command {
-    public final String field;
+    public final FieldSet field;
     public final int numBuckets;
 
-    public ExplodePerDocPercentile(String field, int numBuckets) {
+    public ExplodePerDocPercentile(FieldSet field, int numBuckets) {
         this.field = field;
         this.numBuckets = numBuckets;
     }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final Validator validator) {
-        ValidationUtil.validateIntField(validationHelper.datasets(), field, validationHelper, validator, this);
+        Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
+        ValidationUtil.validateIntField(field, validationHelper, validator, this);
         if (numBuckets <= 0) {
             validator.error("Bucket count in QUANTILES must be positive, current value = " + numBuckets);
         }

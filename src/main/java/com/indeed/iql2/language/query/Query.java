@@ -16,6 +16,8 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -30,11 +32,14 @@ import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
+import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,22 +68,56 @@ public class Query extends AbstractPositional {
         public final JQLParser.FromContentsContext fromContext;
         public final Consumer<String> warn;
         public final WallClock clock;
+        public final ScopedFieldResolver fieldResolver;
 
         public Context(
                 final List<String> options,
                 final DatasetsMetadata datasetsMetadata,
                 final JQLParser.FromContentsContext fromContext,
                 final Consumer<String> warn,
-                final WallClock clock) {
+                final WallClock clock,
+                final ScopedFieldResolver fieldResolver
+        ) {
             this.options = options;
             this.datasetsMetadata = datasetsMetadata;
             this.fromContext = fromContext;
             this.warn = warn;
             this.clock = clock;
+            this.fieldResolver = fieldResolver;
         }
 
         public Context copyWithAnotherFromContext(final JQLParser.FromContentsContext newContext) {
-            return new Context(options, datasetsMetadata, newContext, warn, clock);
+            return new Context(options, datasetsMetadata, newContext, warn, clock, fieldResolver);
+        }
+
+        public Context withFieldResolver(final ScopedFieldResolver fieldResolver) {
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, fieldResolver);
+        }
+
+        public PartialContext partialContext() {
+            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock);
+        }
+
+        // Represents Context when we don't yet have a FieldResolver.
+        // Only happens in a couple of places so the weight this adds isn't too bad.
+        public static class PartialContext {
+            public final List<String> options;
+            public final DatasetsMetadata datasetsMetadata;
+            public final JQLParser.FromContentsContext fromContext;
+            public final Consumer<String> warn;
+            public final WallClock clock;
+
+            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock) {
+                this.options = options;
+                this.datasetsMetadata = datasetsMetadata;
+                this.fromContext = fromContext;
+                this.warn = warn;
+                this.clock = clock;
+            }
+
+            public Context fullContext(final ScopedFieldResolver fieldResolver) {
+                return new Context(options, datasetsMetadata, fromContext, warn, clock, fieldResolver);
+            }
         }
     }
 
@@ -96,13 +135,20 @@ public class Query extends AbstractPositional {
     }
 
     public static Query parseQuery(
-            final Context context,
+            // queryCtx is the parse tree that represents the entire query, and is used for extracting FieldResolver
+            // information, such as datasets, field aliases, and metric aliases
+            final ParseTree queryCtx,
+            // context.fromContext may be different from queryCtx.from in case of sub-queries using FROM SAME
+            final Context.PartialContext partialContext,
             final Optional<JQLParser.WhereContentsContext> whereContents,
             final Optional<JQLParser.GroupByContentsContext> groupByContents,
             final List<JQLParser.SelectContentsContext> selects,
             final Token limit,
             final boolean useLegacy
     ) {
+        final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext, partialContext.datasetsMetadata);
+        final Context context = partialContext.fullContext(fieldResolver.universalScope());
+
         final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(context);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
@@ -169,7 +215,7 @@ public class Query extends AbstractPositional {
         }
 
         if (useLegacy) {
-            rewriteMultiTermIn(allFilters, groupBys);
+            rewriteMultiTermIn(Iterables.getOnlyElement(datasets), allFilters, groupBys);
         }
         final Optional<DocFilter> whereFilter;
         if (allFilters.isEmpty()) {
@@ -177,6 +223,10 @@ public class Query extends AbstractPositional {
         } else {
             whereFilter = Optional.of(DocFilters.and(allFilters));
         }
+
+        // Make future errors immediately thrown, while also throwing any errors that have been caused up to this point.
+        fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
+
         return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, context.options, rowLimit, useLegacy);
     }
 
@@ -188,8 +238,9 @@ public class Query extends AbstractPositional {
             final WallClock clock) {
         final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
         options.addAll(defaultOptions);
-        final Context context = new Context(options, datasetsMetadata, queryContext.fromContents(), warn, clock);
+        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock);
         final Query query = parseQuery(
+                queryContext,
                 context,
                 Optional.fromNullable(queryContext.whereContents()),
                 Optional.fromNullable(queryContext.groupByContents()),
@@ -211,7 +262,8 @@ public class Query extends AbstractPositional {
             throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE or GROUP BY");
         }
         final Query query = Query.parseQuery(
-                actualContext,
+                queryContext,
+                actualContext.partialContext(),
                 Optional.fromNullable(queryContext.whereContents()),
                 Optional.of(queryContext.groupByContents()),
                 Collections.emptyList(),
@@ -292,7 +344,10 @@ public class Query extends AbstractPositional {
     }
 
     // rewrite field in (A, B), group by field to group by field in (A, B...)
-    private static void rewriteMultiTermIn(final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
+    private static void rewriteMultiTermIn(final Dataset dataset, final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
+        final String singleDataset = dataset.getDisplayName().unwrap();
+        final Set<String> expectedDatasets = Collections.singleton(singleDataset);
+
         final Set<String> rewrittenFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
@@ -302,11 +357,13 @@ public class Query extends AbstractPositional {
                 final List<String> stringTerms = Lists.newArrayList();
                 if (filter instanceof DocFilter.IntFieldIn) {
                     final DocFilter.IntFieldIn intFieldIn = (DocFilter.IntFieldIn)filter;
-                    filterField = intFieldIn.field.unwrap();
+                    Preconditions.checkState(intFieldIn.field.datasets().equals(expectedDatasets));
+                    filterField = intFieldIn.field.datasetFieldName(singleDataset);
                     intTerms.addAll(intFieldIn.terms);
                 } else {
                     final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
-                    filterField = stringFieldIn.field.unwrap();
+                    Preconditions.checkState(stringFieldIn.field.datasets().equals(expectedDatasets));
+                    filterField = stringFieldIn.field.datasetFieldName(singleDataset);
                     stringTerms.addAll(stringFieldIn.terms);
                 }
                 if (rewrittenFields.contains(filterField)) {
@@ -318,7 +375,9 @@ public class Query extends AbstractPositional {
                     final GroupBy groupBy = groupByEntry.groupBy;
                     if (groupBy instanceof GroupBy.GroupByField) {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
-                        if (filterField.equalsIgnoreCase(groupByField.field.unwrap())) {
+                        Preconditions.checkState(groupByField.field.datasets().equals(expectedDatasets));
+                        final String fieldName = groupByField.field.getOnlyField();
+                        if (filterField.equals(fieldName)) {
                             groupBys.set(j, new GroupByEntry(
                                     new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
                                             groupByField.withDefault),

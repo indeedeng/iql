@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.varexport.VarExporter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -21,6 +23,8 @@ import org.joda.time.DateTimeZone;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+
+import java.io.IOException;
 
 /**
  * @author zheli
@@ -33,6 +37,12 @@ public abstract class BasicTest {
     @BeforeClass public static void disbaleVarExporterWarning() {
         level = Logger.getLogger(VarExporter.class).getLevel();
         Logger.getLogger(VarExporter.class).setLevel(Level.OFF);
+        try (ImhotepClient normalClient = AllData.DATASET.getNormalClient()) {
+        } catch (IOException ignored) {
+        }
+        try (ImhotepClient dimensionsClient = AllData.DATASET.getDimensionsClient()) {
+        } catch (IOException ignored) {
+        }
     }
 
     @AfterClass public static void enableVarExporter() {

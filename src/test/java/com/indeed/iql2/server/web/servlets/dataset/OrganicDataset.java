@@ -112,6 +112,7 @@ public class OrganicDataset {
             final DateTime start = new DateTime(2015, 1, 1, h, 0, 0, timeZone);
             flamdex.addDocument(makeDocument(start, h, 1, "d"));
             result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, true), flamdex));
+            result.add(new Dataset.DatasetShard("sponsored", getShardId(useDynamicShardNaming, start, true), flamdex));
         }
 
         for (int d = 1; d <= 31; d++) {
@@ -119,6 +120,7 @@ public class OrganicDataset {
             final DateTime start = new DateTime(2014, 12, d, 0, 0, 0, timeZone);
             flamdex.addDocument(makeDocument(start, 1, 1, "d"));
             result.add(new Dataset.DatasetShard("organic", getShardId(useDynamicShardNaming, start, false), flamdex));
+            result.add(new Dataset.DatasetShard("sponsored", getShardId(useDynamicShardNaming, start, false), flamdex));
         }
 
         return new Dataset(result);
@@ -170,6 +172,7 @@ public class OrganicDataset {
         doc.addIntTerm("ojc", ojc);
         doc.addIntTerm("allbit", 1);
         doc.addStringTerm("tk", tk);
+        doc.addStringTerm("country", "US");
 
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.
         doc.addIntTerm("fakeField", 0);

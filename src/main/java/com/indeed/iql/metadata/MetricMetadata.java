@@ -13,12 +13,9 @@
  */
  package com.indeed.iql.metadata;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocMetric;
+import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -28,6 +25,7 @@ import javax.annotation.Nullable;
  */
 public class MetricMetadata {
     public @Nonnull final String name;
+    public @Nullable String fieldAlias;
     public @Nullable String friendlyName;
     public @Nullable String description;
     public @Nullable String expression;
@@ -35,21 +33,15 @@ public class MetricMetadata {
     public boolean isHidden = false;
 
     // IQL2 only
-    public AggregateMetric metric;
     public boolean isAlias;
 
-    public MetricMetadata(@Nonnull String name) {
-        Preconditions.checkNotNull(name);
-        this.name = name;
-    }
-
     // TODO delete
-    public MetricMetadata(final String name, final String expression, final String description, final AggregateMetric metric) {
+    public MetricMetadata(final String name, final String expression, final String description, final @Nullable String fieldAlias) {
         this.name = name;
         this.expression = expression;
         this.description = description;
-        this.metric = metric;
-        this.isAlias = isAliasDimension(metric);
+        this.fieldAlias = fieldAlias;
+        this.isAlias = fieldAlias != null;
     }
 
     @Nonnull
@@ -92,14 +84,6 @@ public class MetricMetadata {
         isHidden = hidden;
     }
 
-    public AggregateMetric getMetric() {
-        return metric;
-    }
-
-    public void setMetric(AggregateMetric metric) {
-        this.metric = metric;
-    }
-
     public boolean isAlias() {
         return isAlias;
     }
@@ -120,18 +104,8 @@ public class MetricMetadata {
         this.unit = unit;
     }
 
-
-    private boolean isAliasDimension(AggregateMetric metric) {
-        return getAliasActualField().isPresent();
-    }
-
     public Optional<String> getAliasActualField() {
-        if ((metric instanceof AggregateMetric.DocStats)
-                && (((AggregateMetric.DocStats) metric).docMetric instanceof DocMetric.Field)) {
-            return Optional.of(((DocMetric.Field) ((AggregateMetric.DocStats) metric).docMetric).field);
-        } else {
-            return Optional.absent();
-        }
+        return Optional.fromNullable(fieldAlias);
     }
 
     public void toJSON(ObjectNode jsonNode) {

@@ -33,7 +33,7 @@ public class Actions {
     }
 
     private static boolean scopeMatches(QueryAction q1, QueryAction q2) {
-        return q1.scope.equals(q2.scope);
+        return q1.scope().equals(q2.scope());
     }
 
     private static boolean resultGroupsOppose(QueryAction q1, QueryAction q2) {
@@ -51,16 +51,16 @@ public class Actions {
                 } else if (groupsAndScopeMatch(currentQueryAction, queryAction)) {
                     if (queryAction.targetGroup == queryAction.negativeGroup) {
                         final Map<String, Query> perDatasetQuery = new HashMap<>();
-                        for (final String dataset : queryAction.scope) {
+                        for (final String dataset : queryAction.scope()) {
                             perDatasetQuery.put(dataset, Query.newBooleanQuery(BooleanOp.OR, Arrays.asList(currentQueryAction.perDatasetQuery.get(dataset), queryAction.perDatasetQuery.get(dataset))));
                         }
-                        currentQueryAction = new QueryAction(queryAction.scope, perDatasetQuery, queryAction.targetGroup, queryAction.positiveGroup, queryAction.negativeGroup);
+                        currentQueryAction = new QueryAction(perDatasetQuery, queryAction.targetGroup, queryAction.positiveGroup, queryAction.negativeGroup);
                     } else if (queryAction.targetGroup == queryAction.positiveGroup) {
                         final Map<String, Query> perDatasetQuery = new HashMap<>();
-                        for (final String dataset : queryAction.scope) {
+                        for (final String dataset : queryAction.scope()) {
                             perDatasetQuery.put(dataset, Query.newBooleanQuery(BooleanOp.AND, Arrays.asList(currentQueryAction.perDatasetQuery.get(dataset), queryAction.perDatasetQuery.get(dataset))));
                         }
-                        currentQueryAction = new QueryAction(queryAction.scope, perDatasetQuery, queryAction.targetGroup, queryAction.positiveGroup, queryAction.negativeGroup);
+                        currentQueryAction = new QueryAction(perDatasetQuery, queryAction.targetGroup, queryAction.positiveGroup, queryAction.negativeGroup);
                     } else {
                         result.add(currentQueryAction);
                         currentQueryAction = queryAction;

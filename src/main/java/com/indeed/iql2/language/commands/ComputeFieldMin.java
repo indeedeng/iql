@@ -15,34 +15,32 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.commands.GetFieldMin;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class ComputeFieldMin implements Command {
-    private final String field;
-    private final Set<String> scope;
+    private final FieldSet field;
 
-    public ComputeFieldMin(Set<String> scope, String field) {
-        this.scope = scope;
+    public ComputeFieldMin(FieldSet field) {
         this.field = field;
     }
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
+        ValidationUtil.validateField(field, validationHelper, validator, this);
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new GetFieldMin(scope, field);
+        return new GetFieldMin(field);
     }
 
     @Override
@@ -50,20 +48,18 @@ public class ComputeFieldMin implements Command {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ComputeFieldMin that = (ComputeFieldMin) o;
-        return Objects.equals(field, that.field) &&
-                Objects.equals(scope, that.scope);
+        return Objects.equals(field, that.field);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, scope);
+        return Objects.hash(field);
     }
 
     @Override
     public String toString() {
         return "ComputeFieldMin{" +
                 "field='" + field + '\'' +
-                ", scope=" + scope +
                 '}';
     }
 }

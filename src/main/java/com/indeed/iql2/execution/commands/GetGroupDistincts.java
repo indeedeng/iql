@@ -23,6 +23,7 @@ import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
 import java.util.BitSet;
@@ -31,13 +32,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final Optional<AggregateFilter> filter;
     public final int windowSize;
 
-    public GetGroupDistincts(Set<String> scope, String field, Optional<AggregateFilter> filter, int windowSize) {
-        this.scope = scope;
+    public GetGroupDistincts(FieldSet field, Optional<AggregateFilter> filter, int windowSize) {
         this.field = field;
         this.filter = filter;
         this.windowSize = windowSize;
@@ -72,7 +71,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
         @Override
         public Set<String> scope() {
-            return scope;
+            return field.datasets();
         }
 
         public Set<QualifiedPush> requires() {
@@ -215,8 +214,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     @Override
     public String toString() {
         return "GetGroupDistincts{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", filter=" + filter +
                 ", windowSize=" + windowSize +
                 '}';

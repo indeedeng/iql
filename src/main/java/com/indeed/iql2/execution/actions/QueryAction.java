@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.actions;
 
-import com.google.common.collect.ImmutableSet;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -24,18 +23,15 @@ import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.util.core.TreeTimer;
 
 import java.util.Map;
-import java.util.Set;
 
 public class QueryAction implements Action {
-    public final ImmutableSet<String> scope;
     public final Map<String, Query> perDatasetQuery;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public QueryAction(Set<String> scope, Map<String, Query> perDatasetQuery, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public QueryAction(Map<String, Query> perDatasetQuery, int targetGroup, int positiveGroup, int negativeGroup) {
         this.perDatasetQuery = perDatasetQuery;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -47,7 +43,7 @@ public class QueryAction implements Action {
         session.process(new SessionCallback() {
             @Override
             public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                if (!scope.contains(name)) {
+                if (!perDatasetQuery.containsKey(name)) {
                     return;
                 }
 
@@ -62,8 +58,7 @@ public class QueryAction implements Action {
     @Override
     public String toString() {
         return "QueryAction{" +
-                "scope=" + scope +
-                ", perDatasetQuery=" + perDatasetQuery +
+                "perDatasetQuery=" + perDatasetQuery +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +
                 ", negativeGroup=" + negativeGroup +

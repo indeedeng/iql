@@ -30,10 +30,11 @@ import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLBaseListener;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.TimeUnit;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -42,8 +43,6 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static com.indeed.iql2.language.Identifiers.parseIdentifier;
 
 public class GroupBys {
 
@@ -80,6 +79,7 @@ public class GroupBys {
             final JQLParser.GroupByElementContext groupByElementContext,
             final Query.Context context) {
         final GroupBy[] ref = new GroupBy[1];
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
 
         groupByElementContext.enterRule(new JQLBaseListener() {
             private void accept(GroupBy value) {
@@ -99,13 +99,13 @@ public class GroupBys {
 
             @Override
             public void enterQuantilesGroupBy(JQLParser.QuantilesGroupByContext ctx) {
-                accept(new GroupBy.GroupByQuantiles(parseIdentifier(ctx.field), Integer.parseInt(ctx.NAT().getText())));
+                accept(new GroupBy.GroupByQuantiles(fieldResolver.resolve(ctx.field), Integer.parseInt(ctx.NAT().getText())));
             }
 
             @Override
             public void enterTopTermsGroupBy(JQLParser.TopTermsGroupByContext ctx) {
                 final JQLParser.TopTermsGroupByElemContext ctx2 = ctx.topTermsGroupByElem();
-                final Positioned<String> field = parseIdentifier(ctx2.field);
+                final FieldSet field = fieldResolver.resolve(ctx2.field);
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
@@ -131,7 +131,7 @@ public class GroupBys {
                 if (ctx.not != null) {
                     final Iterable<Term> terms = Iterables.transform(ctx.terms, Term::parseTerm);
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
-                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null, false));
+                    accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null, false));
                 } else {
                     final List<Term> terms = new ArrayList<>();
                     boolean anyString = false;
@@ -156,7 +156,7 @@ public class GroupBys {
                         strings = Collections.emptyList();
                     }
                     final boolean withDefault = ctx.withDefault != null;
-                    accept(new GroupBy.GroupByFieldIn(parseIdentifier(ctx.field), ints, strings, withDefault));
+                    accept(new GroupBy.GroupByFieldIn(fieldResolver.resolve(ctx.field), ints, strings, withDefault));
                 }
             }
 
@@ -164,7 +164,8 @@ public class GroupBys {
             public void enterGroupByFieldInQuery(final JQLParser.GroupByFieldInQueryContext ctx) {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
                 final Query query = Query.parseSubquery(queryCtx, context);
-                accept(new GroupBy.GroupByFieldInQuery(parseIdentifier(ctx.field), query, ctx.not != null, ctx.withDefault != null));
+                final FieldSet field = fieldResolver.resolve(ctx.field);
+                accept(new GroupBy.GroupByFieldInQuery(field, query, ctx.not != null, ctx.withDefault != null));
             }
 
             @Override
@@ -209,9 +210,9 @@ public class GroupBys {
 
             @Override
             public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
-                final Optional<Positioned<String>> timeField;
+                final Optional<FieldSet> timeField;
                 if (ctx.groupByTime().timeField != null) {
-                    timeField = Optional.of(parseIdentifier(ctx.groupByTime().timeField));
+                    timeField = Optional.of(fieldResolver.resolve(ctx.groupByTime().timeField));
                 } else {
                     timeField = Optional.absent();
                 }
@@ -264,7 +265,7 @@ public class GroupBys {
             @Override
             public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
-                final Positioned<String> field = parseIdentifier(ctx2.field);
+                final FieldSet field = fieldResolver.resolve(ctx2.field);
                 final boolean reverseOrder = ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom");
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
@@ -315,7 +316,7 @@ public class GroupBys {
 
             @Override
             public void enterRandomGroupBy(JQLParser.RandomGroupByContext ctx) {
-                final Positioned<String> field = parseIdentifier(ctx.field);
+                final FieldSet field = fieldResolver.resolve(ctx.field);
                 final int k = Integer.parseInt(ctx.k.getText());
                 final String salt;
                 if (ctx.salt == null) {

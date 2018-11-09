@@ -15,12 +15,16 @@
 package com.indeed.iql.metadata;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.DatasetTypeConflictFields;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,13 +37,18 @@ import java.util.stream.Collectors;
  */
 public class DatasetsMetadata {
     private final Map<String, DatasetMetadata> metadata;
+    // Case sensitive always
     private final Map<String, Map<String, String>> datasetToDimensionAliasFields;
+    // Datasets that share the same case-insensitive name
+    // Case insensitive on the keys.
+    private final Map<String, Set<String>> datasetEquivalenceSets;
     // typeConflictDatasetFieldNames contains entries of the form "datasetname.fieldname"
     private final Set<String> typeConflictDatasetFieldNames;
     private static final DatasetsMetadata EMPTY_META = new DatasetsMetadata();
 
     private DatasetsMetadata() {
         metadata = Collections.emptyMap();
+        datasetEquivalenceSets = Collections.emptyMap();
         datasetToDimensionAliasFields = Collections.emptyMap();
         typeConflictDatasetFieldNames = Collections.emptySet();
     }
@@ -58,11 +67,17 @@ public class DatasetsMetadata {
         return result;
     }
 
-    public DatasetsMetadata(final boolean caseInsensitiveNames, final Map<String, DatasetMetadata> metadata) {
-        final Comparator<String> fieldNameComparator = caseInsensitiveNames ? String.CASE_INSENSITIVE_ORDER : null;
-        this.metadata = new TreeMap<>(fieldNameComparator);
-        this.metadata.putAll(metadata);
-        datasetToDimensionAliasFields = new TreeMap<>(fieldNameComparator);
+    public DatasetsMetadata(final Map<String, DatasetMetadata> metadata) {
+        this.metadata = Maps.newHashMap(metadata);
+
+        datasetEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (final String datasetName : metadata.keySet()) {
+            datasetEquivalenceSets
+                    .computeIfAbsent(datasetName, x -> new HashSet<>())
+                    .add(datasetName);
+        }
+
+        datasetToDimensionAliasFields = new HashMap<>();
         metadata.forEach((dataset, meta) -> {
             datasetToDimensionAliasFields.put(dataset, meta.fieldToDimension.entrySet()
                     .stream().filter(dimension -> dimension.getValue().isAlias)
@@ -78,6 +93,27 @@ public class DatasetsMetadata {
 
     public static DatasetsMetadata empty() {
         return EMPTY_META;
+    }
+
+    public String resolveDatasetName(final String dataset) {
+        final Set<String> equivalenceSet = datasetEquivalenceSets.get(dataset);
+        if (equivalenceSet == null) {
+            throw new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\"");
+        }
+
+        // Use exact match if present.
+        if (equivalenceSet.contains(dataset)) {
+            return dataset;
+        }
+
+        // Ambiguous, no exact matches
+        if (equivalenceSet.size() > 1) {
+            throw new IqlKnownException.UnknownDatasetException("Multiple datasets match, and none are an exact match: " + equivalenceSet + ", seeking \"" + dataset + "\"");
+        }
+
+        // Otherwise, use the single value available.
+        Preconditions.checkState(equivalenceSet.size() == 1);
+        return Iterables.getOnlyElement(equivalenceSet);
     }
 
     public Map<String, DatasetMetadata> getDatasetToMetadata() {

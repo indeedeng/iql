@@ -20,13 +20,14 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.execution.ExecutionStep;
+import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 
 import java.util.ArrayList;
@@ -157,9 +158,9 @@ public class GroupIterations {
 
     private static class PrecomputedContext {
         private final Set<String> scope;
-        private final Optional<String> field;
+        private final Optional<FieldSet> field;
 
-        private PrecomputedContext(Set<String> scope, Optional<String> field) {
+        private PrecomputedContext(Set<String> scope, Optional<FieldSet> field) {
             this.scope = scope;
             this.field = field;
         }
@@ -175,13 +176,13 @@ public class GroupIterations {
                 final Precomputed.PrecomputedPercentile precomputedPercentile = (Precomputed.PrecomputedPercentile) computation;
                 return new PrecomputedContext(scope, Optional.of(precomputedPercentile.field));
             } else if (computation instanceof Precomputed.PrecomputedRawStats) {
-                return new PrecomputedContext(scope, Optional.<String>absent());
+                return new PrecomputedContext(scope, Optional.absent());
             } else if (computation instanceof Precomputed.PrecomputedSumAcross) {
                 final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
                 return new PrecomputedContext(scope, Optional.of(precomputedSumAcross.field));
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
                 final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
-                return new PrecomputedContext(scope, Optional.<String>absent());
+                return new PrecomputedContext(scope, Optional.absent());
             } else if (computation instanceof Precomputed.PrecomputedFieldMax) {
                 final Precomputed.PrecomputedFieldMax precomputedFieldMax = (Precomputed.PrecomputedFieldMax) computation;
                 return new PrecomputedContext(scope, Optional.of(precomputedFieldMax.field));

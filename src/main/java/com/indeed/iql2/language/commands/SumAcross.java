@@ -21,21 +21,19 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class SumAcross implements Command {
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
 
-    public SumAcross(Set<String> scope, String field, AggregateMetric metric, Optional<AggregateFilter> filter) {
-        this.scope = scope;
+    public SumAcross(FieldSet field, AggregateMetric metric, Optional<AggregateFilter> filter) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
@@ -43,18 +41,17 @@ public class SumAcross implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
-        metric.validate(scope, validationHelper, validator);
+        ValidationUtil.validateField(field, validationHelper, validator, this);
+        metric.validate(field.datasets(), validationHelper, validator);
 
         if (filter.isPresent()) {
-            filter.get().validate(scope, validationHelper, validator);
+            filter.get().validate(field.datasets(), validationHelper, validator);
         }
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         return new com.indeed.iql2.execution.commands.SumAcross(
-                scope,
                 field,
                 metric.toExecutionMetric(namedMetricLookup, groupKeySet),
                 filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet))
@@ -66,22 +63,20 @@ public class SumAcross implements Command {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SumAcross sumAcross = (SumAcross) o;
-        return Objects.equals(scope, sumAcross.scope) &&
-                Objects.equals(field, sumAcross.field) &&
+        return Objects.equals(field, sumAcross.field) &&
                 Objects.equals(metric, sumAcross.metric) &&
                 Objects.equals(filter, sumAcross.filter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(scope, field, metric, filter);
+        return Objects.hash(field, metric, filter);
     }
 
     @Override
     public String toString() {
         return "SumAcross{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field='" + field + '\'' +
                 ", metric=" + metric +
                 ", filter=" + filter +
                 '}';

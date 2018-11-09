@@ -105,7 +105,7 @@ public class AggregateFiltersTest {
     @Test
     public void testNever() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by tk having false select count()");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from ORGanic yesterday today group by tk having false select count()");
     }
 
     @Test

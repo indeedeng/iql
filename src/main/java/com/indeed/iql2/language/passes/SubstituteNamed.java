@@ -46,30 +46,26 @@ public class SubstituteNamed {
             @Nullable
             @Override
             public AggregateMetric apply(AggregateMetric input) {
-                if (input instanceof AggregateMetric.DocStats) {
-                    final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
-                    if (docStats.docMetric instanceof DocMetric.Field) {
-                        final DocMetric.Field docMetric = (DocMetric.Field) docStats.docMetric;
-                        if (namedMetrics.containsKey(docMetric.field)) {
-                            if (substitutionStack.contains(docMetric.field)) {
-                                substitutionStack.push(docMetric.field);
-                                throw new IqlKnownException.ParseErrorException("Hit cycle when doing name replacement: [" + Joiner.on(" -> ").join(substitutionStack) + "]");
-                            }
-                            substitutionStack.push(docMetric.field);
-                            final AggregateMetric result =
-                                    namedMetrics
-                                            .get(docMetric.field)
-                                            .transform(
-                                                    this,
-                                                    Functions.<DocMetric>identity(),
-                                                    Functions.<AggregateFilter>identity(),
-                                                    Functions.<DocFilter>identity(),
-                                                    Functions.<GroupBy>identity()
-                                            );
-                            substitutionStack.pop();
-                            return result;
-                        }
+                if (input instanceof AggregateMetric.NeedsSubstitution) {
+                    final AggregateMetric.NeedsSubstitution substitution = (AggregateMetric.NeedsSubstitution) input;
+                    final String field = substitution.substitutionName;
+                    if (substitutionStack.contains(field)) {
+                        substitutionStack.push(field);
+                        throw new IqlKnownException.ParseErrorException("Hit cycle when doing name replacement: [" + Joiner.on(" -> ").join(substitutionStack) + "]");
                     }
+                    substitutionStack.push(field);
+                    final AggregateMetric result =
+                            namedMetrics
+                                    .get(field)
+                                    .transform(
+                                            this,
+                                            Functions.<DocMetric>identity(),
+                                            Functions.<AggregateFilter>identity(),
+                                            Functions.<DocFilter>identity(),
+                                            Functions.<GroupBy>identity()
+                                    );
+                    substitutionStack.pop();
+                    return result;
                 }
                 return input;
             }

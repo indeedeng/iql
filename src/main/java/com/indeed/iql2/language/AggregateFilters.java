@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 public class AggregateFilters {
     public static AggregateFilter aggregateInHelper(final Iterable<Term> terms, final boolean negate) {
@@ -50,6 +51,7 @@ public class AggregateFilters {
             final JQLParser.JqlAggregateFilterContext aggregateFilterContext,
             final Query.Context context) {
         final AggregateFilter[] ref = new AggregateFilter[1];
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
 
         aggregateFilterContext.enterRule(new JQLBaseListener() {
             private void accept(AggregateFilter value) {
@@ -60,7 +62,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
-                accept(new AggregateFilter.Regex(Identifiers.parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
             }
 
             public void enterAggregateFalse(JQLParser.AggregateFalseContext ctx) {
@@ -76,7 +78,7 @@ public class AggregateFilters {
             }
 
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
-                accept(new AggregateFilter.Not(new AggregateFilter.Regex(Identifiers.parseIdentifier(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new AggregateFilter.Not(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
             public void enterAggregateTrue(JQLParser.AggregateTrueContext ctx) {

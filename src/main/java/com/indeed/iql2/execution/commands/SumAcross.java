@@ -25,19 +25,18 @@ import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
 public class SumAcross implements IterateHandlerable<double[]>, Command {
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
 
-    public SumAcross(Set<String> scope, String field, AggregateMetric metric, Optional<AggregateFilter> filter) {
-        this.scope = scope;
+    public SumAcross(FieldSet field, AggregateMetric metric, Optional<AggregateFilter> filter) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
@@ -84,7 +83,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
 
         @Override
         public Set<String> scope() {
-            return scope;
+            return field.datasets();
         }
 
         @Override

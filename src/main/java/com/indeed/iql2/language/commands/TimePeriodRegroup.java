@@ -16,9 +16,11 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
@@ -27,11 +29,11 @@ import java.util.Objects;
 
 public class TimePeriodRegroup implements Command {
     private final long periodMillis;
-    private final Optional<String> timeField;
+    private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
     private final boolean isRelative;
 
-    public TimePeriodRegroup(long periodMillis, Optional<String> timeField, Optional<String> timeFormat, boolean isRelative) {
+    public TimePeriodRegroup(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
         this.periodMillis = periodMillis;
         this.timeField = timeField;
         this.timeFormat = timeFormat;
@@ -41,7 +43,8 @@ public class TimePeriodRegroup implements Command {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         if (timeField.isPresent()) {
-            ValidationUtil.validateIntField(validationHelper.datasets(), timeField.get(), validationHelper, validator, this);
+            Preconditions.checkState(validationHelper.datasets().equals(timeField.get().datasets()));
+            ValidationUtil.validateIntField(timeField.get(), validationHelper, validator, this);
         }
         if (timeFormat.isPresent()) {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);

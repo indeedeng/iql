@@ -20,6 +20,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.io.IOException;
@@ -27,13 +28,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IterateAndExplode implements Command {
-    public final String field;
+    public final FieldSet field;
     public final List<AggregateMetric> selecting;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
 
     public IterateAndExplode(
-            final String field,
+            final FieldSet field,
             final List<AggregateMetric> selecting,
             final FieldIterateOpts fieldOpts,
             final Optional<String> explodeDefaultName) {

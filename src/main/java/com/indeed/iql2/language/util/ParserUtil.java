@@ -19,6 +19,7 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -37,13 +38,13 @@ import java.util.Set;
 public class ParserUtil {
 
     public static Query getFlamdexQuery(final String query, final String dataset,
-                                        final DatasetsMetadata datasetsMeta) {
+                                        final DatasetsMetadata datasetsMeta, final ScopedFieldResolver resolver) {
         final Analyzer analyzer = new KeywordAnalyzer();
         final QueryParser qp = new QueryParser("foo", analyzer);
         qp.setDefaultOperator(QueryParser.Operator.AND);
         final org.apache.lucene.search.Query parsed;
         try {
-            parsed = qp.parse(query);
+            parsed = rewriteCase(dataset, resolver, qp.parse(query));
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not parse lucene term: " + query, e);
         }
@@ -55,6 +56,14 @@ public class ParserUtil {
             final Set<String> intFields = metadata.get().getIntFieldsStringFromMetadata();
             return LuceneQueryTranslator.rewrite(parsed, intFields);
         }
+    }
+
+    private static org.apache.lucene.search.Query rewriteCase(
+            final String dataset,
+            final ScopedFieldResolver fieldResolver,
+            final org.apache.lucene.search.Query query
+    ) {
+        return new LuceneQueryFieldRewriter(dataset, fieldResolver).rewrite(query);
     }
 
     public static Optional<Interval> getNextNode(ParserRuleContext parserRuleContext) {

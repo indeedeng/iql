@@ -17,21 +17,20 @@ package com.indeed.iql2.execution.actions;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.util.Arrays;
 import java.util.Set;
 
 public class StringOrAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final ImmutableSet<String> terms;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public StringOrAction(Set<String> scope, String field, Set<String> terms, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public StringOrAction(FieldSet field, Set<String> terms, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         this.terms = ImmutableSet.copyOf(terms);
         this.targetGroup = targetGroup;
@@ -46,14 +45,13 @@ public class StringOrAction implements Action {
         Arrays.sort(termsArr);
         session.timer.pop();
 
-        session.stringOrRegroup(field, termsArr, targetGroup, negativeGroup, positiveGroup, scope);
+        session.stringOrRegroup(field, termsArr, targetGroup, negativeGroup, positiveGroup);
     }
 
     @Override
     public String toString() {
         return "StringOrAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", terms=" + renderTerms() +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

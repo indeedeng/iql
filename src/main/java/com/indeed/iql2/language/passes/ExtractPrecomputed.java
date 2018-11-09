@@ -22,13 +22,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
+import com.indeed.iql2.language.execution.ExecutionStep;
+import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.Optionals;
@@ -45,9 +44,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ExtractPrecomputed {
-    public static Extracted extractPrecomputed(Query query, DatasetsMetadata datasetsMetadata) {
-        final Processor processor = new Processor(1, 1, query.extractDatasetNames(),
-                SubstituteDimension.substituteDimensionAggregateMetric(query, datasetsMetadata));
+    public static Extracted extractPrecomputed(Query query) {
+        final Processor processor = new Processor(1, 1, query.extractDatasetNames());
         final List<GroupByEntry> groupBys = new ArrayList<>();
         for (int i = 0; i < query.groupBys.size(); i++) {
             final GroupByEntry groupBy = query.groupBys.get(i);
@@ -174,11 +172,10 @@ public class ExtractPrecomputed {
         private Set<String> scope;
         private int nextName = 0;
         private ComputationType computationType;
-        private final Function<AggregateMetric, AggregateMetric> substituteAggregateDimensionMetricFunc;
 
         private final Map<ComputationType, Map<ComputationInfo, String>> computedNames = new HashMap<>();
 
-        public Processor(int depth, int startDepth, Set<String> scope, Function<AggregateMetric, AggregateMetric> substituteAggregateDimensionMetricFunc) {
+        public Processor(int depth, int startDepth, Set<String> scope) {
             this.depth = depth;
             this.startDepth = startDepth;
             this.scope = scope;
@@ -186,7 +183,6 @@ public class ExtractPrecomputed {
                 computedNames.put(computationType, new HashMap<>());
             }
             computationType = ComputationType.PreComputation;
-            this.substituteAggregateDimensionMetricFunc =substituteAggregateDimensionMetricFunc;
         }
 
         public AggregateMetric apply(AggregateMetric input) {
@@ -211,10 +207,10 @@ public class ExtractPrecomputed {
                 } else {
                     filter = Optional.absent();
                 }
-                return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field.unwrap(), filter, distinct.windowSize));
+                return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field, filter, distinct.windowSize));
             } else if (input instanceof AggregateMetric.Percentile) {
                 final AggregateMetric.Percentile percentile = (AggregateMetric.Percentile) input;
-                return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field.unwrap(), percentile.percentile));
+                return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field, percentile.percentile));
             } else if (input instanceof AggregateMetric.Qualified) {
                 final AggregateMetric.Qualified qualified = (AggregateMetric.Qualified) input;
                 final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
@@ -227,6 +223,10 @@ public class ExtractPrecomputed {
                 setScope(oldScope);
                 return result;
             } else if (input instanceof AggregateMetric.DocStats) {
+                // This code is super hacky and serves the purpose of detecting all qualified
+                // datasets in a given metric in order to restrict it to just that dataset
+                // if necessary.
+                // As well as to handle PARENT() and such.
                 final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
                 final DocMetric docMetric = docStats.docMetric;
                 if (startDepth == depth) {
@@ -248,7 +248,7 @@ public class ExtractPrecomputed {
                             aggregateMetric = new AggregateMetric.Add(metric, aggregateMetric);
                         }
                     }
-                    return substituteAggregateDimensionMetricFunc.apply(aggregateMetric);
+                    return aggregateMetric;
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -262,7 +262,7 @@ public class ExtractPrecomputed {
                 }
                 if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
-                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field.unwrap(), apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
                 } else if (sumAcross.groupBy.isTotal()) {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 } else {
@@ -274,10 +274,10 @@ public class ExtractPrecomputed {
                 }
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field.unwrap()));
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field));
             } else if (input instanceof AggregateMetric.FieldMax) {
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field.unwrap()));
+                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field));
             } else if (input instanceof AggregateMetric.Bootstrap) {
                 final AggregateMetric.Bootstrap bootstrap = (AggregateMetric.Bootstrap) input;
                 final List<String> lookups = new ArrayList<>();
@@ -296,7 +296,7 @@ public class ExtractPrecomputed {
                 } else {
                     filter = Optional.absent();
                 }
-                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field.unwrap(), filter, bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
+                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field, filter, bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
                 final ComputationInfo computationInfo = new ComputationInfo(precomputedBootstrap, depth, scope);
                 final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
                 computedNames.get(computationType).put(computationInfo, name);

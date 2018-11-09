@@ -48,7 +48,6 @@ import com.indeed.iql2.language.passes.ExtractPrecomputed;
 import com.indeed.iql2.language.passes.FixTopKHaving;
 import com.indeed.iql2.language.passes.HandleWhereClause;
 import com.indeed.iql2.language.passes.RemoveNames;
-import com.indeed.iql2.language.passes.SubstituteDimension;
 import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
@@ -115,7 +114,7 @@ public class Queries {
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
                     dataset.startInclusive.unwrap().toString(),
-                    getRawInput(inputStream, dataset.getDisplayName()),
+                    dataset.getDisplayName().unwrap(),
                     dataset.endExclusive.unwrap().toString(),
                     dataset.alias.or(dataset.dataset).unwrap(),
                     fieldAliases,
@@ -236,10 +235,10 @@ public class Queries {
         }
     }
 
-    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock) {
+    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock, final DatasetsMetadata datasetsMetadata) {
         Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, DatasetsMetadata.empty(), defaultOptions, clock).query;
+        final Query parsed = parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
@@ -464,15 +463,12 @@ public class Queries {
         Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = CollapseFilters.collapseFilters(query3);
         Loggers.trace(log, "query4 = %s", query4);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4, datasetsMetadata);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
-        final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, datasetsMetadata);
-        final ExtractPrecomputed.Extracted dimensionExtracted = new ExtractPrecomputed.Extracted(substitutedDimension, extracted.computedNames);
-        Loggers.trace(log, "substituted = %s", dimensionExtracted);
-        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(dimensionExtracted.query);
+        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(extracted.query);
         final List<ExecutionStep> firstSteps = query5Result.steps;
 
-        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(dimensionExtracted)));
+        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(extracted)));
         if (log.isTraceEnabled()) {
             log.trace("executionSteps = " + executionSteps);
             for (final ExecutionStep executionStep : executionSteps) {

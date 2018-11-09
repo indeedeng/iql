@@ -15,18 +15,15 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 
-import java.util.Set;
-
 public class SampleAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final double probability;
     public final String seed;
 
@@ -34,8 +31,7 @@ public class SampleAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleAction(Set<String> scope, String field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public SampleAction(FieldSet field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         this.probability = probability;
         this.seed = seed;
@@ -46,9 +42,10 @@ public class SampleAction implements Action {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        for (final String dataset : scope) {
-            if (!validationHelper.containsField(dataset, field)) {
-                validator.error(ErrorMessages.missingField(dataset, field, this));
+        for (final String dataset : field.datasets()) {
+            final String fieldName = this.field.datasetFieldName(dataset);
+            if (!validationHelper.containsField(dataset, fieldName)) {
+                validator.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
     }
@@ -56,7 +53,6 @@ public class SampleAction implements Action {
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.actions.SampleAction(
-                scope,
                 field,
                 probability,
                 seed,
@@ -69,8 +65,7 @@ public class SampleAction implements Action {
     @Override
     public String toString() {
         return "SampleAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field='" + field + '\'' +
                 ", probability=" + probability +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +

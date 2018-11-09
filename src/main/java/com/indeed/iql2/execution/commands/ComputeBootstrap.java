@@ -26,6 +26,7 @@ import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.apache.commons.math3.special.Erf;
 
@@ -42,16 +43,14 @@ import java.util.Set;
  */
 public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
     public static final int MAX_MEMORY_BYTES = 500_000_000;
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final Optional<AggregateFilter> filter;
     public final String seed;
     public final AggregateMetric metric;
     public final int numBootstraps;
     public final List<String> varargs;
 
-    public ComputeBootstrap(Set<String> scope, String field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
-        this.scope = scope;
+    public ComputeBootstrap(FieldSet field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
         this.field = field;
         this.filter = filter;
         this.seed = seed;
@@ -118,7 +117,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
 
         @Override
         public Set<String> scope() {
-            return scope;
+            return field.datasets();
         }
 
         @Override

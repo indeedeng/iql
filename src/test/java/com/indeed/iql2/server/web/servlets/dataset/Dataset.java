@@ -24,6 +24,9 @@ import com.indeed.ims.client.DatasetInterface;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
+import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.web.FieldFrequencyCache;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.io.IOException;
@@ -52,10 +55,30 @@ public class Dataset {
 
     private List<Shard> normalShards;
     private List<Shard> dimensionShards;
+    private DatasetsMetadata datasetsMetada;
+    private DatasetsMetadata dimensionsDatasetsMetadata;
 
     Dataset(List<DatasetShard> shards) {
         this.shards = shards;
         dimensionImsClient = new AliasDimensionClient(getShards());
+    }
+
+    public DatasetsMetadata getDatasetsMetadata() {
+        if (datasetsMetada == null) {
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, getNormalClient(), "", new FieldFrequencyCache(null), true);
+            metadataCache.updateDatasets();
+            datasetsMetada = metadataCache.get();
+        }
+        return datasetsMetada;
+    }
+
+    public DatasetsMetadata getDimensionsDatasetsMetadata() {
+        if (dimensionsDatasetsMetadata == null) {
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null), true);
+            metadataCache.updateDatasets();
+            dimensionsDatasetsMetadata = metadataCache.get();
+        }
+        return dimensionsDatasetsMetadata;
     }
 
     public ImsClientInterface getDimensionImsClient() {

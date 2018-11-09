@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.language.util;
 
-import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.Validator;
 
 import java.util.Map;
@@ -63,8 +63,8 @@ public class ValidationHelper {
     public void validateIntField(String dataset, String datasetField, Validator validator, Object context) {
         if (!containsIntOrAliasField(dataset, datasetField)) {
             // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
-            if ((dataset.equalsIgnoreCase("jobsearch") || dataset.equalsIgnoreCase("mobsearch"))
-                    && (datasetField.equalsIgnoreCase("page") || datasetField.equalsIgnoreCase("vp"))) {
+            if (("jobsearch".equals(dataset) || "mobsearch".equals(dataset))
+                    && ("page".equals(datasetField) || "vp".equals(datasetField))) {
             } else if (containsStringField(dataset, datasetField)) {
                 if (!useLegacy) {
                     validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, context));

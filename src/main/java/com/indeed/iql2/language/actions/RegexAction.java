@@ -15,27 +15,23 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
-import java.util.Set;
-
 public class RegexAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final String regex;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public RegexAction(Set<String> scope, String field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public RegexAction(FieldSet field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         ValidationUtil.compileRegex(regex);
         this.regex = regex;
@@ -46,9 +42,10 @@ public class RegexAction implements Action {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        for (final String dataset : scope) {
-            if (!validationHelper.containsStringField(dataset, field)) {
-                validator.error(ErrorMessages.missingStringField(dataset, field, this));
+        for (final String dataset : field.datasets()) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
+                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
     }
@@ -56,7 +53,6 @@ public class RegexAction implements Action {
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.actions.RegexAction(
-                scope,
                 field,
                 regex,
                 targetGroup,
@@ -68,8 +64,7 @@ public class RegexAction implements Action {
     @Override
     public String toString() {
         return "RegexAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", regex='" + regex + '\'' +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

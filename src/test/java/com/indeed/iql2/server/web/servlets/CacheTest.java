@@ -34,7 +34,6 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,27 +52,28 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today group by time(1h)",
             "from organic yesterday today group by time(1h) select oji",
             "from organic yesterday today group by time(1h) select oji, ojc",
-            "from organic yesterday today where rcv=\"jsv\"",
-            "from organic yesterday today where rcv=\"jsv\" group by time(1h)",
-            "from organic yesterday today where rcv=\"jsv\" group by time(1h) select oji"
+            "from organic yesterday today where oji=10",
+            "from organic yesterday today where oji=10 group by time(1h)",
+            "from organic yesterday today where oji=10 group by time(1h) select oji"
     );
 
-    private static String getCacheKey(ImhotepClient imhotepClient, String queryString) {
-        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, DatasetsMetadata.empty(), Collections.emptySet(), new Consumer<String>() {
+    private static String getCacheKey(final String queryString) {
+        final DatasetsMetadata datasetsMetadata = AllData.DATASET.getDatasetsMetadata();
+        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
+        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, datasetsMetadata, Collections.emptySet(), new Consumer<String>() {
             @Override
             public void accept(String s) {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())).query;
-        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, DatasetsMetadata.empty()), imhotepClient).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, datasetsMetadata), imhotepClient).cacheFileName;
     }
 
     @Test
     public void testUniqueCacheValues() {
         final Set<String> values = new HashSet<>();
-        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
         for (final String query : uniqueQueries) {
-            final String cacheKey = getCacheKey(imhotepClient, query);
+            final String cacheKey = getCacheKey(query);
             Assert.assertFalse(values.contains(cacheKey));
             values.add(cacheKey);
         }
@@ -81,10 +81,9 @@ public class CacheTest extends BasicTest {
 
     @Test
     public void testConsistentCaching() {
-        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
         for (final String query : uniqueQueries) {
-            final String cacheKey1 = getCacheKey(imhotepClient, query);
-            final String cacheKey2 = getCacheKey(imhotepClient, query);
+            final String cacheKey1 = getCacheKey(query);
+            final String cacheKey2 = getCacheKey(query);
             Assert.assertEquals(cacheKey1, cacheKey2);
         }
     }

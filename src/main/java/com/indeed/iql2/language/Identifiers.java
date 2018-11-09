@@ -15,23 +15,26 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.JQLParser;
 
 import java.util.regex.Pattern;
 
 public class Identifiers {
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
 
-    public static Positioned<String> parseIdentifier(JQLParser.IdentifierContext identifierContext) {
+    public static String extractIdentifier(final JQLParser.IdentifierContext identifierContext) {
         final String result;
         if (identifierContext.BACKQUOTED_ID() != null) {
-            result = identifierContext.getText().substring(1, identifierContext.getText().length() - 1).toUpperCase();
+            result = identifierContext.getText().substring(1, identifierContext.getText().length() - 1);
         } else {
-            result = identifierContext.getText().toUpperCase();
+            result = identifierContext.getText();
             if (!IDENTIFIER_PATTERN.matcher(result).matches()) {
                 throw new IqlKnownException.ParseErrorException("identifier " + result +" doesn't match pattern : " + IDENTIFIER_PATTERN.toString());
             }
         }
-        return Positioned.from(result, identifierContext);
+        return result;
+    }
+
+    public static Positioned<String> parseIdentifier(JQLParser.IdentifierContext identifierContext) {
+        return Positioned.from(extractIdentifier(identifierContext), identifierContext);
     }
 }

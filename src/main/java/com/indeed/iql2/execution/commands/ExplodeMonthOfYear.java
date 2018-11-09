@@ -20,7 +20,7 @@ import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKey;
-import com.indeed.iql2.language.Positioned;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
@@ -28,10 +28,10 @@ import org.joda.time.Months;
 public class ExplodeMonthOfYear implements Command {
     private static final DateTimeZone IMHOTEP_TIME = DateTimeZone.forOffsetHours(-6);
 
-    private final Optional<String> timeField;
+    private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
 
-    public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+    public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
         this.timeField = timeField;
         this.timeFormat = timeFormat;
     }

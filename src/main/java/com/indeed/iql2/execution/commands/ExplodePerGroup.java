@@ -22,6 +22,7 @@ import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.groupkeys.sets.TermsGroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.List;
@@ -31,11 +32,11 @@ public class ExplodePerGroup implements Command {
     final List<String>[] strTerms;
     public final Optional<String> defaultName;
 
-    private final String field;
+    private final FieldSet field;
     private final boolean isIntType;
 
     public ExplodePerGroup(
-            final String field,
+            final FieldSet field,
             final boolean isIntType,
             final LongArrayList[] intTerms,
             final List<String>[] strTerms,
@@ -103,8 +104,7 @@ public class ExplodePerGroup implements Command {
         }
         session.timer.pop();
 
-        final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, isIntType, false);
-        session.regroupWithSingleFieldRules(ruleBuilder, options, true);
+        session.regroupWithSingleFieldRules(ruleBuilder, field, isIntType, false, true);
 
         final GroupKeySet newKeySet;
         final GroupKey defaultKey = defaultName.isPresent() ? DefaultGroupKey.create(defaultName.get()) : null;

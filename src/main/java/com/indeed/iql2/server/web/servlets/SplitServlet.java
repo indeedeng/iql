@@ -15,9 +15,12 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
+import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.time.StoppedClock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -30,7 +33,14 @@ import java.util.HashMap;
 
 @Controller
 public class SplitServlet {
-//    @RequestMapping("split")
+    private final ImhotepMetadataCache metadataCache;
+
+    @Autowired
+    public SplitServlet(final ImhotepMetadataCache metadataCacheIQL2) {
+        this.metadataCache = metadataCacheIQL2;
+    }
+
+    //    @RequestMapping("split")
     @ResponseBody
     public Object split(
             final HttpServletRequest request,
@@ -40,7 +50,7 @@ public class SplitServlet {
         final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         response.setHeader("Content-Type", "application/json");
         try {
-            return Queries.parseSplitQuery(q, version == 1, Collections.emptySet(), new StoppedClock());
+            return Queries.parseSplitQuery(q, version == 1, Collections.emptySet(), new StoppedClock(), metadataCache.get());
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("clause", "where");
