@@ -151,29 +151,31 @@ public class MultiLevelQueryCache implements QueryCache {
                 // The second invariant is that we only complete a successful write to the outputStream (which may
                 // be the secondary cache) if all operations up to this point were successful and the write to the
                 // primary cache was successful (indicated by the close() call succeeding).
-                final CompletableOutputStream primaryCacheStream = primaryCache.getOutputStream(cachedFileName);
+
                 try {
                     if (completed) {
-                        if (overflowed) {
-                            // write a mark to the primary cache to know that we have data in the secondary cache
-                            for (int markByte : MARK_OF_LARGE_DATA_CACHE_USED) {
-                                primaryCacheStream.write(markByte);
+                        final CompletableOutputStream primaryCacheStream = primaryCache.getOutputStream(cachedFileName);
+                        try {
+                            if (overflowed) {
+                                // write a mark to the primary cache to know that we have data in the secondary cache
+                                for (int markByte : MARK_OF_LARGE_DATA_CACHE_USED) {
+                                    primaryCacheStream.write(markByte);
+                                }
+                            } else {
+                                // write actual data to the primary cache
+                                primaryCacheStream.write(inMemoryCacheStream.toByteArray());
                             }
-                        } else {
-                            // write actual data to the primary cache
-                            primaryCacheStream.write(inMemoryCacheStream.toByteArray());
+                            primaryCacheStream.complete();
+                        } finally {
+                            primaryCacheStream.close();
+                            // mark outputStream as complete iff .close() succeeded and primaryCacheStream was complete
+                            if (primaryCacheStream.completed) {
+                                outputStream.complete();
+                            }
                         }
-                        primaryCacheStream.complete();
                     }
                 } finally {
-                    try {
-                        primaryCacheStream.close();
-                        if (primaryCacheStream.completed) {
-                            outputStream.complete();
-                        }
-                    } finally {
-                        outputStream.close();
-                    }
+                    outputStream.close();
                 }
             }
         };
