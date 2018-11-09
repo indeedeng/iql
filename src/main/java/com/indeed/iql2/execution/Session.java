@@ -196,6 +196,10 @@ public class Session {
             }
         }
 
+        if (optionsList.contains(QueryOptions.DIE_AT_END)) {
+            throw new RuntimeException("You have requested me to fail.");
+        }
+
         long tempFileBytesWritten = 0L;
         for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
             tempFileBytesWritten += sessionInfo.session.getTempFilesBytesWritten();

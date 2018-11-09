@@ -27,6 +27,9 @@ public class QueryOptions {
     // Enable port forwarding to use rust daemon
     public static final String USE_RUST_DAEMON = "rust";
 
+    // Fail after executing last command
+    public static final String DIE_AT_END = "die_at_end";
+
     // Temporary features, now in test mode.
     // After testing should be deleted or moved to main features list.
     public static class Experimental {

@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
@@ -90,10 +89,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -118,6 +114,10 @@ public class SelectQueryExecution {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String METADATA_FILE_SUFFIX = ".meta";
+
+    // System configuration
+    @Nullable
+    private final File tmpDir;
 
     // IQL2 server systems
     private final QueryCache queryCache;
@@ -149,6 +149,7 @@ public class SelectQueryExecution {
     public boolean ran = false;
 
     public SelectQueryExecution(
+            @Nullable final File tmpDir,
             final QueryCache queryCache,
             final Limits limits,
             final ImhotepClient imhotepClient,
@@ -181,6 +182,7 @@ public class SelectQueryExecution {
         this.queryMetadata = queryMetadata;
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.defaultIQL2Options = defaultIQL2Options;
+        this.tmpDir = tmpDir;
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -552,8 +554,7 @@ public class SelectQueryExecution {
                     }
 
                     final Consumer<String> oldOut = out;
-                    final Path tmpFile = Files.createTempFile("query", ".cache.tmp");
-                    cacheFile = tmpFile.toFile();
+                    cacheFile = File.createTempFile("query", ".cache.tmp", tmpDir);
                     // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
                     cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
                     out = s -> {

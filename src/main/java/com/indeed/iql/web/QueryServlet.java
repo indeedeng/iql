@@ -79,9 +79,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -126,6 +126,8 @@ public class QueryServlet {
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
             "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql");
 
+    @Nullable
+    private final File tmpDir;
     private final ImhotepClient imhotepClient;
     private final ImhotepMetadataCache metadataCacheIQL1;
     private final ImhotepMetadataCache metadataCacheIQL2;
@@ -141,7 +143,8 @@ public class QueryServlet {
     private final SQLToIQLParser sqlToIQLParser;
 
     @Autowired
-    public QueryServlet(final ImhotepClient imhotepClient,
+    public QueryServlet(@Nullable final File tmpDir,
+                        final ImhotepClient imhotepClient,
                         final ImhotepMetadataCache metadataCacheIQL1,
                         final ImhotepMetadataCache metadataCacheIQL2,
                         final TopTermsCache topTermsCache,
@@ -153,6 +156,7 @@ public class QueryServlet {
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
                         final IQL2Options defaultIQL2Options) {
+        this.tmpDir = tmpDir;
         this.imhotepClient = imhotepClient;
         this.metadataCacheIQL1 = metadataCacheIQL1;
         this.metadataCacheIQL2 = metadataCacheIQL2;
@@ -313,7 +317,7 @@ public class QueryServlet {
             // IQL2
 
             final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                    queryCache, limits, imhotepClient,
+                    tmpDir, queryCache, limits, imhotepClient,
                     metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                     queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
                     clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());

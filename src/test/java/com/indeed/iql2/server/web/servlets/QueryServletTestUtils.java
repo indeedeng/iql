@@ -45,6 +45,8 @@ import org.junit.Assert;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import javax.annotation.Nullable;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -81,6 +83,7 @@ public class QueryServletTestUtils extends BasicTest {
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
 
         return new QueryServlet(
+                options.tmpDir,
                 client,
                 metadataCache,
                 metadataCache,
@@ -179,6 +182,8 @@ public class QueryServletTestUtils extends BasicTest {
 
     @SuppressWarnings("WeakerAccess")
     public static class Options {
+        @Nullable
+        private File tmpDir = null; // null == system default temporary directory
         private Long subQueryTermLimit = 1_000_000L;
         private QueryCache queryCache = new NoOpQueryCache();
         private ImsClientInterface imsClient;
@@ -220,6 +225,11 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options setWallClock(final WallClock wallClock) {
             this.wallClock = wallClock;
+            return this;
+        }
+
+        public Options setTmpDir(@Nullable final File tmpDir) {
+            this.tmpDir = tmpDir;
             return this;
         }
     }
