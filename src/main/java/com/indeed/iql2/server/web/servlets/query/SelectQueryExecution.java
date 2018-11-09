@@ -634,7 +634,7 @@ public class SelectQueryExecution {
 
                         cacheUploadExecutorService.submit(new Callable<Void>() {
                             @Override
-                            public Void call() throws Exception {
+                            public Void call() {
                                 try {
                                     if (isTopLevelQuery) {
                                         try {
@@ -647,15 +647,15 @@ public class SelectQueryExecution {
                                     try {
                                         cacheWriter.close();
                                         queryCache.writeFromFile(cacheFileName, cacheFile);
-                                        if (!cacheFile.delete()) {
-                                            log.warn("Failed to delete  " + cacheFile);
-                                        }
                                     } catch (Exception e) {
                                         log.warn("Failed to upload cache: " + cacheFileName, e);
                                     }
                                 } finally {
                                     if (cacheUploadingCounter.decrementAndGet() == 0) {
                                         Closeables2.closeQuietly(selectQuery, log);
+                                    }
+                                    if (!cacheFile.delete()) {
+                                        log.warn("Failed to delete " + cacheFile);
                                     }
                                 }
                                 return null;
@@ -665,7 +665,12 @@ public class SelectQueryExecution {
                     }
 
                     return selectExecutionInformation;
-                } catch (Exception e) {
+                } catch (final Exception e) {
+                    if (cacheFile != null) {
+                        if(!cacheFile.delete()) {
+                            log.info("Failed to delete: " + cacheFile.getPath());
+                        }
+                    }
                     throw Throwables.propagate(e);
                 }
             }
