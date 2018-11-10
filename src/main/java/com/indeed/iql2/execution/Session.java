@@ -447,7 +447,7 @@ public class Session {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
-                    final List<List<TermSelects>> result = simpleIterate.evaluate(this, out);
+                    final List<TermSelects>[] result = simpleIterate.evaluate(this, out);
                     //noinspection StatementWithEmptyBody
                     if (simpleIterate.streamResult) {
                         // result already sent
@@ -459,16 +459,17 @@ public class Session {
                         }
 
                         final boolean isIntField = isIntField(simpleIterate.field);
-                        for (final List<TermSelects> groupTerms : result) {
+                        for (int group = 1; group <= numGroups; group++) {
+                            if (!groupKeySet.isPresent(group)) {
+                                continue;
+                            }
+                            final List<TermSelects> groupTerms = result[group];
                             for (final TermSelects termSelect : groupTerms) {
-                                if (!groupKeySet.isPresent(termSelect.group)) {
-                                    continue;
-                                }
                                 // TODO: propagate PRINTF info
                                 if (isIntField) {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.intTerm, termSelect.selects, formatStrings));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, group, termSelect.intTerm, termSelect.selects, formatStrings));
                                 } else {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, termSelect.group, termSelect.stringTerm, termSelect.selects, formatStrings));
+                                    out.accept(SimpleIterate.createRow(groupKeySet, group, termSelect.stringTerm, termSelect.selects, formatStrings));
                                 }
                             }
                         }

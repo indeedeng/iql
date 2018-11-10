@@ -49,11 +49,12 @@ public class IterateAndExplode implements Command {
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
-        final List<List<TermSelects>> iterationResults = SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope);
-        final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.size() + 1);
+        final List<TermSelects>[] iterationResults = SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope);
+        final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.length);
         explodes.add(null);
         final boolean isIntField = session.isIntField(field);
-        for (final List<TermSelects> groupResults : iterationResults) {
+        for (int group = 1; group < iterationResults.length; group++) {
+            final List<TermSelects> groupResults = iterationResults[group];
             final List<Term> terms = Lists.newArrayListWithCapacity(groupResults.size());
             for (final TermSelects result : groupResults) {
                 terms.add(new Term(field, isIntField, result.intTerm, result.stringTerm));

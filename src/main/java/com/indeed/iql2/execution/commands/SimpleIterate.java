@@ -50,7 +50,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -98,7 +97,7 @@ public class SimpleIterate implements Command {
     }
 
     // evaluate results to memory
-    public static List<List<TermSelects>> evaluate(
+    public static List<TermSelects>[] evaluate(
             final Session session,
             final String field,
             final List<AggregateMetric> selecting,
@@ -114,7 +113,7 @@ public class SimpleIterate implements Command {
                 .evaluate(session, null);
     }
 
-    public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public List<TermSelects>[] evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("request metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
@@ -155,25 +154,29 @@ public class SimpleIterate implements Command {
         session.timer.pop();
 
         session.timer.push("prepare for iteration");
-        final Queue<TermSelects>[] pqs = new Queue[session.numGroups + 1];
-        if (opts.topK.isPresent()) {
+        final TermsAccumulator[] pqs;
+        if (streamResult) {
+            pqs = null;
+        } else if (opts.topK.isPresent()) {
+            pqs = new TermsAccumulator[session.numGroups + 1];
             // TODO: Share this with Iterate. Or delete Iterate.
             final Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
             // TODO: If these queue types change, then a line below with an instanceof check will break.
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
                 for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = BoundedPriorityQueue.newInstance(limit, comparator);
+                    pqs[i] = new TermsAccumulator.BoundedPriorityQueueAccumulator(limit, comparator);
                 }
             } else {
                 // TODO: HOW MUCH CAPACITY?
                 for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = new PriorityQueue<>(100, comparator);
+                    pqs[i] = new TermsAccumulator.PriorityQueueAccumulator(100, comparator);
                 }
             }
         } else {
+            pqs = new TermsAccumulator[session.numGroups + 1];
             for (int i = 1; i <= session.numGroups; i++) {
-                pqs[i] = new ArrayDeque<>();
+                pqs[i] = new TermsAccumulator.ArrayDequeAccumulator();
             }
         }
         final Optional<Integer> ftgsRowLimit;
@@ -237,30 +240,20 @@ public class SimpleIterate implements Command {
         session.popStats();
 
         if (streamResult) {
-            return Collections.emptyList();
+            return null;
         } else {
             session.timer.push("convert results");
-            final List<List<TermSelects>> allTermSelects = new ArrayList<>(session.numGroups);
+            final List<TermSelects>[] allTermSelects = new List[session.numGroups+1];
             for (int group = 1; group <= session.numGroups; group++) {
-                final Queue<TermSelects> pq = pqs[group];
-                final List<TermSelects> listTermSelects = new ArrayList<>(pq.size());
-                while (!pq.isEmpty()) {
-                    listTermSelects.add(pq.poll());
-                }
-                // TODO: This line is very fragile
-                if (pq instanceof BoundedPriorityQueue || pq instanceof PriorityQueue) {
-                    allTermSelects.add(Lists.reverse(listTermSelects));
-                } else {
-                    allTermSelects.add(listTermSelects);
-                }
+                final TermsAccumulator pq = pqs[group];
+                allTermSelects[group] = pq.getResult();
             }
             session.timer.pop();
             return allTermSelects;
         }
     }
 
-    @Nonnull
-    private List<List<TermSelects>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+    private List<TermSelects>[] evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
         session.timer.push("prepare for iteration");
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
@@ -316,12 +309,15 @@ public class SimpleIterate implements Command {
             final double[] statsBuf = new double[selects.size()];
             final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
 
-            final List<List<TermSelects>> result = new ArrayList<>(session.numGroups);
+            final List<TermSelects>[] result;
 
             if (!streamResult) {
-                for (int group = 1; group <= session.numGroups; group++) {
-                    result.add(new ArrayList<>());
+                result = new ArrayList[session.numGroups+1];
+                for (int group = 0; group <= session.numGroups; group++) {
+                    result[group] = new ArrayList<>();
                 }
+            } else {
+                result = null;
             }
 
             final String[] formatStrings = formFormatStrings();
@@ -342,18 +338,16 @@ public class SimpleIterate implements Command {
                         }
                     } else {
                         if (isIntField) {
-                            result.get(iterator.group() - 1).add(new TermSelects(
+                            result[iterator.group()].add(new TermSelects(
                                     iterator.termIntVal(),
                                     Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                    iterator.group()
+                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
                             ));
                         } else {
-                            result.get(iterator.group() - 1).add(new TermSelects(
+                            result[iterator.group()].add(new TermSelects(
                                     iterator.termStringVal(),
                                     Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                    iterator.group()
+                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
                             ));
                         }
 
@@ -482,7 +476,11 @@ public class SimpleIterate implements Command {
         return formatStrings;
     }
 
-    private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
+    private Session.StringIterateCallback nonStreamingStringCallback(
+            final Session session,
+            final TermsAccumulator[] pqs,
+            final AggregateMetric topKMetricOrNull,
+            final AggregateFilter filterOrNull) {
         return new Session.StringIterateCallback() {
             @Override
             public void term(final String term, final long[] stats, final int group) {
@@ -499,18 +497,11 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                final Queue<TermSelects> pq = pqs[group];
-                if (pq instanceof BoundedPriorityQueue)  {
-                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(term, selectBuffer, value, group));
-                        return ;
-                    }
+                final TermsAccumulator pq = pqs[group];
+                if (pq.addTerm(new TermSelects(term, selectBuffer, value))) {
+                    ++createdGroupCount;
+                    session.checkGroupLimitWithoutLog(createdGroupCount);
                 }
-                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
-                    return ;
-                }
-                ++createdGroupCount;
-                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
 
             @Override
@@ -565,7 +556,11 @@ public class SimpleIterate implements Command {
         };
     }
 
-    private Session.IntIterateCallback nonStreamingIntCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
+    private Session.IntIterateCallback nonStreamingIntCallback(
+            final Session session,
+            final TermsAccumulator[] pqs,
+            final AggregateMetric topKMetricOrNull,
+            final AggregateFilter filterOrNull) {
         return new Session.IntIterateCallback() {
             @Override
             public void term(final long term, final long[] stats, final int group) {
@@ -582,18 +577,11 @@ public class SimpleIterate implements Command {
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                final Queue<TermSelects> pq = pqs[group];
-                if (pq instanceof BoundedPriorityQueue)  {
-                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(term, selectBuffer, value, group));
-                        return ;
-                    }
+                final TermsAccumulator pq = pqs[group];
+                if (pq.addTerm(new TermSelects(term, selectBuffer, value))) {
+                    ++createdGroupCount;
+                    session.checkGroupLimitWithoutLog(createdGroupCount);
                 }
-                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
-                    return ;
-                }
-                ++createdGroupCount;
-                session.checkGroupLimitWithoutLog(createdGroupCount);
             }
 
             @Override
@@ -614,5 +602,84 @@ public class SimpleIterate implements Command {
 
             }
         };
+    }
+
+    private interface TermsAccumulator {
+
+        // offer a term. Returns true iff new group is created.
+        boolean addTerm(final TermSelects termSelects);
+
+        // get all accumulater terms
+        List<TermSelects> getResult();
+
+        class BoundedPriorityQueueAccumulator implements TermsAccumulator {
+
+            private final BoundedPriorityQueue<TermSelects> queue;
+
+            public BoundedPriorityQueueAccumulator(final int maxCapacity, final Comparator<TermSelects> comparator) {
+                queue = BoundedPriorityQueue.newInstance(maxCapacity, comparator);
+            }
+
+            @Override
+            public boolean addTerm(final TermSelects termSelects) {
+                final boolean wasFool = queue.isFull();
+                return queue.offer(termSelects) && !wasFool;
+            }
+
+            @Override
+            public List<TermSelects> getResult() {
+                final List<TermSelects> listTermSelects = new ArrayList<>(queue.size());
+                while (!queue.isEmpty()) {
+                    listTermSelects.add(queue.poll());
+                }
+                return Lists.reverse(listTermSelects);
+            }
+        }
+
+        class PriorityQueueAccumulator implements TermsAccumulator {
+            private final PriorityQueue<TermSelects> queue;
+
+            public PriorityQueueAccumulator(final int initialCapacity,final Comparator<TermSelects> comparator) {
+                queue = new PriorityQueue<>(initialCapacity, comparator);
+            }
+
+            @Override
+            public boolean addTerm(final TermSelects termSelects) {
+                return queue.offer(termSelects);
+            }
+
+            @Override
+            public List<TermSelects> getResult() {
+                final List<TermSelects> listTermSelects = new ArrayList<>(queue.size());
+                while (!queue.isEmpty()) {
+                    listTermSelects.add(queue.poll());
+                }
+
+                return Lists.reverse(listTermSelects);
+            }
+        }
+
+        class ArrayDequeAccumulator implements TermsAccumulator {
+            private final ArrayDeque<TermSelects> queue;
+
+            public ArrayDequeAccumulator() {
+                queue = new ArrayDeque<>();
+            }
+
+            @Override
+            public boolean addTerm(final TermSelects termSelects) {
+                return queue.offer(termSelects);
+            }
+
+            @Override
+            public List<TermSelects> getResult() {
+                final List<TermSelects> listTermSelects = new ArrayList<>(queue.size());
+                while (!queue.isEmpty()) {
+                    listTermSelects.add(queue.poll());
+                }
+
+                return listTermSelects;
+            }
+        }
     }
 }
