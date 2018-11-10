@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.query.Term;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
@@ -50,7 +49,7 @@ public class IterateAndExplode implements Command {
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final List<TermSelects>[] iterationResults = SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope);
-        final List<Commands.TermsWithExplodeOpts> explodes = Lists.newArrayListWithCapacity(iterationResults.length);
+        final List<List<Term>> explodes = Lists.newArrayListWithCapacity(iterationResults.length);
         explodes.add(null);
         final boolean isIntField = session.isIntField(field);
         for (int group = 1; group < iterationResults.length; group++) {
@@ -59,8 +58,12 @@ public class IterateAndExplode implements Command {
             for (final TermSelects result : groupResults) {
                 terms.add(new Term(field, isIntField, result.intTerm, result.stringTerm));
             }
-            explodes.add(new Commands.TermsWithExplodeOpts(terms, this.explodeDefaultName));
+            explodes.add(terms);
         }
-        new ExplodePerGroup(explodes, field, session.isIntField(field)).execute(session);
+        // TODO: change all Optional to java.util.Optional
+        final java.util.Optional<String> defaultName =
+                explodeDefaultName.isPresent() ?
+                        java.util.Optional.of(explodeDefaultName.get()) : java.util.Optional.empty();
+        new ExplodePerGroup(explodes, field, session.isIntField(field), defaultName).execute(session);
     }
 }
