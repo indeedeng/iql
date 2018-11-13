@@ -492,9 +492,9 @@ public class SelectQueryExecution {
                             datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
                 }
 
-                if(datasetsWithMissingShards.size() > 0) {
-                    final List<Interval> missingIntervals = datasetsWithMissingShards.stream()
-                            .map(DatasetWithMissingShards::getTimeIntervalsMissingShards).collect(ArrayList::new, List::addAll, List::addAll);
+                final List<Interval> missingIntervals = datasetsWithMissingShards.stream()
+                        .map(DatasetWithMissingShards::getTimeIntervalsMissingShards).collect(ArrayList::new, List::addAll, List::addAll);
+                if(missingIntervals.size() > 0) {
                     final String missingIntervalsString = QueryServlet.intervalListToString(missingIntervals);
                     queryMetadata.addItem("IQL-Missing-Shards", missingIntervalsString, true);
                 }
