@@ -447,33 +447,10 @@ public class Session {
                 progressCallback.startCommand(this, command, true);
                 if (command instanceof SimpleIterate) {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
-                    final List<TermSelects>[] result = simpleIterate.evaluate(this, out);
-                    //noinspection StatementWithEmptyBody
-                    if (simpleIterate.streamResult) {
-                        // result already sent
-                    } else {
-                        final String[] formatStrings = new String[simpleIterate.selecting.size()];
-                        for (int i = 0; i < formatStrings.length; i++) {
-                            final Optional<String> opt = simpleIterate.formatStrings.get(i);
-                            formatStrings[i] = opt.isPresent() ? opt.get() : null;
-                        }
-
-                        final boolean isIntField = isIntField(simpleIterate.field);
-                        for (int group = 1; group <= numGroups; group++) {
-                            if (!groupKeySet.isPresent(group)) {
-                                continue;
-                            }
-                            final List<TermSelects> groupTerms = result[group];
-                            for (final TermSelects termSelect : groupTerms) {
-                                // TODO: propagate PRINTF info
-                                if (isIntField) {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, group, termSelect.intTerm, termSelect.selects, formatStrings));
-                                } else {
-                                    out.accept(SimpleIterate.createRow(groupKeySet, group, termSelect.stringTerm, termSelect.selects, formatStrings));
-                                }
-                            }
-                        }
-                    }
+                    final String[] formats = simpleIterate.formFormatStrings();
+                    final SimpleIterate.ResultCollector collector =
+                            new SimpleIterate.ResultCollector.Streaming(out, groupKeySet, formats);
+                    simpleIterate.evaluate(this, collector);
                 } else if (command instanceof GetGroupStats) {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
                     final double[][] results = getGroupStats.evaluate(this);
