@@ -59,8 +59,7 @@ public class IterateAndExplode implements Command {
                 field,
                 Collections.emptyList(),
                 fieldOpts.toExecution(namedMetricLookup, groupKeySet),
-                explodeDefaultName,
-                null
+                explodeDefaultName
         );
     }
 

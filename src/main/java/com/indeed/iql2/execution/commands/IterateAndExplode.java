@@ -15,7 +15,6 @@
 package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
@@ -23,34 +22,32 @@ import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class IterateAndExplode implements Command {
     public final String field;
     public final List<AggregateMetric> selecting;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
-    @Nullable
-    public final Set<String> scope;
 
-    // TODO: Null is horrible, put on some sort of options object
-    public IterateAndExplode(String field, List<AggregateMetric> selecting, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName, @Nullable Set<String> scope) {
+    public IterateAndExplode(
+            final String field,
+            final List<AggregateMetric> selecting,
+            final FieldIterateOpts fieldOpts,
+            final Optional<String> explodeDefaultName) {
         this.field = field;
         this.selecting = selecting;
         this.fieldOpts = fieldOpts;
         this.explodeDefaultName = explodeDefaultName;
-        this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
     }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final boolean isIntField = session.isIntField(field);
         final TermsCollector terms = new TermsCollector(isIntField, session.numGroups);
-        SimpleIterate.evaluate(session, field, selecting, fieldOpts, scope, terms);
+        SimpleIterate.evaluate(session, field, selecting, fieldOpts, terms);
         // TODO: change all Optional to java.util.Optional
         final java.util.Optional<String> defaultName =
                 explodeDefaultName.isPresent() ?

@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -40,7 +39,6 @@ import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,18 +57,20 @@ public class SimpleIterate implements Command {
     public final List<AggregateMetric> selecting;
     public final List<Optional<String>> formatStrings;
     public final boolean streamResult;
-    @Nullable
-    public final Set<String> scope;
 
     private int createdGroupCount = 0;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
+    public SimpleIterate(
+            final String field,
+            final FieldIterateOpts opts,
+            final List<AggregateMetric> selecting,
+            final List<Optional<String>> formatStrings,
+            final boolean streamResult) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
         this.streamResult = streamResult;
-        this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
         if (this.streamResult && opts.topK.isPresent()) {
             throw new IllegalArgumentException("Can't stream results while doing top-k!");
         }
@@ -101,15 +101,13 @@ public class SimpleIterate implements Command {
             final String field,
             final List<AggregateMetric> selecting,
             final FieldIterateOpts fieldOpts,
-            final Set<String> scope,
             final ResultCollector out) throws ImhotepOutOfMemoryException, IOException {
         new SimpleIterate(
                 field,
                 fieldOpts,
                 selecting,
                 Collections.nCopies(selecting.size(), Optional.absent()),
-                false,
-                scope)
+                false)
                 .evaluate(session, out);
     }
 
@@ -194,16 +192,7 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
 
-        final Map<String, ImhotepSessionHolder> sessionsMapRaw = session.getSessionsMapRaw();
-        final Map<String, ImhotepSessionHolder> sessionsToUse;
-        if (scope == null) {
-            sessionsToUse = sessionsMapRaw;
-        } else {
-            sessionsToUse = Maps.newHashMap();
-            for (final String dataset : scope) {
-                sessionsToUse.put(dataset, sessionsMapRaw.get(dataset));
-            }
-        }
+        final Map<String, ImhotepSessionHolder> sessionsToUse = session.getSessionsMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
@@ -265,9 +254,8 @@ public class SimpleIterate implements Command {
         }
 
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
-        final Set<String> scope = this.scope == null ? session.sessions.keySet() : this.scope;
-        for (final String dataset : scope) {
-            final ImhotepSessionHolder sessionHolder = session.sessions.get(dataset).session;
+        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
+            final ImhotepSessionHolder sessionHolder = entry.getValue().session;
             sessionFields.add(sessionHolder.buildSessionField(field));
         }
 
