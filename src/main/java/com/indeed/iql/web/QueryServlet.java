@@ -124,7 +124,8 @@ public class QueryServlet {
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
-            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql");
+            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql", "skipValidation", "legacymode",
+            "getversion");
 
     @Nullable
     private final File tmpDir;
