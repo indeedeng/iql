@@ -21,6 +21,15 @@ public class FieldInQueryDataset {
         shards.addAll(create("other2", "thefield", Collections.emptyList(), Arrays.asList("a", "b")));
         shards.addAll(create("other3", "thefield", Arrays.asList(1, 10), Collections.emptyList()));
         shards.addAll(create("other4", "thefield", Arrays.asList(1, 10), Collections.emptyList()));
+
+        {
+            final int count = 10000;
+            final List<Integer> values = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                values.add(i);
+            }
+            shards.addAll(create("manyValues", "thefield", values, Collections.emptyList()));
+        }
         return new Dataset(shards);
     }
 

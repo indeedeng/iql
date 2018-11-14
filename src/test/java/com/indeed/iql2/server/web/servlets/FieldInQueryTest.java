@@ -44,6 +44,18 @@ public class FieldInQueryTest extends BasicTest {
                 "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
+    // Test for IQL-616
+    @Test
+    public void groupByFieldInQuery() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("c", "4", "1"));
+        expected.add(ImmutableList.of("d", "141", "1"));
+        expected.add(ImmutableList.of("DEFAULT", "0", "0"));
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET, expected,
+                "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield) select count()", true);
+    }
+
     @Test
     public void fieldInQueryInts() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
