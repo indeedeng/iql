@@ -17,8 +17,6 @@ package com.indeed.iql2.language.query;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql.exceptions.IqlKnownException;
-import java.util.function.Consumer;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
 import com.indeed.iql2.language.AggregateMetric;
@@ -36,7 +34,6 @@ import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.util.core.Pair;
-import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
@@ -51,27 +48,26 @@ public class GroupBys {
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
-    public static List<GroupByEntry> parseGroupBys(JQLParser.GroupByContentsContext groupByContentsContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static List<GroupByEntry> parseGroupBys(
+            final JQLParser.GroupByContentsContext groupByContentsContext,
+            final Query.Context context) {
         final List<JQLParser.GroupByEntryContext> elements = groupByContentsContext.groupByEntry();
         final List<GroupByEntry> result = new ArrayList<>(elements.size());
         for (final JQLParser.GroupByEntryContext element : elements) {
-            result.add(parseGroupByEntry(element, options, datasetsMetadata, warn, clock));
+            result.add(parseGroupByEntry(element, context));
         }
         return result;
     }
 
     public static GroupByEntry parseGroupByEntry(
             final JQLParser.GroupByEntryContext ctx,
-            final List<String> options,
-            final DatasetsMetadata datasetsMetadata,
-            final Consumer<String> warn,
-            final WallClock clock
+            final Query.Context context
     ) {
-        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), options, datasetsMetadata, warn, clock);
+        final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), context);
         Optional<AggregateFilter> aggregateFilter = Optional.absent();
         Optional<String> alias = Optional.absent();
         if (ctx.filter != null) {
-            aggregateFilter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.filter, options, datasetsMetadata, warn, clock));
+            aggregateFilter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.filter, context));
         }
         if (ctx.alias != null) {
             alias = Optional.of(ctx.alias.getText());
@@ -79,7 +75,9 @@ public class GroupBys {
         return new GroupByEntry(groupBy, aggregateFilter, alias);
     }
 
-    public static GroupBy parseGroupBy(final JQLParser.GroupByElementContext groupByElementContext, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static GroupBy parseGroupBy(
+            final JQLParser.GroupByElementContext groupByElementContext,
+            final Query.Context context) {
         final GroupBy[] ref = new GroupBy[1];
 
         groupByElementContext.enterRule(new JQLBaseListener() {
@@ -93,7 +91,7 @@ public class GroupBys {
             @Override
             public void enterDayOfWeekGroupBy(JQLParser.DayOfWeekGroupByContext ctx) {
                 if (ctx.hasParens == null) {
-                    warn.accept("DAYOFWEEK is deprecated -- should be DAYOFWEEK().");
+                    context.warn.accept("DAYOFWEEK is deprecated -- should be DAYOFWEEK().");
                 }
                 accept(new GroupBy.GroupByDayOfWeek());
             }
@@ -115,7 +113,7 @@ public class GroupBys {
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, options, datasetsMetadata, warn, clock));
+                    metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, context));
                 } else {
                     metric = Optional.absent();
                 }
@@ -131,7 +129,7 @@ public class GroupBys {
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
                 if (ctx.not != null) {
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, true);
-                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.<Long>absent(), Optional.<AggregateMetric>absent(), ctx.withDefault != null, false));
+                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null, false));
                 } else {
                     final List<Term> terms = new ArrayList<>();
                     boolean anyString = false;
@@ -170,7 +168,7 @@ public class GroupBys {
                 final boolean withDefault;
                 if (ctx.groupByMetric() != null) {
                     final JQLParser.GroupByMetricContext ctx2 = ctx.groupByMetric();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), options, datasetsMetadata, warn, clock);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), context);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -185,7 +183,7 @@ public class GroupBys {
                     withDefault = ctx2.withDefault != null;
                 } else if (ctx.groupByMetricEnglish() != null) {
                     final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), options, datasetsMetadata, warn, clock);
+                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), context);
                     min = Long.parseLong(ctx2.min.getText());
                     max = Long.parseLong(ctx2.max.getText());
                     interval = Long.parseLong(ctx2.interval.getText());
@@ -267,7 +265,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
-                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, options, datasetsMetadata, warn, clock);
+                    AggregateMetric theMetric = AggregateMetrics.parseAggregateMetric(ctx2.metric, context);
                     if (reverseOrder) {
                         if (theMetric instanceof AggregateMetric.DocStats) {
                             theMetric = new AggregateMetric.DocStats(
@@ -286,7 +284,7 @@ public class GroupBys {
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, options, datasetsMetadata, warn, clock));
+                    filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, context));
                 } else {
                     filter = Optional.absent();
                 }
@@ -302,7 +300,7 @@ public class GroupBys {
 
             @Override
             public void enterPredicateGroupBy(JQLParser.PredicateGroupByContext ctx) {
-                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, null, warn, clock);
+                final DocFilter filter = DocFilters.parseJQLDocFilter(ctx.jqlDocFilter(), context);
                 accept(new GroupBy.GroupByPredicate(filter));
             }
 
@@ -321,7 +319,7 @@ public class GroupBys {
 
             @Override
             public void enterRandomMetricGroupBy(final JQLParser.RandomMetricGroupByContext ctx) {
-                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock);
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), context);
                 final int k = Integer.parseInt(ctx.k.getText());
                 final String salt;
                 if (ctx.salt == null) {

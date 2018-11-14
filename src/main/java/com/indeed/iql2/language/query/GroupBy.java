@@ -19,13 +19,13 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positioned;
+import com.indeed.iql2.language.execution.ExecutionStep;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 

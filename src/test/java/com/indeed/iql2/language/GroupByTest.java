@@ -16,42 +16,42 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.indeed.iql2.language.JQLParser;
-import com.indeed.util.core.time.StoppedClock;
-import com.indeed.util.core.time.WallClock;
-import java.util.function.Consumer;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.query.Query;
+import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.core.time.WallClock;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.function.Consumer;
 
 public class GroupByTest {
-    public static final Consumer<String> WARN = new Consumer<String>() {
-        @Override
-        public void accept(String s) {
-            System.out.println("PARSE WARNING: " + s);
-        }
-    };
-
+    public static final Consumer<String> WARN = s -> System.out.println("PARSE WARNING: " + s);
     private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final Query.Context CONTEXT = new Query.Context(
+            Collections.emptyList(),
+            DatasetsMetadata.empty(),
+            null,
+            WARN,
+            CLOCK);
 
     public static final Function<JQLParser, GroupByEntry> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByEntry>() {
         @Override
         public GroupByEntry apply(JQLParser input) {
-            return GroupBys.parseGroupByEntry(input.groupByEntry(true), Collections.emptyList(), DatasetsMetadata.empty(), WARN, CLOCK);
+            return GroupBys.parseGroupByEntry(input.groupByEntry(true), CONTEXT);
         }
     };
 
     public static final Function<JQLParser, GroupByEntry> PARSE_IQL2_GROUP_BY = new Function<JQLParser, GroupByEntry>() {
         @Override
         public GroupByEntry apply(JQLParser input) {
-            return GroupBys.parseGroupByEntry(input.groupByEntry(false), Collections.emptyList(), DatasetsMetadata.empty(), WARN, CLOCK);
+            return GroupBys.parseGroupByEntry(input.groupByEntry(false), CONTEXT);
         }
     };
 

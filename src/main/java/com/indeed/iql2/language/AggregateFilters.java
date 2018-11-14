@@ -14,15 +14,9 @@
 
 package com.indeed.iql2.language;
 
-import java.util.function.Consumer;
-import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.JQLBaseListener;
-import com.indeed.iql2.language.JQLParser;
-import com.indeed.util.core.time.WallClock;
+import com.indeed.iql2.language.query.Query;
 
 import java.util.List;
-
-import static com.indeed.iql2.language.Term.term;
 
 public class AggregateFilters {
     public static AggregateFilter aggregateInHelper(List<JQLParser.TermValContext> terms, boolean negate) {
@@ -45,14 +39,18 @@ public class AggregateFilters {
         return filter;
     }
 
-    public static AggregateFilter parseAggregateFilter(JQLParser.AggregateFilterContext aggregateFilterContext, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateFilter parseAggregateFilter(
+            final JQLParser.AggregateFilterContext aggregateFilterContext,
+            final Query.Context context) {
         if (aggregateFilterContext.jqlAggregateFilter() != null) {
-            return parseJQLAggregateFilter(aggregateFilterContext.jqlAggregateFilter(), options, datasetsMetadata, warn, clock);
+            return parseJQLAggregateFilter(aggregateFilterContext.jqlAggregateFilter(), context);
         }
         throw new UnsupportedOperationException("Non-JQL aggregate filters don't exist. What did you do?!?!?!");
     }
 
-    public static AggregateFilter parseJQLAggregateFilter(JQLParser.JqlAggregateFilterContext aggregateFilterContext, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static AggregateFilter parseJQLAggregateFilter(
+            final JQLParser.JqlAggregateFilterContext aggregateFilterContext,
+            final Query.Context context) {
         final AggregateFilter[] ref = new AggregateFilter[1];
 
         aggregateFilterContext.enterRule(new JQLBaseListener() {
@@ -88,17 +86,19 @@ public class AggregateFilters {
             }
 
             public void enterAggregateFilterParens(JQLParser.AggregateFilterParensContext ctx) {
-                accept(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), options, datasetsMetadata, warn, clock));
+                accept(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
             }
 
             public void enterAggregateAnd(JQLParser.AggregateAndContext ctx) {
-                accept(new AggregateFilter.And(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), options, datasetsMetadata, warn, clock), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), options, datasetsMetadata, warn, clock)));
+                accept(new AggregateFilter.And(
+                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context),
+                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context)));
             }
 
             public void enterAggregateMetricInequality(JQLParser.AggregateMetricInequalityContext ctx) {
                 final String operation = ctx.op.getText();
-                final AggregateMetric arg1 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), options, datasetsMetadata, warn, clock);
-                final AggregateMetric arg2 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), options, datasetsMetadata, warn, clock);
+                final AggregateMetric arg1 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), context);
+                final AggregateMetric arg2 = AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), context);
                 final AggregateFilter result;
                 switch (operation) {
                     case "=": {
@@ -132,11 +132,13 @@ public class AggregateFilters {
             }
 
             public void enterAggregateNot(JQLParser.AggregateNotContext ctx) {
-                accept(new AggregateFilter.Not(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), options, datasetsMetadata, warn, clock)));
+                accept(new AggregateFilter.Not(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context)));
             }
 
             public void enterAggregateOr(JQLParser.AggregateOrContext ctx) {
-                accept(new AggregateFilter.Or(parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), options, datasetsMetadata, warn, clock), parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), options, datasetsMetadata, warn, clock)));
+                accept(new AggregateFilter.Or(
+                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context),
+                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context)));
             }
         });
 
