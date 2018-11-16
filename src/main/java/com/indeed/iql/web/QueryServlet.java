@@ -655,21 +655,27 @@ public class QueryServlet {
         if(Strings.isNullOrEmpty(describeStatement.field)) {
             handleDescribeDataset(describeStatement, queryRequestParams, resp);
         } else {
-            queryInfo.datasetFields = Sets.newHashSet(describeStatement.dataset + "." + describeStatement.field);
-            handleDescribeField(describeStatement, queryRequestParams, resp);
+            handleDescribeField(describeStatement, queryRequestParams, resp, queryInfo);
         }
     }
 
-    private void handleDescribeField(DescribeStatement parsedQuery, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
+    private void handleDescribeField(DescribeStatement parsedQuery, QueryRequestParams queryRequestParams, HttpServletResponse resp, QueryInfo queryInfo) throws IOException {
+        queryInfo.datasetFields = Sets.newHashSet(parsedQuery.dataset + "." + parsedQuery.field);
         final PrintWriter outputStream = resp.getWriter();
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
         FieldMetadata field = metadataCacheIQL1.getDataset(dataset).getField(fieldName);
+        final boolean hadDescription;
         if(field == null) {
             field = new FieldMetadata("notfound", FieldType.String);
             field.setDescription("Field not found");
+            hadDescription = false;
+        } else {
+            hadDescription = !Strings.isNullOrEmpty(field.getDescription());
         }
+        queryInfo.fieldHadDescription = hadDescription;
+
         if(queryRequestParams.json) {
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
@@ -828,6 +834,7 @@ public class QueryServlet {
 
         logBoolean(logEntry, "cached", queryInfo.cached);
         logSet(logEntry, "dataset", queryInfo.datasets);
+        logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
         if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
         }
