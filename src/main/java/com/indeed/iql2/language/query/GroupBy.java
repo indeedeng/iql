@@ -41,6 +41,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
         T visit(GroupByMonth groupByMonth) throws E;
         T visit(GroupByFieldIn groupByFieldIn) throws E;
+        T visit(GroupByFieldInQuery groupByFieldInQuery) throws E;
         T visit(GroupByField groupByField) throws E;
         T visit(GroupByDayOfWeek groupByDayOfWeek) throws E;
         T visit(GroupBySessionName groupBySessionName) throws E;
@@ -481,6 +482,84 @@ public abstract class GroupBy extends AbstractPositional {
                     ", intTerms=" + intTerms +
                     ", stringTerms=" + stringTerms +
                     ", withDefault=" + withDefault +
+                    '}';
+        }
+    }
+
+    public static class GroupByFieldInQuery extends GroupBy {
+        public final Positioned<String> field;
+        public final Query query;
+        public final boolean isNegated;
+
+        public GroupByFieldInQuery(
+                final Positioned<String> field,
+                final Query query,
+                final boolean isNegated) {
+            this.field = field;
+            this.query = query;
+            this.isNegated = isNegated;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public GroupBy transform(
+                final Function<GroupBy, GroupBy> groupBy,
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(this);
+        }
+
+        @Override
+        public GroupBy traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(final Set<String> scope) {
+            throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
+        }
+
+        @Override
+        public boolean isTotal() {
+            throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if ((o == null) || (getClass() != o.getClass())) {
+                return false;
+            }
+            final GroupByFieldInQuery that = (GroupByFieldInQuery) o;
+            return (isNegated == that.isNegated) &&
+                    Objects.equals(field, that.field) &&
+                    Objects.equals(query, that.query);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, query, isNegated);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByFieldIn{" +
+                    "field='" + field + '\'' +
+                    ", query=" + query +
+                    ", isNegated=" + isNegated +
                     '}';
         }
     }

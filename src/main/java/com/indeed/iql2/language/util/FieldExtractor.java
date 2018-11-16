@@ -602,6 +602,14 @@ public class FieldExtractor {
 			}
 
 			@Override
+            public Set<DatasetField> visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+			    return union(
+                        ImmutableSet.of(new DatasetField(groupByFieldInQuery.field)),
+                        getDatasetFields(groupByFieldInQuery.query)
+                );
+            }
+
+            @Override
 			public Set<DatasetField> visit(final GroupBy.GroupByField groupByField) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
 				set.add(new DatasetField(groupByField.field));

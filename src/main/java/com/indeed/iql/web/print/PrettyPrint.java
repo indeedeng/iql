@@ -363,6 +363,17 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+                sb.append(getText(groupByFieldInQuery.field));
+                if (groupByFieldInQuery.isNegated) {
+                    sb.append(" NOT");
+                }
+                sb.append(" IN (").append(groupByFieldInQuery.query).append(")");
+                return null;
+
+            }
+
+            @Override
             public Void visit(GroupBy.GroupByField groupByField) {
                 sb.append(getText(groupByField.field));
                 if (groupByField.metric.isPresent() || groupByField.limit.isPresent()) {

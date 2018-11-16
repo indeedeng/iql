@@ -16,6 +16,7 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
@@ -128,7 +129,8 @@ public class GroupBys {
             @Override
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
                 if (ctx.not != null) {
-                    final AggregateFilter filter = AggregateFilters.aggregateInHelper(ctx.terms, true);
+                    final Iterable<Term> terms = Iterables.transform(ctx.terms, Term::parseTerm);
+                    final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
                     accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null, false));
                 } else {
                     final List<Term> terms = new ArrayList<>();
@@ -156,6 +158,13 @@ public class GroupBys {
                     final boolean withDefault = ctx.withDefault != null;
                     accept(new GroupBy.GroupByFieldIn(parseIdentifier(ctx.field), ints, strings, withDefault));
                 }
+            }
+
+            @Override
+            public void enterGroupByFieldInQuery(final JQLParser.GroupByFieldInQueryContext ctx) {
+                final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
+                final Query query = Query.parseSubquery(queryCtx, context);
+                accept(new GroupBy.GroupByFieldInQuery(parseIdentifier(ctx.field), query, ctx.not != null));
             }
 
             @Override

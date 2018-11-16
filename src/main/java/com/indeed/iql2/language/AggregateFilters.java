@@ -16,16 +16,14 @@ package com.indeed.iql2.language;
 
 import com.indeed.iql2.language.query.Query;
 
-import java.util.List;
-
 public class AggregateFilters {
-    public static AggregateFilter aggregateInHelper(List<JQLParser.TermValContext> terms, boolean negate) {
+    public static AggregateFilter aggregateInHelper(final Iterable<Term> terms, final boolean negate) {
         AggregateFilter filter = null;
-        for (final JQLParser.TermValContext term : terms) {
+        for (final Term term : terms) {
             if (filter == null) {
-                filter = new AggregateFilter.TermIs(Term.parseTerm(term));
+                filter = new AggregateFilter.TermIs(term);
             } else {
-                filter = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.parseTerm(term)), filter);
+                filter = new AggregateFilter.Or(new AggregateFilter.TermIs(term), filter);
             }
         }
         if (filter == null) {

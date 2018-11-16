@@ -14,15 +14,12 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Optional;
-import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -256,20 +253,7 @@ public class DocFilters {
             @Override
             public void enterDocFieldInQuery(JQLParser.DocFieldInQueryContext ctx) {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
-                // Changing context if necessary
-                final Query.Context actualContext =
-                        (queryCtx.same == null) ? context.copyWithAnotherFromContext(queryCtx.fromContents()) : context;
-                if (actualContext.fromContext == null) {
-                    throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE");
-                }
-                final Query query = Query.parseQuery(
-                        actualContext,
-                        Optional.fromNullable(queryCtx.whereContents()),
-                        Optional.of(queryCtx.groupByContents()),
-                        Collections.emptyList(),
-                        null,
-                        false
-                );
+                final Query query = Query.parseSubquery(queryCtx, context);
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(new DocFilter.FieldInQuery(query, scopedField, ctx.not != null));
             }

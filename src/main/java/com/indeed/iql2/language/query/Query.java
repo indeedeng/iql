@@ -201,6 +201,26 @@ public class Query extends AbstractPositional {
         return query;
     }
 
+    public static Query parseSubquery(
+            final JQLParser.QueryNoSelectContext queryContext,
+            final Context parentQueryContext) {
+        // Changing context if necessary
+        final Query.Context actualContext =
+                (queryContext.same == null) ? parentQueryContext.copyWithAnotherFromContext(queryContext.fromContents()) : parentQueryContext;
+        if (actualContext.fromContext == null) {
+            throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE or GROUP BY");
+        }
+        final Query query = Query.parseQuery(
+                actualContext,
+                Optional.fromNullable(queryContext.whereContents()),
+                Optional.of(queryContext.groupByContents()),
+                Collections.emptyList(),
+                null,
+                false
+        );
+        return query;
+    }
+
     public Query transform(
             Function<GroupBy, GroupBy> groupBy,
             Function<AggregateMetric, AggregateMetric> f,
