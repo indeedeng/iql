@@ -48,11 +48,7 @@ public class IterateAndExplode implements Command {
         final boolean isIntField = session.isIntField(field);
         final TermsCollector terms = new TermsCollector(isIntField, session.numGroups);
         SimpleIterate.evaluate(session, field, selecting, fieldOpts, terms);
-        // TODO: change all Optional to java.util.Optional
-        final java.util.Optional<String> defaultName =
-                explodeDefaultName.isPresent() ?
-                        java.util.Optional.of(explodeDefaultName.get()) : java.util.Optional.empty();
-        new ExplodePerGroup(field, isIntField, terms.intTerms, terms.stringTerms, defaultName).execute(session);
+        new ExplodePerGroup(field, isIntField, terms.intTerms, terms.stringTerms, explodeDefaultName).execute(session);
     }
 
     // class for collecting only terms in each group.

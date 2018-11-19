@@ -159,26 +159,15 @@ public class SimpleIterate implements Command {
         if (streamResult) {
             collector = out;
         } else if (opts.topK.isPresent()) {
-            final TermsAccumulator[] pqs = new TermsAccumulator[session.numGroups + 1];
             if (opts.topK.get().limit.isPresent()) {
-                final Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
                 final int limit = opts.topK.get().limit.get();
-                for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = new TermsAccumulator.BoundedPriorityQueueAccumulator(limit, comparator);
-                }
+                collector = ResultCollector.topKCollector(out, session.numGroups, limit, TermSelects.COMPARATOR);
             } else {
                 final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
-                for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = new TermsAccumulator.ArrayAccumulator(comparator);
-                }
+                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
             }
-            collector = new ResultCollector.PerGroupCollector(pqs, out);
         } else {
-            final TermsAccumulator[] pqs = new TermsAccumulator[session.numGroups + 1];
-            for (int i = 1; i <= session.numGroups; i++) {
-                pqs[i] = new TermsAccumulator.ArrayAccumulator(null);
-            }
-            collector = new ResultCollector.PerGroupCollector(pqs, out);
+            collector = ResultCollector.allTermsCollector(out, session.numGroups, null);
         }
         final Optional<Integer> ftgsRowLimit;
         if (opts.topK.isPresent()) {
@@ -219,7 +208,10 @@ public class SimpleIterate implements Command {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
         }
 
+        session.timer.push("ResultCollector.finish()");
         collector.finish();
+        session.timer.pop();
+
         session.popStats();
     }
 
@@ -284,15 +276,15 @@ public class SimpleIterate implements Command {
 
             final ResultCollector collector;
 
-            if (!streamResult) {
+            if (streamResult) {
+                collector = out;
+            } else {
                 final TermsAccumulator[] result = new TermsAccumulator[session.numGroups+1];
                 final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
                 for (int group = 0; group <= session.numGroups; group++) {
                     result[group] = new TermsAccumulator.ArrayAccumulator(comparator);
                 }
                 collector = new ResultCollector.PerGroupCollector(result, out);
-            } else {
-                collector = out;
             }
 
             Preconditions.checkState(iterator.nextField());
@@ -334,9 +326,11 @@ public class SimpleIterate implements Command {
             Preconditions.checkState(!iterator.nextField());
             session.timer.pop();
 
-            session.popStats();
-
+            session.timer.push("ResultCollector.finish()");
             collector.finish();
+            session.timer.pop();
+
+            session.popStats();
         }
     }
 
@@ -605,6 +599,29 @@ public class SimpleIterate implements Command {
             @Override
             public void finish() {
             }
+        }
+
+        static ResultCollector topKCollector(
+                final ResultCollector prev,
+                final int numGroups,
+                final int limit,
+                final Comparator<TermSelects> comparator) {
+            final TermsAccumulator[] pqs = new TermsAccumulator[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                pqs[i] = new TermsAccumulator.BoundedPriorityQueueAccumulator(limit, comparator);
+            }
+            return new ResultCollector.PerGroupCollector(pqs, prev);
+        }
+
+        static ResultCollector allTermsCollector(
+                final ResultCollector prev,
+                final int numGroups,
+                final Comparator<TermSelects> comparator) {
+            final TermsAccumulator[] pqs = new TermsAccumulator[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                pqs[i] = new TermsAccumulator.ArrayAccumulator(comparator);
+            }
+            return new ResultCollector.PerGroupCollector(pqs, prev);
         }
     }
 

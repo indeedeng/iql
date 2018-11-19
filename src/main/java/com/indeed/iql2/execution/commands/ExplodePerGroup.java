@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.commands;
 
+import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.iql2.execution.Session;
@@ -24,7 +25,6 @@ import com.indeed.iql2.execution.groupkeys.sets.TermsGroupKeySet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.List;
-import java.util.Optional;
 
 public class ExplodePerGroup implements Command {
     final LongArrayList[] intTerms;
@@ -107,7 +107,7 @@ public class ExplodePerGroup implements Command {
         session.regroupWithSingleFieldRules(ruleBuilder, options, true);
 
         final GroupKeySet newKeySet;
-        final GroupKey defaultKey = defaultName.map(DefaultGroupKey::create).orElse(null);
+        final GroupKey defaultKey = defaultName.isPresent() ? DefaultGroupKey.create(defaultName.get()) : null;
         if (isIntType) {
             newKeySet = new TermsGroupKeySet.IntTerms(session.groupKeySet, nextGroupIntTerms, nextGroupParents, defaultKey, isDefault);
         } else {
