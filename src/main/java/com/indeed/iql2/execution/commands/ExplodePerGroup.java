@@ -14,99 +14,84 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.collect.Lists;
-import com.indeed.flamdex.query.Term;
+import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
-import com.indeed.iql2.execution.Commands;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
-import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
-import com.indeed.iql2.execution.groupkeys.StringGroupKey;
-import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.execution.groupkeys.sets.TermsGroupKeySet;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ExplodePerGroup implements Command {
-    public final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts;
+    final LongArrayList[] intTerms;
+    final List<String>[] strTerms;
+    public final Optional<String> defaultName;
+
     private final String field;
     private final boolean isIntType;
 
-    // all Terms inside termsWithExplodeOpts must correspond to same field.
     public ExplodePerGroup(
-            final List<Commands.TermsWithExplodeOpts> termsWithExplodeOpts,
             final String field,
-            final boolean isIntType) {
-        this.termsWithExplodeOpts = termsWithExplodeOpts;
+            final boolean isIntType,
+            final LongArrayList[] intTerms,
+            final List<String>[] strTerms,
+            final Optional<String> defaultName) {
+        this.intTerms = intTerms;
+        this.strTerms = strTerms;
         this.field = field;
         this.isIntType = isIntType;
+        this.defaultName = defaultName;
     }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
-        checkNumGroups(session);
+        final int resultingGroups = getGroupsCount();
+        session.checkGroupLimit(resultingGroups);
 
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder ruleBuilder = session.createRuleBuilder(field, isIntType, false);
         int nextGroup = 1;
-        final List<GroupKey> nextGroupKeys = Lists.newArrayList((GroupKey) null);
-        final IntList nextGroupParents = new IntArrayList();
-        nextGroupParents.add(-1);
+        final long[] nextGroupIntTerms = isIntType ? new long[resultingGroups + 1] : null;
+        final String[] nextGroupStringTerms = isIntType ? null : new String[resultingGroups + 1];
+        final boolean[] isDefault = defaultName.isPresent() ? new boolean[resultingGroups + 1] : null;
+        final int[] nextGroupParents = new int[resultingGroups + 1];
+        nextGroupParents[0] = -1;
 
-        final Map<String, GroupKey> stringTermGroupKeys = new HashMap<>();
-
-        final Map<String, GroupKey> defaultGroupKeys = new HashMap<>(); // Probably shared.
+        final long[] emptyLongArray = new long[0];
+        final String[] emptyStringArray = new String[0];
 
         for (int group = 1; group <= session.numGroups; group++) {
-            final Commands.TermsWithExplodeOpts termsWithExplodeOpts = this.termsWithExplodeOpts.get(group);
+            final long[] longTerms = (isIntType && intTerms[group] != null) ? intTerms[group].toLongArray() : emptyLongArray;
+            final String[] stringTerms = (!isIntType && strTerms[group] != null) ? strTerms[group].toArray(emptyStringArray) : emptyStringArray;
+            final int termsCount = isIntType ? longTerms.length : stringTerms.length;
 
-            final List<Term> terms = termsWithExplodeOpts.terms;
-            if (terms.isEmpty() && !termsWithExplodeOpts.defaultName.isPresent()) {
+            if ((termsCount == 0) && !defaultName.isPresent()) {
                 continue;
             }
 
-            final int termsCount = terms.size();
-            final long[] longTerms = isIntType ? new long[termsCount] : null;
-            final String[] stringTerms = isIntType ? null : new String[termsCount];
-            for (int termIndex = 0; termIndex < termsCount; termIndex++) {
-                final Term term = terms.get(termIndex);
-                if ((term.isIntField() != isIntType) || !field.equals(term.getFieldName())) {
-                    throw new IllegalStateException();
-                }
-                if (isIntType) {
-                    final long longTerm = term.getTermIntVal();
-                    longTerms[termIndex] = longTerm;
-                    nextGroupKeys.add(new IntTermGroupKey(longTerm));
-                    nextGroupParents.add(group);
-                } else {
-                    final String stringTerm = term.getTermStringVal();
-                    stringTerms[termIndex] = stringTerm;
-                    if (!stringTermGroupKeys.containsKey(stringTerm)) {
-                        stringTermGroupKeys.put(term.getTermStringVal(), new StringGroupKey(stringTerm));
-                    }
-                    nextGroupKeys.add(stringTermGroupKeys.get(stringTerm));
-                    nextGroupParents.add(group);
-                }
+            if (isIntType) {
+                System.arraycopy(longTerms, 0, nextGroupIntTerms, nextGroup, termsCount);
+            } else {
+                System.arraycopy(stringTerms, 0, nextGroupStringTerms, nextGroup, termsCount);
             }
 
             final int[] positiveGroups = new int[termsCount];
-            for (int j = 0; j < positiveGroups.length; j++) {
-                positiveGroups[j] = nextGroup++;
+            for (int termIndex = 0; termIndex < termsCount; termIndex++) {
+                nextGroupParents[nextGroup] = group;
+                positiveGroups[termIndex] = nextGroup;
+                nextGroup++;
             }
+
             final int negativeGroup;
-            if (termsWithExplodeOpts.defaultName.isPresent()) {
-                negativeGroup = nextGroup++;
-                final String defaultName = termsWithExplodeOpts.defaultName.get();
-                if (!defaultGroupKeys.containsKey(defaultName)) {
-                    defaultGroupKeys.put(defaultName, DefaultGroupKey.create(defaultName));
-                }
-                nextGroupKeys.add(defaultGroupKeys.get(defaultName));
-                nextGroupParents.add(group);
+            if (defaultName.isPresent()) {
+                negativeGroup = nextGroup;
+                isDefault[nextGroup] = true;
+                nextGroupParents[nextGroup] = group;
+                nextGroup++;
             } else {
                 negativeGroup = 0;
             }
@@ -121,19 +106,38 @@ public class ExplodePerGroup implements Command {
         final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, isIntType, false);
         session.regroupWithSingleFieldRules(ruleBuilder, options, true);
 
-        session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, nextGroupParents.toIntArray(), nextGroupKeys));
+        final GroupKeySet newKeySet;
+        final GroupKey defaultKey = defaultName.isPresent() ? DefaultGroupKey.create(defaultName.get()) : null;
+        if (isIntType) {
+            newKeySet = new TermsGroupKeySet.IntTerms(session.groupKeySet, nextGroupIntTerms, nextGroupParents, defaultKey, isDefault);
+        } else {
+            newKeySet = new TermsGroupKeySet.StringTerms(session.groupKeySet, nextGroupStringTerms, nextGroupParents, defaultKey, isDefault);
+        }
+
+        session.assumeDense(newKeySet);
     }
 
-    private void checkNumGroups(Session session) {
+    private int getGroupsCount() {
         int numGroups = 0;
-        for (final Commands.TermsWithExplodeOpts termsWithExplodeOpt : this.termsWithExplodeOpts) {
-            if (termsWithExplodeOpt != null) {
-                numGroups += termsWithExplodeOpt.terms.size();
-                if (termsWithExplodeOpt.defaultName.isPresent()) {
-                    numGroups += 1;
+        if (isIntType) {
+            for (final LongArrayList terms : intTerms) {
+                if (terms != null) {
+                    numGroups += terms.size();
                 }
             }
+            if (defaultName.isPresent()) {
+                numGroups += intTerms.length - 1; // not counting zero group;
+            }
+        } else {
+            for (final List<String> terms : strTerms) {
+                if (terms != null) {
+                    numGroups += terms.size();
+                }
+            }
+            if (defaultName.isPresent()) {
+                numGroups += strTerms.length - 1; // not counting zero group;
+            }
         }
-        session.checkGroupLimit(numGroups);
+        return numGroups;
     }
 }

@@ -77,8 +77,7 @@ public class SimpleIterate implements Command {
                 opts.toExecution(namedMetricLookup, groupKeySet),
                 selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
                 formatStrings,
-                streamResult,
-                null
+                streamResult
         );
     }
 
