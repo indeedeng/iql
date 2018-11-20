@@ -52,7 +52,6 @@ public class OptimizeLast {
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) penultimate;
                 // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
                 // TODO: Figure out wtf the above TODO means.
-                final boolean isReordered = explodeAndRegroup.limit.isPresent();
                 final boolean hasDefault = explodeAndRegroup.withDefault;
                 if (!selectIsOrdered && !hasDefault) { // If there's a filter and something that depends on order, we can't merge them.
                     final List<ExecutionStep> newSteps = new ArrayList<>();
@@ -68,8 +67,7 @@ public class OptimizeLast {
                             Optional.<Set<String>>absent(),
                             Optional.<Set<Long>>absent(),
                             fixForIteration(getGroupStats.stats),
-                            getGroupStats.formatStrings,
-                            isReordered
+                            getGroupStats.formatStrings
                             ));
                     return newSteps;
                 }
@@ -102,8 +100,7 @@ public class OptimizeLast {
                             stringTermSubset,
                             intTermSubset,
                             fixForIteration(getGroupStats.stats),
-                            getGroupStats.formatStrings,
-                            false
+                            getGroupStats.formatStrings
                     ));
                     return newSteps;
                 }

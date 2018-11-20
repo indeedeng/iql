@@ -454,11 +454,9 @@ public interface ExecutionStep {
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
 
-        private final boolean forceNonStreaming;
-
         public IterateStats(
                 String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
-                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
+                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -468,7 +466,6 @@ public interface ExecutionStep {
             this.intTermSubset = intTermSubset;
             this.stats = stats;
             this.formatStrings = formatStrings;
-            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -481,7 +478,7 @@ public interface ExecutionStep {
             opts.filter = filter;
             opts.intTermSubset = intTermSubset;
             opts.stringTermSubset = stringTermSubset;
-            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
+            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings);
             return Collections.<Command>singletonList(simpleIterate);
         }
 
@@ -503,7 +500,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings, forceNonStreaming);
+            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings);
         }
 
         @Override
@@ -518,7 +515,6 @@ public interface ExecutionStep {
                     ", intTermSubset=" + intTermSubset +
                     ", stats=" + stats +
                     ", formatStrings=" + formatStrings +
-                    ", forceNonStreaming=" + forceNonStreaming +
                     '}';
         }
     }
