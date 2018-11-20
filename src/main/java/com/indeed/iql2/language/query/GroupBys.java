@@ -164,7 +164,7 @@ public class GroupBys {
             public void enterGroupByFieldInQuery(final JQLParser.GroupByFieldInQueryContext ctx) {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
                 final Query query = Query.parseSubquery(queryCtx, context);
-                accept(new GroupBy.GroupByFieldInQuery(parseIdentifier(ctx.field), query, ctx.not != null));
+                accept(new GroupBy.GroupByFieldInQuery(parseIdentifier(ctx.field), query, ctx.not != null, ctx.withDefault != null));
             }
 
             @Override

@@ -490,14 +490,17 @@ public abstract class GroupBy extends AbstractPositional {
         public final Positioned<String> field;
         public final Query query;
         public final boolean isNegated;
+        public final boolean withDefault;
 
         public GroupByFieldInQuery(
                 final Positioned<String> field,
                 final Query query,
-                final boolean isNegated) {
+                final boolean isNegated,
+                final boolean withDefault) {
             this.field = field;
             this.query = query;
             this.isNegated = isNegated;
+            this.withDefault = withDefault;
         }
 
         @Override
@@ -545,13 +548,14 @@ public abstract class GroupBy extends AbstractPositional {
             }
             final GroupByFieldInQuery that = (GroupByFieldInQuery) o;
             return (isNegated == that.isNegated) &&
+                    (withDefault == that.withDefault) &&
                     Objects.equals(field, that.field) &&
                     Objects.equals(query, that.query);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field, query, isNegated);
+            return Objects.hash(field, query, isNegated, withDefault);
         }
 
         @Override
@@ -560,6 +564,7 @@ public abstract class GroupBy extends AbstractPositional {
                     "field='" + field + '\'' +
                     ", query=" + query +
                     ", isNegated=" + isNegated +
+                    ", withDefault=" + withDefault +
                     '}';
         }
     }

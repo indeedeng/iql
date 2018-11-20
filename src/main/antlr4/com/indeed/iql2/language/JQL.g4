@@ -403,8 +403,7 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    // TODO: does it make sense to support 'group by field in (subQuery) with default' ?
-    | field=identifier not=NOT? IN '(' queryNoSelect ')' # GroupByFieldInQuery
+    | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy

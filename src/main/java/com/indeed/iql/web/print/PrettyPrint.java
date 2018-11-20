@@ -369,8 +369,10 @@ public class PrettyPrint {
                     sb.append(" NOT");
                 }
                 sb.append(" IN (").append(groupByFieldInQuery.query).append(")");
+                if (groupByFieldInQuery.withDefault) {
+                    sb.append(" with default");
+                }
                 return null;
-
             }
 
             @Override

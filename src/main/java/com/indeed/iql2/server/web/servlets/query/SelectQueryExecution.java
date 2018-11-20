@@ -415,14 +415,16 @@ public class SelectQueryExecution {
                                     } else {
                                         filter = null;
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), false, false);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault, false);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
                                     final LongArrayList intTerms = (result.getFirst() == null) ?
                                             new LongArrayList(0) : new LongArrayList(result.getFirst());
                                     final List<String> stringTerms = (result.getSecond() == null) ?
                                             new ArrayList<>(0) : new ArrayList<>(result.getSecond());
-                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, false);
+                                    intTerms.sort(Long::compareTo);
+                                    stringTerms.sort(String::compareTo);
+                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, fieldInQuery.withDefault);
                                 }
                             }
                             return input;
@@ -688,7 +690,12 @@ public class SelectQueryExecution {
             }
         }
 
-        private Pair<Set<Long>, Set<String>> executeSubquery(final Query q, final int[] totalBytesWritten, final Set<String> cacheKeys, final ListMultimap<String, List<Shard>> allShardsUsed, final List<DatasetWithMissingShards> datasetsWithMissingShards) {
+        private Pair<Set<Long>, Set<String>> executeSubquery(
+                final Query q,
+                final int[] totalBytesWritten,
+                final Set<String> cacheKeys,
+                final ListMultimap<String, List<Shard>> allShardsUsed,
+                final List<DatasetWithMissingShards> datasetsWithMissingShards) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
             timer.push("Execute sub-query: \"" + q + "\"");

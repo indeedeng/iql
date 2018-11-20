@@ -61,6 +61,18 @@ public class FieldInQueryTest extends BasicTest {
                 "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield) select count()", true);
     }
 
+    @Test
+    public void groupByFieldInQueryWithDefault() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2"));
+        expected.add(ImmutableList.of("1", "84"));
+        expected.add(ImmutableList.of("2", "1"));
+        expected.add(ImmutableList.of("DEFAULT", "64"));
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET, expected,
+                "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield[3]) with default select count()", true);
+    }
+
     // TODO: this test fails because StackOverflow while transforming high terms tree with ors.
     // This behavior could be fixed after IMTEPD-454 is implemented.
     @Ignore("Enable test after fixing IMTEPD-454")
