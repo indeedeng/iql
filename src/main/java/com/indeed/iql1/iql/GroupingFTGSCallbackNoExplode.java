@@ -41,7 +41,7 @@ public final class GroupingFTGSCallbackNoExplode extends EZImhotepSession.FTGSIt
         return getStats(group, term);
     }
 
-    private GroupStats getStats(int group, Object term) {
+    private GroupStats getStats(int group, Comparable term) {
         final double[] stats = new double[statRefs.size()];
         for (int i = 0; i < statRefs.size(); i++) {
             stats[i] = getStat(statRefs.get(i));

@@ -23,7 +23,7 @@ import java.util.Iterator;
 /**
  * @author jplaisance
  */
-public final class GroupKey<E> implements Iterable<E> {
+public final class GroupKey<E extends Comparable> implements Iterable<E> {
     private static final Logger log = Logger.getLogger(GroupKey.class);
 
     private final @Nullable List<E> front;
@@ -31,11 +31,11 @@ public final class GroupKey<E> implements Iterable<E> {
 
     private static final GroupKey EMPTY = new GroupKey(null, null);
 
-    public static <E> GroupKey<E> empty() {
+    public static <E extends Comparable> GroupKey<E> empty() {
         return EMPTY;
     }
 
-    public static <E> GroupKey<E> singleton(E e) {
+    public static <E extends Comparable> GroupKey<E> singleton(E e) {
         return EMPTY.add(e);
     }
 
@@ -83,6 +83,14 @@ public final class GroupKey<E> implements Iterable<E> {
             int result = head != null ? head.hashCode() : 0;
             result = 31 * result + (tail != null ? tail.hashCode() : 0);
             return result;
+        }
+
+        public E getLast() {
+            List<E> lastTail = tail;
+            while (lastTail.tail != null)
+                lastTail = lastTail.tail;
+
+            return lastTail.head;
         }
     }
 
@@ -141,4 +149,15 @@ public final class GroupKey<E> implements Iterable<E> {
         result = 31 * result + (back != null ? back.hashCode() : 0);
         return result;
     }
+
+    public E getLastInserted() {
+        if (back != null) {
+            return back.head;
+        }
+        if (front == null) {
+            throw new IllegalStateException("key is empty");
+        }
+        return front.getLast();
+    }
+
 }

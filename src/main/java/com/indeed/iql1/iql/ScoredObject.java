@@ -23,36 +23,53 @@ import java.util.Comparator;
  */
 public final class ScoredObject<T> {
     // do a custom comparator to ensure that real numbers are preferred to NaNs
-    public static final Comparator<ScoredObject> TOP_SCORE_COMPARATOR = new Comparator<ScoredObject>() {
-        @Override
-        public int compare(final ScoredObject o1, final ScoredObject o2) {
-            double score1 = o1.getScore();
-            if(Double.isNaN(score1)) {
-                score1 = Double.NEGATIVE_INFINITY;
-            }
-            double score2 = o2.getScore();
-            if(Double.isNaN(score2)) {
-                score2 = Double.NEGATIVE_INFINITY;
-            }
-            return Doubles.compare(score1, score2);
-        }
-    };
 
-    public static final Comparator<ScoredObject> BOTTOM_SCORE_COMPARATOR = new Comparator<ScoredObject>() {
-        @Override
-        public int compare(final ScoredObject o1, final ScoredObject o2) {
-            double score1 = o1.getScore();
-            if(Double.isNaN(score1)) {
-                score1 = Double.POSITIVE_INFINITY;
+
+    public final static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(Comparator<T> comparator) {
+        return new Comparator<ScoredObject<T>>() {
+            @Override
+            public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
+                double score1 = o1.getScore();
+                if(Double.isNaN(score1)) {
+                    score1 = Double.NEGATIVE_INFINITY;
+                }
+                double score2 = o2.getScore();
+                if(Double.isNaN(score2)) {
+                    score2 = Double.NEGATIVE_INFINITY;
+                }
+
+                int r = Doubles.compare(score1, score2);
+                if ( r == 0 ) {
+                    return comparator.compare(o1.getObject(),o2.getObject());
+                } else {
+                    return r;
+                }
             }
-            double score2 = o2.getScore();
-            if(Double.isNaN(score2)) {
-                score2 = Double.POSITIVE_INFINITY;
+        };
+    }
+
+    public final static <T> Comparator<ScoredObject<T>> bottomScoredObjectComparator(Comparator<T> comparator) {
+        return new Comparator<ScoredObject<T>>() {
+            @Override
+            public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
+                double score1 = o1.getScore();
+                if(Double.isNaN(score1)) {
+                    score1 = Double.NEGATIVE_INFINITY;
+                }
+                double score2 = o2.getScore();
+                if(Double.isNaN(score2)) {
+                    score2 = Double.NEGATIVE_INFINITY;
+                }
+
+                int r = Doubles.compare(score1, score2);
+                if ( r == 0 ) {
+                    return -comparator.compare(o1.getObject(),o2.getObject());
+                } else {
+                    return r;
+                }
             }
-            // reverse the result
-            return -Doubles.compare(score1, score2);
-        }
-    };
+        };
+    }
 
     private final double score;
     private final T object;

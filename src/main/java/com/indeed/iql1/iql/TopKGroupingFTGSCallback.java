@@ -36,7 +36,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
     private static final Logger log = Logger.getLogger(TopKGroupingFTGSCallback.class);
 
     private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<GroupStats>>>();
-    private final Comparator<ScoredObject> comparator;
+    private final Comparator<ScoredObject<GroupStats>> comparator;
     private final Limits limits;
     private final int topK;
     private final boolean isBottom;
@@ -54,7 +54,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;
 
-        this.comparator = isBottom ? ScoredObject.BOTTOM_SCORE_COMPARATOR : ScoredObject.TOP_SCORE_COMPARATOR;
+        this.comparator = isBottom ? ScoredObject.topScoredObjectComparator(GroupStats.groupStatsComparator()) : ScoredObject.bottomScoredObjectComparator(GroupStats.groupStatsComparator());
         this.limits = limits;
     }
 
@@ -66,7 +66,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         termGroup(term, group);
     }
 
-    private void termGroup(final Object term, final int group) {
+    private void termGroup(final Comparable term, final int group) {
         PriorityQueue<ScoredObject<GroupStats>> topTerms = groupToTopK.get(group);
         if (topTerms == null) {
             topTerms = new PriorityQueue<>(comparator);
@@ -92,7 +92,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         }
     }
 
-    private ScoredObject<GroupStats> getStats(double count, int group, Object term) {
+    private ScoredObject<GroupStats> getStats(double count, int group, Comparable term) {
         final double[] stats = new double[statRefs.size()];
         for (int i = 0; i < statRefs.size(); i++) {
             stats[i] = getStat(statRefs.get(i));
