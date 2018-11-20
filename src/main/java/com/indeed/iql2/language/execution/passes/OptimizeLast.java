@@ -69,7 +69,7 @@ public class OptimizeLast {
                             Optional.<Set<Long>>absent(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings,
-                            explodeAndRegroup.forceNonStreaming || isReordered
+                            isReordered
                             ));
                     return newSteps;
                 }

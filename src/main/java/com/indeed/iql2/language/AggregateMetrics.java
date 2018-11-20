@@ -431,7 +431,7 @@ public class AggregateMetrics {
                     filter = Optional.absent();
                 }
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
-                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.absent(), Optional.absent(), false);
                 accept(scopedField.wrap(new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context))));
             }
 
@@ -447,7 +447,7 @@ public class AggregateMetrics {
                     context.warn.accept("Used square brackets in AVG_OVER HAVING. This is no longer necessary and is deprecated.");
                 }
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.field);
-                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.<Long>absent(), Optional.<AggregateMetric>absent(), false, false);
+                final GroupBy groupBy = new GroupBy.GroupByField(scopedField.field, filter, Optional.absent(), Optional.absent(), false);
                 accept(scopedField.wrap(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)),
                         new AggregateMetric.Distinct(scopedField.field, filter, Optional.<Integer>absent())

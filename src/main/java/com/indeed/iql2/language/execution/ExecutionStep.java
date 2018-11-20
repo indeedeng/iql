@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
@@ -145,15 +144,13 @@ public interface ExecutionStep {
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
-        public final boolean forceNonStreaming;
 
-        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
+        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.metric = metric;
             this.withDefault = withDefault;
-            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -189,7 +186,7 @@ public interface ExecutionStep {
             } else {
                 metric = Optional.absent();
             }
-            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
+            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
 
         @Override

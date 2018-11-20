@@ -22,13 +22,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
+import com.indeed.iql2.language.execution.ExecutionStep;
+import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.Optionals;
@@ -77,7 +77,7 @@ public class ExtractPrecomputed {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
                                 groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
-                                groupByField.withDefault, groupByField.forceNonStreaming);
+                                groupByField.withDefault);
                         groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
                     processor.setComputationType(ComputationType.PreComputation);

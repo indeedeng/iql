@@ -393,9 +393,6 @@ public class PrettyPrint {
                     }
                     sb.append(']');
                 }
-                if (groupByField.forceNonStreaming) {
-                    sb.append('*');
-                }
                 if (groupByField.withDefault) {
                     sb.append(" with default");
                 }
