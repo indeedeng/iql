@@ -97,6 +97,7 @@ import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -422,7 +423,7 @@ public class SelectQueryExecution {
                                             new LongArrayList(0) : new LongArrayList(result.getFirst());
                                     final List<String> stringTerms = (result.getSecond() == null) ?
                                             new ArrayList<>(0) : new ArrayList<>(result.getSecond());
-                                    intTerms.sort(Long::compareTo);
+                                    Arrays.sort(intTerms.elements());
                                     stringTerms.sort(String::compareTo);
                                     return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, fieldInQuery.withDefault);
                                 }
