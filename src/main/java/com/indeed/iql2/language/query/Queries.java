@@ -125,7 +125,10 @@ public class Queries {
         return result;
     }
 
-    public static GroupBy parseGroupBy(String rawGroupBy, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static GroupBy parseGroupBy(
+            final String rawGroupBy,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
             @Nullable
             @Override
@@ -133,10 +136,13 @@ public class Queries {
                 return input.groupByElement(useLegacy);
             }
         });
-        return GroupBys.parseGroupBy(groupByElementContext, options, datasetsMetadata, warn, clock);
+        return GroupBys.parseGroupBy(groupByElementContext, context);
     }
 
-    public static AggregateFilter parseAggregateFilter(String rawAggregateFilter, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateFilter parseAggregateFilter(
+            final String rawAggregateFilter,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.AggregateFilterContext aggregateFilterContext = runParser(rawAggregateFilter, new Function<JQLParser, JQLParser.AggregateFilterContext>() {
             @Nullable
             @Override
@@ -144,10 +150,13 @@ public class Queries {
                 return input.aggregateFilter(useLegacy);
             }
         });
-        return AggregateFilters.parseAggregateFilter(aggregateFilterContext, options, datasetsMetadata, warn, clock);
+        return AggregateFilters.parseAggregateFilter(aggregateFilterContext, context);
     }
 
-    public static DocFilter parseDocFilter(String rawDocFilter, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock, final JQLParser.FromContentsContext fromContents) {
+    public static DocFilter parseDocFilter(
+            final String rawDocFilter,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.DocFilterContext docFilterContext = runParser(rawDocFilter, new Function<JQLParser, JQLParser.DocFilterContext>() {
             @Nullable
             @Override
@@ -155,10 +164,13 @@ public class Queries {
                 return input.docFilter(useLegacy);
             }
         });
-        return DocFilters.parseDocFilter(docFilterContext, options, datasetsMetadata, fromContents, warn, clock);
+        return DocFilters.parseDocFilter(docFilterContext, context);
     }
 
-    public static DocMetric parseDocMetric(final String rawDocMetric, boolean useLegacy, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static DocMetric parseDocMetric(
+            final String rawDocMetric,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.DocMetricContext docMetricContext = runParser(rawDocMetric, new Function<JQLParser, JQLParser.DocMetricContext>() {
             @Nullable
             @Override
@@ -166,7 +178,7 @@ public class Queries {
                 return input.docMetric(useLegacy);
             }
         });
-        return DocMetrics.parseDocMetric(docMetricContext, options, datasetsMetadata, warn, clock);
+        return DocMetrics.parseDocMetric(docMetricContext, context);
     }
 
     public static class ParseResult {
@@ -421,7 +433,10 @@ public class Queries {
         });
     }
 
-    public static AggregateMetric parseAggregateMetric(String q, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateMetric parseAggregateMetric(
+            final String q,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(q, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
             @Nullable
             @Override
@@ -429,7 +444,7 @@ public class Queries {
                 return input.aggregateMetric(useLegacy);
             }
         });
-        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, options, datasetsMetadata, warn, clock);
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);
     }
 
     public static JQLParser parserForString(String q) {

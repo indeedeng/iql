@@ -18,9 +18,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.query.Dataset;
-import com.indeed.iql2.language.query.GroupBy;
-import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
@@ -28,6 +25,9 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.ScopedField;
+import com.indeed.iql2.language.query.Dataset;
+import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -602,6 +602,14 @@ public class FieldExtractor {
 			}
 
 			@Override
+            public Set<DatasetField> visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+			    return union(
+                        ImmutableSet.of(new DatasetField(groupByFieldInQuery.field)),
+                        getDatasetFields(groupByFieldInQuery.query)
+                );
+            }
+
+            @Override
 			public Set<DatasetField> visit(final GroupBy.GroupByField groupByField) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
 				set.add(new DatasetField(groupByField.field));

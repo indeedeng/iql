@@ -56,6 +56,32 @@ public class Query extends AbstractPositional {
     public final Optional<Integer> rowLimit;
     public final boolean useLegacy;
 
+    // Helper class for data that necessary while parsing query.
+    public static class Context {
+        public final List<String> options;
+        public final DatasetsMetadata datasetsMetadata;
+        public final JQLParser.FromContentsContext fromContext;
+        public final Consumer<String> warn;
+        public final WallClock clock;
+
+        public Context(
+                final List<String> options,
+                final DatasetsMetadata datasetsMetadata,
+                final JQLParser.FromContentsContext fromContext,
+                final Consumer<String> warn,
+                final WallClock clock) {
+            this.options = options;
+            this.datasetsMetadata = datasetsMetadata;
+            this.fromContext = fromContext;
+            this.warn = warn;
+            this.clock = clock;
+        }
+
+        public Context copyWithAnotherFromContext(final JQLParser.FromContentsContext newContext) {
+            return new Context(options, datasetsMetadata, newContext, warn, clock);
+        }
+    }
+
     private static final String FORMAT_STRING_TEMPLATE = "%%.%sf";
 
     public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByEntry> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
@@ -70,18 +96,14 @@ public class Query extends AbstractPositional {
     }
 
     public static Query parseQuery(
-            JQLParser.FromContentsContext fromContents,
-            Optional<JQLParser.WhereContentsContext> whereContents,
-            Optional<JQLParser.GroupByContentsContext> groupByContents,
-            List<JQLParser.SelectContentsContext> selects,
-            List<String> options,
-            Token limit,
-            DatasetsMetadata datasetsMetadata,
-            Consumer<String> warn,
-            WallClock clock,
-            boolean useLegacy
+            final Context context,
+            final Optional<JQLParser.WhereContentsContext> whereContents,
+            final Optional<JQLParser.GroupByContentsContext> groupByContents,
+            final List<JQLParser.SelectContentsContext> selects,
+            final Token limit,
+            final boolean useLegacy
     ) {
-        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(fromContents, options, datasetsMetadata, warn, clock);
+        final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(context);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
         final List<DocFilter> allFilters = new ArrayList<>();
@@ -93,13 +115,13 @@ public class Query extends AbstractPositional {
         }
         if (whereContents.isPresent()) {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
-                allFilters.add(DocFilters.parseDocFilter(ctx, options, datasetsMetadata, fromContents, warn, clock));
+                allFilters.add(DocFilters.parseDocFilter(ctx, context));
             }
         }
 
         final List<GroupByEntry> groupBys;
         if (groupByContents.isPresent()) {
-            groupBys = GroupBys.parseGroupBys(groupByContents.get(), options, datasetsMetadata, warn, clock);
+            groupBys = GroupBys.parseGroupBys(groupByContents.get(), context);
         } else {
             groupBys = Collections.emptyList();
         }
@@ -132,7 +154,7 @@ public class Query extends AbstractPositional {
                 }
                 selectedMetrics = new ArrayList<>();
                 for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, options, datasetsMetadata, warn, clock));
+                    selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, context));
                 }
             }
         } else {
@@ -155,25 +177,47 @@ public class Query extends AbstractPositional {
         } else {
             whereFilter = Optional.of(DocFilters.and(allFilters));
         }
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, context.options, rowLimit, useLegacy);
     }
 
-    public static Query parseQuery(JQLParser.QueryContext queryContext, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock) {
+    public static Query parseQuery(
+            final JQLParser.QueryContext queryContext,
+            final DatasetsMetadata datasetsMetadata,
+            final Set<String> defaultOptions,
+            final Consumer<String> warn,
+            final WallClock clock) {
         final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
         options.addAll(defaultOptions);
+        final Context context = new Context(options, datasetsMetadata, queryContext.fromContents(), warn, clock);
         final Query query = parseQuery(
-                queryContext.fromContents(),
+                context,
                 Optional.fromNullable(queryContext.whereContents()),
                 Optional.fromNullable(queryContext.groupByContents()),
                 queryContext.selects,
-                options,
                 queryContext.limit,
-                datasetsMetadata,
-                warn,
-                clock,
                 queryContext.useLegacy
         );
         query.copyPosition(queryContext);
+        return query;
+    }
+
+    public static Query parseSubquery(
+            final JQLParser.QueryNoSelectContext queryContext,
+            final Context parentQueryContext) {
+        // Changing context if necessary
+        final Query.Context actualContext =
+                (queryContext.same == null) ? parentQueryContext.copyWithAnotherFromContext(queryContext.fromContents()) : parentQueryContext;
+        if (actualContext.fromContext == null) {
+            throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE or GROUP BY");
+        }
+        final Query query = Query.parseQuery(
+                actualContext,
+                Optional.fromNullable(queryContext.whereContents()),
+                Optional.of(queryContext.groupByContents()),
+                Collections.emptyList(),
+                null,
+                false
+        );
         return query;
     }
 

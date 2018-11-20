@@ -28,6 +28,7 @@ import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.time.DefaultWallClock;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -223,9 +224,10 @@ public class ImhotepMetadataCache {
         } else {
             metricExpression = expr;
         }
-        final AggregateMetric dimensionMetric = Queries.parseAggregateMetric(
-                metricExpression, true, null, datasetsMetadata,
-                s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)), new DefaultWallClock());
+        final Query.Context context = new Query.Context(null, datasetsMetadata, null,
+                s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)),
+                new DefaultWallClock());
+        final AggregateMetric dimensionMetric = Queries.parseAggregateMetric(metricExpression, true, context);
         if (dimensionMetric.requiresFTGS()) {
             throw new UnsupportedOperationException("Dimension metric requires FTGS is not supported");
         }

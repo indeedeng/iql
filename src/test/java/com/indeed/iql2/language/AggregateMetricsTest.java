@@ -15,19 +15,17 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
-import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.DocMetric.Field;
+import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
-import com.indeed.iql2.language.DocMetric.Field;
-import java.util.function.Consumer;
-import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-
 import java.util.Collections;
 
 import static com.indeed.iql2.language.AggregateMetric.Add;
@@ -38,6 +36,12 @@ import static com.indeed.iql2.language.AggregateMetric.Subtract;
 
 public class AggregateMetricsTest {
     private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final Query.Context CONTEXT = new Query.Context(
+            Collections.emptyList(),
+            DatasetsMetadata.empty(),
+            null,
+            s -> System.out.println("PARSE WARNING: " + s),
+            CLOCK);
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {
@@ -46,12 +50,7 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(false);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    System.out.println("PARSE WARNING: " + s);
-                }
-            }, CLOCK);
+            return AggregateMetrics.parseAggregateMetric(ctx, CONTEXT);
         }
     };
     public static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
@@ -61,12 +60,7 @@ public class AggregateMetricsTest {
                     return input.aggregateMetric(true);
                 }
             });
-            return AggregateMetrics.parseAggregateMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    System.out.println("PARSE WARNING: " + s);
-                }
-            }, CLOCK);
+            return AggregateMetrics.parseAggregateMetric(ctx, CONTEXT);
         }
     };
 

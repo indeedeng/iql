@@ -14,19 +14,12 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Optional;
-import com.indeed.iql.exceptions.IqlKnownException;
-import java.util.function.Consumer;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationUtil;
-import com.indeed.iql2.language.JQLBaseListener;
-import com.indeed.iql2.language.JQLParser;
-import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,17 +41,21 @@ public class DocFilters {
         return result;
     }
 
-    public static DocFilter parseDocFilter(JQLParser.DocFilterContext docFilterContext, List<String> options, DatasetsMetadata datasetsMetadata, JQLParser.FromContentsContext fromContents, Consumer<String> warn, WallClock clock) {
+    public static DocFilter parseDocFilter(
+            final JQLParser.DocFilterContext docFilterContext,
+            final Query.Context context) {
         if (docFilterContext.jqlDocFilter() != null) {
-            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock);
+            return parseJQLDocFilter(docFilterContext.jqlDocFilter(), context);
         }
         if (docFilterContext.legacyDocFilter() != null) {
-            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), datasetsMetadata);
+            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), context.datasetsMetadata);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocFilter parseLegacyDocFilter(JQLParser.LegacyDocFilterContext legacyDocFilterContext, final DatasetsMetadata datasetsMetadata) {
+    public static DocFilter parseLegacyDocFilter(
+            final JQLParser.LegacyDocFilterContext legacyDocFilterContext,
+            final DatasetsMetadata datasetsMetadata) {
         final DocFilter[] ref = new DocFilter[1];
 
         legacyDocFilterContext.enterRule(new JQLBaseListener() {
@@ -222,11 +219,7 @@ public class DocFilters {
 
     public static DocFilter parseJQLDocFilter(
             final JQLParser.JqlDocFilterContext docFilterContext,
-            final List<String> options, final DatasetsMetadata datasetsMetadata,
-            final JQLParser.FromContentsContext fromContents,
-            final Consumer<String> warn,
-            final WallClock clock
-    ) {
+            final Query.Context context) {
         final DocFilter[] ref = new DocFilter[1];
 
         docFilterContext.enterRule(new JQLBaseListener() {
@@ -254,28 +247,13 @@ public class DocFilters {
                 for (final JQLParser.JqlTermValContext term : terms) {
                     termsList.add(Term.parseJqlTerm(term));
                 }
-                accept(scopedField.wrap(docInHelper(datasetsMetadata, scopedField.field, negate, termsList)));
+                accept(scopedField.wrap(docInHelper(context.datasetsMetadata, scopedField.field, negate, termsList)));
             }
 
             @Override
             public void enterDocFieldInQuery(JQLParser.DocFieldInQueryContext ctx) {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
-                final JQLParser.FromContentsContext fromUsed = queryCtx.same == null ? queryCtx.fromContents() : fromContents;
-                if (fromUsed == null) {
-                    throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE");
-                }
-                final Query query = Query.parseQuery(
-                        fromUsed,
-                        Optional.fromNullable(queryCtx.whereContents()),
-                        Optional.of(queryCtx.groupByContents()),
-                        Collections.<JQLParser.SelectContentsContext>emptyList(),
-                        options,
-                        null,
-                        datasetsMetadata,
-                        warn,
-                        clock,
-                        false
-                );
+                final Query query = Query.parseSubquery(queryCtx, context);
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
                 accept(new DocFilter.FieldInQuery(query, scopedField, ctx.not != null));
             }
@@ -283,7 +261,7 @@ public class DocFilters {
             @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                accept(scopedField.wrap(new DocFilter.FieldIsnt(datasetsMetadata, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
+                accept(scopedField.wrap(new DocFilter.FieldIsnt(context.datasetsMetadata, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
             }
 
             @Override
@@ -307,7 +285,7 @@ public class DocFilters {
 
             @Override
             public void enterDocSampleMetric(final JQLParser.DocSampleMetricContext ctx) {
-                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), options, datasetsMetadata, warn, clock);
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), context);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
                 if (ctx.denominator != null) {
@@ -326,7 +304,7 @@ public class DocFilters {
 
             @Override
             public void enterDocNot(JQLParser.DocNotContext ctx) {
-                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.Not(parseJQLDocFilter(ctx.jqlDocFilter(), context)));
             }
 
             @Override
@@ -354,12 +332,12 @@ public class DocFilters {
             @Override
             public void enterDocFieldIs(JQLParser.DocFieldIsContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                accept(scopedField.wrap(new DocFilter.FieldIs(datasetsMetadata, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
+                accept(scopedField.wrap(new DocFilter.FieldIs(context.datasetsMetadata, scopedField.field, Term.parseJqlTerm(ctx.jqlTermVal()))));
             }
 
             @Override
             public void enterDocOr(JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), options, datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), options, datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), context), parseJQLDocFilter(ctx.jqlDocFilter(1), context)));
             }
 
             @Override
@@ -370,8 +348,8 @@ public class DocFilters {
             @Override
             public void enterDocMetricInequality(JQLParser.DocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), options, datasetsMetadata, warn, clock);
-                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), options, datasetsMetadata, warn, clock);
+                final DocMetric arg1 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(0), context);
+                final DocMetric arg2 = DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(1), context);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -406,12 +384,14 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(parseJQLDocFilter(ctx.jqlDocFilter(0), options, datasetsMetadata, fromContents, warn, clock), parseJQLDocFilter(ctx.jqlDocFilter(1), options, datasetsMetadata, fromContents, warn, clock)));
+                accept(new DocFilter.And(
+                        parseJQLDocFilter(ctx.jqlDocFilter(0), context),
+                        parseJQLDocFilter(ctx.jqlDocFilter(1), context)));
             }
 
             @Override
             public void enterLucene(JQLParser.LuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), datasetsMetadata));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), context.datasetsMetadata));
             }
 
             @Override
@@ -422,7 +402,7 @@ public class DocFilters {
 
             @Override
             public void enterDocFilterParens(JQLParser.DocFilterParensContext ctx) {
-                accept(parseJQLDocFilter(ctx.jqlDocFilter(), options, datasetsMetadata, fromContents, warn, clock));
+                accept(parseJQLDocFilter(ctx.jqlDocFilter(), context));
             }
 
             @Override

@@ -260,16 +260,17 @@ public class PrettyPrint {
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
+            final Query.Context context = new Query.Context(null, datasetsMetadata, null, consumer, clock);
             if (positional instanceof GroupBy) {
-                positionalIQL2 = Queries.parseGroupBy(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseGroupBy(rawString, false, context);
             } else if (positional instanceof AggregateFilter) {
-                positionalIQL2 = Queries.parseAggregateFilter(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseAggregateFilter(rawString, false, context);
             } else if (positional instanceof AggregateMetric) {
-                positionalIQL2 = Queries.parseAggregateMetric(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseAggregateMetric(rawString, false, context);
             } else if (positional instanceof DocFilter) {
-                positionalIQL2 = Queries.parseDocFilter(rawString, false, null, datasetsMetadata, consumer, clock, null);
+                positionalIQL2 = Queries.parseDocFilter(rawString, false, context);
             } else if (positional instanceof DocMetric) {
-                positionalIQL2 = Queries.parseDocMetric(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseDocMetric(rawString, false, context);
             } else {
                 throw new IllegalArgumentException("unrecognized type");
             }
@@ -358,6 +359,19 @@ public class PrettyPrint {
                     Joiner.on(", ").appendTo(sb, Iterables.transform(groupByFieldIn.stringTerms, RENDER_STRING));
                 }
                 sb.append(")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+                sb.append(getText(groupByFieldInQuery.field));
+                if (groupByFieldInQuery.isNegated) {
+                    sb.append(" NOT");
+                }
+                sb.append(" IN (").append(groupByFieldInQuery.query).append(")");
+                if (groupByFieldInQuery.withDefault) {
+                    sb.append(" with default");
+                }
                 return null;
             }
 
