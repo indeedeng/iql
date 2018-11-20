@@ -107,7 +107,7 @@ public class SimpleIterate implements Command {
                 fieldOpts,
                 selecting,
                 Collections.nCopies(selecting.size(), Optional.absent()),
-                false)
+                !fieldOpts.topK.isPresent())
                 .evaluate(session, out);
     }
 
@@ -499,6 +499,10 @@ public class SimpleIterate implements Command {
     // interface for adding new terms to groups.
     public interface ResultCollector {
 
+        // offer methods are expected to be called in sorted order,
+        // all TermSelects for group 1, then group 2, etc.
+        boolean needSortedByGroup();
+
         // return true iff new group was added
         boolean offer(final int group, final TermSelects termSelects);
 
@@ -544,6 +548,11 @@ public class SimpleIterate implements Command {
             }
 
             @Override
+            public boolean needSortedByGroup() {
+                return false;
+            }
+
+            @Override
             public boolean offer(final int group, final TermSelects termSelects) {
                 return accumulators[group].addTerm(termSelects);
             }
@@ -574,6 +583,12 @@ public class SimpleIterate implements Command {
                 this.out = out;
                 this.groupKeySet = groupKeySet;
                 this.formatStrings = formatStrings;
+            }
+
+            @Override
+            public boolean needSortedByGroup() {
+                // TODO: might this be 'false' sometimes?
+                return true;
             }
 
             @Override
@@ -617,6 +632,9 @@ public class SimpleIterate implements Command {
                 final ResultCollector prev,
                 final int numGroups,
                 final Comparator<TermSelects> comparator) {
+            if ((comparator == null) && !prev.needSortedByGroup()) {
+                return prev;
+            }
             final TermsAccumulator[] pqs = new TermsAccumulator[numGroups + 1];
             for (int i = 1; i <= numGroups; i++) {
                 pqs[i] = new TermsAccumulator.ArrayAccumulator(comparator);

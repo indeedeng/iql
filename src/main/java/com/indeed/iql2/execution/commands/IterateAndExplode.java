@@ -71,6 +71,11 @@ public class IterateAndExplode implements Command {
         }
 
         @Override
+        public boolean needSortedByGroup() {
+            return false;
+        }
+
+        @Override
         public boolean offer(final int group, final TermSelects termSelects) {
             if (isIntField) {
                 if (intTerms[group] == null) {
