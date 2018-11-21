@@ -54,14 +54,14 @@ public final class ScoredObject<T> {
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
                 double score1 = o1.getScore();
                 if(Double.isNaN(score1)) {
-                    score1 = Double.NEGATIVE_INFINITY;
+                    score1 = Double.POSITIVE_INFINITY;
                 }
                 double score2 = o2.getScore();
                 if(Double.isNaN(score2)) {
-                    score2 = Double.NEGATIVE_INFINITY;
+                    score2 = Double.POSITIVE_INFINITY;
                 }
 
-                int r = Doubles.compare(score1, score2);
+                int r = -Doubles.compare(score1, score2);
                 if ( r == 0 ) {
                     return -comparator.compare(o1.getObject(),o2.getObject());
                 } else {

@@ -34,7 +34,12 @@ public class ScoredLong {
             if(Double.isNaN(score2)) {
                 score2 = Double.NEGATIVE_INFINITY;
             }
-            return Doubles.compare(score1, score2);
+            int r = Doubles.compare(score1, score2);
+            if ( r==0 ) {
+                return Long.compare(o1.value,o2.value);
+            } else {
+                return r;
+            }
         }
     };
 
@@ -50,7 +55,12 @@ public class ScoredLong {
                 score2 = Double.POSITIVE_INFINITY;
             }
             // reverse the result
-            return -Doubles.compare(score1, score2);
+            int r = -Doubles.compare(score1, score2);
+            if ( r==0 ){
+                return -Long.compare(o1.value, o2.value);
+            } else {
+                return r;
+            }
         }
     };
 

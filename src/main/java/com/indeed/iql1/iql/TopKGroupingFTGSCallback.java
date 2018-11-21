@@ -54,7 +54,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.statRefs = statRefs;
         this.groupKeys = groupKeys;
 
-        this.comparator = isBottom ? ScoredObject.topScoredObjectComparator(GroupStats.groupStatsComparator()) : ScoredObject.bottomScoredObjectComparator(GroupStats.groupStatsComparator());
+        this.comparator = isBottom ? ScoredObject.bottomScoredObjectComparator(GroupStats.groupStatsComparator()) : ScoredObject.topScoredObjectComparator(GroupStats.groupStatsComparator());
         this.limits = limits;
     }
 

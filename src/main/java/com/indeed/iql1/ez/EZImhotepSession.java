@@ -861,7 +861,7 @@ public class EZImhotepSession implements Closeable {
             this.count = count;
             this.k = k;
             this.isBottom = isBottom;
-            scoredObjectComparator = isBottom ? ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder()) : ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder());
+            scoredObjectComparator = isBottom ? ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder()) : ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
             scoredLongComparator = isBottom ? ScoredLong.BOTTOM_SCORE_COMPARATOR : ScoredLong.TOP_SCORE_COMPARATOR;
         }
 
