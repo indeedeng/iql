@@ -1612,7 +1612,17 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
             if(!validationHelper.containsIntOrAliasField(dataset, field.unwrap())) {
-                validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
+                if (validationHelper.containsStringField(dataset, field.unwrap())) {
+                    // IntTermCount(stringField), maybe not what user wants.
+                    final String warning =
+                        "Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                        " Only string terms that can be converted to integer value will be counted." +
+                        " If you want get all terms count use STRTERMCOUNT function instead";
+                    validator.warn(warning);
+                } else {
+                    // field not found, error.
+                    validator.error(ErrorMessages.missingIntField(dataset, field.unwrap(), this));
+                }
             }
         }
 
@@ -1666,7 +1676,16 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
             if(!validationHelper.containsStringField(dataset, field.unwrap())) {
-                validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
+                if (validationHelper.containsIntOrAliasField(dataset, field.unwrap())) {
+                    // StrTermCount(intField), same as IntTermCount(intField).
+                    final String warning =
+                            "Using operator STRTERMCOUNT over int field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                            " Result is the same as INTTERMCOUNT since each int term can be converted to string.";
+                    validator.warn(warning);
+                } else {
+                    // field not found, error.
+                    validator.error(ErrorMessages.missingStringField(dataset, field.unwrap(), this));
+                }
             }
         }
 

@@ -17,44 +17,60 @@ package com.indeed.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class TermCountTest extends BasicTest {
-    @Test
-    public void testIntTermCount() throws Exception {
+
+    private static String makeQuery(
+            final boolean isIntField,
+            final boolean isIntOperator,
+            final int count) {
+        final String fieldName = isIntField ? "intField" : "strField";
+        final String operator = isIntOperator ? "inttermcount" : "strtermcount";
+        return "from termCount yesterday today where " + operator + "(" + fieldName + ") = " + count;
+    }
+
+    private static void testIt(
+            final boolean isIntField,
+            final boolean isIntOperator) throws Exception {
         final Dataset dataset = AllData.DATASET;
 
         final List<List<String>> expected1 = new ArrayList<>();
         expected1.add(ImmutableList.of("", "33"));
-        QueryServletTestUtils.testIQL2(dataset, expected1, "from termCount yesterday today where inttermcount(intField) = 1", true);
+        QueryServletTestUtils.testIQL2(dataset, expected1, makeQuery(isIntField, isIntOperator, 1), true);
 
         final List<List<String>> expected2 = new ArrayList<>();
         expected2.add(ImmutableList.of("", "50"));
-        QueryServletTestUtils.testIQL2(dataset, expected2, "from termCount yesterday today where inttermcount(intField) = 2", true);
+        QueryServletTestUtils.testIQL2(dataset, expected2, makeQuery(isIntField, isIntOperator, 2), true);
 
         final List<List<String>> expected3 = new ArrayList<>();
         expected3.add(ImmutableList.of("", "17"));
-        QueryServletTestUtils.testIQL2(dataset, expected3, "from termCount yesterday today where inttermcount(intField) = 3", true);
+        QueryServletTestUtils.testIQL2(dataset, expected3, makeQuery(isIntField, isIntOperator, 3), true);
     }
 
     @Test
-    public void testStrTermCount() throws Exception {
-        final Dataset dataset = AllData.DATASET;
+    public void testIntTermCountIntField() throws Exception {
+        testIt(true, true);
+    }
 
-        final List<List<String>> expected1 = new ArrayList<>();
-        expected1.add(ImmutableList.of("", "33"));
-        QueryServletTestUtils.testIQL2(dataset, expected1, "from termCount yesterday today where strtermcount(strField) = 1", true);
+    @Test
+    public void testStrTermCountStrField() throws Exception {
+        testIt(false, false);
+    }
 
-        final List<List<String>> expected2 = new ArrayList<>();
-        expected2.add(ImmutableList.of("", "50"));
-        QueryServletTestUtils.testIQL2(dataset, expected2, "from termCount yesterday today where strtermcount(strField) = 2", true);
+    @Test
+    public void testIntTermCountStrField() throws Exception {
+        testIt(false, true);
+    }
 
-        final List<List<String>> expected3 = new ArrayList<>();
-        expected3.add(ImmutableList.of("", "17"));
-        QueryServletTestUtils.testIQL2(dataset, expected3, "from termCount yesterday today where strtermcount(strField) = 3", true);
+    @Ignore("Enable after IMTEPD-455 is implemented")
+    @Test
+    public void testStrTermCountIntField() throws Exception {
+        testIt(true, false);
     }
 
 }
