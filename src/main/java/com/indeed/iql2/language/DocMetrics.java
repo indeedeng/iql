@@ -216,7 +216,6 @@ public class DocMetrics {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetsMetadata));
             }
 
-
             @Override
             public  void enterLegacyDocMetricAtomHasIntField(final JQLParser.LegacyDocMetricAtomHasIntFieldContext ctx) {
                 final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
