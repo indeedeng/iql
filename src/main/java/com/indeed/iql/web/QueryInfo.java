@@ -40,10 +40,15 @@ public class QueryInfo {
 
     public QueryInfo(String query, int iqlVersion, long queryStartTimestamp, @Nullable String sqlQuery) {
         this.queryLength = query.length();
-        this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
-        this.sqlQuery = sqlQuery == null ? null : queryTruncatePattern.matcher(sqlQuery).replaceAll("\\($1\\.\\.\\.\\)");
+        this.queryStringTruncatedForPrint = truncateQuery(query);
+        this.sqlQuery = truncateQuery(sqlQuery);
         this.iqlVersion = iqlVersion;
         this.queryStartTimestamp = queryStartTimestamp;
+    }
+
+    @Nullable
+    public static String truncateQuery(@Nullable final String sqlQuery) {
+        return sqlQuery == null ? null : queryTruncatePattern.matcher(sqlQuery).replaceAll("\\($1\\.\\.\\.\\)");
     }
 
     @JsonIgnore

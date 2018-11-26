@@ -395,6 +395,13 @@
             <version>4.5.5</version>
         </dependency>
 
+        <!-- OpenTracing deps -->
+        <dependency>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-util</artifactId>
+            <version>0.30.0</version>
+        </dependency>
+
         <!-- IQL2 deps -->
         <dependency>
             <groupId>org.antlr</groupId>

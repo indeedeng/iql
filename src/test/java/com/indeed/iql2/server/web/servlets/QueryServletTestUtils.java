@@ -31,6 +31,7 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.TopTermsCache;
+import com.indeed.iql.web.config.IQLEnv;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
@@ -90,7 +91,8 @@ public class QueryServletTestUtils extends BasicTest {
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
                 options.wallClock,
-                new IQL2Options()
+                new IQL2Options(),
+                IQLEnv.DEVELOPER
         );
     }
 
