@@ -259,6 +259,8 @@ legacyDocMetricAtom
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
     | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
+    | HASINTFIELD '(' singlyScopedField ')' # LegacyDocMetricAtomHasIntField
+    | HASSTRFIELD '(' singlyScopedField ')' # LegacyDocMetricAtomHasStringField
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene

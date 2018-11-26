@@ -215,6 +215,19 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetsMetadata));
             }
+
+
+            @Override
+            public  void enterLegacyDocMetricAtomHasIntField(final JQLParser.LegacyDocMetricAtomHasIntFieldContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.HasIntField(scopedField.field)));
+            }
+
+            @Override
+            public  void enterLegacyDocMetricAtomHasStringField(final JQLParser.LegacyDocMetricAtomHasStringFieldContext ctx) {
+                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
+                accept(scopedField.wrap(new DocMetric.HasStringField(scopedField.field)));
+            }
         });
 
         if (ref[0] == null) {
