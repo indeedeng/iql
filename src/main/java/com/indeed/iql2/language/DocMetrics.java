@@ -218,14 +218,12 @@ public class DocMetrics {
 
             @Override
             public  void enterLegacyDocMetricAtomHasIntField(final JQLParser.LegacyDocMetricAtomHasIntFieldContext ctx) {
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                accept(scopedField.wrap(new DocMetric.HasIntField(scopedField.field)));
+                accept(new DocMetric.HasIntField(Identifiers.parseIdentifier(ctx.field)));
             }
 
             @Override
             public  void enterLegacyDocMetricAtomHasStringField(final JQLParser.LegacyDocMetricAtomHasStringFieldContext ctx) {
-                final ScopedField scopedField = ScopedField.parseFrom(ctx.singlyScopedField());
-                accept(scopedField.wrap(new DocMetric.HasStringField(scopedField.field)));
+                accept(new DocMetric.HasStringField(Identifiers.parseIdentifier(ctx.field)));
             }
         });
 
