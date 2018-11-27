@@ -448,8 +448,11 @@ public class Queries {
 
     public static JQLParser parserForString(String q) {
         final JQLLexer lexer = new JQLLexer(new UpperCaseInputStream(new ANTLRInputStream(q)));
+        lexer.removeErrorListeners();
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
-        return new JQLParser(tokens);
+        final JQLParser parser = new JQLParser(tokens);
+        parser.removeErrorListeners();
+        return parser;
     }
 
     public static List<Command> queryCommands(Query query, DatasetsMetadata datasetsMetadata) {
