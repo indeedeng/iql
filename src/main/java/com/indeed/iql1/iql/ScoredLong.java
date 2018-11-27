@@ -38,7 +38,7 @@ public class ScoredLong {
             if (r != 0) {
                 return r;
             }
-            return Long.compare(o1.value,o2.value);
+            return Long.compare(o1.value, o2.value);
         }
     };
 
