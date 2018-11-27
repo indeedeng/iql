@@ -47,8 +47,8 @@ public class QueryInfo {
     }
 
     @Nullable
-    public static String truncateQuery(@Nullable final String sqlQuery) {
-        return sqlQuery == null ? null : queryTruncatePattern.matcher(sqlQuery).replaceAll("\\($1\\.\\.\\.\\)");
+    public static String truncateQuery(@Nullable final String query) {
+        return query == null ? null : queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
     }
 
     @JsonIgnore
