@@ -67,7 +67,7 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
         private List(final E head, final @Nullable List<E> tail) {
             this.head = head;
             this.tail = tail;
-            this.last = (tail==null)? head: tail.last;
+            this.last = (tail==null)? head : tail.last;
         }
 
         public boolean equals(final Object o) {
