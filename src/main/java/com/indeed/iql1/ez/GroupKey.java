@@ -62,12 +62,12 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
 
         private final @Nullable List<E> tail;
 
-        private final @Nullable E last;
+        private @Nullable E last;
 
-        private List(final E head, final @Nullable List<E> tail, final E last) {
+        private List(final E head, final @Nullable List<E> tail) {
             this.head = head;
             this.tail = tail;
-            this.last = last;
+            this.last = (tail==null)? head: tail.last;
         }
 
         public boolean equals(final Object o) {
@@ -89,7 +89,7 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
         }
 
         public E getLast() {
-            return last;
+            return this.last;
         }
     }
 
@@ -101,13 +101,21 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
         return front.head;
     }
 
+    public E getLastInserted() {
+        if (back == null) {
+            if (front == null) throw new IllegalStateException("Key is empty");
+            return front.last;
+        }
+        return back.head;
+    }
+
     public GroupKey<E> tail() {
         if (front == null) {
             if (back == null) throw new IllegalStateException("empty key has no tail");
             List<E> reversed = null;
             List<E> current = back;
             while (current.tail != null) {
-                reversed = new List<E>(current.head, reversed, (reversed == null) ? null: back.head);
+                reversed = new List<E>(current.head, reversed);
                 current = current.tail;
             }
             return new GroupKey<E>(reversed, null);
@@ -116,7 +124,7 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
     }
 
     public GroupKey<E> add(E e) {
-        return new GroupKey<E>(front, new List<E>(e, back, back == null ? null : back.last ));
+        return new GroupKey<E>(front, new List<E>(e, back));
     }
 
     public boolean isEmpty() {
@@ -145,14 +153,5 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
         return result;
     }
 
-    public E getLastInserted() {
-        if (back != null) {
-            return back.head;
-        }
-        if (front == null) {
-            throw new IllegalStateException("key is empty");
-        }
-        return front.last;
-    }
 
 }
