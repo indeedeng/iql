@@ -60,7 +60,7 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
     private static final class List<E> {
         private final E head;
 
-        private final List<E> tail;
+        private final @Nullable List<E> tail;
 
         private List(final E head, final @Nullable List<E> tail) {
             this.head = head;

@@ -35,11 +35,10 @@ public class ScoredLong {
                 score2 = Double.NEGATIVE_INFINITY;
             }
             int r = Doubles.compare(score1, score2);
-            if ( r==0 ) {
-                return Long.compare(o1.value,o2.value);
-            } else {
+            if (r != 0) {
                 return r;
             }
+            return Long.compare(o1.value,o2.value);
         }
     };
 
@@ -56,11 +55,10 @@ public class ScoredLong {
             }
             // reverse the result
             int r = -Doubles.compare(score1, score2);
-            if ( r==0 ){
-                return -Long.compare(o1.value, o2.value);
-            } else {
+            if (r != 0) {
                 return r;
             }
+            return -Long.compare(o1.value, o2.value);
         }
     };
 

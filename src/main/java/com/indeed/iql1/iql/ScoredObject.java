@@ -25,7 +25,7 @@ public final class ScoredObject<T> {
     // do a custom comparator to ensure that real numbers are preferred to NaNs
 
 
-    public final static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(Comparator<T> comparator) {
+    public final static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(final Comparator<T> comparator) {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
@@ -39,16 +39,14 @@ public final class ScoredObject<T> {
                 }
 
                 int r = Doubles.compare(score1, score2);
-                if ( r == 0 ) {
-                    return comparator.compare(o1.getObject(),o2.getObject());
-                } else {
+                if (r != 0)
                     return r;
-                }
+                return comparator.compare(o1.getObject(), o2.getObject());
             }
         };
     }
 
-    public final static <T> Comparator<ScoredObject<T>> bottomScoredObjectComparator(Comparator<T> comparator) {
+    public final static <T> Comparator<ScoredObject<T>> bottomScoredObjectComparator(final Comparator<T> comparator) {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
@@ -62,11 +60,10 @@ public final class ScoredObject<T> {
                 }
 
                 int r = -Doubles.compare(score1, score2);
-                if ( r == 0 ) {
-                    return -comparator.compare(o1.getObject(),o2.getObject());
-                } else {
+                if (r != 0) {
                     return r;
                 }
+                return -comparator.compare(o1.getObject(), o2.getObject());
             }
         };
     }
