@@ -63,6 +63,7 @@ import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import io.opentracing.ActiveSpan;
+import io.opentracing.NoopActiveSpanSource;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 import org.apache.commons.lang.StringUtils;
@@ -184,12 +185,8 @@ public class QueryServlet {
     public void query(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws IOException {
         final Tracer tracer = GlobalTracer.get();
-        try (final ActiveSpan activeSpan = tracer
-                .buildSpan("/query")
-                .withTag("q", QueryInfo.truncateQuery(query))
-                .withTag("host", hostname)
-                .startActive()
-        ) {
+        ActiveSpan activeSpan = NoopActiveSpanSource.NoopActiveSpan.INSTANCE;
+        try {
             resp.setCharacterEncoding("UTF-8");
 
             final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
@@ -206,10 +203,6 @@ public class QueryServlet {
                     clientExecutionId, accessControl.isMultiuserClient(client));
             final QueryRequestParams queryRequestParams = new QueryRequestParams(req, clientInfo.username, clientInfo.client, contentType);
             Throwable errorOccurred = null;
-
-            activeSpan.setTag("username", userName);
-            activeSpan.setTag("client", client);
-            activeSpan.setTag("env", iqlEnv.id);
 
             String sqlQuery = null;
             if (queryRequestParams.sql) {
@@ -233,6 +226,15 @@ public class QueryServlet {
                 queryInfo.statementType = iqlStatement.getStatementType();
 
                 if (iqlStatement instanceof SelectStatement) {
+                    activeSpan = tracer
+                            .buildSpan("/query")
+                            .withTag("q", QueryInfo.truncateQuery(query))
+                            .withTag("iqlversion", queryRequestParams.version)
+                            .withTag("host", hostname)
+                            .withTag("username", userName)
+                            .withTag("client", client)
+                            .withTag("env", iqlEnv.id)
+                            .startActive();
                     handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
@@ -264,6 +266,8 @@ public class QueryServlet {
                 } catch (Throwable ignored) {
                 }
             }
+        } finally {
+            activeSpan.close();
         }
     }
 
