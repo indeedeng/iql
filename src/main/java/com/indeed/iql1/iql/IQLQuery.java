@@ -34,8 +34,8 @@ import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -154,7 +154,7 @@ public final class IQLQuery implements Closeable {
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? outputStream : null;
 
-        final TreeTimer timer = new TreeTimer();
+        final TracingTreeTimer timer = new TracingTreeTimer();
         timer.push("Imhotep session creation");
         final ImhotepSession imhotepSession = sessionBuilder.build();
         session = new EZImhotepSession(imhotepSession, limits);

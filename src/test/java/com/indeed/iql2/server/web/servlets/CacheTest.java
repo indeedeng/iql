@@ -27,6 +27,7 @@ import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -65,7 +66,7 @@ public class CacheTest extends BasicTest {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())).query;
-        return SelectQueryExecution.computeCacheKey(new TreeTimer(), query, Queries.queryCommands(query, DatasetsMetadata.empty()), imhotepClient).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TracingTreeTimer(), query, Queries.queryCommands(query, DatasetsMetadata.empty()), imhotepClient).cacheFileName;
     }
 
     @Test

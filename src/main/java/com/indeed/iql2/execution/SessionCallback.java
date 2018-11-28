@@ -15,8 +15,8 @@
 package com.indeed.iql2.execution;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 
 public interface SessionCallback {
-    void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException;
+    void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException;
 }

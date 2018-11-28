@@ -22,6 +22,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.MetricRangeGroupKeySet;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,7 @@ public class MetricRegroup implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }

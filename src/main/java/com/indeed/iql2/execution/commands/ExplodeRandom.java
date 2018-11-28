@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 
 /**
  *
@@ -53,7 +54,7 @@ public class ExplodeRandom implements Command {
         resultGroups[k - 1] = k + 1;
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 timer.push("randomMultiRegroup");
                 session.randomMultiRegroup(field, isIntField, salt, 1, percentages, resultGroups);
                 timer.pop();

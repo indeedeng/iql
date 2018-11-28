@@ -20,6 +20,7 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class SampleMetricAction implements Action {
             // TODO: Parallelize
             session.process(new SessionCallback() {
                 @Override
-                public void handle(final TreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+                public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                     if (!perDatasetMetric.containsKey(name)) {
                         return;
                     }

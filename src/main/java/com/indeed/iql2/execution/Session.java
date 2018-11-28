@@ -61,7 +61,10 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
+import io.opentracing.ActiveSpan;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -106,7 +109,7 @@ public class Session {
     public int currentDepth = 0;
 
     public final Map<String, ImhotepSessionInfo> sessions;
-    public final TreeTimer timer;
+    public final TracingTreeTimer timer;
     private final ProgressCallback progressCallback;
     public final int groupLimit;
     private final long firstStartTimeMillis;
@@ -125,7 +128,7 @@ public class Session {
 
     public Session(
             Map<String, ImhotepSessionInfo> sessions,
-            TreeTimer timer,
+            TracingTreeTimer timer,
             ProgressCallback progressCallback,
             @Nullable Integer groupLimit,
             long firstStartTimeMillis,
@@ -161,7 +164,7 @@ public class Session {
             final List<Queries.QueryDataset> datasets,
             final StrictCloser strictCloser,
             final Consumer<String> out,
-            final TreeTimer treeTimer,
+            final TracingTreeTimer treeTimer,
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
@@ -185,14 +188,18 @@ public class Session {
         final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
-            final boolean isLast = i == commands.size() - 1;
-            if (isLast) {
-                session.evaluateCommandToTSV(command, out, optionsList);
-            } else {
-                session.evaluateCommand(command, optionsList);
-            }
-            if (session.numGroups == 0) {
-                break;
+            final Tracer tracer = GlobalTracer.get();
+            try (final ActiveSpan activeSpan = tracer.buildSpan(command.getClass().getSimpleName()).withTag("details", command.toString()).startActive()) {
+                final boolean isLast = i == commands.size() - 1;
+                if (isLast) {
+                    session.evaluateCommandToTSV(command, out, optionsList);
+                } else {
+                    session.evaluateCommand(command, optionsList);
+                }
+                activeSpan.setTag("numgroups", session.numGroups);
+                if (session.numGroups == 0) {
+                    break;
+                }
             }
         }
 
@@ -228,7 +235,7 @@ public class Session {
             final Map<String, List<Shard>> datasetToChosenShards,
             final StrictCloser strictCloser,
             final Map<String, ImhotepSessionInfo> sessions,
-            final TreeTimer treeTimer,
+            final TracingTreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
@@ -588,7 +595,7 @@ public class Session {
         return statResults;
     }
 
-    public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TreeTimer timer) throws ImhotepOutOfMemoryException {
+    public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
         timer.push("pushStats ('" + String.join("', '", pushes) + "')");
         final int result = session.pushStats(pushes);
         timer.pop();
@@ -1052,7 +1059,7 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TreeTimer timer,
+    public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, IntIterateCallback callback, TracingTreeTimer timer,
                                        final Set<String> options) throws IOException {
         iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, options);
     }
@@ -1063,7 +1070,7 @@ public class Session {
     public static void iterateMultiInt(
             Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             String field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
-            Optional<long[]> termSubset, IntIterateCallback callback, TreeTimer timer,
+            Optional<long[]> termSubset, IntIterateCallback callback, TracingTreeTimer timer,
             final Set<String> options) throws IOException
     {
         if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, termSubset, callback, timer, options)) {
@@ -1168,7 +1175,7 @@ public class Session {
             final Optional<Integer> ftgsRowLimit,
             final Optional<long[]> termSubset,
             final IntIterateCallback callback,
-            final TreeTimer timer,
+            final TracingTreeTimer timer,
             final Set<String> options)
     {
         if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
@@ -1325,7 +1332,7 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TreeTimer timer,
+    public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field, StringIterateCallback callback, TracingTreeTimer timer,
                                           final Set<String> options) throws IOException {
         iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, options);
     }
@@ -1335,7 +1342,7 @@ public class Session {
      */
     public static void iterateMultiString(
             Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, String field,
-            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TreeTimer timer,
+            Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TracingTreeTimer timer,
             final Set<String> options) throws IOException {
 
         if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, termSubset, callback, timer, options)) {
@@ -1404,7 +1411,7 @@ public class Session {
             final Optional<Integer> ftgsRowLimit,
             final Optional<String[]> termSubset,
             final StringIterateCallback callback,
-            final TreeTimer timer,
+            final TracingTreeTimer timer,
             final Set<String> options)
     {
         if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
