@@ -37,11 +37,7 @@ public final class GroupStats {
         return stats;
     }
 
-    public static final Comparator<GroupStats> GROUP_STATS_COMPARATOR = new Comparator<GroupStats>() {
-        @Override
-        public int compare(GroupStats o1, GroupStats o2) {
-            return o2.groupKey.getLastInserted().compareTo(o1.groupKey.getLastInserted());
-        }
-    };
+    public static final Comparator<GroupStats> GROUP_STATS_COMPARATOR =
+            (o1,o2) -> o2.groupKey.getLastInserted().compareTo(o1.groupKey.getLastInserted());
 
 }
