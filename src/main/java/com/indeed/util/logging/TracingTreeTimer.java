@@ -28,4 +28,9 @@ public class TracingTreeTimer {
         activeSpan.close();
         return treeTimer.pop();
     }
+
+    @Override
+    public String toString() {
+        return treeTimer.toString();
+    }
 }
