@@ -38,6 +38,6 @@ public final class GroupStats {
     }
 
     public static final Comparator<GroupStats> GROUP_STATS_COMPARATOR =
-            (o1,o2) -> o2.groupKey.getLastInserted().compareTo(o1.groupKey.getLastInserted());
+            (o1, o2) -> o2.groupKey.getLastInserted().compareTo(o1.groupKey.getLastInserted());
 
 }
