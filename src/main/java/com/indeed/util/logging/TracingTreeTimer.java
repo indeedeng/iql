@@ -9,9 +9,9 @@ import java.util.Stack;
 /**
  * Operates the same way as {@link com.indeed.util.core.TreeTimer}, but also creates OpenTracing spans.
  */
-public class TracingTreeTimer {
+public class TracingTreeTimer implements AutoCloseable {
     private final TreeTimer treeTimer;
-    Stack<ActiveSpan> activeSpanStack = new Stack<>();
+    private final Stack<ActiveSpan> activeSpanStack = new Stack<>();
 
     public TracingTreeTimer() {
         treeTimer = new TreeTimer();
@@ -24,13 +24,22 @@ public class TracingTreeTimer {
     }
 
     public int pop() {
-        final ActiveSpan activeSpan = activeSpanStack.pop();
-        activeSpan.close();
-        return treeTimer.pop();
+        if (!activeSpanStack.isEmpty()) {
+            final ActiveSpan activeSpan = activeSpanStack.pop();
+            activeSpan.close();
+            return treeTimer.pop();
+        }
+        return -1;
     }
 
     @Override
     public String toString() {
         return treeTimer.toString();
+    }
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public void close() {
+        while (pop() != -1);
     }
 }

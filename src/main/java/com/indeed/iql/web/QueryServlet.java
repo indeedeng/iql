@@ -226,6 +226,7 @@ public class QueryServlet {
                 queryInfo.statementType = iqlStatement.getStatementType();
 
                 if (iqlStatement instanceof SelectStatement) {
+                    closeActiveSpans(tracer);
                     activeSpan = tracer
                             .buildSpan("/query")
                             .withTag("q", QueryInfo.truncateQuery(query))
@@ -268,6 +269,19 @@ public class QueryServlet {
             }
         } finally {
             activeSpan.close();
+        }
+    }
+
+    private void closeActiveSpans(final Tracer tracer) {
+        boolean done = false;
+        while (!done) {
+            final ActiveSpan activeSpan = tracer.activeSpan();
+            if (activeSpan == null) {
+                done = true;
+            } else {
+                log.warn("Closing active span before starting new query: " + activeSpan.toString());
+                activeSpan.close();
+            }
         }
     }
 
