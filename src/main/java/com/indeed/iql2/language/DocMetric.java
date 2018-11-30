@@ -1615,9 +1615,10 @@ public abstract class DocMetric extends AbstractPositional {
                 if (validationHelper.containsStringField(dataset, field.unwrap())) {
                     // IntTermCount(stringField), maybe not what user wants.
                     final String warning =
-                        "Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                        "Suspicious use of INTTERMCOUNT. Did you mean STRTERMCOUNT?" +
+                        " Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
                         " Only string terms that can be converted to integer value will be counted." +
-                        " If you want get all terms count use STRTERMCOUNT function instead";
+                        " If you want to get all terms count in a string field use STRTERMCOUNT operator instead";
                     validator.warn(warning);
                 } else {
                     // field not found, error.
@@ -1677,10 +1678,10 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
             if(!validationHelper.containsStringField(dataset, field.unwrap())) {
                 if (validationHelper.containsIntOrAliasField(dataset, field.unwrap())) {
-                    // StrTermCount(intField), same as IntTermCount(intField).
+                    // StrTermCount(intField) is 0.
                     final String warning =
                             "Using operator STRTERMCOUNT over int field \"" + field + "\" in dataset \"" + dataset + "\"." +
-                            " Result is the same as INTTERMCOUNT since each int term can be converted to string.";
+                            " Result is always zero.";
                     validator.warn(warning);
                 } else {
                     // field not found, error.
