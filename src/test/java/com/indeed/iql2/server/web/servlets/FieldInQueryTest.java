@@ -109,4 +109,19 @@ public class FieldInQueryTest extends BasicTest {
                 "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
+    @Test
+    public void testIql1FieldInOptimization() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("1", "100"));
+        expected.add(ImmutableList.of("2", "50"));
+        // check that "field in (A, B, ...) group by field" -> "group by field in (A, B...)" optimization is applied
+        // i.e value '3' is absent in results.
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where f in (1, 2) group by f select count()", true);
+        // check that this optimization is still active if there is 'and' for top-level filters (IQL-745)
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where f in (1, 2) and i >= 0 group by f select count()", true);
+    }
 }
