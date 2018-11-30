@@ -123,7 +123,7 @@ public class GroupBys {
                         metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
-                accept(new GroupBy.GroupByField(field, Optional.<AggregateFilter>absent(), limit, metric, false, false));
+                accept(new GroupBy.GroupByField(field, Optional.absent(), limit, metric, false));
             }
 
             @Override
@@ -131,7 +131,7 @@ public class GroupBys {
                 if (ctx.not != null) {
                     final Iterable<Term> terms = Iterables.transform(ctx.terms, Term::parseTerm);
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
-                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null, false));
+                    accept(new GroupBy.GroupByField(parseIdentifier(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null));
                 } else {
                     final List<Term> terms = new ArrayList<>();
                     boolean anyString = false;
@@ -298,8 +298,7 @@ public class GroupBys {
                     filter = Optional.absent();
                 }
                 final boolean withDefault = ctx2.withDefault != null;
-                final boolean forceNonStreaming = ctx2.forceNonStreaming != null;
-                accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming));
+                accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault));
             }
 
             @Override
