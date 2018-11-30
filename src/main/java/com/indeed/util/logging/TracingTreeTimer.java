@@ -37,9 +37,12 @@ public class TracingTreeTimer implements AutoCloseable {
         return treeTimer.toString();
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public void close() {
-        while (pop() != -1);
+        while (true) {
+            if (pop() == -1) {
+                return;
+            }
+        }
     }
 }
