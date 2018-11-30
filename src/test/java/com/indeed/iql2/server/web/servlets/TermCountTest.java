@@ -17,7 +17,6 @@ package com.indeed.iql2.server.web.servlets;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -67,10 +66,15 @@ public class TermCountTest extends BasicTest {
         testIt(false, true);
     }
 
-    @Ignore("Enable after IMTEPD-455 is implemented")
     @Test
     public void testStrTermCountIntField() throws Exception {
-        testIt(true, false);
+        final Dataset dataset = AllData.DATASET;
+        final List<List<String>> expected = new ArrayList<>();
+        // strtermcount(intfield) is always zero.
+        expected.add(ImmutableList.of("", "0"));
+        QueryServletTestUtils.testIQL2(dataset, expected, makeQuery(true, false, 1), true);
+        QueryServletTestUtils.testIQL2(dataset, expected, makeQuery(true, false, 2), true);
+        QueryServletTestUtils.testIQL2(dataset, expected, makeQuery(true, false, 3), true);
     }
 
 }
