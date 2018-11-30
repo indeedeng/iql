@@ -19,13 +19,13 @@ public class TestScoredObjectComparator {
         Comparator<ScoredObject<String>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
         Comparator<ScoredObject<String>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder());
 
-        assertEquals(topComparator.compare(o1,o2), -1);
-        assertEquals(bottomComparator.compare(o1,o2),1);
-        assertEquals(topComparator.compare(o2,o3), 0);
-        assertEquals(bottomComparator.compare(o2,o3), 0);
-        assertEquals(topComparator.compare(o1,o4), -1);
-        assertEquals(topComparator.compare(o5,o2), 1);
-        assertEquals(bottomComparator.compare(o5,o2), -1);
+        assertEquals(topComparator.compare(o1, o2), -1);
+        assertEquals(bottomComparator.compare(o1, o2),1);
+        assertEquals(topComparator.compare(o2, o3), 0);
+        assertEquals(bottomComparator.compare(o2, o3), 0);
+        assertEquals(topComparator.compare(o1, o4), -1);
+        assertEquals(topComparator.compare(o5, o2), 1);
+        assertEquals(bottomComparator.compare(o5, o2), - 1);
 
     }
 
@@ -40,13 +40,13 @@ public class TestScoredObjectComparator {
         Comparator<ScoredObject<Integer>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<Integer>naturalOrder());
         Comparator<ScoredObject<Integer>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<Integer>naturalOrder());
 
-        assertEquals(topComparator.compare(o1,o2), -1);
-        assertEquals(bottomComparator.compare(o1,o2),1);
-        assertEquals(topComparator.compare(o2,o3), 0);
-        assertEquals(bottomComparator.compare(o2,o3), 0);
-        assertEquals(topComparator.compare(o1,o4), -1);
-        assertEquals(topComparator.compare(o5,o2), 1);
-        assertEquals(bottomComparator.compare(o5,o2), -1);
+        assertEquals(topComparator.compare(o1, o2), -1);
+        assertEquals(bottomComparator.compare(o1, o2),1);
+        assertEquals(topComparator.compare(o2, o3), 0);
+        assertEquals(bottomComparator.compare(o2, o3), 0);
+        assertEquals(topComparator.compare(o1, o4), -1);
+        assertEquals(topComparator.compare(o5, o2), 1);
+        assertEquals(bottomComparator.compare(o5, o2), -1);
 
     }
 }
