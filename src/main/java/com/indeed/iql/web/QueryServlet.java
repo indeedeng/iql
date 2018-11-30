@@ -237,6 +237,9 @@ public class QueryServlet {
                             .withTag("env", iqlEnv.id)
                             .startActive();
                     handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
+                    if (queryInfo.cached != null) {
+                        activeSpan.setTag("cached", queryInfo.cached);
+                    }
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
                 } else if (iqlStatement instanceof ShowStatement) {
@@ -340,53 +343,54 @@ public class QueryServlet {
 
     private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
                                        QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
-        final TracingTreeTimer timer = new TracingTreeTimer();
+        try (final TracingTreeTimer timer = new TracingTreeTimer()) {
 
-        final String query = selectStatement.selectQuery;
-        setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
-        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
-        final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
-        logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
+            final String query = selectStatement.selectQuery;
+            setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
+            final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+            final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
+            logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
-        final QueryMetadata queryMetadata = new QueryMetadata(resp);
+            final QueryMetadata queryMetadata = new QueryMetadata(resp);
 
-        if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
-            // IQL2
+            if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
+                // IQL2
 
-            final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                    tmpDir, queryCache, limits, imhotepClient,
-                    metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
-                    queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
-                    clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
-            selectQueryExecution.processSelect(runningQueriesManager);
-        } else {
-            // IQL1
-            final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
-            setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
+                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                        tmpDir, queryCache, limits, imhotepClient,
+                        metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
+                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
+                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
+                selectQueryExecution.processSelect(runningQueriesManager);
+            } else {
+                // IQL1
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
+                setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
 
-            final PrintWriter writer = resp.getWriter();
-            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
-            final StrictCloser strictCloser = new StrictCloser();
-            SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                    new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
-            try {
-                selectQuery.lock(); // blocks and waits if necessary
+                final PrintWriter writer = resp.getWriter();
+                final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
+                final StrictCloser strictCloser = new StrictCloser();
+                SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+                        new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
+                try {
+                    selectQuery.lock(); // blocks and waits if necessary
 
-                queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
+                    queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
-                // actually process
+                    // actually process
 
-                runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
-            } finally {
-                // this must be closed. but we may have to defer it to the async thread finishing query processing
-                if (!selectQuery.isAsynchronousRelease()) {
-                    Closeables2.closeQuietly(selectQuery, log);
+                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
+                } finally {
+                    // this must be closed. but we may have to defer it to the async thread finishing query processing
+                    if (!selectQuery.isAsynchronousRelease()) {
+                        Closeables2.closeQuietly(selectQuery, log);
+                    }
                 }
             }
-        }
 
-        fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
-        log.debug(timer);
+            fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
+            log.debug(timer);
+        }
     }
 
     private void runSelectStatementIQL1(
