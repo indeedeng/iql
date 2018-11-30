@@ -276,13 +276,12 @@ public class QueryServlet {
     }
 
     private void closeActiveSpans(final Tracer tracer) {
-        boolean done = false;
-        while (!done) {
+        while (true) {
             final ActiveSpan activeSpan = tracer.activeSpan();
             if (activeSpan == null) {
-                done = true;
+                return;
             } else {
-                log.warn("Closing active span before starting new query: " + activeSpan.toString());
+                log.warn("Closing active span before starting new query: " + activeSpan);
                 activeSpan.close();
             }
         }
