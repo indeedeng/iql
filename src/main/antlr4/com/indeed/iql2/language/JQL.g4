@@ -98,13 +98,14 @@ NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
+fragment SINGLE_DOUBLE_DIGITS : ( DIGIT DIGIT | DIGIT ) ;
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
-    ('-' DIGIT DIGIT
-        ('-' DIGIT DIGIT
-            (('T'|' ') DIGIT DIGIT
-                (':' DIGIT DIGIT
-                    (':' DIGIT DIGIT
+    ('-' SINGLE_DOUBLE_DIGITS
+        ('-' SINGLE_DOUBLE_DIGITS
+            (('T'|' ') SINGLE_DOUBLE_DIGITS
+                (':' SINGLE_DOUBLE_DIGITS
+                    (':' SINGLE_DOUBLE_DIGITS
                         ('.' DIGIT DIGIT DIGIT
                             (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
                         )?
@@ -113,7 +114,7 @@ DATETIME_TOKEN
             )?
         )?
     ) ;
-DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
+DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' SINGLE_DOUBLE_DIGITS ('-' SINGLE_DOUBLE_DIGITS)?)? ;
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
