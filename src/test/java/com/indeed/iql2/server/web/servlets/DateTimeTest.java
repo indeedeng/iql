@@ -43,9 +43,10 @@ public class DateTimeTest extends BasicTest {
 
     @Test
     public void testSingleDigitDates() throws  Exception {
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","10")), "from organic \"2015-1-1 0:0:0\" \"2015-1-1 01:00:00\" select count()");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","60","600","60")), "from organic \"2015-1-01 1:0:0\" \"2015-01-1 2:00:0\" select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic \"2015-1-01 2:1:0\" \"2015-1-01 2:19:4\" select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","10")), "from organic 2015-1-1T0:0:0 2015-1-1 01:00:00 select count()");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","60","600","60")), "from organic 2015-1-01 1:0:0 2015-01-1T2:00:0 select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01 2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
+        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01T2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
     }
 
 }
