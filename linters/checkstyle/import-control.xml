@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<!DOCTYPE import-control PUBLIC
+        "-//Puppy Crawl//DTD Import Control 1.1//EN"
+        "http://www.puppycrawl.com/dtds/import_control_1_1.dtd">
+<!--
+This file serves to restrict acces between packages a bit like java9 modules would do.
+The main purpose is to indicate to code reviewers when a developer adds a new dependency between packages (or to new dependencies).
+Examples are:
+* Using Obsolete classes from Guava / commons-lang2 / joda
+* iql1 class depending on iql2 class
+* Unintentionally importing a class named List from somewhere else than java.util
+-->
+
+<import-control pkg="com.indeed">
+    <allow pkg="java.io"/>
+    <allow pkg="java.nio"/>
+    <allow pkg="java.util"/>
+    <allow pkg="java.util.stream"/>
+    <allow pkg="java.lang"/>
+    <allow pkg="java.security"/>
+    <allow pkg="javax.naming"/>
+    <allow pkg="java.net"/>
+    <allow pkg="java.text"/>
+    <allow pkg="java.time"/>
+    <!-- TODO: Replace joda with Java8 time -->
+    <allow pkg="org.joda.time"/>
+    <allow pkg="java.math"/>
+    <!-- Nonnull and CheckForNull, do not use Nullable on members, it has no effect in Spotbugs -->
+    <allow class="javax.annotation.Nonnull"/>
+    <allow class="javax.annotation.Nullable"/>
+    <allow class="javax.annotation.CheckForNull"/>
+    <allow class="javax.annotation.CheckReturnValue"/>
+    <allow class="javax.annotation.PostConstruct"/>
+    <allow class="javax.annotation.PreDestroy"/>
+    <allow class="javax.annotation.concurrent.ThreadSafe"/>
+
+    <allow class="edu.umd.cs.findbugs.annotations.SuppressFBWarnings"/>
+    <!-- commons -->
+    <allow class="com.google.common.annotations.VisibleForTesting"/>
+    <allow pkg="org.slf4j"/>
+    <allow pkg="org.apache.log4j"/>
+    <allow pkg="org.apache.commons.lang"/>
+    <allow pkg="org.apache.commons.collections4"/>
+    <allow pkg="it.unimi.dsi.fastutil"/>
+    <allow pkg="org.springframework.beans"/>
+    <allow pkg="org.springframework.context"/>
+    <allow pkg="org.springframework.core"/>
+    <allow pkg="org.springframework.stereotype"/>
+    <allow pkg="org.springframework.scheduling"/>
+    <allow pkg="com.fasterxml.jackson.annotation"/>
+    <!-- TODO: Forbid obsolete guava constructs replaced with Java8, like Optional -->
+    <allow pkg="com.google.common"/>
+    <allow class="com.indeed.flamdex.query.Query"/>
+    <subpackage name="iql">
+        <allow pkg="com.indeed.iql"/>
+        <allow pkg="com.indeed.common"/>
+        <allow pkg="com.indeed.ims.client"/>
+        <allow pkg="com.indeed.imhotep"/>
+        <allow pkg="com.indeed.util"/>
+        <subpackage name="cache">
+            <allow pkg="org.apache.hadoop.fs"/>
+            <allow pkg="com.amazonaws.services.s3"/>
+            <allow pkg="com.amazonaws.auth"/>
+            <allow pkg="redis.clients.jedis"/>
+        </subpackage>
+        <subpackage name="metadata">
+            <allow pkg="com.fasterxml.jackson.databind"/>
+        </subpackage>
+        <subpackage name="web">
+            <allow pkg="org.springframework.web"/>
+            <allow pkg="org.springframework.jdbc"/>
+            <allow pkg="org.springframework.jndi"/>
+            <allow pkg="org.springframework.http"/>
+            <allow pkg="com.fasterxml.jackson"/>
+            <allow pkg="java.sql"/>
+            <allow pkg="javax.sql"/>
+            <allow pkg="javax.servlet"/>
+            <allow pkg="javax.management"/>
+            <allow pkg="org.apache.hadoop"/>
+            <allow pkg="org.apache.commons.configuration"/>
+            <allow pkg="io.opentracing"/>
+        </subpackage>
+    </subpackage>
+    <subpackage name="iql1">
+        <allow pkg="com.indeed.iql1"/>
+        <allow pkg="com.indeed.common"/>
+        <allow pkg="com.indeed.util"/>
+        <allow pkg="com.indeed.iql"/>
+        <allow pkg="com.indeed.imhotep"/>
+        <allow pkg="org.codehaus.jparsec"/>
+        <subpackage name="web">
+            <allow pkg="org.springframework.web"/>
+            <allow pkg="org.springframework.jdbc"/>
+            <allow pkg="com.fasterxml.jackson.databind"/>
+            <allow pkg="javax.servlet"/>
+        </subpackage>
+        <subpackage name="sql">
+            <allow pkg="com.indeed.flamdex.lucene"/>
+            <allow pkg="org.apache.lucene"/>
+        </subpackage>
+    </subpackage>
+    <subpackage name="iql2">
+        <allow pkg="com.indeed.iql2"/>
+        <allow pkg="com.indeed.common"/>
+        <allow pkg="com.indeed.util"/>
+        <allow pkg="com.indeed.iql"/>
+        <allow pkg="com.indeed.imhotep"/>
+        <subpackage name="server">
+            <subpackage name="web">
+                <allow pkg="org.springframework.web"/>
+                <allow pkg="com.fasterxml.jackson.databind"/>
+                <allow pkg="javax.servlet"/>
+            </subpackage>
+        </subpackage>
+        <subpackage name="execution">
+            <allow pkg="com.fasterxml.jackson.databind"/>
+            <allow pkg="io.opentracing"/>
+        </subpackage>
+        <subpackage name="sqltoiql">
+            <allow pkg="org.antlr.v4.runtime"/>
+        </subpackage>
+    </subpackage>
+    <subpackage name="common">
+        <allow pkg="com.indeed.common"/>
+    </subpackage>
+    <subpackage name="util">
+        <allow pkg="com.indeed.util"/>
+        <subpackage name="logging">
+            <allow pkg="io.opentracing"/>
+        </subpackage>
+    </subpackage>
+</import-control>
