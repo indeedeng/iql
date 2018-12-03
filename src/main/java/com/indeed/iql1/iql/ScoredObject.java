@@ -30,15 +30,9 @@ public final class ScoredObject<T> {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
                 double score1 = o1.getScore();
-                if(Double.isNaN(score1)) {
-                    score1 = Double.NEGATIVE_INFINITY;
-                }
                 double score2 = o2.getScore();
-                if(Double.isNaN(score2)) {
-                    score2 = Double.NEGATIVE_INFINITY;
-                }
 
-                int r = Doubles.compare(score1, score2);
+                int r = -Doubles.compare(-score1, -score2); // to handle case when score1 or score2 is Double.NaN
                 if (r != 0)
                     return r;
                 return comparator.compare(o1.getObject(), o2.getObject());
@@ -51,15 +45,9 @@ public final class ScoredObject<T> {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
                 double score1 = o1.getScore();
-                if(Double.isNaN(score1)) {
-                    score1 = Double.POSITIVE_INFINITY;
-                }
                 double score2 = o2.getScore();
-                if(Double.isNaN(score2)) {
-                    score2 = Double.POSITIVE_INFINITY;
-                }
 
-                int r = -Doubles.compare(score1, score2);
+                int r = -Doubles.compare(score1, score2); // also handles cases when score1 or score2 is Double.NaN
                 if (r != 0) {
                     return r;
                 }
