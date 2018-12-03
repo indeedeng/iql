@@ -56,7 +56,6 @@ public class SimpleIterate implements Command {
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     public final List<Optional<String>> formatStrings;
-    public final boolean streamResult;
 
     private int createdGroupCount = 0;
 
@@ -64,16 +63,11 @@ public class SimpleIterate implements Command {
             final String field,
             final FieldIterateOpts opts,
             final List<AggregateMetric> selecting,
-            final List<Optional<String>> formatStrings,
-            final boolean streamResult) {
+            final List<Optional<String>> formatStrings) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
-        this.streamResult = streamResult;
-        if (this.streamResult && opts.topK.isPresent()) {
-            throw new IllegalArgumentException("Can't stream results while doing top-k!");
-        }
     }
 
     @Override
@@ -106,8 +100,7 @@ public class SimpleIterate implements Command {
                 field,
                 fieldOpts,
                 selecting,
-                Collections.nCopies(selecting.size(), Optional.absent()),
-                !fieldOpts.topK.isPresent())
+                Collections.nCopies(selecting.size(), Optional.absent()))
                 .evaluate(session, out);
     }
 
@@ -156,9 +149,7 @@ public class SimpleIterate implements Command {
 
         session.timer.push("prepare for iteration");
         final ResultCollector collector;
-        if (streamResult) {
-            collector = out;
-        } else if (opts.topK.isPresent()) {
+        if (opts.topK.isPresent()) {
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
                 collector = ResultCollector.topKCollector(out, session.numGroups, limit, TermSelects.COMPARATOR);
@@ -167,7 +158,7 @@ public class SimpleIterate implements Command {
                 collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
             }
         } else {
-            collector = ResultCollector.allTermsCollector(out, session.numGroups, null);
+            collector = out;
         }
         final Optional<Integer> ftgsRowLimit;
         if (opts.topK.isPresent()) {
@@ -272,19 +263,14 @@ public class SimpleIterate implements Command {
             final int numSelects = selecting.size();
 
             final double[] statsBuf = new double[selects.size()];
-            final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
 
             final ResultCollector collector;
 
-            if (streamResult) {
-                collector = out;
-            } else {
-                final TermsAccumulator[] result = new TermsAccumulator[session.numGroups+1];
+            if (opts.topK.isPresent()) {
                 final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
-                for (int group = 0; group <= session.numGroups; group++) {
-                    result[group] = new TermsAccumulator.ArrayAccumulator(comparator);
-                }
-                collector = new ResultCollector.PerGroupCollector(result, out);
+                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
+            } else {
+                collector = out;
             }
 
             Preconditions.checkState(iterator.nextField());
@@ -292,32 +278,24 @@ public class SimpleIterate implements Command {
                 while (iterator.nextGroup()) {
                     iterator.groupStats(statsBuf);
 
-                    if (streamResult) {
-                        if (statsBuf != outputStatsBuf) {
-                            System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
-                        }
-                        if (isIntField) {
-                            collector.offer(iterator.group(), iterator.termIntVal(), outputStatsBuf, 0.0);
-                        } else {
-                            collector.offer(iterator.group(), iterator.termStringVal(), outputStatsBuf, 0.0);
-                        }
+                    final boolean newGroup;
+                    if (isIntField) {
+                        newGroup = collector.offer(
+                                iterator.group(),
+                                iterator.termIntVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
+                        );
                     } else {
-                        if (isIntField) {
-                            collector.offer(
-                                    iterator.group(),
-                                    iterator.termIntVal(),
-                                    Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
-                            );
-                        } else {
-                            collector.offer(
-                                    iterator.group(),
-                                    iterator.termStringVal(),
-                                    Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
-                            );
-                        }
+                        newGroup = collector.offer(
+                                iterator.group(),
+                                iterator.termStringVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
+                        );
+                    }
 
+                    if (newGroup) {
                         createdGroupCount += 1;
                         session.checkGroupLimitWithoutLog(createdGroupCount);
                     }

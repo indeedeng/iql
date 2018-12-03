@@ -70,10 +70,10 @@ import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
@@ -141,7 +141,7 @@ public class SelectQueryExecution {
     // Query output state
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
-    private final TreeTimer timer;
+    private final TracingTreeTimer timer;
     public final ClientInfo clientInfo;
 
     // Query inputs
@@ -162,7 +162,7 @@ public class SelectQueryExecution {
             final PrintWriter outputStream,
             final QueryInfo queryInfo,
             final ClientInfo clientInfo,
-            final TreeTimer timer,
+            final TracingTreeTimer timer,
             final String query,
             final int version,
             final boolean isStream,
@@ -414,7 +414,7 @@ public class SelectQueryExecution {
                                     } else {
                                         filter = null;
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault, false);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
                                     final LongArrayList intTerms = (result.getFirst() == null) ?
@@ -814,7 +814,7 @@ public class SelectQueryExecution {
         }
     }
 
-    public static ComputeCacheKey computeCacheKey(TreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
+    public static ComputeCacheKey computeCacheKey(TracingTreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
         timer.push("compute dataset normalization");
         final List<String> datasets = imhotepClient.getDatasetNames();
         final Map<String, String> upperCaseToActualDataset = Maps.newHashMapWithExpectedSize(datasets.size());

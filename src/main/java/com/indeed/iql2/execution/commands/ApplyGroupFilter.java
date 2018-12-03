@@ -24,6 +24,7 @@ import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.log4j.Logger;
@@ -53,7 +54,7 @@ public class ApplyGroupFilter implements Command {
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;

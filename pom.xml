@@ -395,6 +395,13 @@
             <version>4.5.5</version>
         </dependency>
 
+        <!-- OpenTracing deps -->
+        <dependency>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-util</artifactId>
+            <version>0.30.0</version>
+        </dependency>
+
         <!-- IQL2 deps -->
         <dependency>
             <groupId>org.antlr</groupId>
@@ -445,8 +452,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.140</imhotep.version>
-        <ims.version>4.0.9</ims.version>
+        <imhotep.version>3.1.145</imhotep.version>
+        <ims.version>4.0.10</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>

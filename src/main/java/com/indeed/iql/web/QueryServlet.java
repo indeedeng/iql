@@ -43,6 +43,7 @@ import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.web.config.IQLEnv;
 import com.indeed.iql1.iql.GroupStats;
 import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql1.sql.IQLTranslator;
@@ -57,10 +58,14 @@ import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
 import com.indeed.iql2.sqltoiql.SQLToIQLParser;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
+import io.opentracing.ActiveSpan;
+import io.opentracing.NoopActiveSpanSource;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -141,6 +146,7 @@ public class QueryServlet {
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
     private final IQL2Options defaultIQL2Options;
+    private final IQLEnv iqlEnv;
     private final SQLToIQLParser sqlToIQLParser;
 
     @Autowired
@@ -156,7 +162,8 @@ public class QueryServlet {
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
-                        final IQL2Options defaultIQL2Options) {
+                        final IQL2Options defaultIQL2Options,
+                        final IQLEnv iqlEnv) {
         this.tmpDir = tmpDir;
         this.imhotepClient = imhotepClient;
         this.metadataCacheIQL1 = metadataCacheIQL1;
@@ -170,82 +177,113 @@ public class QueryServlet {
         this.fieldFrequencyCache = fieldFrequencyCache;
         this.clock = clock;
         this.defaultIQL2Options = defaultIQL2Options;
+        this.iqlEnv = iqlEnv;
         this.sqlToIQLParser = new SQLToIQLParser(new AntlrParserGenerator());
     }
 
     @RequestMapping("/query")
     public void query(final HttpServletRequest req, final HttpServletResponse resp,
                          @Nonnull @RequestParam("q") String query) throws IOException {
-
-        resp.setCharacterEncoding("UTF-8");
-
-        final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
-        final String contentType = Optional.ofNullable(req.getHeader("Accept")).orElse("text/plain;charset=utf-8");
-
-        final String httpUserName = UsernameUtil.getUserNameFromRequest(req);
-        final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
-        final String author = Strings.nullToEmpty(req.getParameter("author"));
-        final String client = Strings.nullToEmpty(req.getParameter("client"));
-        final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
-        final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
-        final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
-        final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
-                clientExecutionId, accessControl.isMultiuserClient(client));
-        final QueryRequestParams queryRequestParams = new QueryRequestParams(req, clientInfo.username, clientInfo.client, contentType);
-        Throwable errorOccurred = null;
-
-        String sqlQuery = null;
-        if (queryRequestParams.sql) {
-            sqlQuery = query;
-            // Convert SQL to IQL2 and pretend the query was IQL2 from the start
-            query = sqlToIQLParser.parse(query);
-        }
-
-        final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
-
+        final Tracer tracer = GlobalTracer.get();
+        ActiveSpan activeSpan = NoopActiveSpanSource.NoopActiveSpan.INSTANCE;
         try {
-            if(Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
-                throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
-                        "'client' is the name (e.g. class name) of the tool sending the request. " +
-                        "'username' is the LDAP name of the user that requested the query to be performed " +
-                        "or in case of automated tools the Google group of the team responsible for the tool.");
-            }
-            accessControl.checkAllowedAccess(userName, client);
+            resp.setCharacterEncoding("UTF-8");
 
-            final IQLStatement iqlStatement = StatementParser.parseIQLToStatement(query);
-            queryInfo.statementType = iqlStatement.getStatementType();
+            final WallClock clock = new StoppedClock(this.clock.currentTimeMillis());
+            final String contentType = Optional.ofNullable(req.getHeader("Accept")).orElse("text/plain;charset=utf-8");
 
+            final String httpUserName = UsernameUtil.getUserNameFromRequest(req);
+            final String userName = Strings.nullToEmpty(Strings.isNullOrEmpty(httpUserName) ? req.getParameter("username") : httpUserName);
+            final String author = Strings.nullToEmpty(req.getParameter("author"));
+            final String client = Strings.nullToEmpty(req.getParameter("client"));
+            final String clientProcessId = Strings.nullToEmpty(req.getParameter("clientProcessId"));
+            final String clientProcessName = Strings.nullToEmpty(req.getParameter("clientProcessName"));
+            final String clientExecutionId = Strings.nullToEmpty(req.getParameter("clientExecutionId"));
+            final ClientInfo clientInfo = new ClientInfo(userName, author, client, clientProcessId, clientProcessName,
+                    clientExecutionId, accessControl.isMultiuserClient(client));
+            final QueryRequestParams queryRequestParams = new QueryRequestParams(req, clientInfo.username, clientInfo.client, contentType);
+            Throwable errorOccurred = null;
 
-            if(iqlStatement instanceof SelectStatement) {
-                handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
-            } else if(iqlStatement instanceof DescribeStatement) {
-                handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
-            } else if(iqlStatement instanceof ShowStatement) {
-                handleShowStatement(queryRequestParams, resp);
-            } else if(iqlStatement instanceof ExplainStatement) {
-                handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
-            } else {
-                throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
+            String sqlQuery = null;
+            if (queryRequestParams.sql) {
+                sqlQuery = query;
+                // Convert SQL to IQL2 and pretend the query was IQL2 from the start
+                query = sqlToIQLParser.parse(query);
             }
-        } catch (Throwable e) {
-            if (e instanceof Exception) {
-                e = ImhotepErrorResolver.resolve((Exception) e);
-            }
+
+            final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
+
             try {
-                handleError(resp, queryRequestParams.json, e, true, queryRequestParams.isEventStream);
-            } catch (Throwable e2) {
-                log.error("Query error couldn't be returned", e);
-                log.error("Error while handling error", e2);
-            }
-            errorOccurred = e;
-        } finally {
-            try {
-                String remoteAddr = getForwardedForIPAddress(req);
-                if(remoteAddr == null) {
-                    remoteAddr = req.getRemoteAddr();
+                if (Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
+                    throw new IqlKnownException.IdentificationRequiredException("IQL query requests have to include parameters 'client' and 'username' for identification. " +
+                            "'client' is the name (e.g. class name) of the tool sending the request. " +
+                            "'username' is the LDAP name of the user that requested the query to be performed " +
+                            "or in case of automated tools the Google group of the team responsible for the tool.");
                 }
-                logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, this.metricStatsEmitter);
-            } catch (Throwable ignored) { }
+                accessControl.checkAllowedAccess(userName, client);
+
+                final IQLStatement iqlStatement = StatementParser.parseIQLToStatement(query);
+                queryInfo.statementType = iqlStatement.getStatementType();
+
+                if (iqlStatement instanceof SelectStatement) {
+                    closeActiveSpans(tracer);
+                    activeSpan = tracer
+                            .buildSpan("/query")
+                            .withTag("q", QueryInfo.truncateQuery(query))
+                            .withTag("iqlversion", queryRequestParams.version)
+                            .withTag("host", hostname)
+                            .withTag("username", userName)
+                            .withTag("client", client)
+                            .withTag("env", iqlEnv.id)
+                            .startActive();
+                    handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
+                    if (queryInfo.cached != null) {
+                        activeSpan.setTag("cached", queryInfo.cached);
+                    }
+                } else if (iqlStatement instanceof DescribeStatement) {
+                    handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
+                } else if (iqlStatement instanceof ShowStatement) {
+                    handleShowStatement(queryRequestParams, resp);
+                } else if (iqlStatement instanceof ExplainStatement) {
+                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
+                } else {
+                    throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
+                }
+            } catch (Throwable e) {
+                if (e instanceof Exception) {
+                    e = ImhotepErrorResolver.resolve((Exception) e);
+                }
+                try {
+                    handleError(resp, queryRequestParams.json, e, true, queryRequestParams.isEventStream);
+                } catch (Throwable e2) {
+                    log.error("Query error couldn't be returned", e);
+                    log.error("Error while handling error", e2);
+                }
+                errorOccurred = e;
+            } finally {
+                try {
+                    String remoteAddr = getForwardedForIPAddress(req);
+                    if (remoteAddr == null) {
+                        remoteAddr = req.getRemoteAddr();
+                    }
+                    logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, this.metricStatsEmitter);
+                } catch (Throwable ignored) {
+                }
+            }
+        } finally {
+            activeSpan.close();
+        }
+    }
+
+    private void closeActiveSpans(final Tracer tracer) {
+        while (true) {
+            final ActiveSpan activeSpan = tracer.activeSpan();
+            if (activeSpan == null) {
+                return;
+            } else {
+                log.warn("Closing active span before starting new query: " + activeSpan);
+                activeSpan.close();
+            }
         }
     }
 
@@ -304,53 +342,54 @@ public class QueryServlet {
 
     private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
                                        QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
-        final TreeTimer timer = new TreeTimer();
+        try (final TracingTreeTimer timer = new TracingTreeTimer()) {
 
-        final String query = selectStatement.selectQuery;
-        setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
-        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
-        final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
-        logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
+            final String query = selectStatement.selectQuery;
+            setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
+            final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+            final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
+            logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
-        final QueryMetadata queryMetadata = new QueryMetadata(resp);
+            final QueryMetadata queryMetadata = new QueryMetadata(resp);
 
-        if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
-            // IQL2
+            if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
+                // IQL2
 
-            final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                    tmpDir, queryCache, limits, imhotepClient,
-                    metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
-                    queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
-                    clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
-            selectQueryExecution.processSelect(runningQueriesManager);
-        } else {
-            // IQL1
-            final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
-            setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
+                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                        tmpDir, queryCache, limits, imhotepClient,
+                        metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
+                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
+                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
+                selectQueryExecution.processSelect(runningQueriesManager);
+            } else {
+                // IQL1
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
+                setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
 
-            final PrintWriter writer = resp.getWriter();
-            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
-            final StrictCloser strictCloser = new StrictCloser();
-            SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                    new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
-            try {
-                selectQuery.lock(); // blocks and waits if necessary
+                final PrintWriter writer = resp.getWriter();
+                final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
+                final StrictCloser strictCloser = new StrictCloser();
+                SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+                        new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
+                try {
+                    selectQuery.lock(); // blocks and waits if necessary
 
-                queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
+                    queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
 
-                // actually process
+                    // actually process
 
-                runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
-            } finally {
-                // this must be closed. but we may have to defer it to the async thread finishing query processing
-                if (!selectQuery.isAsynchronousRelease()) {
-                    Closeables2.closeQuietly(selectQuery, log);
+                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
+                } finally {
+                    // this must be closed. but we may have to defer it to the async thread finishing query processing
+                    if (!selectQuery.isAsynchronousRelease()) {
+                        Closeables2.closeQuietly(selectQuery, log);
+                    }
                 }
             }
-        }
 
-        fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
-        log.debug(timer);
+            fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
+            log.debug(timer);
+        }
     }
 
     private void runSelectStatementIQL1(
@@ -907,6 +946,9 @@ public class QueryServlet {
             }
             logEntry.setProperty("exceptionmsg", exceptionMessage);
         }
+
+        final boolean openTracingEnabled = GlobalTracer.isRegistered();
+        logEntry.setProperty("opentracingenabled", openTracingEnabled ? "1" : "0");
 
         QueryMetrics.logQueryMetrics(queryInfo.iqlVersion, queryInfo.statementType, queryInfo.cached, error, cancelled, systemError, timeTaken, metricStatsEmitter);
         dataLog.info(logEntry);
