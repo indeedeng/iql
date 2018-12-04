@@ -568,13 +568,11 @@ public abstract class GroupBy extends AbstractPositional {
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
-        public final boolean forceNonStreaming;
 
-        public GroupByField(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
+        public GroupByField(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
-            this.forceNonStreaming = forceNonStreaming;
             this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
             this.withDefault = withDefault;
         }
@@ -598,7 +596,7 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 metric = Optional.absent();
             }
-            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming));
+            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault));
         }
 
         @Override
@@ -615,12 +613,12 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 metric = Optional.absent();
             }
-            return new GroupByField(field, filter, limit, metric, withDefault, forceNonStreaming);
+            return new GroupByField(field, filter, limit, metric, withDefault);
         }
 
         @Override
         public ExecutionStep executionStep(Set<String> scope) {
-            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
 
         @Override
@@ -630,7 +628,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy makeTotal() throws CannotMakeTotalException {
-            return new GroupByField(field, filter, limit, metric, true, forceNonStreaming);
+            return new GroupByField(field, filter, limit, metric, true);
         }
 
         @Override
@@ -641,7 +639,6 @@ public abstract class GroupBy extends AbstractPositional {
             GroupByField that = (GroupByField) o;
 
             if (withDefault != that.withDefault) return false;
-            if (forceNonStreaming != that.forceNonStreaming) return false;
             if (field != null ? !field.equals(that.field) : that.field != null) return false;
             if (filter != null ? !filter.equals(that.filter) : that.filter != null) return false;
             if (limit != null ? !limit.equals(that.limit) : that.limit != null) return false;
@@ -656,7 +653,6 @@ public abstract class GroupBy extends AbstractPositional {
             result = 31 * result + (limit != null ? limit.hashCode() : 0);
             result = 31 * result + (metric != null ? metric.hashCode() : 0);
             result = 31 * result + (withDefault ? 1 : 0);
-            result = 31 * result + (forceNonStreaming ? 1 : 0);
             return result;
         }
 

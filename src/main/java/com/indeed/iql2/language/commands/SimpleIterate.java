@@ -34,17 +34,12 @@ public class SimpleIterate implements Command {
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     private final List<Optional<String>> formatStrings;
-    public final boolean streamResult;
 
-    public SimpleIterate(FieldSet field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult) {
+    public SimpleIterate(FieldSet field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
-        this.streamResult = streamResult;
-        if (this.streamResult && opts.topK.isPresent()) {
-            throw new IllegalArgumentException("Can't stream results while doing top-k!");
-        }
     }
 
     @Override
@@ -79,8 +74,7 @@ public class SimpleIterate implements Command {
                 field,
                 opts.toExecution(namedMetricLookup, groupKeySet),
                 selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
-                formatStrings,
-                streamResult
+                formatStrings
         );
     }
 
@@ -89,8 +83,7 @@ public class SimpleIterate implements Command {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SimpleIterate that = (SimpleIterate) o;
-        return streamResult == that.streamResult &&
-                Objects.equals(field, that.field) &&
+        return Objects.equals(field, that.field) &&
                 Objects.equals(opts, that.opts) &&
                 Objects.equals(selecting, that.selecting) &&
                 Objects.equals(formatStrings, that.formatStrings);
@@ -98,7 +91,7 @@ public class SimpleIterate implements Command {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, opts, selecting, formatStrings, streamResult);
+        return Objects.hash(field, opts, selecting, formatStrings);
     }
 
     @Override
@@ -108,7 +101,6 @@ public class SimpleIterate implements Command {
                 ", opts=" + opts +
                 ", selecting=" + selecting +
                 ", formatStrings=" + formatStrings +
-                ", streamResult=" + streamResult +
                 '}';
     }
 }

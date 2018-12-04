@@ -152,7 +152,7 @@ public class Query extends AbstractPositional {
         final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(context);
 
         final List<Dataset> datasets = Lists.newArrayListWithCapacity(datasetsWithFilters.size());
-        final List<DocFilter> allFilters = new ArrayList<>();
+        List<DocFilter> allFilters = new ArrayList<>();
         for (final Pair<Dataset, Optional<DocFilter>> dataset : datasetsWithFilters) {
             if (dataset.getSecond().isPresent()) {
                 allFilters.add(dataset.getSecond().get());
@@ -215,6 +215,7 @@ public class Query extends AbstractPositional {
         }
 
         if (useLegacy) {
+            allFilters = flattenAnd(allFilters);
             rewriteMultiTermIn(Iterables.getOnlyElement(datasets), allFilters, groupBys);
         }
         final Optional<DocFilter> whereFilter;
@@ -341,6 +342,21 @@ public class Query extends AbstractPositional {
             nameToIndex.put(name.unwrap(), dataset.dataset.unwrap());
         }
         return nameToIndex;
+    }
+
+    // replace DocFilter.And with it arguments and do it recursively
+    private static List<DocFilter> flattenAnd(final List<DocFilter> filters) {
+        final List<DocFilter> result = new ArrayList<>(filters.size());
+        for (final DocFilter filter : filters) {
+            if (filter instanceof DocFilter.And) {
+                final DocFilter.And and = (DocFilter.And) filter;
+                result.addAll(flattenAnd(Collections.singletonList(and.f1)));
+                result.addAll(flattenAnd(Collections.singletonList(and.f2)));
+            } else {
+                result.add(filter);
+            }
+        }
+        return result;
     }
 
     // rewrite field in (A, B), group by field to group by field in (A, B...)

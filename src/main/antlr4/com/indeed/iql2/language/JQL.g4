@@ -98,13 +98,14 @@ NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
+fragment SINGLE_DOUBLE_DIGITS : ( DIGIT DIGIT | DIGIT ) ;
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
-    ('-' DIGIT DIGIT
-        ('-' DIGIT DIGIT
-            (('T'|' ') DIGIT DIGIT
-                (':' DIGIT DIGIT
-                    (':' DIGIT DIGIT
+    ('-' SINGLE_DOUBLE_DIGITS
+        ('-' SINGLE_DOUBLE_DIGITS
+            (('T'|' ') SINGLE_DOUBLE_DIGITS
+                (':' SINGLE_DOUBLE_DIGITS
+                    (':' SINGLE_DOUBLE_DIGITS
                         ('.' DIGIT DIGIT DIGIT
                             (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
                         )?
@@ -113,7 +114,7 @@ DATETIME_TOKEN
             )?
         )?
     ) ;
-DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
+DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' SINGLE_DOUBLE_DIGITS ('-' SINGLE_DOUBLE_DIGITS)?)? ;
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
@@ -261,6 +262,8 @@ legacyDocMetricAtom
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
     | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
+    | HASINTFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasIntField
+    | HASSTRFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasStringField
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
@@ -451,8 +454,6 @@ groupByField [boolean useLegacy]
              ']'
              (withDefault=WITH DEFAULT)?
             )
-          |
-            (forceNonStreaming='*')
           |
             (withDefault=WITH DEFAULT)
         )?

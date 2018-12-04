@@ -1616,7 +1616,18 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
             final String fieldName = field.datasetFieldName(dataset);
             if(!validationHelper.containsIntOrAliasField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                if (validationHelper.containsStringField(dataset, fieldName)) {
+                    // IntTermCount(stringField), maybe not what user wants.
+                    final String warning =
+                        "Suspicious use of INTTERMCOUNT. Did you mean STRTERMCOUNT?" +
+                        " Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                        " Only string terms that can be converted to integer value will be counted." +
+                        " If you want to get all terms count in a string field use STRTERMCOUNT operator instead";
+                    validator.warn(warning);
+                } else {
+                    // field not found, error.
+                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                }
             }
         }
 
@@ -1671,7 +1682,16 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
             final String fieldName = field.datasetFieldName(dataset);
             if(!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                if (validationHelper.containsIntOrAliasField(dataset, fieldName)) {
+                    // StrTermCount(intField) is 0.
+                    final String warning =
+                            "Using operator STRTERMCOUNT over int field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                            " Result is always zero.";
+                    validator.warn(warning);
+                } else {
+                    // field not found, error.
+                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                }
             }
         }
 

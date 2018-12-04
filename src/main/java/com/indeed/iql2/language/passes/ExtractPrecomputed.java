@@ -75,7 +75,7 @@ public class ExtractPrecomputed {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
                                 groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
-                                groupByField.withDefault, groupByField.forceNonStreaming);
+                                groupByField.withDefault);
                         groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
                     processor.setComputationType(ComputationType.PreComputation);

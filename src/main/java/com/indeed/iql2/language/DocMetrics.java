@@ -218,6 +218,16 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
                 accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetsMetadata, fieldResolver));
             }
+
+            @Override
+            public  void enterLegacyDocMetricAtomHasIntField(final JQLParser.LegacyDocMetricAtomHasIntFieldContext ctx) {
+                accept(new DocMetric.HasIntField(fieldResolver.resolve(ctx.field)));
+            }
+
+            @Override
+            public  void enterLegacyDocMetricAtomHasStringField(final JQLParser.LegacyDocMetricAtomHasStringFieldContext ctx) {
+                accept(new DocMetric.HasStringField(fieldResolver.resolve(ctx.field)));
+            }
         });
 
         if (ref[0] == null) {
