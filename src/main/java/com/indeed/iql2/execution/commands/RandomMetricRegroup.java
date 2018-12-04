@@ -21,7 +21,6 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.logging.TracingTreeTimer;
 
 import java.util.ArrayList;

@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;

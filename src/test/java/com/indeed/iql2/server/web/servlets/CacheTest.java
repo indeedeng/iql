@@ -25,7 +25,6 @@ import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import junit.framework.Assert;
