@@ -24,14 +24,14 @@ import java.util.Comparator;
 public final class ScoredObject<T> {
     // do a custom comparator to ensure that real numbers are preferred to NaNs
 
-
     public final static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(final Comparator<T> comparator) {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
                 final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // to handle case when score1 or score2 is Double.NaN
-                if (r != 0)
+                if (r != 0) {
                     return r;
+                }
                 return comparator.compare(o1.getObject(), o2.getObject());
             }
         };
