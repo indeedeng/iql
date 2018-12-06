@@ -26,7 +26,7 @@ public class ScoredLong {
     public static final Comparator<ScoredLong> TOP_SCORE_COMPARATOR = new Comparator<ScoredLong>() {
         @Override
         public int compare(final ScoredLong o1, final ScoredLong o2) {
-            final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // to handle case when score1 or score2 is NaN.
+            final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // considers NaN as the lowest score value
             if (r != 0) {
                 return r;
             }
@@ -37,7 +37,7 @@ public class ScoredLong {
     public static final Comparator<ScoredLong> BOTTOM_SCORE_COMPARATOR = new Comparator<ScoredLong>() {
         @Override
         public int compare(final ScoredLong o1, final ScoredLong o2) {
-            final int r = -Doubles.compare(o1.getScore(), o2.getScore()); // also handles case when score1 or score 2 is NaN
+            final int r = -Doubles.compare(o1.getScore(), o2.getScore()); // considers NaN as the highest score value
             if (r != 0) {
                 return r;
             }

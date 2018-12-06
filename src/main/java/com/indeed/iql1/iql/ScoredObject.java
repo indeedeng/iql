@@ -28,7 +28,7 @@ public final class ScoredObject<T> {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
-                final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // to handle case when score1 or score2 is Double.NaN
+                final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // considers NaN as the lowest score value
                 if (r != 0) {
                     return r;
                 }
@@ -41,7 +41,7 @@ public final class ScoredObject<T> {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
-                final int r = -Doubles.compare(o1.getScore(), o2.getScore()); // also handles cases when score1 or score2 is Double.NaN
+                final int r = -Doubles.compare(o1.getScore(), o2.getScore()); // considers NaN as the highest score value
                 if (r != 0) {
                     return r;
                 }
