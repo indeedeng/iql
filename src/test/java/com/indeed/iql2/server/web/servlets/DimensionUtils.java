@@ -70,7 +70,7 @@ public class DimensionUtils {
 
             final MetricsYaml plusMetric = new MetricsYaml();
             plusMetric.setName("plus");
-            plusMetric.setExpr("i1+i2");
+            plusMetric.setExpr("(i1+i2)");
             metrics.add(plusMetric);
 
             final MetricsYaml calcMetric = new MetricsYaml();
@@ -80,7 +80,7 @@ public class DimensionUtils {
 
             final MetricsYaml i3 = new MetricsYaml();
             i3.setName("i3");
-            i3.setExpr("i2+i3");
+            i3.setExpr("(i2+i3)");
 
             final MetricsYaml aliasI1 = new MetricsYaml();
             aliasI1.setName("aliasi1");
@@ -98,7 +98,7 @@ public class DimensionUtils {
 
             final MetricsYaml funcMetric = new MetricsYaml();
             funcMetric.setName("floatf1");
-            funcMetric.setExpr("FLOATSCALE(floatf1, 10, 10)");
+            funcMetric.setExpr("floatscale(floatf1, 10, 10)");
             metrics.add(funcMetric);
 
             final MetricsYaml aggMetric1 = new MetricsYaml();
