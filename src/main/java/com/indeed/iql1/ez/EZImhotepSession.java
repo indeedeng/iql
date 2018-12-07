@@ -25,12 +25,12 @@ import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
-import com.indeed.iql1.iql.ScoredLong;
-import com.indeed.iql1.iql.ScoredObject;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
-import com.indeed.iql.web.Limits;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.web.Limits;
+import com.indeed.iql1.iql.ScoredLong;
+import com.indeed.iql1.iql.ScoredObject;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -62,7 +62,6 @@ import java.util.PriorityQueue;
 
 import static com.indeed.iql1.ez.Field.IntField;
 import static com.indeed.iql1.ez.Field.StringField;
-import static com.indeed.iql1.ez.Stats.requireValid;
 
 /**
  * @author jwolfe
@@ -526,8 +525,8 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
-    private void checkGroupLimitWithFactor(int factor) {
-        final double newNumGroups = (double)(numGroups-1) * factor;
+    private void checkGroupLimitWithFactor(final int factor) {
+        final long newNumGroups = ((long)(numGroups-1)) * factor;
         limits.assertQueryInMemoryRowsLimit(newNumGroups);
     }
 

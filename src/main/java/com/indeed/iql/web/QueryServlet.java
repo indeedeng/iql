@@ -363,7 +363,7 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, metadataCacheIQL1);
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCacheIQL1);
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
 
                 final PrintWriter writer = resp.getWriter();
