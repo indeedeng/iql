@@ -14,7 +14,7 @@
 
 package com.indeed.iql1.iql;
 
-import com.google.common.primitives.Doubles;
+import java.lang.Double;
 
 import java.util.Comparator;
 
@@ -28,7 +28,7 @@ public final class ScoredObject<T> {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
-                final int r = -Doubles.compare(-o1.getScore(), -o2.getScore()); // considers NaN as the lowest score value
+                final int r = Double.compare(-o2.getScore(), -o1.getScore()); // considers NaN as the lowest score value
                 if (r != 0) {
                     return r;
                 }
@@ -41,7 +41,7 @@ public final class ScoredObject<T> {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
-                final int r = -Doubles.compare(o1.getScore(), o2.getScore()); // considers NaN as the highest score value
+                final int r = Double.compare(o2.getScore(), o1.getScore()); // considers NaN as the highest score value
                 if (r != 0) {
                     return r;
                 }
