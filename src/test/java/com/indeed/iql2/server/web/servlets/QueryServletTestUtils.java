@@ -104,7 +104,9 @@ public class QueryServletTestUtils extends BasicTest {
 
     @SuppressWarnings("WeakerAccess")
     public enum LanguageVersion {
-        IQL1, IQL2
+        ORIGINAL_IQL1, // original IQL1
+        IQL1_LEGACY_MODE, // legacy mode in IQL2
+        IQL2
     }
 
     static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, Set<String> extraQueryOptions) throws Exception {
@@ -125,7 +127,10 @@ public class QueryServletTestUtils extends BasicTest {
         request.addParameter("username", "fakeUsername");
         request.addParameter("client", "test");
         switch (version) {
-            case IQL1:
+            case ORIGINAL_IQL1:
+                request.addParameter("v", "1");
+                break;
+            case IQL1_LEGACY_MODE:
                 request.addParameter("v", "1");
                 request.addParameter("legacymode", "1");
                 break;
@@ -199,6 +204,17 @@ public class QueryServletTestUtils extends BasicTest {
             return new Options();
         }
 
+        public Options copy() {
+            final Options copy = new Options();
+            copy.tmpDir = tmpDir;
+            copy.subQueryTermLimit = subQueryTermLimit;
+            copy.queryCache = queryCache;
+            copy.imsClient = imsClient;
+            copy.skipTestDimension = skipTestDimension;
+            copy.wallClock = wallClock;
+            return copy;
+        }
+
         public static Options create(boolean skipTestDimension) {
             final Options options = create();
             options.skipTestDimension = skipTestDimension;
@@ -251,7 +267,8 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(Dataset dataset, List<String> expectedWarnings, String query) throws Exception {
-        testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.IQL1);
+        testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.ORIGINAL_IQL1);
+        testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.IQL1_LEGACY_MODE);
         testWarning(dataset.getNormalClient(), expectedWarnings, query, LanguageVersion.IQL2);
     }
 
@@ -259,10 +276,56 @@ public class QueryServletTestUtils extends BasicTest {
         testWarning(dataset.getNormalClient(), expectedWarnings, query, version);
     }
 
+    // test only original IQL1
+    static void testOriginalIQL1(final Dataset dataset, final List<List<String>> expected, final String query) throws Exception {
+        testOriginalIQL1(dataset, expected, query, false);
+    }
+
+    static void testOriginalIQL1(final Dataset dataset, final List<List<String>> expected, final String query, final boolean skipTestDimension) throws Exception {
+        testOriginalIQL1(dataset, expected, query, Options.create(skipTestDimension));
+    }
+
+    static void testOriginalIQL1(final Dataset dataset, final List<List<String>> expected, final String query, final Options options) throws Exception {
+        testOriginalIQL1(dataset.getNormalClient(), expected, query, options);
+        if (!options.skipTestDimension) {
+            testOriginalIQL1(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
+        }
+    }
+
+    static void testOriginalIQL1(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, true, options, queryOptions));
+        }
+    }
+
+    // test only legacy mode in IQL2
+    static void testIQL1LegacyMode(final Dataset dataset, final List<List<String>> expected, final String query) throws Exception {
+        testIQL1LegacyMode(dataset, expected, query, false);
+    }
+
+    static void testIQL1LegacyMode(final Dataset dataset, final List<List<String>> expected, final String query, final boolean skipTestDimension) throws Exception {
+        testIQL1LegacyMode(dataset, expected, query, Options.create(skipTestDimension));
+    }
+
+    static void testIQL1LegacyMode(final Dataset dataset, final List<List<String>> expected, final String query, final Options options) throws Exception {
+        testIQL1LegacyMode(dataset.getNormalClient(), expected, query, options);
+        if (!options.skipTestDimension) {
+            testIQL1LegacyMode(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
+        }
+    }
+
+    static void testIQL1LegacyMode(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, false, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, true, options, queryOptions));
+        }
+    }
+
+    // test both original IQL1 and legacy mode.
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL1(dataset, expected, query, false);
     }
-
 
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
         testIQL1(dataset, expected, query, Options.create(skipTestDimension));
@@ -271,17 +334,32 @@ public class QueryServletTestUtils extends BasicTest {
     static void testIQL1(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL1(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testIQL1(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testIQL1(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
     static void testIQL1(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions));
-        }
+        testOriginalIQL1(client, expected, query, options);
+        testIQL1LegacyMode(client, expected, query, options);
     }
 
+    // test legacy mode and IQL2.
+    // testIQL2AndLegacy call means that there are some differences between legacy mode and original Iql1.
+    // Each call must have explaining comment about diffs.
+    static void testIQL2AndLegacy(Dataset dataset, List<List<String>> expected, String query) throws Exception {
+        testIQL2AndLegacy(dataset, expected, query, false);
+    }
+
+    static void testIQL2AndLegacy(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testIQL2AndLegacy(dataset, expected, query, Options.create(skipTestDimension));
+    }
+
+    static void testIQL2AndLegacy(final Dataset dataset, final List<List<String>> expected, final String query, final Options options) throws Exception {
+        testIQL1LegacyMode(dataset, expected, query, options);
+        testIQL2(dataset, expected, query, options);
+    }
+
+    // test only IQL2
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL2(dataset, expected, query, false);
     }
@@ -297,7 +375,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testIQL2(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testIQL2(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testIQL2(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
@@ -326,8 +404,10 @@ public class QueryServletTestUtils extends BasicTest {
 
     private static void runIQL1(ImhotepClient client, String query, Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            runQuery(client, query, LanguageVersion.IQL1, false, options, queryOptions);
-            runQuery(client, query, LanguageVersion.IQL1, true, options, queryOptions);
+            runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, false, options, queryOptions);
+            runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, true, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, false, options, queryOptions);
+            runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, true, options, queryOptions);
         }
     }
 
@@ -336,11 +416,7 @@ public class QueryServletTestUtils extends BasicTest {
         runIQL2(client, query);
     }
 
-    static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        testIQL1(client, expected, query, options);
-        testIQL2(client, expected, query, options);
-    }
-
+    // test all 3 language versions
     static void testAll(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testAll(dataset, expected, query, false);
     }
@@ -352,10 +428,15 @@ public class QueryServletTestUtils extends BasicTest {
     static void testAll(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
         testAll(dataset.getNormalClient(), expected, query, options);
         if (!options.skipTestDimension) {
-            testAll(dataset.getDimensionsClient(), expected, query, options.setImsClient(dataset.getDimensionImsClient()));
+            testAll(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
 
+    static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
+        testOriginalIQL1(client, expected, query, options);
+        testIQL1LegacyMode(client, expected, query, options);
+        testIQL2(client, expected, query, options);
+    }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
         final List<List<String>> output = new ArrayList<>();

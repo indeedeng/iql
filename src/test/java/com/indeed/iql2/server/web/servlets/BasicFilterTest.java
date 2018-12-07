@@ -39,7 +39,8 @@ public class BasicFilterTest extends BasicTest {
 
     @Test
     public void testNegateFilters() throws Exception {
-        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
+        // Iql1 does not support unary NOT
+        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
         QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
         QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where -tk:c select count()");
         QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");

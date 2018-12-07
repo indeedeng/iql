@@ -25,6 +25,7 @@ import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 public class FieldRegroupWithEmptyFieldTest extends BasicTest {
     final Dataset dataset = AllData.DATASET;
@@ -72,7 +73,8 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("3", "2"));
         expected.add(ImmutableList.of("2", "4"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
+        // IQL1 does not support '[by metric]' sorting.
+        testIQL2AndLegacy(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
     }
 
     @Test
@@ -80,7 +82,8 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("2", "4"));
         expected.add(ImmutableList.of("3", "2"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
+        // IQL1 does not support '[by metric]' sorting.
+        testIQL2AndLegacy(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
     }
 
     @Test

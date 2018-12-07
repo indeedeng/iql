@@ -14,10 +14,9 @@
 
 package com.indeed.iql.web;
 
-import com.indeed.imhotep.exceptions.GroupLimitExceededException;
+import com.indeed.iql.exceptions.IqlKnownException;
 
 import javax.annotation.Nullable;
-import java.text.DecimalFormat;
 
 public class Limits {
     @Nullable public final Integer queryDocumentCountLimitBillions;
@@ -40,20 +39,15 @@ public class Limits {
         return queryDocumentCountLimitBillions == null || value <= (long)queryDocumentCountLimitBillions * 1_000_000_000;
     }
 
-    public boolean satisfiesQueryInMemoryRowsLimit(double value) {
-        return queryInMemoryRowsLimit == null || value <= queryInMemoryRowsLimit;
+    public boolean satisfiesQueryInMemoryRowsLimit(final long value) {
+        return (queryInMemoryRowsLimit == null) || (value <= queryInMemoryRowsLimit);
     }
 
-    public void assertQueryInMemoryRowsLimit(double newNumGroups) {
+    public void assertQueryInMemoryRowsLimit(final long newNumGroups) {
         if(!satisfiesQueryInMemoryRowsLimit(newNumGroups)) {
-            DecimalFormat df = new DecimalFormat("###,###");
-            throw new GroupLimitExceededException("Number of groups " + df.format(newNumGroups) + " exceeds the limit " + df.format(queryInMemoryRowsLimit)+
+            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + newNumGroups + "] exceeds the group limit [" + queryInMemoryRowsLimit + "]"+
                     ". Please simplify the query.");
         }
-    }
-
-    public boolean satisfiesQueryInMemoryRowsLimit(int value) {
-        return queryInMemoryRowsLimit == null || value <= queryInMemoryRowsLimit;
     }
 
     public boolean satisfiesQueryFTGSIQLLimitMB(int value) {

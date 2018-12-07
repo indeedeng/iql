@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 /**
  * @author jwolfe
@@ -34,12 +35,12 @@ public class EmptyClausesTest extends BasicTest {
         expected.add(ImmutableList.of("", "151"));
         testAll(AllData.DATASET, expected, "from organic yesterday today");
         testAll(AllData.DATASET, expected, "from organic yesterday today where");
-        testAll(AllData.DATASET, expected, "from organic yesterday today where group by");
-        testAll(AllData.DATASET, expected, "from organic yesterday today where group by select count()");
-        testAll(AllData.DATASET, expected, "from organic yesterday today where select count()");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where group by");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where group by select count()");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where select count()");
         testAll(AllData.DATASET, expected, "from organic yesterday today select count()");
         testAll(AllData.DATASET, expected, "from organic yesterday today group by");
-        testAll(AllData.DATASET, expected, "from organic yesterday today group by select count()");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today group by select count()");
     }
 
     // Behavior changed in IQL-610 to make empty SELECT act as SELECT COUNT()
@@ -48,12 +49,12 @@ public class EmptyClausesTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "151"));
         testAll(AllData.DATASET, expected, "from organic yesterday today select");
-        testAll(AllData.DATASET, expected, "from organic yesterday today where select");
-        testAll(AllData.DATASET, expected, "from organic yesterday today where group by select");
-        testAll(AllData.DATASET, expected, "from organic yesterday today group by select");
-        testAll(AllData.DATASET, expected, "select from organic yesterday today");
-        testAll(AllData.DATASET, expected, "select from organic yesterday today where");
-        testAll(AllData.DATASET, expected, "select from organic yesterday today where group by");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where select");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where group by select");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today group by select");
+        testIQL2AndLegacy(AllData.DATASET, expected, "select from organic yesterday today");
+        testIQL2AndLegacy(AllData.DATASET, expected, "select from organic yesterday today where");
+        testIQL2AndLegacy(AllData.DATASET, expected, "select from organic yesterday today where group by");
    }
 
     @Test
@@ -63,7 +64,7 @@ public class EmptyClausesTest extends BasicTest {
         // and select from where from is an aliased field name
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "2653"));
-        testAll(AllData.DATASET, expected, "select from from organic yesterday today aliasing (oji as from)", true);
+        testIQL2AndLegacy(AllData.DATASET, expected, "select from from organic yesterday today aliasing (oji as from)", true);
     }
 
     @Test
@@ -73,7 +74,7 @@ public class EmptyClausesTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2"));
         expected.add(ImmutableList.of("c", "4"));
         expected.add(ImmutableList.of("d", "141"));
-        testAll(AllData.DATASET, expected, "from organic yesterday today where group by tk select");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today where group by tk select");
     }
 
     @Test
@@ -103,6 +104,6 @@ public class EmptyClausesTest extends BasicTest {
                 ImmutableList.of("a", "1"),
                 ImmutableList.of("b", "1")
         );
-        testAll(AllData.DATASET, expected, "from groupBySelect yesterday today group by `select`");
+        testIQL2AndLegacy(AllData.DATASET, expected, "from groupBySelect yesterday today group by `select`");
     }
 }

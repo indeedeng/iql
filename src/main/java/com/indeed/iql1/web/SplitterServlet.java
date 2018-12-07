@@ -13,14 +13,15 @@
  */
  package com.indeed.iql1.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.QueryParts;
 import com.indeed.iql1.sql.parser.QuerySplitter;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql2.server.web.servlets.SplitServlet;
+import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +73,7 @@ public class SplitterServlet {
 
             FromClause fromClause = null;
             try {
-                fromClause = SelectStatementParser.parseFromClause(parts.from, true);
+                fromClause = SelectStatementParser.parseFromClause(parts.from, DateTime.now(), true);
             } catch (Exception ignored) { }
             json.put("dataset", fromClause != null ? fromClause.getDataset() : "");
             json.put("start", fromClause != null && fromClause.getStart() != null ? fromClause.getStart().toString(dateTimeFormatter) : "");

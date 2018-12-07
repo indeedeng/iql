@@ -14,16 +14,16 @@
  package com.indeed.iql1.web;
 
 import com.google.common.base.Strings;
+import com.indeed.iql.language.IQLStatement;
 import com.indeed.iql.language.SelectStatement;
 import com.indeed.iql.language.StatementParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.language.IQLStatement;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
-import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.web.QueryServlet;
-import com.indeed.iql2.server.web.servlets.ParseServlet;
 import com.indeed.iql.web.ServletUtil;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.server.web.servlets.ParseServlet;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -67,7 +67,7 @@ public class ParseController {
             if(!(parsedQuery instanceof SelectStatement)) {
                 throw new RuntimeException("The query is not recognized as a select statement: " + query);
             }
-            return SelectStatementParser.parseSelectStatement(query, metadata);
+            return SelectStatementParser.parseSelectStatement(query, DateTime.now(), metadata);
         } catch (Throwable e) {
             QueryServlet.handleError(resp, !Strings.isNullOrEmpty(json), e, false, false);
             return null;
