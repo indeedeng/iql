@@ -42,6 +42,9 @@ public class PrettyPrintTest {
         //iql2 queries, contain having clause
         Assert.assertEquals("FROM jobsearch yesterday today\nGROUP BY country HAVING term()=\"us\"\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=\"us\" select count()", false, datasetsMetadata));
         Assert.assertEquals("FROM jobsearch yesterday today\nGROUP BY country HAVING term()=~\"u.*\"\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=~\"u.*\" select count()", false, datasetsMetadata));
+        // between differs in Iql1 and Iql2
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (((oji>=3) and (oji<=17)))\nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji, 3, 17) SELECT counts", true, datasetsMetadata));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE between(oji, 3, 17)\nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji, 3, 17) SELECT counts", false, datasetsMetadata));
     }
 
     @Test

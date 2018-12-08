@@ -292,11 +292,33 @@ public abstract class DocFilter extends AbstractPositional {
         public final FieldSet field;
         public final long lowerBound;
         public final long upperBound;
+        public final boolean isUpperInclusive;
 
-        public Between(FieldSet field, long lowerBound, long upperBound) {
+        public Between(
+                final FieldSet field,
+                final long lowerBound,
+                final long upperBound,
+                final boolean isUpperInclusive) {
             this.field = field;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
+            this.isUpperInclusive = isUpperInclusive;
+        }
+
+        public DocFilter forMetric(final DocMetric metric) {
+            return forMetric(metric, lowerBound, upperBound, isUpperInclusive);
+        }
+
+        public static DocFilter forMetric(
+                final DocMetric metric,
+                final long lower,
+                final long upper,
+                final boolean includeUpper) {
+            final DocFilter lowerCondition = new MetricGte(metric, new DocMetric.Constant(lower));
+            final DocFilter upperCondition = includeUpper ?
+                    new MetricLte(metric, new DocMetric.Constant(upper)) :
+                    new MetricLt(metric, new DocMetric.Constant(upper));
+            return new And(lowerCondition, upperCondition);
         }
 
         @Override
@@ -305,11 +327,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new And(
-                    new MetricGte(new DocMetric.Field(field), new DocMetric.Constant(lowerBound)),
-                    new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
-            ).asZeroOneMetric(dataset);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            return forMetric(new DocMetric.Field(field)).asZeroOneMetric(dataset);
         }
 
         @Override
@@ -317,7 +336,7 @@ public abstract class DocFilter extends AbstractPositional {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
             final Map<String, Query> datasetToQuery = new HashMap<>();
             for (final String dataset : field.datasets()) {
-                datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, false));
+                datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive));
             }
             return Collections.<Action>singletonList(new QueryAction(datasetToQuery, target, positive, negative));
         }
@@ -337,14 +356,15 @@ public abstract class DocFilter extends AbstractPositional {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Between between = (Between) o;
-            return Objects.equals(lowerBound, between.lowerBound) &&
-                    Objects.equals(upperBound, between.upperBound) &&
+            return (lowerBound == between.lowerBound) &&
+                    (upperBound == between.upperBound) &&
+                    (isUpperInclusive == between.isUpperInclusive) &&
                     Objects.equals(field, between.field);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field, lowerBound, upperBound);
+            return Objects.hash(field, lowerBound, upperBound, isUpperInclusive);
         }
 
         @Override
@@ -353,6 +373,7 @@ public abstract class DocFilter extends AbstractPositional {
                     "field='" + field + '\'' +
                     ", lowerBound=" + lowerBound +
                     ", upperBound=" + upperBound +
+                    ", isUpperInclusive=" + isUpperInclusive +
                     '}';
         }
     }
