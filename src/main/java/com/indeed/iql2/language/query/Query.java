@@ -37,7 +37,6 @@ import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -360,6 +359,7 @@ public class Query extends AbstractPositional {
     }
 
     // rewrite field in (A, B), group by field to group by field in (A, B...)
+    // only string fields are processed to be backward compatible with Iql1
     private static void rewriteMultiTermIn(final Dataset dataset, final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
         final String singleDataset = dataset.getDisplayName().unwrap();
         final Set<String> expectedDatasets = Collections.singleton(singleDataset);
@@ -367,24 +367,14 @@ public class Query extends AbstractPositional {
         final Set<String> rewrittenFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
-            if ((filter instanceof DocFilter.IntFieldIn) || (filter instanceof DocFilter.StringFieldIn)) {
-                final String filterField;
-                final LongList intTerms = new LongArrayList();
-                final List<String> stringTerms = Lists.newArrayList();
-                if (filter instanceof DocFilter.IntFieldIn) {
-                    final DocFilter.IntFieldIn intFieldIn = (DocFilter.IntFieldIn)filter;
-                    Preconditions.checkState(intFieldIn.field.datasets().equals(expectedDatasets));
-                    filterField = intFieldIn.field.datasetFieldName(singleDataset);
-                    intTerms.addAll(intFieldIn.terms);
-                } else {
-                    final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
-                    Preconditions.checkState(stringFieldIn.field.datasets().equals(expectedDatasets));
-                    filterField = stringFieldIn.field.datasetFieldName(singleDataset);
-                    stringTerms.addAll(stringFieldIn.terms);
-                }
+            if (filter instanceof DocFilter.StringFieldIn) {
+                final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
+                Preconditions.checkState(stringFieldIn.field.datasets().equals(expectedDatasets));
+                final String filterField = stringFieldIn.field.datasetFieldName(singleDataset);
                 if (rewrittenFields.contains(filterField)) {
                     continue;
                 }
+                final List<String> stringTerms = new ArrayList<>(stringFieldIn.terms);
                 boolean foundRewriteGroupBy = false;
                 for (int j = 0; j < groupBys.size(); j++) {
                     final GroupByEntry groupByEntry = groupBys.get(j);
@@ -395,7 +385,7 @@ public class Query extends AbstractPositional {
                         final String fieldName = groupByField.field.getOnlyField();
                         if (filterField.equals(fieldName)) {
                             groupBys.set(j, new GroupByEntry(
-                                    new GroupBy.GroupByFieldIn(groupByField.field, intTerms, stringTerms,
+                                    new GroupBy.GroupByFieldIn(groupByField.field, new LongArrayList(), stringTerms,
                                             groupByField.withDefault),
                                     groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;

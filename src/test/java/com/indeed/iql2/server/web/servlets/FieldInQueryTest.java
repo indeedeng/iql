@@ -114,14 +114,22 @@ public class FieldInQueryTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        // check that "field in (A, B, ...) group by field" -> "group by field in (A, B...)" optimization is applied
-        // i.e value '3' is absent in results.
-        // Iql1 and legacy mode has different results on these queries. Do something after IQL-773 is fixed.
-        QueryServletTestUtils.testIQL1LegacyMode(
+        // check that "field in (A, B, ...) group by field" -> "group by field in (A, B...)" optimization
+        // is applied to string field i.e value '3' is absent in results.
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where sf in (\"1\", \"2\") group by sf select count()", true);
+        // check that this optimization is still active if there is 'and' for top-level filters (IQL-745)
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where sf in (\"1\", \"2\") and i >= 0 group by sf select count()", true);
+
+        // check that optimization is not applied to int field
+        expected.add(ImmutableList.of("3", "34"));
+        QueryServletTestUtils.testIQL1(
                 AllData.DATASET, expected,
                 "from multiValue yesterday today where f in (1, 2) group by f select count()", true);
-        // check that this optimization is still active if there is 'and' for top-level filters (IQL-745)
-        QueryServletTestUtils.testIQL1LegacyMode(
+        QueryServletTestUtils.testIQL1(
                 AllData.DATASET, expected,
                 "from multiValue yesterday today where f in (1, 2) and i >= 0 group by f select count()", true);
     }
