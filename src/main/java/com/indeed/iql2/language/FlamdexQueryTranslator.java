@@ -61,7 +61,7 @@ public class FlamdexQueryTranslator {
                 if (query.isMaxInclusive()) {
                     end = end + 1;
                 }
-                return new DocFilter.Between(fieldResolver.resolveContextless(field), start, end);
+                return new DocFilter.Between(fieldResolver.resolveContextless(field), start, end, false);
         }
         throw new UnsupportedOperationException("Unhandled query: [" + query + "]");
     }

@@ -905,11 +905,8 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocFilter.Between between) {
-                pp(new DocFilter.And(
-                        new DocFilter.MetricGte(new DocMetric.Constant(between.lowerBound), new DocMetric.Field(between.field)),
-                        new DocFilter.MetricLt(new DocMetric.Field(between.field), new DocMetric.Constant(between.upperBound))
-                ), consumer, clock);
+            public Void visit(final DocFilter.Between between) {
+                pp(between.forMetric(new DocMetric.Field(between.field)), consumer, clock);
                 return null;
             }
 
