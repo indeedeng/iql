@@ -115,8 +115,8 @@ public class MetricMetadataTest extends BasicTest {
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today WHERE plus=5 SELECT counts", options);
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from DIMension yesterday today WHERE plus!=5 SELECT counts", options);
         // 'between(...)' is different in Iql1 (upper bound is included) and Iql2 (upper is excluded), so two tests here.
-        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "134")), "from organic yesterday today where between(oji, 5, 10) SELECT counts", options);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")), "from organic yesterday today where between(oji, 5, 10) SELECT counts", options);
+        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE i1=plus SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE plus=calc SELECT counts", options);
         assertFailQuery("from DIMension yesterday today WHERE i1divi2=1", "equality for aggregate metric is not supported");
