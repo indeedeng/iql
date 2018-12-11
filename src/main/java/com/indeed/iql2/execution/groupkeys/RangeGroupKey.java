@@ -20,15 +20,22 @@ import java.util.Objects;
 public class RangeGroupKey extends GroupKey {
     private final long minInclusive;
     private final long maxExclusive;
+    private final String rendered;
 
     public RangeGroupKey(long minInclusive, long maxExclusive) {
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
+        rendered = "[" + minInclusive + ", " + maxExclusive + ")";
     }
 
     @Override
     public void addToList(List<String> list) {
-        list.add("[" + minInclusive + ", " + maxExclusive + ")");
+        list.add(rendered);
+    }
+
+    @Override
+    public String render() {
+        return rendered;
     }
 
     @Override

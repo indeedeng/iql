@@ -30,6 +30,11 @@ public class HighGutterGroupKey extends GroupKey {
     }
 
     @Override
+    public String render() {
+        return ">= " + start;
+    }
+
+    @Override
     public boolean isDefault() {
         return false;
     }

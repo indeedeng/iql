@@ -26,6 +26,15 @@ public class InitialGroupKey extends GroupKey {
     }
 
     @Override
+    public String render() {
+        return "";
+    }
+
+    @Override
+    public void appendWithTab(final StringBuilder sb) {
+    }
+
+    @Override
     public boolean isDefault() {
         return false;
     }

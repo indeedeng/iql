@@ -30,4 +30,12 @@ public class GroupKeySets {
         }
         return Lists.reverse(keys);
     }
+
+    public static void appendTo(final StringBuilder sb, final GroupKeySet groupKeySet, final int group) {
+        final GroupKeySet previous = groupKeySet.previous();
+        if (previous != null) {
+            appendTo(sb, previous, groupKeySet.parentGroup(group));
+        }
+        groupKeySet.groupKey(group).appendWithTab(sb);
+    }
 }

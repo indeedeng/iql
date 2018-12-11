@@ -14,9 +14,11 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
-import com.indeed.iql2.execution.groupkeys.TimeRangeGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -30,7 +32,7 @@ public class YearMonthGroupKey implements GroupKeySet {
     private final DateTime startMonth;
     private final String formatString;
     private final DateTimeFormatter formatter;
-    private final boolean useTimeRangeKeys;
+    private final LoadingCache<DateTime, StringGroupKey> buildGroupKey;
 
     public YearMonthGroupKey(
             final GroupKeySet previous,
@@ -44,7 +46,17 @@ public class YearMonthGroupKey implements GroupKeySet {
         this.startMonth = startMonth;
         this.formatString = formatString;
         this.formatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
-        this.useTimeRangeKeys = useTimeRangeKeys;
+        buildGroupKey = CacheBuilder.newBuilder()
+                .build(new CacheLoader<DateTime, StringGroupKey>() {
+                    @Override
+                    public StringGroupKey load(final DateTime month) {
+                        if (useTimeRangeKeys) {
+                            return StringGroupKey.fromTimeRange(formatter, month.getMillis(), month.plusMonths(1).getMillis());
+                        } else {
+                            return StringGroupKey.fromTerm(formatter.print(month));
+                        }
+                    }
+                });
     }
 
     @Override
@@ -61,11 +73,7 @@ public class YearMonthGroupKey implements GroupKeySet {
     public GroupKey groupKey(int group) {
         final int monthOffset = (group - 1) % numMonths;
         final DateTime month = startMonth.plusMonths(monthOffset);
-        if (useTimeRangeKeys) {
-            return new TimeRangeGroupKey(formatString, month.getMillis(), month.plusMonths(1).getMillis());
-        } else {
-            return new StringGroupKey(formatter.print(month));
-        }
+        return buildGroupKey.getUnchecked(month);
     }
 
     @Override

@@ -30,6 +30,11 @@ public class LowGutterGroupKey extends GroupKey {
     }
 
     @Override
+    public String render() {
+        return "< " + min;
+    }
+
+    @Override
     public boolean isDefault() {
         return false;
     }

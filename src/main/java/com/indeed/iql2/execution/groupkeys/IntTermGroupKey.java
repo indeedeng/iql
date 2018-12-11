@@ -30,6 +30,17 @@ public class IntTermGroupKey extends GroupKey {
     }
 
     @Override
+    public String render() {
+        return String.valueOf(value);
+    }
+
+    @Override
+    public void appendWithTab(final StringBuilder sb) {
+        sb.append(value);
+        sb.append('\t');
+    }
+
+    @Override
     public boolean isDefault() {
         return false;
     }

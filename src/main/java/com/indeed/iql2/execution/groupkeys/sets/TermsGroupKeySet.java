@@ -1,10 +1,14 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class TermsGroupKeySet implements GroupKeySet {
 
@@ -81,7 +85,7 @@ public abstract class TermsGroupKeySet implements GroupKeySet {
 
     public static class StringTerms extends TermsGroupKeySet {
 
-        private final String[] terms;
+        private final List<String> terms;
 
         public StringTerms(
                 final GroupKeySet previous,
@@ -90,12 +94,12 @@ public abstract class TermsGroupKeySet implements GroupKeySet {
                 final GroupKey defaultKey,
                 final boolean[] isDefaultGroup) {
             super(previous, terms.length, parentGroups, defaultKey, isDefaultGroup);
-            this.terms = terms;
+            this.terms = Arrays.stream(terms).map(Session::tsvEscape).collect(Collectors.toList());
         }
 
         @Override
         protected GroupKey getNonDefaultGroupKey(final int group) {
-            return new StringGroupKey(terms[group]);
+            return StringGroupKey.fromPreEscaped(terms.get(group));
         }
     }
 }

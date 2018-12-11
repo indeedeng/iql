@@ -32,6 +32,11 @@ public class DayOfWeekGroupKey extends GroupKey {
     }
 
     @Override
+    public String render() {
+        return ExplodeDayOfWeek.DAY_KEYS[dayOfWeek];
+    }
+
+    @Override
     public boolean isDefault() {
         return false;
     }

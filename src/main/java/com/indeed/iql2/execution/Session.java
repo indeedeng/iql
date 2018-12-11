@@ -29,7 +29,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
-import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
@@ -49,6 +48,7 @@ import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
 import com.indeed.iql2.execution.commands.SimpleIterate;
@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -104,7 +105,7 @@ public class Session {
 
     private static final Logger log = Logger.getLogger(Session.class);
 
-    public GroupKeySet groupKeySet = DumbGroupKeySet.create();
+    public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
 
@@ -394,6 +395,15 @@ public class Session {
         }
     }
 
+    private static final Pattern TSV_ESCAPE_PATTERN = Pattern.compile("[\t\r\n]");
+
+    public static String tsvEscape(@Nullable final String s) {
+        if (s == null) {
+            return null;
+        }
+        return TSV_ESCAPE_PATTERN.matcher(s).replaceAll("\ufffd");
+    }
+
     public static void appendGroupString(String groupString, StringBuilder sb) {
         for (int i = 0; i < groupString.length(); i++) {
             final char groupChar = groupString.charAt(i);
@@ -434,19 +444,12 @@ public class Session {
                         if (!groupKeySet.isPresent(group)) {
                             continue;
                         }
-                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, group);
-                        if (keyColumns.isEmpty()) {
-                            sb.append("\t");
-                        } else {
-                            for (final String k : keyColumns) {
-                                appendGroupString(k, sb);
-                                sb.append('\t');
-                            }
+                        GroupKeySets.appendTo(sb, groupKeySet, group);
+                        if (sb.length() == 0) {
+                            sb.append('\t');
                         }
                         writeDoubleStatsWithFormatString(results, group, formatStrings, sb);
-                        if (keyColumns.size() + results.length > 0) {
-                            sb.setLength(sb.length() - 1);
-                        }
+                        sb.setLength(sb.length() - 1);
                         out.accept(sb.toString());
                         sb.setLength(0);
                     }
@@ -463,12 +466,16 @@ public class Session {
 
     public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb) {
         if (formatString != null) {
-            sb.append(String.format(formatString, stat)).append('\t');
-        } else if (DoubleMath.isMathematicalInteger(stat)) {
-            sb.append(String.format("%.0f", stat)).append('\t');
+            sb.append(String.format(formatString, stat));
         } else {
-            sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
+            final long value = MathUtils.integralDoubleAsLong(stat);
+            if (value != Long.MAX_VALUE) {
+                sb.append(value);
+            } else {
+                sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat));
+            }
         }
+        sb.append('\t');
     }
 
     public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {

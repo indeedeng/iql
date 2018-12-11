@@ -18,5 +18,11 @@ import java.util.List;
 
 public abstract class GroupKey {
     public abstract void addToList(List<String> list);
+    public abstract String render();
     public abstract boolean isDefault();
+
+    public void appendWithTab(StringBuilder sb) {
+        sb.append(render());
+        sb.append('\t');
+    }
 }

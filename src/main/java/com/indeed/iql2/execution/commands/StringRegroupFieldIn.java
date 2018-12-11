@@ -76,7 +76,7 @@ public class StringRegroupFieldIn implements Command {
             this.withDefault = withDefault;
             this.groupKeys = new StringGroupKey[terms.size()];
             for (int i = 0; i < terms.size(); i++) {
-                this.groupKeys[i] = new StringGroupKey(terms.get(i));
+                this.groupKeys[i] = StringGroupKey.fromTerm(terms.get(i));
             }
         }
 
