@@ -14,23 +14,9 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import com.google.common.collect.Lists;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
-import java.util.List;
-
 public class GroupKeySets {
-    public static List<String> asList(GroupKeySet groupKeySet, int group) {
-        final List<String> keys = Lists.newArrayList();
-        int node = group;
-        while (groupKeySet != null && groupKeySet.previous() != null) {
-            groupKeySet.groupKey(node).addToList(keys);
-            node = groupKeySet.parentGroup(node);
-            groupKeySet = groupKeySet.previous();
-        }
-        return Lists.reverse(keys);
-    }
-
     public static void appendTo(final StringBuilder sb, final GroupKeySet groupKeySet, final int group) {
         final GroupKeySet previous = groupKeySet.previous();
         if (previous != null) {

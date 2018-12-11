@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
 
-import java.util.List;
 import java.util.Objects;
 
 public class DayOfWeekGroupKey extends GroupKey {
@@ -24,11 +23,6 @@ public class DayOfWeekGroupKey extends GroupKey {
 
     public DayOfWeekGroupKey(int dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
-    }
-
-    @Override
-    public void addToList(List<String> list) {
-        list.add(ExplodeDayOfWeek.DAY_KEYS[dayOfWeek]);
     }
 
     @Override

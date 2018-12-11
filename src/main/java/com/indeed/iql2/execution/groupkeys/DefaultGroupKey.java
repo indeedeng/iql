@@ -16,8 +16,6 @@ package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.execution.Session;
 
-import java.util.List;
-
 public class DefaultGroupKey extends GroupKey {
     public static final DefaultGroupKey DEFAULT_INSTANCE = new DefaultGroupKey("DEFAULT");
 
@@ -33,11 +31,6 @@ public class DefaultGroupKey extends GroupKey {
         } else {
             return new DefaultGroupKey(Session.tsvEscape(defaultGroupName));
         }
-    }
-
-    @Override
-    public void addToList(List<String> list) {
-        list.add(name);
     }
 
     @Override

@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.List;
 import java.util.Objects;
 
 public class HighGutterGroupKey extends GroupKey {
@@ -22,11 +21,6 @@ public class HighGutterGroupKey extends GroupKey {
 
     public HighGutterGroupKey(long start) {
         this.start = start;
-    }
-
-    @Override
-    public void addToList(List<String> list) {
-        list.add(">= " + start);
     }
 
     @Override

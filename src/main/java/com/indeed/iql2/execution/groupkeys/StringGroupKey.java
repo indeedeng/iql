@@ -17,7 +17,6 @@ package com.indeed.iql2.execution.groupkeys;
 import com.indeed.iql2.execution.Session;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.util.List;
 import java.util.Objects;
 
 public class StringGroupKey extends GroupKey {
@@ -37,11 +36,6 @@ public class StringGroupKey extends GroupKey {
 
     public static StringGroupKey fromTerm(final String term) {
         return new StringGroupKey(Session.tsvEscape(term));
-    }
-
-    @Override
-    public void addToList(List<String> list) {
-        list.add(term);
     }
 
     @Override

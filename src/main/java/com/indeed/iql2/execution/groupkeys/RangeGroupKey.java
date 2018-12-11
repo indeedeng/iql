@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.List;
 import java.util.Objects;
 
 public class RangeGroupKey extends GroupKey {
@@ -26,11 +25,6 @@ public class RangeGroupKey extends GroupKey {
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
         rendered = "[" + minInclusive + ", " + maxExclusive + ")";
-    }
-
-    @Override
-    public void addToList(List<String> list) {
-        list.add(rendered);
     }
 
     @Override
