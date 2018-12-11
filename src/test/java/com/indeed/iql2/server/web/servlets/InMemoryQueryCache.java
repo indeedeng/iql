@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
@@ -90,7 +91,7 @@ public class InMemoryQueryCache implements QueryCache {
     @Override
     public void writeFromFile(String cachedFileName, File localFile) throws IOException {
         final String[] lines = Files.readTextFileOrDie(localFile.getAbsolutePath());
-        cachedValues.put(cachedFileName, Joiner.on('\n').join(lines));
+        cachedValues.put(cachedFileName, Joiner.on('\n').join(lines) + '\n');
         writesTracked.add(cachedFileName);
     }
 
@@ -107,7 +108,13 @@ public class InMemoryQueryCache implements QueryCache {
         return ImmutableSet.copyOf(writesTracked);
     }
 
-    public void clearReadsTracked() {
+    public Map<String, String> getCachedValues() {
+        return ImmutableMap.copyOf(cachedValues);
+    }
+
+    public void clear() {
         readsTracked.clear();
+        writesTracked.clear();
+        cachedValues.clear();
     }
 }

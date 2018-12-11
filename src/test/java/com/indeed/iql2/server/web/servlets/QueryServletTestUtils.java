@@ -94,6 +94,7 @@ public class QueryServletTestUtils extends BasicTest {
                 executorService,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
+                options.maxCacheQuerySizeLimitBytes,
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
                 options.wallClock,
@@ -196,6 +197,8 @@ public class QueryServletTestUtils extends BasicTest {
         private ImsClientInterface imsClient;
         private boolean skipTestDimension = false;
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+        @Nullable
+        private Long maxCacheQuerySizeLimitBytes;
 
         Options() {
         }
@@ -248,6 +251,11 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options setTmpDir(@Nullable final File tmpDir) {
             this.tmpDir = tmpDir;
+            return this;
+        }
+
+        public Options setMaxCacheQuerySizeLimitBytes(@Nullable final Long maxCacheQuerySizeLimitBytes) {
+            this.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
             return this;
         }
     }

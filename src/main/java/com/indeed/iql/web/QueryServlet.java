@@ -142,6 +142,8 @@ public class QueryServlet {
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService cacheUploadExecutorService;
     private final AccessControl accessControl;
+    @Nullable
+    private final Long maxCachedQuerySizeLimitBytes;
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
@@ -159,6 +161,7 @@ public class QueryServlet {
                         final RunningQueriesManager runningQueriesManager,
                         final ExecutorService cacheUploadExecutorService,
                         final AccessControl accessControl,
+                        @Nullable final Long maxCachedQuerySizeLimitBytes,
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
@@ -173,6 +176,7 @@ public class QueryServlet {
         this.runningQueriesManager = runningQueriesManager;
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.accessControl = accessControl;
+        this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
         this.clock = clock;
@@ -356,7 +360,7 @@ public class QueryServlet {
                 // IQL2
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        tmpDir, queryCache, limits, imhotepClient,
+                        tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
                         clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
