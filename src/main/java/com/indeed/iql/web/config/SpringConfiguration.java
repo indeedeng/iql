@@ -261,6 +261,16 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
+    public Long maxCachedQuerySizeLimitBytes() {
+        final long limitInMegabytes = env.getProperty("iql.max.cached.query.size.mb.limit", Long.class, Long.MAX_VALUE);
+        if (limitInMegabytes < Long.MAX_VALUE) {
+            return mbToBytes(limitInMegabytes);
+        } else {
+            return null;
+        }
+    }
+
+    @Bean
     public Long imhotepLocalTempFileSizeLimit() {
         final long limitInMegabytes = env.getProperty("imhotep.local.temp.file.size.mb.limit", Long.class, Long.MAX_VALUE);
         if(limitInMegabytes < Long.MAX_VALUE) {

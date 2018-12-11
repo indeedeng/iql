@@ -42,6 +42,7 @@ import com.indeed.iql.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -87,9 +88,8 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -112,6 +112,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class SelectQueryExecution {
@@ -138,6 +139,8 @@ public class SelectQueryExecution {
 
     private final DatasetsMetadata datasetsMetadata;
 
+    @Nullable
+    private final Long maxCachedQuerySizeLimitBytes;
     // Query output state
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
@@ -157,6 +160,7 @@ public class SelectQueryExecution {
             @Nullable final File tmpDir,
             final QueryCache queryCache,
             final Limits limits,
+            @Nullable final Long maxCachedQuerySizeLimitBytes,
             final ImhotepClient imhotepClient,
             final DatasetsMetadata datasetsMetadata,
             final PrintWriter outputStream,
@@ -179,6 +183,7 @@ public class SelectQueryExecution {
         this.timer = timer;
         this.isStream = isStream;
         this.limits = limits;
+        this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.skipValidation = skipValidation;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
@@ -514,7 +519,7 @@ public class SelectQueryExecution {
 
             final boolean cacheEnabled = queryCache.isEnabled() && !skipCache;
             final File cacheFile;
-            final BufferedWriter cacheWriter;
+            final TruncatingBufferedOutputStream cacheWriter;
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
                 strictCloser.registerOrClose(innerStrictCloser);
@@ -557,13 +562,15 @@ public class SelectQueryExecution {
 
                     final Consumer<String> oldOut = out;
                     cacheFile = File.createTempFile("query", ".cache.tmp", tmpDir);
-                    // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
-                    cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
+                    cacheWriter = new TruncatingBufferedOutputStream(new FileOutputStream(cacheFile), maxCachedQuerySizeLimitBytes);
+
                     out = s -> {
                         oldOut.accept(s);
                         try {
-                            cacheWriter.write(s);
-                            cacheWriter.newLine();
+                            if (!cacheWriter.isOverflowed()) {
+                                cacheWriter.write(s.getBytes(Charsets.UTF_8));
+                                cacheWriter.write('\n');
+                            }
                         } catch (IOException e) {
                             throw Throwables.propagate(e);
                         }
@@ -639,19 +646,25 @@ public class SelectQueryExecution {
                             @Override
                             public Void call() {
                                 try {
-                                    if (isTopLevelQuery) {
-                                        try {
-                                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                            queryMetadata.toOutputStream(metadataCacheStream);
-                                        } catch (Exception e) {
-                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                    if (cacheWriter.isOverflowed()) {
+                                        // If the results were too big, we do not want to write to the cache.
+                                        log.warn("Skipping cache upload due to overflow");
+                                        Closeables2.closeQuietly(cacheWriter, log);
+                                    } else {
+                                        if (isTopLevelQuery) {
+                                            try {
+                                                final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                                queryMetadata.toOutputStream(metadataCacheStream);
+                                            } catch (Exception e) {
+                                                log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                            }
                                         }
-                                    }
-                                    try {
-                                        cacheWriter.close();
-                                        queryCache.writeFromFile(cacheFileName, cacheFile);
-                                    } catch (Exception e) {
-                                        log.warn("Failed to upload cache: " + cacheFileName, e);
+                                        try {
+                                            cacheWriter.close();
+                                            queryCache.writeFromFile(cacheFileName, cacheFile);
+                                        } catch (Exception e) {
+                                            log.warn("Failed to upload cache: " + cacheFileName, e);
+                                        }
                                     }
                                 } finally {
                                     if (cacheUploadingCounter.decrementAndGet() == 0) {
