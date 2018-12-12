@@ -119,6 +119,18 @@ public class IQLDB {
         return jdbcTemplate.update("DELETE FROM tblrunning WHERE hostname = ?", hostname);
     }
 
+    public List<RunningQuery> getPendingQueriesForUser(final String username) {
+        final String query =
+                "SELECT id, query, qhash, username, client, UNIX_TIMESTAMP(submit_time) as submit_time, " +
+                "UNIX_TIMESTAMP(execution_start_time) as execution_start_time, hostname, sessions, killed " +
+                "FROM tblrunning " +
+                // See com.indeed.iql.web.IQLDB.insertRunningQuery to understand the =1
+                "WHERE username = ? AND UNIX_TIMESTAMP(execution_start_time) = 1 " +
+                "ORDER BY submit_time";
+        final String[] args = new String[] { username };
+        return jdbcTemplate.query(query, RunningQuery.resultSetRowMapper, (Object[])args);
+    }
+
     public List<RunningQuery> getRunningQueries() {
         return getRunningQueries(null);
     }
