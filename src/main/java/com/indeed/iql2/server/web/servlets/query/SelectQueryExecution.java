@@ -634,7 +634,7 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
                             hasMoreRows.get(),
-                            (cacheWriter != null) ? cacheWriter.getBytesWritten() : -1L,
+                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : -1L,
                             (cacheWriter != null) ? cacheWriter.isOverflowed() : null
                     );
 

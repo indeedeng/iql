@@ -30,7 +30,7 @@ public class TruncatingBufferedOutputStream extends BufferedOutputStream {
         return overflowed;
     }
 
-    public long getBytesWritten() {
+    public long getAttemptedTotalWriteBytes() {
         return bytesWritten;
     }
 
