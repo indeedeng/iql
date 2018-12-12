@@ -1249,10 +1249,13 @@ public abstract class DocMetric extends AbstractPositional {
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
+        // In legacy mode it's legal to have 'hasstr(intField, "string")' so we need validate it differently
+        private final boolean strictValidate;
 
-        public HasString(FieldSet field, String term) {
+        public HasString(final FieldSet field, final String term, final boolean strictValidate) {
             this.field = field;
             this.term = term;
+            this.strictValidate = strictValidate;
         }
 
         @Override
@@ -1273,7 +1276,10 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
             final String fieldName = this.field.datasetFieldName(dataset);
-            if (!validationHelper.containsStringField(dataset, fieldName)) {
+            final boolean missingField =
+                    !validationHelper.containsField(dataset, fieldName) ||
+                    (strictValidate && !validationHelper.containsStringField(dataset, fieldName));
+            if (missingField) {
                 validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
@@ -1284,12 +1290,13 @@ public abstract class DocMetric extends AbstractPositional {
             if (o == null || getClass() != o.getClass()) return false;
             HasString hasString = (HasString) o;
             return Objects.equals(field, hasString.field) &&
-                    Objects.equals(term, hasString.term);
+                    Objects.equals(term, hasString.term) &&
+                    strictValidate == hasString.strictValidate;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field, term);
+            return Objects.hash(field, term, strictValidate);
         }
 
         @Override
@@ -1297,6 +1304,7 @@ public abstract class DocMetric extends AbstractPositional {
             return "HasString{" +
                     "field='" + field + '\'' +
                     ", term='" + term + '\'' +
+                    ", strictValidate='" + strictValidate + '\'' +
                     '}';
         }
     }
