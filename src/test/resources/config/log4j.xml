@@ -66,6 +66,22 @@
         <priority value="INFO" />
     </category>
 
+    <category name="com.indeed.imhotep.service.AbstractImhotepServiceCore">
+        <priority value="INFO" />
+    </category>
+
+    <category name="com.indeed.imhotep.service.ImhotepDaemon">
+        <priority value="INFO" />
+    </category>
+
+    <category name="com.indeed.imhotep.ImhotepRemoteSession">
+        <priority value="INFO" />
+    </category>
+
+    <category name="com.indeed.imhotep.local.MTImhotepLocalMultiSession">
+        <priority value="INFO" />
+    </category>
+
     <category name="org.apache.zookeeper">
         <priority value="WARN"/>
     </category>

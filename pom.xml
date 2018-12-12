@@ -65,6 +65,7 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.build.testOutputDirectory}/config/log4j.xml</log4j.configuration>
                     </systemPropertyVariables>
+                    <argLine>-Xmx1024m</argLine>
                 </configuration>
             </plugin>
         </plugins>
