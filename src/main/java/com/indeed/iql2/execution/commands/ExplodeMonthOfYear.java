@@ -19,7 +19,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
-import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKey;
+import com.indeed.iql2.execution.groupkeys.YearMonthGroupKey;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;

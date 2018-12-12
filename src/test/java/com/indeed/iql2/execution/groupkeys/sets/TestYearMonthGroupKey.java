@@ -18,6 +18,7 @@ import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.execution.groupkeys.YearMonthGroupKey;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;

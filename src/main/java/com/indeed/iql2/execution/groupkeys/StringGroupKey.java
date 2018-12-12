@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.FormattingUtils;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Objects;
@@ -27,7 +27,7 @@ public class StringGroupKey extends GroupKey {
     }
 
     public static StringGroupKey fromTimeRange(final DateTimeFormatter formatter, final long start, final long end) {
-        return new StringGroupKey(Session.tsvEscape("[" + formatter.print(start) + ", " + formatter.print(end) + ")"));
+        return new StringGroupKey(FormattingUtils.tsvEscape("[" + formatter.print(start) + ", " + formatter.print(end) + ")"));
     }
 
     public static StringGroupKey fromPreEscaped(final String term) {
@@ -35,7 +35,7 @@ public class StringGroupKey extends GroupKey {
     }
 
     public static StringGroupKey fromTerm(final String term) {
-        return new StringGroupKey(Session.tsvEscape(term));
+        return new StringGroupKey(FormattingUtils.tsvEscape(term));
     }
 
     @Override

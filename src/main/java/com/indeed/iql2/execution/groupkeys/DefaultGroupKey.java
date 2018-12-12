@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.FormattingUtils;
 
 public class DefaultGroupKey extends GroupKey {
     public static final DefaultGroupKey DEFAULT_INSTANCE = new DefaultGroupKey("DEFAULT");
@@ -29,7 +29,7 @@ public class DefaultGroupKey extends GroupKey {
         if (defaultGroupName.equals("DEFAULT")) {
             return DEFAULT_INSTANCE;
         } else {
-            return new DefaultGroupKey(Session.tsvEscape(defaultGroupName));
+            return new DefaultGroupKey(FormattingUtils.tsvEscape(defaultGroupName));
         }
     }
 

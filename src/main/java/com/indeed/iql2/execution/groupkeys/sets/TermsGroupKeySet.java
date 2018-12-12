@@ -1,6 +1,6 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
-import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.FormattingUtils;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
@@ -94,7 +94,7 @@ public abstract class TermsGroupKeySet implements GroupKeySet {
                 final GroupKey defaultKey,
                 final boolean[] isDefaultGroup) {
             super(previous, terms.length, parentGroups, defaultKey, isDefaultGroup);
-            this.terms = Arrays.stream(terms).map(Session::tsvEscape).collect(Collectors.toList());
+            this.terms = Arrays.stream(terms).map(FormattingUtils::tsvEscape).collect(Collectors.toList());
         }
 
         @Override

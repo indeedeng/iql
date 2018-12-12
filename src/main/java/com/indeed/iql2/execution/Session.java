@@ -395,15 +395,6 @@ public class Session {
         }
     }
 
-    private static final Pattern TSV_ESCAPE_PATTERN = Pattern.compile("[\t\r\n]");
-
-    public static String tsvEscape(@Nullable final String s) {
-        if (s == null) {
-            return null;
-        }
-        return TSV_ESCAPE_PATTERN.matcher(s).replaceAll("\ufffd");
-    }
-
     public static void appendGroupString(String groupString, StringBuilder sb) {
         for (int i = 0; i < groupString.length(); i++) {
             final char groupChar = groupString.charAt(i);

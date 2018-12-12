@@ -12,13 +12,12 @@
  * limitations under the License.
  */
 
-package com.indeed.iql2.execution.groupkeys.sets;
+package com.indeed.iql2.execution.groupkeys;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.indeed.iql2.execution.groupkeys.GroupKey;
-import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
