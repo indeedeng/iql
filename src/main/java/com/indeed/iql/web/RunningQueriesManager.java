@@ -201,14 +201,14 @@ public class RunningQueriesManager {
             return;
         }
 
-        final List<RunningQuery> userQueries = iqldb.getPendingQueriesForUser(selectQuery.getUsername());
+        final long userSubmittedQueries = iqldb.countPendingQueriesForUser(selectQuery.getUsername());
 
         // Theoretically we can still get above the limit, but this is probably good
         // enough to not worry about it too much.
-        if (userQueries.size() >= USER_SUBMITTED_QUERIES_LIMIT) {
+        if (userSubmittedQueries >= USER_SUBMITTED_QUERIES_LIMIT) {
             throw new IqlKnownException.TooManyPendingQueriesException(
                     "Number of currently pending queries for user \"" + selectQuery.getUsername() + "\" is too high" +
-                    "(" + userQueries.size() + " >= " + USER_SUBMITTED_QUERIES_LIMIT + "). " +
+                    "(" + userSubmittedQueries + " >= " + USER_SUBMITTED_QUERIES_LIMIT + "). " +
                     "Please wait for earlier queries to complete before submitting new queries."
             );
         }
