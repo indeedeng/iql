@@ -79,6 +79,8 @@ public class QueryInfo {
     public @Nullable Long numDocs;
     public @Nullable Boolean cached;
     public @Nullable Integer rows;
+    public @Nullable Boolean cacheUploadSkipped;
+    public @Nullable Long resultBytes;
     public @Nullable Set<String> cacheHashes;
     public @Nullable Integer maxGroups = 0;
     public @Nullable Integer maxConcurrentSessions;

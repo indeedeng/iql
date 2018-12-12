@@ -4,7 +4,6 @@ import javax.annotation.Nullable;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A BufferedOutputStream which will continue to silently accept (but not write!) any
@@ -14,7 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * the logic of this method to support it.
  */
 public class TruncatingBufferedOutputStream extends BufferedOutputStream {
-    private long remainingBytes;
+    private final long maxBytes;
+    private long bytesWritten = 0L;
     private boolean overflowed = false;
 
     public TruncatingBufferedOutputStream(final OutputStream out, @Nullable final Long maxBytesToWrite) {
@@ -23,21 +23,26 @@ public class TruncatingBufferedOutputStream extends BufferedOutputStream {
 
     public TruncatingBufferedOutputStream(final OutputStream out, @Nullable final Long maxBytesToWrite, final int bufferSize) {
         super(out, bufferSize);
-        this.remainingBytes = (maxBytesToWrite == null) ? Long.MAX_VALUE : maxBytesToWrite;
+        this.maxBytes = (maxBytesToWrite == null) ? Long.MAX_VALUE : maxBytesToWrite;
     }
 
     public boolean isOverflowed() {
         return overflowed;
     }
 
+    public long getBytesWritten() {
+        return bytesWritten;
+    }
+
     @Override
     public synchronized void write(final int b) throws IOException {
+        bytesWritten += 1;
+
         if (overflowed) {
             return;
         }
 
-        remainingBytes -= 1;
-        if (remainingBytes < 0L) {
+        if (bytesWritten > maxBytes) {
             overflowed = true;
         } else {
             super.write(b);
@@ -46,12 +51,13 @@ public class TruncatingBufferedOutputStream extends BufferedOutputStream {
 
     @Override
     public synchronized void write(final byte[] b, final int off, final int len) throws IOException {
+        bytesWritten += b.length;
+
         if (overflowed) {
             return;
         }
 
-        remainingBytes -= len;
-        if (remainingBytes < 0L) {
+        if (bytesWritten > maxBytes) {
             overflowed = true;
         } else {
             super.write(b, off, len);
