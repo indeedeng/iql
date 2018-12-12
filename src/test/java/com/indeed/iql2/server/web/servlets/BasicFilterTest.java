@@ -52,4 +52,12 @@ public class BasicFilterTest extends BasicTest {
         QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "134")), "from organic yesterday today where between(oji, 5, 10) SELECT counts");
         QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "5")), "from organic yesterday today where between(oji, 5, 10) SELECT counts");
     }
+
+    @Test
+    public void testHasStrOnIntField() throws Exception {
+        // Test that in Iql1 hasstr accepts any field.
+        // field = "str" and field != "str" lead to 'hasstr(field,"str")' pushStat so test it here as well
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "129", "0", "151", "0", "0")),
+                "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"sldgkslkkj\", oji = \"lskdgj\", hasstr(\"oji:lskjg\")", true);
+    }
 }

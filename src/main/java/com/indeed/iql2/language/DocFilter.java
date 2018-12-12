@@ -128,7 +128,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (term.isIntTerm) {
                 return new DocMetric.HasInt(field, term.intTerm);
             } else {
-                return new DocMetric.HasString(field, term.stringTerm);
+                return new DocMetric.HasString(field, term.stringTerm, true);
             }
         }
 
