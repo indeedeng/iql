@@ -124,6 +124,7 @@ public class SelectQueryExecution {
     // System configuration
     @Nullable
     private final File tmpDir;
+    private final ProgressCallback progressCallback;
 
     // IQL2 server systems
     private final QueryCache queryCache;
@@ -174,7 +175,8 @@ public class SelectQueryExecution {
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
-            final ImmutableSet<String> defaultIQL2Options) {
+            final ImmutableSet<String> defaultIQL2Options,
+            final ProgressCallback progressCallback) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
@@ -193,6 +195,7 @@ public class SelectQueryExecution {
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
+        this.progressCallback = progressCallback;
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -218,20 +221,19 @@ public class SelectQueryExecution {
             out = outputStream::println;
         }
 
-        final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
-        ProgressCallback progressCallback;
-
         //Check query document count limit
-        Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
-        NumDocLimitingProgressCallback numDocLimitingProgressCallback;
+        final Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
+        final NumDocLimitingProgressCallback numDocLimitingProgressCallback;
+        final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
+        final ProgressCallback compositeProgressCallback;
         if (numDocLimitBillion != null) {
             numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
-            progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
+            compositeProgressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, progressCallback, eventStreamProgressCallback);
         } else {
-            progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
+            compositeProgressCallback = CompositeProgressCallback.create(progressCallback, eventStreamProgressCallback);
         }
 
-        executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, progressCallback);
+        executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, compositeProgressCallback);
     }
 
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
