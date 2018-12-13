@@ -12,12 +12,13 @@
  * limitations under the License.
  */
 
-package com.indeed.iql2.execution.groupkeys;
+package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.execution.groupkeys.GroupKey;
+import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -25,7 +26,7 @@ import org.joda.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
 
-public class YearMonthGroupKey implements GroupKeySet {
+public class YearMonthGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numMonths;
     private final DateTime startMonth;
@@ -33,7 +34,7 @@ public class YearMonthGroupKey implements GroupKeySet {
     private final DateTimeFormatter formatter;
     private final LoadingCache<DateTime, StringGroupKey> buildGroupKey;
 
-    public YearMonthGroupKey(
+    public YearMonthGroupKeySet(
             final GroupKeySet previous,
             final int numMonths,
             final DateTime startMonth,
@@ -89,7 +90,7 @@ public class YearMonthGroupKey implements GroupKeySet {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        YearMonthGroupKey that = (YearMonthGroupKey) o;
+        YearMonthGroupKeySet that = (YearMonthGroupKeySet) o;
         return numMonths == that.numMonths &&
                 Objects.equals(previous, that.previous) &&
                 Objects.equals(startMonth, that.startMonth) &&
