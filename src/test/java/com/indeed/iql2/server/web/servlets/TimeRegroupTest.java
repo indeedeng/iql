@@ -193,34 +193,25 @@ public class TimeRegroupTest extends BasicTest {
     @Test
     public void testMonthRegroup() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("January 2015", "10", "10"));
-        expected.add(ImmutableList.of("February 2015", "100", "200"));
-        expected.add(ImmutableList.of("March 2015", "1", "3"));
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "10", "10"));
+        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "100", "200"));
+        expected.add(ImmutableList.of("[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "1", "3"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month");
     }
 
     @Test
     public void testMonthRegroup2() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("1", "January 2015", "10", "10"));
-        expected.add(ImmutableList.of("1", "February 2015", "0", "0"));
-        expected.add(ImmutableList.of("1", "March 2015", "0", "0"));
-        expected.add(ImmutableList.of("2", "January 2015", "0", "0"));
-        expected.add(ImmutableList.of("2", "February 2015", "100", "200"));
-        expected.add(ImmutableList.of("2", "March 2015", "0", "0"));
-        expected.add(ImmutableList.of("3", "January 2015", "0", "0"));
-        expected.add(ImmutableList.of("3", "February 2015", "0", "0"));
-        expected.add(ImmutableList.of("3", "March 2015", "1", "3"));
+        expected.add(ImmutableList.of("1", "[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "10", "10"));
+        expected.add(ImmutableList.of("1", "[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("1", "[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("2", "[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("2", "[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "100", "200"));
+        expected.add(ImmutableList.of("2", "[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("3", "[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("3", "[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "0", "0"));
+        expected.add(ImmutableList.of("3", "[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "1", "3"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by month, time(1M) select count(), month", true);
-    }
-
-    @Test
-    public void testConsistentMonthRegroup() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-02-01 00:00:00)", "10", "10"));
-        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "100", "200"));
-        expected.add(ImmutableList.of("[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "1", "3"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month OPTIONS [\"" + QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS + "\"]");
     }
 
     @Test
@@ -229,7 +220,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01, 2015-02-01)", "10", "10"));
         expected.add(ImmutableList.of("[2015-02-01, 2015-03-01)", "100", "200"));
         expected.add(ImmutableList.of("[2015-03-01, 2015-04-01)", "1", "3"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M, 'yyyy-MM-dd') select count(), month OPTIONS [\"" + QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS + "\"]");
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M, 'yyyy-MM-dd') select count(), month");
     }
 
     @Test
