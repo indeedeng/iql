@@ -15,9 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
-import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.JQLParser;
 import junit.framework.Assert;
 import org.junit.Test;
 
@@ -31,11 +29,12 @@ public class IdentifiersTest {
 
     @Test
     public void test() throws Exception {
-        Assert.assertEquals("HI", Queries.runParser("hi", PARSE_IDENTIFIER));
-        Assert.assertEquals("HI", Queries.runParser("`hi`", PARSE_IDENTIFIER));
-        Assert.assertEquals("_HI_", Queries.runParser("`_hi_`", PARSE_IDENTIFIER));
-        Assert.assertEquals("ABC123", Queries.runParser("abc123", PARSE_IDENTIFIER));
-        Assert.assertEquals("ABC-123", Queries.runParser("`abc-123`", PARSE_IDENTIFIER));
-        Assert.assertEquals("YYYYMMDD", Queries.runParser("yyyymmdd", PARSE_IDENTIFIER));
+        Assert.assertEquals("hi", Queries.runParser("hi", PARSE_IDENTIFIER));
+        Assert.assertEquals("hi", Queries.runParser("`hi`", PARSE_IDENTIFIER));
+        Assert.assertEquals("_hi_", Queries.runParser("`_hi_`", PARSE_IDENTIFIER));
+        Assert.assertEquals("_HI_", Queries.runParser("`_HI_`", PARSE_IDENTIFIER));
+        Assert.assertEquals("abc123", Queries.runParser("abc123", PARSE_IDENTIFIER));
+        Assert.assertEquals("abc-123", Queries.runParser("`abc-123`", PARSE_IDENTIFIER));
+        Assert.assertEquals("yyyymmdd", Queries.runParser("yyyymmdd", PARSE_IDENTIFIER));
     }
 }

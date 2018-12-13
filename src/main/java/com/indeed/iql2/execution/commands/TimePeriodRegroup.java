@@ -18,14 +18,15 @@ import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
-    public final Optional<String> timeField;
+    public final Optional<FieldSet> timeField;
     public final Optional<String> timeFormat;
     public final boolean isRelative;
 
-    public TimePeriodRegroup(long periodMillis, Optional<String> timeField, Optional<String> timeFormat, boolean isRelative) {
+    public TimePeriodRegroup(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
         this.periodMillis = periodMillis;
         this.timeField = timeField;
         this.timeFormat = timeFormat;

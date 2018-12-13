@@ -21,6 +21,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.log4j.Logger;
 
@@ -35,7 +36,7 @@ import java.util.Set;
 public class IterateHandlers {
     private static final Logger log = Logger.getLogger(IterateHandlers.class);
 
-    public static <T> List<T> executeMulti(Session session, String field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
+    public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("IterateHandlers.executeMulti");
 
         if (iterateHandlers.isEmpty()) {
@@ -120,7 +121,7 @@ public class IterateHandlers {
         return result;
     }
 
-    public static <T> T executeSingle(Session session, String field, IterateHandler<T> iterateHandler) throws IOException, ImhotepOutOfMemoryException {
+    public static <T> T executeSingle(Session session, FieldSet field, IterateHandler<T> iterateHandler) throws IOException, ImhotepOutOfMemoryException {
         return executeMulti(session, field, Collections.singletonList(iterateHandler)).get(0);
     }
     

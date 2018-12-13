@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -32,11 +33,9 @@ import java.util.Set;
 public class GetFieldMin implements IterateHandlerable<long[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMin.class);
 
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
 
-    public GetFieldMin(Set<String> scope, String field) {
-        this.scope = scope;
+    public GetFieldMin(FieldSet field) {
         this.field = field;
     }
 
@@ -65,7 +64,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
 
         @Override
         public Set<String> scope() {
-            return scope;
+            return field.datasets();
         }
 
         @Override

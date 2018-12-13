@@ -18,19 +18,17 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.query.Dataset;
-import com.indeed.iql2.language.query.GroupBy;
-import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
-import com.indeed.iql2.language.Positioned;
-import com.indeed.iql2.language.ScopedField;
+import com.indeed.iql2.language.query.Dataset;
+import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,13 +42,9 @@ public class FieldExtractor {
 
 	public static class DatasetField {
 
-		@Nullable public String dataset;
+		@Nonnull public String dataset;
 		@Nonnull public String field;
 		boolean aliasResolved;
-
-		DatasetField(final String field) {
-			this.field = field;
-		}
 
 		DatasetField(final String field, final String dataset) {
 			this.field = field;
@@ -61,10 +55,6 @@ public class FieldExtractor {
 			this.field = field;
 			this.dataset = dataset;
 			this.aliasResolved = aliasResolved;
-		}
-
-		DatasetField(final Positioned<String> positionedField) {
-			this.field = positionedField.unwrap();
 		}
 
 		@Override
@@ -82,25 +72,16 @@ public class FieldExtractor {
 		}
 
 		@Override
-		public String toString() {
-			return "DatasetField{" +
-					"dataset='" + dataset + '\'' +
-					", field='" + field + '\'' +
-					", aliasResolved=" + aliasResolved +
-					'}';
-		}
-
-		@Override
 		public int hashCode() {
 			return Objects.hashCode(dataset, field, aliasResolved);
 		}
 
-		static Set<DatasetField> fromScopedField(final ScopedField scopedField){
-			if (scopedField.scope.size() > 0) {
-				return scopedField.scope.stream().map(singleScope -> new DatasetField(scopedField.field.unwrap(), singleScope)).collect(Collectors.toSet());
-			} else {
-				return ImmutableSet.of(new DatasetField(scopedField.field));
-			}
+		@Override
+		public String toString() {
+			return "DatasetField{" +
+					"dataset='" + dataset + '\'' +
+					", field='" + field + '\'' +
+					'}';
 		}
 	}
 
@@ -124,42 +105,19 @@ public class FieldExtractor {
 			}
 		}
 
-		datasetFields = fillMissingDatasets(datasetFields, query.datasets);
 		datasetFields = resolveAliases(datasetFields, query.datasets);
 
 		return datasetFields;
 	}
 
-	private static Set<DatasetField> fillMissingDatasets(final Set<DatasetField> datasetFields, final List<Dataset> datasets) {
-		final Set<DatasetField> newDatasetFields  = Sets.newHashSet();
-		for (final DatasetField unfilledDatasetField : datasetFields) {
-			if (unfilledDatasetField.aliasResolved || unfilledDatasetField.dataset != null) {
-				newDatasetFields.add(unfilledDatasetField);
-			} else {
-				for (final Dataset dataset : datasets) {
-					newDatasetFields.add(new DatasetField(unfilledDatasetField.field, dataset.dataset.unwrap()));
-				}
-			}
-		}
-		return newDatasetFields;
-	}
-
 	private static Set<DatasetField> resolveAliases(final Set<DatasetField> unresolvedDatasetFields, final List<Dataset> datasets) {
 
 		final Map<String, String> aliasToActualDataset = Maps.newHashMap();
-		final Map<String, Map<String, String>> datasetToFieldAliases = Maps.newHashMap();
 
 		for (final Dataset dataset : datasets) {
 			if (dataset.alias.isPresent()) {
 				aliasToActualDataset.put(dataset.alias.get().unwrap(), dataset.dataset.unwrap());
 			}
-			final Map<String, String> fieldAliases = Maps.newHashMap();
-			dataset.fieldAliases.forEach(
-					(field, alias) -> {
-						fieldAliases.put(field.unwrap(), alias.unwrap());
-					}
-			);
-			datasetToFieldAliases.put(dataset.dataset.unwrap(), fieldAliases);
 		}
 
 		final Set<DatasetField> resolvedDatasetFields  = Sets.newHashSet();
@@ -170,14 +128,6 @@ public class FieldExtractor {
 				if (aliasToActualDataset.containsKey(unresolvedDatasetField.dataset)) {
 					unresolvedDatasetField.dataset = aliasToActualDataset.get(unresolvedDatasetField.dataset);
 				}
-
-				if (datasetToFieldAliases.containsKey(unresolvedDatasetField.dataset)) {
-					final Map<String, String> fieldAliases = datasetToFieldAliases.get(unresolvedDatasetField.dataset);
-					if (fieldAliases.containsKey(unresolvedDatasetField.field)) {
-						unresolvedDatasetField.field = fieldAliases.get(unresolvedDatasetField.field);
-					}
-				}
-
 				unresolvedDatasetField.aliasResolved = true;
 			}
 			resolvedDatasetFields.add(unresolvedDatasetField);
@@ -198,12 +148,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.FieldIs fieldIs) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(fieldIs.field));
+				return fieldIs.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.FieldIsnt fieldIsnt) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(fieldIsnt.field));
+				return fieldIsnt.field.datasetFields();
 			}
 
 			@Override
@@ -213,12 +163,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.FieldInQuery fieldInQuery) throws RuntimeException {
-				return union(DatasetField.fromScopedField(fieldInQuery.field), getDatasetFields(fieldInQuery.query));
+				return Sets.union(fieldInQuery.field.datasetFields(), getDatasetFields(fieldInQuery.query));
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Between between) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(between.field));
+				return between.field.datasetFields();
 			}
 
 			@Override
@@ -276,12 +226,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Regex regex) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(regex.field));
+				return regex.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.NotRegex notRegex) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(notRegex.field));
+				return notRegex.field.datasetFields();
 			}
 
 			@Override
@@ -309,7 +259,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Sample sample) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(sample.field));
+				return sample.field.datasetFields();
 			}
 
 			@Override
@@ -329,12 +279,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.StringFieldIn stringFieldIn) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(stringFieldIn.field));
+				return stringFieldIn.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.IntFieldIn intFieldIn) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(intFieldIn.field));
+				return intFieldIn.field.datasetFields();
 			}
 
 			@Override
@@ -344,7 +294,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.FieldEqual equal) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(equal.field1), new DatasetField(equal.field2));
+				return Sets.union(equal.field1.datasetFields(), equal.field2.datasetFields());
 			}
 		});
 	}
@@ -389,7 +339,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Field field) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(field.field));
+				return field.field.datasetFields();
 			}
 
 			@Override
@@ -479,12 +429,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.RegexMetric regexMetric) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(regexMetric.field));
+				return regexMetric.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.FloatScale floatScale) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(floatScale.field));
+				return floatScale.field.datasetFields();
 			}
 
 			@Override
@@ -494,32 +444,32 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.HasIntField hasIntField) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(hasIntField.field));
+				return hasIntField.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.HasStringField hasStringField) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(hasStringField.field));
+				return hasStringField.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.IntTermCount intTermCount) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(intTermCount.field));
+				return intTermCount.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.StrTermCount stringTermCount) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(stringTermCount.field));
+				return stringTermCount.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.HasInt hasInt) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(hasInt.field));
+				return hasInt.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.HasString hasString) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(hasString.field));
+				return hasString.field.datasetFields();
 			}
 
 			@Override
@@ -541,7 +491,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Extract extract) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(extract.field));
+				return extract.field.datasetFields();
 			}
 
 			@Override
@@ -551,12 +501,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.FieldEqualMetric equalMetric) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(equalMetric.field1), new DatasetField(equalMetric.field2));
+				return Sets.union(equalMetric.field1.datasetFields(), equalMetric.field2.datasetFields());
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.StringLen hasStringField) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(hasStringField.field));
+				return hasStringField.field.datasetFields();
 			}
 		});
 	};
@@ -574,7 +524,7 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByTime groupByTime) throws RuntimeException {
 				if (groupByTime.field.isPresent()) {
-					return ImmutableSet.of(new DatasetField(groupByTime.field.get()));
+					return groupByTime.field.get().datasetFields();
 				}
 				//"unixtime" might be implicitly used here.
 				return ImmutableSet.of();
@@ -583,7 +533,7 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByTimeBuckets groupByTimeBuckets) throws RuntimeException {
 				if (groupByTimeBuckets.field.isPresent()) {
-					return ImmutableSet.of(new DatasetField(groupByTimeBuckets.field.get()));
+					return groupByTimeBuckets.field.get().datasetFields();
 				}
 				return ImmutableSet.of();
 			}
@@ -591,20 +541,28 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByMonth groupByMonth) throws RuntimeException {
 				if (groupByMonth.timeField.isPresent()) {
-					return ImmutableSet.of(new DatasetField(groupByMonth.timeField.get()));
+					return groupByMonth.timeField.get().datasetFields();
 				}
 				return ImmutableSet.of();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByFieldIn groupByFieldIn) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(groupByFieldIn.field));
+				return groupByFieldIn.field.datasetFields();
 			}
 
 			@Override
+            public Set<DatasetField> visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+			    return union(
+                        groupByFieldInQuery.field.datasetFields(),
+                        getDatasetFields(groupByFieldInQuery.query)
+                );
+            }
+
+            @Override
 			public Set<DatasetField> visit(final GroupBy.GroupByField groupByField) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
-				set.add(new DatasetField(groupByField.field));
+				set.addAll(groupByField.field.datasetFields());
 				if (groupByField.filter.isPresent()) {
 					set.addAll(getDatasetFields(groupByField.filter.get()));
 				}
@@ -627,7 +585,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByQuantiles groupByQuantiles) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(groupByQuantiles.field));
+				return groupByQuantiles.field.datasetFields();
 			}
 
 			@Override
@@ -637,7 +595,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByRandom groupByRandom) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(groupByRandom.field));
+				return groupByRandom.field.datasetFields();
 			}
 
 			@Override
@@ -755,7 +713,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Percentile percentile) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(percentile.field));
+                return percentile.field.datasetFields();
 			}
 
 			@Override
@@ -766,7 +724,7 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Distinct distinct) throws RuntimeException {
 				return union(
-						ImmutableSet.of(new DatasetField(distinct.field)),
+						distinct.field.datasetFields(),
 						distinct.filter.isPresent() ? getDatasetFields(distinct.filter.get()) : ImmutableSet.of()
 				);
 			}
@@ -774,6 +732,11 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Named named) throws RuntimeException {
 				return getDatasetFields(named.metric);
+			}
+
+			@Override
+			public Set<DatasetField> visit(final AggregateMetric.NeedsSubstitution needsSubstitution) throws RuntimeException {
+				return Collections.emptySet();
 			}
 
 			@Override
@@ -798,12 +761,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.FieldMin fieldMin) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(fieldMin.field));
+				return fieldMin.field.datasetFields();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.FieldMax fieldMax) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(fieldMax.field));
+				return fieldMax.field.datasetFields();
 			}
 
 			@Override
@@ -827,7 +790,7 @@ public class FieldExtractor {
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Bootstrap bootstrap) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
-				set.add(new DatasetField(bootstrap.field));
+				set.addAll(bootstrap.field.datasetFields());
 				if (bootstrap.filter.isPresent()) {
 					set.addAll(getDatasetFields(bootstrap.filter.get()));
 				}
@@ -903,7 +866,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateFilter.Regex regex) throws RuntimeException {
-				return ImmutableSet.of(new DatasetField(regex.field));
+				return regex.field.datasetFields();
 			}
 
 			@Override

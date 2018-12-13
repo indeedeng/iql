@@ -23,6 +23,7 @@ import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
@@ -32,12 +33,10 @@ import java.util.Map;
 import java.util.Set;
 
 public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Command {
-    public final Set<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final double[] percentiles;
 
-    public GetGroupPercentiles(Set<String> scope, String field, double[] percentiles) {
-        this.scope = scope;
+    public GetGroupPercentiles(FieldSet field, double[] percentiles) {
         this.field = field;
         this.percentiles = percentiles;
     }
@@ -57,9 +56,9 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         session.timer.push("compute counts");
         final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
-        for (final String sessionName : scope) {
-            final ImhotepSessionHolder s = session.sessions.get(sessionName).session;
-            s.pushStat("hasintfield " + field);
+        for (final String dataset : field.datasets()) {
+            final ImhotepSessionHolder s = session.sessions.get(dataset).session;
+            s.pushStat("hasintfield " + field.datasetFieldName(dataset));
             final long[] stats = s.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
@@ -94,11 +93,12 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
         @Override
         public Set<String> scope() {
-            return scope;
+            return field.datasets();
         }
 
         @Override
         public Set<QualifiedPush> requires() {
+            final Set<String> scope = field.datasets();
             final Set<QualifiedPush> pushes = Sets.newHashSetWithExpectedSize(scope.size());
             for (final String name : scope) {
                 pushes.add(new QualifiedPush(name, Collections.singletonList("count()")));
@@ -108,7 +108,7 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
 
         @Override
         public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
-            for (final String name : scope) {
+            for (final String name : field.datasets()) {
                 relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()"))));
             }
         }

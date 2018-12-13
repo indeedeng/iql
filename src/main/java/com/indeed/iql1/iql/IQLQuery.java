@@ -29,13 +29,13 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.util.core.TreeTimer;
 import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -154,127 +154,128 @@ public final class IQLQuery implements Closeable {
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? outputStream : null;
 
-        final TreeTimer timer = new TreeTimer();
-        timer.push("Imhotep session creation");
-        final ImhotepSession imhotepSession = sessionBuilder.build();
-        session = new EZImhotepSession(imhotepSession, limits);
-        strictCloser.registerOrClose(session);
+        try (final TracingTreeTimer timer = new TracingTreeTimer()) {
+            timer.push("Imhotep session creation");
+            final ImhotepSession imhotepSession = sessionBuilder.build();
+            session = new EZImhotepSession(imhotepSession, limits);
+            strictCloser.registerOrClose(session);
 
-        final long numDocs = imhotepSession.getNumDocs();
-        if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
-            DecimalFormat df = new DecimalFormat("###,###");
-            throw new IqlKnownException.DocumentsLimitExceededException("The query on " + df.format(numDocs) +
-                    " documents exceeds the limit of " + df.format(limits.queryDocumentCountLimitBillions * 1_000_000_000L) + ". Please reduce the time range.");
-        }
-        queryInfo.numDocs = numDocs;
-        final String imhotepSessionId;
-        if(imhotepSession instanceof HasSessionId) {
-            imhotepSessionId = ((HasSessionId) imhotepSession).getSessionId();
-            queryInfo.sessionIDs = Collections.singleton(imhotepSessionId);
-        } else {
-            imhotepSessionId = null;
-        }
-
-        queryInfo.createSessionMillis = (long)timer.pop();
-
-        final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
-
-        try {
-            final int steps = conditions.size() + (groupings.size() == 0 ? 1 : groupings.size()) - 1;
-            int count = 0;
-            if(progress) {
-                out.println(": Beginning IQL Query");
-                out.println("event: totalsteps");
-                out.print("data: " + steps + EVENT_SOURCE_END);
-                out.println("event: sessionid");
-                out.print("data: " + imhotepSessionId + EVENT_SOURCE_END);
-                out.print(": Starting time filter" + EVENT_SOURCE_END);
-                out.flush();
+            final long numDocs = imhotepSession.getNumDocs();
+            if (!limits.satisfiesQueryDocumentCountLimit(numDocs)) {
+                DecimalFormat df = new DecimalFormat("###,###");
+                throw new IqlKnownException.DocumentsLimitExceededException("The query on " + df.format(numDocs) +
+                        " documents exceeds the limit of " + df.format(limits.queryDocumentCountLimitBillions * 1_000_000_000L) + ". Please reduce the time range.");
             }
-            timer.push("Time filter");
-            timeFilter(session);
-            queryInfo.timeFilterMillis = (long)timer.pop();
-            if(progress) {
-                out.print(": Time filtering finished" + EVENT_SOURCE_END);
-                out.flush();
+            queryInfo.numDocs = numDocs;
+            final String imhotepSessionId;
+            if (imhotepSession instanceof HasSessionId) {
+                imhotepSessionId = ((HasSessionId) imhotepSession).getSessionId();
+                queryInfo.sessionIDs = Collections.singleton(imhotepSessionId);
+            } else {
+                imhotepSessionId = null;
             }
 
-            long conditionFilterMillis = 0;
-            for (int i = 0; i < conditions.size(); i++) {
-                final Condition condition = conditions.get(i);
-                checkTimeout(timeoutTS);
-                timer.push("Filter " + (i + 1));
-                condition.filter(session);
-                conditionFilterMillis += timer.pop();
-                count = updateProgress(progress, out, count);
-            }
-            queryInfo.conditionFilterMillis = conditionFilterMillis;
+            queryInfo.createSessionMillis = (long) timer.pop();
 
-            queryInfo.maxGroups = 0;
-            long pushStatsMillis = 0;
-            final ExecutionResult executionResult;
-            if (groupings.size() > 0) {
-                List<StatReference> statRefs = null;
-                double[] totals = new double[0];
-                if(getTotals) {
-                    timer.push("Pushing stats");
-                    statRefs = pushStats(session);
-                    pushStatsMillis += timer.pop();
-                    timer.push("Getting totals");
-                    totals = getStats(statRefs);
-                    pushStatsMillis += timer.pop();
+            final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
+
+            try {
+                final int steps = conditions.size() + (groupings.size() == 0 ? 1 : groupings.size()) - 1;
+                int count = 0;
+                if (progress) {
+                    out.println(": Beginning IQL Query");
+                    out.println("event: totalsteps");
+                    out.print("data: " + steps + EVENT_SOURCE_END);
+                    out.println("event: sessionid");
+                    out.print("data: " + imhotepSessionId + EVENT_SOURCE_END);
+                    out.print(": Starting time filter" + EVENT_SOURCE_END);
+                    out.flush();
+                }
+                timer.push("Time filter");
+                timeFilter(session);
+                queryInfo.timeFilterMillis = (long) timer.pop();
+                if (progress) {
+                    out.print(": Time filtering finished" + EVENT_SOURCE_END);
+                    out.flush();
                 }
 
-                long regroupMillis = 0;
-                Int2ObjectMap<GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
-                // do Imhotep regroup on all except the last grouping
-                for (int i = 0; i < groupings.size()-1; i++) {
+                long conditionFilterMillis = 0;
+                for (int i = 0; i < conditions.size(); i++) {
+                    final Condition condition = conditions.get(i);
                     checkTimeout(timeoutTS);
-                    timer.push("Regroup " + (i + 1));
-                    groupKeys = groupings.get(i).regroup(session, groupKeys);
-                    queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
-                    regroupMillis += timer.pop();
+                    timer.push("Filter " + (i + 1));
+                    condition.filter(session);
+                    conditionFilterMillis += timer.pop();
                     count = updateProgress(progress, out, count);
                 }
-                queryInfo.regroupMillis = regroupMillis;
-                checkTimeout(timeoutTS);
-                if(!getTotals) {
+                queryInfo.conditionFilterMillis = conditionFilterMillis;
+
+                queryInfo.maxGroups = 0;
+                long pushStatsMillis = 0;
+                final ExecutionResult executionResult;
+                if (groupings.size() > 0) {
+                    List<StatReference> statRefs = null;
+                    double[] totals = new double[0];
+                    if (getTotals) {
+                        timer.push("Pushing stats");
+                        statRefs = pushStats(session);
+                        pushStatsMillis += timer.pop();
+                        timer.push("Getting totals");
+                        totals = getStats(statRefs);
+                        pushStatsMillis += timer.pop();
+                    }
+
+                    long regroupMillis = 0;
+                    Int2ObjectMap<GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
+                    // do Imhotep regroup on all except the last grouping
+                    for (int i = 0; i < groupings.size() - 1; i++) {
+                        checkTimeout(timeoutTS);
+                        timer.push("Regroup " + (i + 1));
+                        groupKeys = groupings.get(i).regroup(session, groupKeys);
+                        queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
+                        regroupMillis += timer.pop();
+                        count = updateProgress(progress, out, count);
+                    }
+                    queryInfo.regroupMillis = regroupMillis;
+                    checkTimeout(timeoutTS);
+                    if (!getTotals) {
+                        timer.push("Pushing stats");
+                        statRefs = pushStats(session);
+                        pushStatsMillis += timer.pop();
+                    }
+                    queryInfo.pushStatsMillis = pushStatsMillis;
+
+                    // do FTGS on the last grouping
+                    timer.push("FTGS");
+                    final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
+                    if (groupStatsIterator instanceof Closeable) {
+                        strictCloser.registerOrClose((Closeable) groupStatsIterator);
+                    }
+                    queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
+                    final long ftgsMillis = timer.pop();
+                    queryInfo.ftgsMillis = ftgsMillis;
+                    updateProgress(progress, out, count);
+
+                    executionResult = new ExecutionResult(groupStatsIterator, totals);
+                } else {
                     timer.push("Pushing stats");
-                    statRefs = pushStats(session);
-                    pushStatsMillis += timer.pop();
+                    final List<StatReference> statRefs = pushStats(session);
+                    queryInfo.pushStatsMillis = (long) timer.pop();
+                    timer.push("Getting stats");
+                    final double[] stats = getStats(statRefs);
+                    queryInfo.getStatsMillis = (long) timer.pop();
+                    count = updateProgress(progress, out, count);
+                    final List<GroupStats> result = Lists.newArrayList();
+                    result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));
+                    executionResult = new ExecutionResult(result.iterator(), stats);
                 }
-                queryInfo.pushStatsMillis = pushStatsMillis;
-
-                // do FTGS on the last grouping
-                timer.push("FTGS");
-                final Iterator<GroupStats> groupStatsIterator = groupings.get(groupings.size() - 1).getGroupStats(session, groupKeys, statRefs, timeoutTS);
-                if(groupStatsIterator instanceof Closeable) {
-                    strictCloser.registerOrClose((Closeable) groupStatsIterator);
-                }
-                queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
-                final long ftgsMillis = timer.pop();
-                queryInfo.ftgsMillis = ftgsMillis;
-                updateProgress(progress, out, count);
-
-                executionResult = new ExecutionResult(groupStatsIterator, totals);
-            } else {
-                timer.push("Pushing stats");
-                final List<StatReference> statRefs = pushStats(session);
-                queryInfo.pushStatsMillis = (long) timer.pop();
-                timer.push("Getting stats");
-                final double[] stats = getStats(statRefs);
-                queryInfo.getStatsMillis = (long) timer.pop();
-                count = updateProgress(progress, out, count);
-                final List<GroupStats> result = Lists.newArrayList();
-                result.add(new GroupStats(GroupKey.<Comparable>empty(), stats));
-                executionResult = new ExecutionResult(result.iterator(), stats);
+                queryInfo.timingTreeReport = timer.toString();
+                queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
+                return executionResult;
+            } catch (Throwable t) {
+                log.error("Error while executing the query", t);
+                throw Throwables.propagate(t);
             }
-            queryInfo.timingTreeReport = timer.toString();
-            queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
-            return executionResult;
-        } catch (Throwable t) {
-            log.error("Error while executing the query", t);
-            throw Throwables.propagate(t);
         }
     }
 

@@ -29,30 +29,25 @@ public class TermSelects {
 
     public final double[] selects;
     public final double topMetric;
-    public final int group;
 
     public TermSelects(
             final long intTerm,
             final double[] selects,
-            final double topMetric,
-            final int group) {
+            final double topMetric) {
         this.stringTerm = null;
         this.intTerm = intTerm;
         this.selects = selects;
         this.topMetric = topMetric;
-        this.group = group;
     }
 
     public TermSelects(
             final String stringTerm,
             final double[] selects,
-            final double topMetric,
-            final int group) {
+            final double topMetric) {
         this.stringTerm = stringTerm;
         this.intTerm = 0;
         this.selects = selects;
         this.topMetric = topMetric;
-        this.group = group;
     }
 
     @Override
@@ -62,7 +57,6 @@ public class TermSelects {
                 ", intTerm=" + intTerm +
                 ", selects=" + Arrays.toString(selects) +
                 ", topMetric=" + topMetric +
-                ", group=" + group +
                 '}';
     }
 

@@ -14,12 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
-import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.FieldType;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
@@ -28,8 +24,8 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,8 +66,6 @@ public class CommandValidator {
     private static ValidationHelper buildDatasetsFields(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
                                                         final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
-        final Map<String, Set<String>> relevantDatasetAliasIntFields = new HashMap<>();
-        final Map<String, Set<String>> relevantDatasetAliasStringFields = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
@@ -80,30 +74,7 @@ public class CommandValidator {
                 continue;
             }
             relevantDatasetToMetadata.put(aliasDataset, datasetMetada);
-
-            final Set<String> aliasIntField = new HashSet<>();
-            final Set<String> aliasStringField = new HashSet<>();
-            for (final Map.Entry<Positioned<String>, Positioned<String>> aliasToFieldEntry : relevantDataset.fieldAliases.entrySet()) {
-                final String aliasField = aliasToFieldEntry.getKey().unwrap();
-                final String actualFieldString = aliasToFieldEntry.getValue().unwrap();
-                final FieldMetadata actualField = new FieldMetadata(actualFieldString, FieldType.Integer);
-                if (datasetMetada.fieldToDimension.containsKey(actualFieldString)) {
-                    if (!datasetMetada.fieldToDimension.get(actualFieldString).isAlias) {
-                        throw new IqlKnownException.ParseErrorException(String.format("Alias for non-alias metric is not supported, metric: %s", actualField));
-                    } else {
-                        aliasIntField.add(aliasField);
-                    }
-                } else if (datasetMetada.stringFields.contains(actualField)){
-                    aliasStringField.add(aliasField);
-                } else if (datasetMetada.intFields.contains(actualField)) {
-                    aliasIntField.add(aliasField);
-                } else {
-                    throw new IqlKnownException.ParseErrorException("Alias for non-existent field: " + actualField + " in dataset " + actualDataset);
-                }
-            }
-            relevantDatasetAliasIntFields.put(aliasDataset, aliasIntField);
-            relevantDatasetAliasStringFields.put(aliasDataset, aliasStringField);
         }
-        return new ValidationHelper(new DatasetsMetadata(true, relevantDatasetToMetadata), relevantDatasetAliasIntFields, relevantDatasetAliasStringFields, useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }
 }

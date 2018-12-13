@@ -14,15 +14,12 @@
 
 package com.indeed.iql2.execution.actions;
 
-import com.google.common.collect.ImmutableSet;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-
-import java.util.Set;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 public class SampleAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final double probability;
     public final String seed;
 
@@ -30,8 +27,7 @@ public class SampleAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleAction(Set<String> scope, String field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public SampleAction(FieldSet field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         this.probability = probability;
         this.seed = seed;
@@ -50,14 +46,13 @@ public class SampleAction implements Action {
         } else {
             throw new IllegalArgumentException("field is not valid: " + field);
         }
-        session.randomRegroup(field, isIntField, seed, 1.0 - probability, targetGroup, positiveGroup, negativeGroup, scope);
+        session.randomRegroup(field, isIntField, seed, 1.0 - probability, targetGroup, positiveGroup, negativeGroup);
     }
 
     @Override
     public String toString() {
         return "SampleAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", probability=" + probability +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +

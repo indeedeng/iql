@@ -30,12 +30,12 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +57,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
 
         final List<IterateHandler<Void>> handlerables = Lists.newArrayListWithCapacity(namedComputations.size());
-        final Set<String> fields = Sets.newHashSet();
+        final Set<FieldSet> fields = Sets.newHashSet();
         session.timer.push("get IterateHandlers");
         for (final Pair<Command, String> namedComputation : namedComputations) {
             final Command computation = namedComputation.getFirst();
@@ -119,8 +119,8 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             if (fields.size() != 1) {
                 throw new IllegalStateException("Invalid number of fields seen: " + fields.size());
             }
-            String theField = null;
-            for (final String field : fields) {
+            FieldSet theField = null;
+            for (final FieldSet field : fields) {
                 theField = field;
                 break;
             }
@@ -140,8 +140,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         boolean allDistinct = true;
         boolean allNonWindowed = true;
         boolean allNonOrdered = true;
-        final Set<String> fields = new HashSet<>();
-        final Set<Set<String>> scopes = new HashSet<>();
+        final Set<FieldSet> fields = new HashSet<>();
         for (final Pair<Command, String> computation : namedComputations) {
             final Command command = computation.getFirst();
             allDistinct &= (command instanceof GetGroupDistincts || command instanceof GetSimpleGroupDistincts);
@@ -149,15 +148,13 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 final GetGroupDistincts distinct = (GetGroupDistincts) command;
                 allNonWindowed &= distinct.windowSize == 1;
                 fields.add(distinct.field);
-                scopes.add(distinct.scope);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
                 namedFilters.put(computation.getSecond(), filter);
             }
             if (command instanceof GetSimpleGroupDistincts) {
                 final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
-                fields.add(distinct.field);
-                scopes.add(Collections.singleton(distinct.scope));
+                fields.add(FieldSet.of(distinct.scope, distinct.field));
                 namedFilters.put(computation.getSecond(), new AggregateFilter.Constant(true));
             }
         }
@@ -170,15 +167,12 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         session.timer.push("preparing for aggregate distinct");
         // We should not be able to have an instance of this class with different desired fields
         Preconditions.checkState((long) fields.size() == 1);
-        // We should not be able to have an instance of this class with different desired scopes
-        Preconditions.checkState((long) scopes.size() == 1);
 
         // safe because of checkState above
-        final String field = fields.stream().findFirst().get();
-        final Set<String> scope = scopes.stream().findFirst().get();
+        final FieldSet field = fields.stream().findFirst().get();
 
-        final List<RemoteImhotepMultiSession.SessionField> sessionFields = scope.stream()
-                .map(x -> session.sessions.get(x).session.buildSessionField(field))
+        final List<RemoteImhotepMultiSession.SessionField> sessionFields = field.datasets().stream()
+                .map(x -> session.sessions.get(x).session.buildSessionField(field.datasetFieldName(x)))
                 .collect(Collectors.toList());
 
         final List<Map.Entry<String, AggregateFilter>> filters = new ArrayList<>(namedFilters.entrySet());

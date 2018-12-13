@@ -37,27 +37,27 @@ public class MetricMetadataTest extends BasicTest {
     public void testDefaultDimension() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "25300", "20", "5"));
-        testAll(dataset, expected, "from dimension yesterday today SELECT timeofday, dayofweek, counts", options);
+        testAll(dataset, expected, "from DIMension yesterday today SELECT timeofday, dayofweek, counts", options);
     }
 
     @Test
     public void testSelect() throws Exception {
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "0", "5", "200", "10", "10", "1", "20", "70", "2", "3", "3")),
-                "from dimension yesterday today SELECT " +
+                "from DIMension yesterday today SELECT " +
                         "empty, same, calc, i3, aliasi1, i1divi2, i1+aliasi1, floatf1, aliasi1=0,  plus!=5, distinct(aliasi1)",
                 options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT [i1*plus]", options);
-        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "59")), "from dimension yesterday today SELECT i1*plus", options);
+        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "59")), "from DIMension yesterday today SELECT i1*plus", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "200")), "from dimension yesterday today SELECT i1*plus", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "4", "1")), "from dimension yesterday today SELECT plus!=i1, plus=calc", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today SELECT LUCENE('i1:0')", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today SELECT LUCENE('aliasi1:0')", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1", "2.67", "4.86", "0.89", "13", "13")), "from dimension yesterday today SELECT " +
                 "DISTINCT(i1 HAVING i1divi2 > 2), PRINTF('%.2f', SUM_OVER(s1, i1divi2)), PRINTF('%.2f', SUM_OVER(i1, i1divi2)), PRINTF('%.2f', AVG_OVER(s1, i1divi2)), AVG_OVER(s1 HAVING plus > 5, plus), AVG_OVER(i1 HAVING plus > 5, plus)", options);
 
         assertFailQuery("from dimension yesterday today SELECT i1divi2=1", "");
         assertFailQuery("from dimension yesterday today SELECT field_min(plus)", "non alias dimension in FTGS is not supported");
         assertFailQuery("from dimension yesterday today SELECT distinct(i1divi2)", "non alias dimension in FTGS is not supported");
-        assertIQL2FailQuery("from dimension yesterday today SELECT LUCENE('aliasi1:0')", "dimension is not supported in lucene");
     }
 
     @Test
@@ -110,14 +110,16 @@ public class MetricMetadataTest extends BasicTest {
 
     @Test
     public void testFilter() throws Exception {
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today WHERE aliasi1=0 SELECT counts", options);
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE aliasi1=0 AND i2 = 0 SELECT counts", options);
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today WHERE plus=5 SELECT counts", options);
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from dimension yesterday today WHERE plus!=5 SELECT counts", options);
-        testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from dimension yesterday today WHERE BETWEEN(plus, 0, 5) SELECT counts", options);
+        testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today WHERE aliasi1=0 SELECT counts", options);
+        testAll(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from DIMension yesterday today WHERE aliasi1=0 AND i2 = 0 SELECT counts", options);
+        testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today WHERE plus=5 SELECT counts", options);
+        testAll(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from DIMension yesterday today WHERE plus!=5 SELECT counts", options);
+        // 'between(...)' is different in Iql1 (upper bound is included) and Iql2 (upper is excluded), so two tests here.
+        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE i1=plus SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE plus=calc SELECT counts", options);
-        assertFailQuery("from dimension yesterday today WHERE i1divi2=1", "equality for aggregate metric is not supported");
+        assertFailQuery("from DIMension yesterday today WHERE i1divi2=1", "equality for aggregate metric is not supported");
     }
 
     @Test
@@ -131,9 +133,9 @@ public class MetricMetadataTest extends BasicTest {
 
     @Test
     public void testDatasetAlias() throws Exception {
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")),
-                "from dimension yesterday today ALIASING(i2 as aliasi1) where i2 > 2 SELECT aliasi1",
-                options);
+        // testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")),
+        //         "from dimension yesterday today ALIASING(i2 as aliasi1) where i2 > 2 SELECT aliasi1",
+        //         options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "5")),
                 "from dimension yesterday today ALIASING(aliasi1 as a1) where i1 > 3 SELECT a1+i2",
                 options);

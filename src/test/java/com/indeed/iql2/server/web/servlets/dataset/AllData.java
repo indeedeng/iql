@@ -34,6 +34,8 @@ public class AllData {
         datasets.add(TSVEscapeDataset.createDataset());
         datasets.add(ValidationDataset.createDataset());
         datasets.add(BigDataset.create());
+        datasets.add(ExactCaseDataset.createDataset());
+        datasets.add(SyntheticDataset.createDataset());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

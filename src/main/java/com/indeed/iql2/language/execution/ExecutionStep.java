@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
@@ -37,6 +36,7 @@ import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.precomputed.Precomputed;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
@@ -140,20 +140,18 @@ public interface ExecutionStep {
     }
 
     class ExplodeAndRegroup implements ExecutionStep {
-        public final String field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
-        public final boolean forceNonStreaming;
 
-        public ExplodeAndRegroup(String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault, boolean forceNonStreaming) {
+        public ExplodeAndRegroup(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
             this.metric = metric;
             this.withDefault = withDefault;
-            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -189,7 +187,7 @@ public interface ExecutionStep {
             } else {
                 metric = Optional.absent();
             }
-            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault, forceNonStreaming);
+            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
 
         @Override
@@ -205,15 +203,13 @@ public interface ExecutionStep {
     }
 
     class ExplodeFieldIn implements ExecutionStep {
-        public final Set<String> scope;
-        public final String field;
+        public final FieldSet field;
         public final List<String> stringTerms;
         public final LongList intTerms;
         public final boolean isIntField;
         public final boolean withDefault;
 
-        private ExplodeFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
-            this.scope = scope;
+        private ExplodeFieldIn(FieldSet field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
             this.field = field;
             this.stringTerms = stringTerms;
             this.intTerms = intTerms;
@@ -221,17 +217,17 @@ public interface ExecutionStep {
             this.withDefault = withDefault;
         }
 
-        public static ExplodeFieldIn intExplode(Set<String> scope, String field, LongList terms, boolean withDefault) {
-            return new ExplodeFieldIn(scope, field, Collections.<String>emptyList(), terms, true, withDefault);
+        public static ExplodeFieldIn intExplode(FieldSet field, LongList terms, boolean withDefault) {
+            return new ExplodeFieldIn(field, Collections.<String>emptyList(), terms, true, withDefault);
         }
 
-        public static ExplodeFieldIn stringExplode(Set<String> scope, String field, List<String> terms, boolean withDefault) {
-            return new ExplodeFieldIn(scope, field, terms, LongLists.EMPTY_LIST, false, withDefault);
+        public static ExplodeFieldIn stringExplode(FieldSet field, List<String> terms, boolean withDefault) {
+            return new ExplodeFieldIn(field, terms, LongLists.EMPTY_LIST, false, withDefault);
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new RegroupFieldIn(scope, field, stringTerms, intTerms, isIntField, withDefault));
+            return Collections.<Command>singletonList(new RegroupFieldIn(field, stringTerms, intTerms, isIntField, withDefault));
         }
 
         @Override
@@ -257,8 +253,7 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ExplodeFieldIn{" +
-                    "scope=" + scope +
-                    ", field='" + field + '\'' +
+                    "field='" + field + '\'' +
                     ", stringTerms=" + stringTerms +
                     ", intTerms=" + intTerms +
                     ", isIntField=" + isIntField +
@@ -319,11 +314,11 @@ public interface ExecutionStep {
 
     class ExplodeTimePeriod implements ExecutionStep {
         private final long periodMillis;
-        private final Optional<String> timeField;
+        private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
         private final boolean isRelative;
 
-        public ExplodeTimePeriod(long periodMillis, Optional<String> timeField, Optional<String> timeFormat, boolean isRelative) {
+        public ExplodeTimePeriod(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
             this.periodMillis = periodMillis;
             this.timeField = timeField;
             this.timeFormat = timeFormat;
@@ -353,10 +348,10 @@ public interface ExecutionStep {
 
     class ExplodeTimeBuckets implements ExecutionStep {
         private final int numBuckets;
-        private final Optional<String> timeField;
+        private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
 
-        public ExplodeTimeBuckets(int numBuckets, Optional<String> timeField, Optional<String> timeFormat) {
+        public ExplodeTimeBuckets(int numBuckets, Optional<FieldSet> timeField, Optional<String> timeFormat) {
             this.numBuckets = numBuckets;
             this.timeField = timeField;
             this.timeFormat = timeFormat;
@@ -400,10 +395,10 @@ public interface ExecutionStep {
     }
 
     class ExplodeMonthOfYear implements ExecutionStep {
-        private final Optional<String> timeField;
+        private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
 
-        public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+        public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
             this.timeField = timeField;
             this.timeFormat = timeFormat;
         }
@@ -445,7 +440,7 @@ public interface ExecutionStep {
     }
 
     class IterateStats implements ExecutionStep {
-        private final String field;
+        private final FieldSet field;
         private final Optional<AggregateFilter> filter;
         private final Optional<Integer> queryLimit;
         private final Optional<Long> limit;
@@ -457,11 +452,9 @@ public interface ExecutionStep {
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
 
-        private final boolean forceNonStreaming;
-
         public IterateStats(
-                String field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
-                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings, boolean forceNonStreaming) {
+                FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
+                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -471,7 +464,6 @@ public interface ExecutionStep {
             this.intTermSubset = intTermSubset;
             this.stats = stats;
             this.formatStrings = formatStrings;
-            this.forceNonStreaming = forceNonStreaming;
         }
 
         @Override
@@ -484,7 +476,7 @@ public interface ExecutionStep {
             opts.filter = filter;
             opts.intTermSubset = intTermSubset;
             opts.stringTermSubset = stringTermSubset;
-            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings, !limit.isPresent() && !metric.isPresent() && !forceNonStreaming);
+            final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings);
             return Collections.<Command>singletonList(simpleIterate);
         }
 
@@ -506,7 +498,7 @@ public interface ExecutionStep {
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings, forceNonStreaming);
+            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings);
         }
 
         @Override
@@ -521,7 +513,6 @@ public interface ExecutionStep {
                     ", intTermSubset=" + intTermSubset +
                     ", stats=" + stats +
                     ", formatStrings=" + formatStrings +
-                    ", forceNonStreaming=" + forceNonStreaming +
                     '}';
         }
     }
@@ -559,10 +550,10 @@ public interface ExecutionStep {
     }
 
     class ExplodePerDocPercentile implements ExecutionStep {
-        private final String field;
+        private final FieldSet field;
         private final int numBuckets;
 
-        public ExplodePerDocPercentile(String field, int numBuckets) {
+        public ExplodePerDocPercentile(FieldSet field, int numBuckets) {
             this.field = field;
             this.numBuckets = numBuckets;
         }
@@ -637,11 +628,11 @@ public interface ExecutionStep {
     }
 
     class ExplodeRandom implements ExecutionStep {
-        private final String field;
+        private final FieldSet field;
         private final int k;
         private final String salt;
 
-        public ExplodeRandom(String field, int k, String salt) {
+        public ExplodeRandom(FieldSet field, int k, String salt) {
             this.field = field;
             this.k = k;
             this.salt = salt;

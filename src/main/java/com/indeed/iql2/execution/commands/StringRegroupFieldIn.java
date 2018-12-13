@@ -21,17 +21,18 @@ import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 public class StringRegroupFieldIn implements Command {
-    private final String field;
+    private final FieldSet field;
     private final List<String> terms;
     private final boolean withDefault;
 
-    public StringRegroupFieldIn(String field, List<String> terms, boolean withDefault) {
+    public StringRegroupFieldIn(FieldSet field, List<String> terms, boolean withDefault) {
         this.field = field;
         this.terms = terms;
         this.withDefault = withDefault;
@@ -58,8 +59,7 @@ public class StringRegroupFieldIn implements Command {
         }
         session.timer.pop();
 
-        final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, false, false);
-        session.regroupWithSingleFieldRules(rules, options, true);
+        session.regroupWithSingleFieldRules(rules, field, false, false, true);
 
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
     }

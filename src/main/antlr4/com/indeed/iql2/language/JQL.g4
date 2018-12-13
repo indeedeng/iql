@@ -98,13 +98,14 @@ NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
+fragment SINGLE_DOUBLE_DIGITS : ( DIGIT DIGIT | DIGIT ) ;
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
-    ('-' DIGIT DIGIT
-        ('-' DIGIT DIGIT
-            (('T'|' ') DIGIT DIGIT
-                (':' DIGIT DIGIT
-                    (':' DIGIT DIGIT
+    ('-' SINGLE_DOUBLE_DIGITS
+        ('-' SINGLE_DOUBLE_DIGITS
+            (('T'|' ') SINGLE_DOUBLE_DIGITS
+                (':' SINGLE_DOUBLE_DIGITS
+                    (':' SINGLE_DOUBLE_DIGITS
                         ('.' DIGIT DIGIT DIGIT
                             (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
                         )?
@@ -113,7 +114,7 @@ DATETIME_TOKEN
             )?
         )?
     ) ;
-DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' DIGIT DIGIT ('-' DIGIT DIGIT)?)? ;
+DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' SINGLE_DOUBLE_DIGITS ('-' SINGLE_DOUBLE_DIGITS)?)? ;
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
@@ -132,6 +133,7 @@ identifier
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
     ;
+identifierTerminal : identifier EOF ;
 timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
 timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
            | STRING_LITERAL # TimePeriodStringLiteral ;
@@ -220,6 +222,7 @@ singlyScopedField
     : field=identifier
     | oneScope=identifier '.' field=identifier
     ;
+singlyScopedFieldTerminal : singlyScopedField EOF ;
 
 syntacticallyAtomicJqlAggregateMetric
     : (COUNT '(' ')') # AggregateCounts
@@ -259,6 +262,8 @@ legacyDocMetricAtom
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
     | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
+    | HASINTFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasIntField
+    | HASSTRFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasStringField
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
@@ -403,6 +408,7 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
+    | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
@@ -448,8 +454,6 @@ groupByField [boolean useLegacy]
              ']'
              (withDefault=WITH DEFAULT)?
             )
-          |
-            (forceNonStreaming='*')
           |
             (withDefault=WITH DEFAULT)
         )?

@@ -16,11 +16,14 @@ public class MultiValueDataset {
         for (int i = 0; i < 100; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
             doc.addIntTerm("f", 1);
+            doc.addStringTerm("sf", "1");
             if (i % 2 == 0) {
                 doc.addIntTerm("f", 2);
+                doc.addStringTerm("sf", "2");
             }
             if (i % 3 == 0) {
                 doc.addIntTerm("f", 3);
+                doc.addStringTerm("sf", "3");
             }
             doc.addIntTerm("i", i % 2);
             flamdex.addDocument(doc);

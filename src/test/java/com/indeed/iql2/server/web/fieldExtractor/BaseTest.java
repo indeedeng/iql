@@ -14,14 +14,12 @@
 
 package com.indeed.iql2.server.web.fieldExtractor;
 
-import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.web.FieldFrequencyCache;
-
 import java.util.Collections;
 import java.util.function.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.iql2.language.util.FieldExtractor.DatasetField;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
@@ -36,17 +34,17 @@ import java.util.Set;
 
 public class BaseTest {
 
-	protected static final DatasetField ORGANIC_TK = new DatasetField("TK", "ORGANIC", true);
+	protected static final DatasetField ORGANIC_TK = new DatasetField("tk", "organic", true);
 
-	protected static final DatasetField ORGANIC_OJI = new DatasetField("OJI", "ORGANIC", true);
+	protected static final DatasetField ORGANIC_OJI = new DatasetField("oji", "organic", true);
 
-	protected static final DatasetField ORGANIC_OJC = new DatasetField("OJC", "ORGANIC", true);
+	protected static final DatasetField ORGANIC_OJC = new DatasetField("ojc", "organic", true);
 
-	protected static final DatasetField ORGANIC_UNIXTIME = new DatasetField("UNIXTIME", "ORGANIC", true);
+	protected static final DatasetField ORGANIC_UNIXTIME = new DatasetField("unixtime", "organic", true);
 
-	protected static final DatasetField JOBSEARCH_UNIXTIME = new DatasetField("UNIXTIME", "JOBSEARCH", true);
+	protected static final DatasetField JOBSEARCH_UNIXTIME = new DatasetField("unixtime", "jobsearch", true);
 
-	protected static final DatasetField JOBSEARCH_CTKRCVD = new DatasetField("CTKRCVD", "JOBSEARCH", true);
+	protected static final DatasetField JOBSEARCH_CTKRCVD = new DatasetField("ctkrcvd", "jobsearch", true);
 
 	private static final WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
@@ -54,7 +52,7 @@ public class BaseTest {
 		final Queries.ParseResult parseResult = Queries.parseQuery(
 				query,
 				false,
-				new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true).get(),
+				AllData.DATASET.getDatasetsMetadata(),
                 Collections.emptySet(),
                 new Consumer<String>() {
 					@Override

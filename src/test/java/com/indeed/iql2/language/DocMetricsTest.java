@@ -16,19 +16,20 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
+import com.indeed.iql2.language.query.fieldresolution.FieldResolverTest;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
-import java.util.function.Consumer;
-import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-
 import java.util.Collections;
 
 import static com.indeed.iql2.language.DocMetric.Add;
@@ -39,6 +40,15 @@ import static com.indeed.iql2.language.DocMetric.Subtract;
 
 public class DocMetricsTest {
     private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    public static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
+    private static final Query.Context CONTEXT = new Query.Context(
+            Collections.emptyList(),
+            AllData.DATASET.getDatasetsMetadata(),
+            null,
+            s -> System.out.println("PARSE WARNING: " + s),
+            CLOCK,
+            FIELD_RESOLVER.universalScope()
+    );
 
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {
@@ -47,12 +57,7 @@ public class DocMetricsTest {
                     return input.docMetric(true);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    System.out.println("PARSE WARNING: " + s);
-                }
-            }, CLOCK);
+            return DocMetrics.parseDocMetric(ctx, CONTEXT);
         }
     };
 
@@ -63,12 +68,7 @@ public class DocMetricsTest {
                     return input.docMetric(false);
                 }
             });
-            return DocMetrics.parseDocMetric(ctx, Collections.emptyList(), DatasetsMetadata.empty(), new Consumer<String>() {
-                @Override
-                public void accept(String s) {
-                    System.out.println("PARSE WARNING: " + s);
-                }
-            }, CLOCK);
+            return DocMetrics.parseDocMetric(ctx, CONTEXT);
         }
     };
 
@@ -78,28 +78,31 @@ public class DocMetricsTest {
         }
     };
 
+    public static DocMetric docField(String field) {
+        return new Field(FieldSet.of("synthetic", field));
+    }
 
     @Test
     public void testAdditivePrecedence() throws Exception {
         for (final boolean useLegacy : new boolean[]{false, true}) {
             CommonArithmetic.testAdditivePrecedence(
                     useLegacy ? PARSE_LEGACY_DOC_METRIC : PARSE_IQL2_DOC_METRIC,
-                    new Add(new Field("X"), new Field("Y")),
-                    new Subtract(new Field("X"), new Field("Y")),
-                    new Subtract(new Add(new Field("X"), new Field("Y")), new Field("Z")),
-                    new Add(new Subtract(new Field("X"), new Field("Y")), new Field("Z"))
+                    new Add(docField("X"), docField("Y")),
+                    new Subtract(docField("X"), docField("Y")),
+                    new Subtract(new Add(docField("X"), docField("Y")), docField("Z")),
+                    new Add(new Subtract(docField("X"), docField("Y")), docField("Z"))
             );
         }
     }
 
     @Test
     public void testLotsOfArithmetic() throws Exception {
-        final DocMetric aTimesBPlusCTimesD = new Add(new Multiply(new Field("A"), new Field("B")), new Multiply(new Field("C"), new Field("D")));
+        final DocMetric aTimesBPlusCTimesD = new Add(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D")));
         // "A * B / C * D + (A * B - C * D + E)"
         final DocMetric complex =
             new Add(
-                    new Multiply(new Divide(new Multiply(new Field("A"), new Field("B")), new Field("C")), new Field("D")),
-                    new Add(new Subtract(new Multiply(new Field("A"), new Field("B")), new Multiply(new Field("C"), new Field("D"))), new Field("E"))
+                    new Multiply(new Divide(new Multiply(docField("A"), docField("B")), docField("C")), docField("D")),
+                    new Add(new Subtract(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D"))), docField("E"))
             );
         CommonArithmetic.testLotsOfArithmetic(
                 PARSE_IQL2_DOC_METRIC,

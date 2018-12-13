@@ -15,29 +15,27 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.iql2.execution.commands.StringRegroupFieldIn;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class RegroupFieldIn implements Command {
-    private final Set<String> scope;
-    private final String field;
+    private final FieldSet field;
     private final List<String> stringTerms;
     private final LongList intTerms;
     private final boolean isIntField;
     private final boolean withDefault;
 
-    public RegroupFieldIn(Set<String> scope, String field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
-        this.scope = scope;
+    public RegroupFieldIn(FieldSet field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
         this.field = field;
         this.stringTerms = stringTerms;
         this.intTerms = intTerms;
@@ -48,9 +46,9 @@ public class RegroupFieldIn implements Command {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         if (isIntField) {
-            ValidationUtil.validateIntField(scope, field, validationHelper, validator, this);
+            ValidationUtil.validateIntField(field, validationHelper, validator, this);
         } else {
-            ValidationUtil.validateStringField(scope, field, validationHelper, validator, this);
+            ValidationUtil.validateStringField(field, validationHelper, validator, this);
         }
     }
 
@@ -70,7 +68,6 @@ public class RegroupFieldIn implements Command {
         RegroupFieldIn that = (RegroupFieldIn) o;
         return isIntField == that.isIntField &&
                 withDefault == that.withDefault &&
-                Objects.equals(scope, that.scope) &&
                 Objects.equals(field, that.field) &&
                 Objects.equals(stringTerms, that.stringTerms) &&
                 Objects.equals(intTerms, that.intTerms);
@@ -78,14 +75,13 @@ public class RegroupFieldIn implements Command {
 
     @Override
     public int hashCode() {
-        return Objects.hash(scope, field, stringTerms, intTerms, isIntField, withDefault);
+        return Objects.hash(field, stringTerms, intTerms, isIntField, withDefault);
     }
 
     @Override
     public String toString() {
         return "RegroupFieldIn{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field='" + field + '\'' +
                 ", stringTerms=" + stringTerms +
                 ", intTerms=" + intTerms +
                 ", isIntField=" + isIntField +

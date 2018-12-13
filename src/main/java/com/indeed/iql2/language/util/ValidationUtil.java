@@ -16,15 +16,22 @@ package com.indeed.iql2.language.util;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.Automaton;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.passes.ExtractQualifieds;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.format.DateTimeFormat;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,7 +92,7 @@ public class ValidationUtil {
 
     public static void validateScope(Collection<String> scope, ValidationHelper validationHelper, Validator validator) {
         for (final String s : scope) {
-            if (!validationHelper.datasets().contains(s.toUpperCase())) {
+            if (!validationHelper.datasets().contains(s)) {
                 validator.error(ErrorMessages.missingDataset(s));
             }
         }
@@ -100,6 +107,19 @@ public class ValidationUtil {
     public static void validateSameScopeThrowException(List<String> scope1, List<String> scope2) {
         if (!Objects.equal(scope1, scope2)) {
             throw new IqlKnownException.ParseErrorException(ErrorMessages.scopeMismatch(StringUtils.join(scope1, "."), StringUtils.join(scope2, ".")));
+        }
+    }
+
+    public static void validateSameScopeThrowException(FieldSet scope1, FieldSet scope2) {
+        if (!Objects.equal(scope1.datasets(), scope2.datasets())) {
+            throw new IqlKnownException.ParseErrorException(ErrorMessages.scopeMismatch(StringUtils.join(scope1.datasets(), "."), StringUtils.join(scope2.datasets(), ".")));
+        }
+    }
+
+    public static void validateSameQualifieds(RuleContext context, DocMetric m1, DocMetric m2) {
+        final Set<String> qualifications = Sets.union(ExtractQualifieds.extractDocMetricDatasets(m1), ExtractQualifieds.extractDocMetricDatasets(m2));
+        if (qualifications.size() > 1) {
+            throw new IqlKnownException.ParseErrorException("Different qualifieds found in different branches. Context = [" + context.toStringTree(Arrays.asList(JQLParser.ruleNames)) + "], qualifications = [" + qualifications + "]");
         }
     }
 
@@ -121,9 +141,33 @@ public class ValidationUtil {
         validateField(scope, field, validationHelper, validationHelper::containsStringField, validator, context);
     }
 
-    public static void validateField(
-            final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
+    public static void validateField(final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
         validateField(scope, field, validationHelper, validationHelper::containsField, validator, context);
+    }
+
+    public static void validateIntField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsIntOrAliasField, validator, context);
+    }
+
+    public static void validateStringField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsStringField, validator, context);
+    }
+
+    public static void validateField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsField, validator, context);
+    }
+
+    private static void validateField(final FieldSet field, final ValidationHelper validationHelper, final BiPredicate<String, String> predicate, final Validator validator, final Object context) {
+        field.datasets().forEach(dataset -> {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (!predicate.test(dataset, fieldName)) {
+                if (validationHelper.containsNonAliasMetricField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.nonAliasMetricInFTGS(fieldName, context));
+                    return;
+                }
+                validator.error(ErrorMessages.missingField(dataset, fieldName, context));
+            }
+        });
     }
 
     public static void validateDoubleFormatString(final String formatString, final Validator validator) {

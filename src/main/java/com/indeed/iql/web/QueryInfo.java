@@ -40,10 +40,15 @@ public class QueryInfo {
 
     public QueryInfo(String query, int iqlVersion, long queryStartTimestamp, @Nullable String sqlQuery) {
         this.queryLength = query.length();
-        this.queryStringTruncatedForPrint = queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
-        this.sqlQuery = sqlQuery == null ? null : queryTruncatePattern.matcher(sqlQuery).replaceAll("\\($1\\.\\.\\.\\)");
+        this.queryStringTruncatedForPrint = truncateQuery(query);
+        this.sqlQuery = truncateQuery(sqlQuery);
         this.iqlVersion = iqlVersion;
         this.queryStartTimestamp = queryStartTimestamp;
+    }
+
+    @Nullable
+    public static String truncateQuery(@Nullable final String query) {
+        return query == null ? null : queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
     }
 
     @JsonIgnore
@@ -74,10 +79,13 @@ public class QueryInfo {
     public @Nullable Long numDocs;
     public @Nullable Boolean cached;
     public @Nullable Integer rows;
+    public @Nullable Boolean cacheUploadSkipped;
+    public @Nullable Long resultBytes;
     public @Nullable Set<String> cacheHashes;
     public @Nullable Integer maxGroups = 0;
     public @Nullable Integer maxConcurrentSessions;
     public @Nullable Set<String> datasetFields;
+    public @Nullable Boolean fieldHadDescription;
     public @Nullable Integer selectCount;
     public @Nullable Integer groupByCount;
     public @Nullable Boolean headOnly;

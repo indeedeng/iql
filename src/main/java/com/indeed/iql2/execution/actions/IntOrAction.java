@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -26,8 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class IntOrAction implements Action {
-    public final ImmutableSet<String> scope;
-    public final String field;
+    public final FieldSet field;
     public final ImmutableSet<Long> terms;
 
     public final int targetGroup;
@@ -36,8 +36,7 @@ public class IntOrAction implements Action {
 
     private @Nullable Set<String> stringifiedTerms;
 
-    public IntOrAction(Set<String> scope, String field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public IntOrAction(FieldSet field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;
         this.terms = ImmutableSet.copyOf(terms);
         this.targetGroup = targetGroup;
@@ -48,10 +47,12 @@ public class IntOrAction implements Action {
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         for (final Map.Entry<String, Session.ImhotepSessionInfo> e : session.sessions.entrySet()) {
-            if (scope.contains(e.getKey())) {
+            final String dataset = e.getKey();
+            if (field.containsDataset(dataset)) {
+                final String fieldName = field.datasetFieldName(dataset);
                 final Session.ImhotepSessionInfo sessionInfo = e.getValue();
-                if (!sessionInfo.intFields.contains(field)) {
-                    new StringOrAction(Collections.singleton(e.getKey()), field, this.stringifiedTerms(), targetGroup, positiveGroup, negativeGroup).apply(session);
+                if (!sessionInfo.intFields.contains(fieldName)) {
+                    new StringOrAction(field.subset(Collections.singleton(dataset)), stringifiedTerms(), targetGroup, positiveGroup, negativeGroup).apply(session);
                 } else {
                     session.timer.push("sort terms");
                     final long[] terms = new long[this.terms.size()];
@@ -62,7 +63,7 @@ public class IntOrAction implements Action {
                     }
                     Arrays.sort(terms);
                     session.timer.pop();
-                    session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(e.getKey()));
+                    session.intOrRegroup(fieldName, terms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(dataset));
                 }
             }
         }
@@ -81,8 +82,7 @@ public class IntOrAction implements Action {
     @Override
     public String toString() {
         return "IntOrAction{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field=" + field +
                 ", terms=" + renderTerms() +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

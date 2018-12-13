@@ -14,11 +14,11 @@
  package com.indeed.iql1.iql;
 
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.web.Limits;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.log4j.Logger;

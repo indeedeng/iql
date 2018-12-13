@@ -19,13 +19,14 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
-import com.indeed.iql2.language.query.GroupBy;
-import com.indeed.iql2.language.util.ValidationHelper;
-import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import com.indeed.iql2.execution.metrics.aggregate.ParentLag;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Running running) throws E;
         T visit(Distinct distinct) throws E;
         T visit(Named named) throws E;
+        T visit(NeedsSubstitution needsSubstitution) throws E;
         T visit(GroupStatsLookup groupStatsLookup) throws E;
         T visit(GroupStatsMultiLookup groupStatsMultiLookup) throws E;
         T visit(SumAcross sumAcross) throws E;
@@ -998,10 +1000,10 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Percentile extends RequiresFTGSMetric {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final double percentile;
 
-        public Percentile(Positioned<String> field, double percentile) {
+        public Percentile(FieldSet field, double percentile) {
             this.field = field;
             this.percentile = percentile;
         }
@@ -1118,11 +1120,11 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Distinct extends RequiresFTGSMetric {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
 
-        public Distinct(Positioned<String> field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
+        public Distinct(FieldSet field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
@@ -1188,6 +1190,7 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Named extends AggregateMetric {
+
         public final AggregateMetric metric;
         public final Positioned<String> name;
 
@@ -1246,6 +1249,56 @@ public abstract class AggregateMetric extends AbstractPositional {
                     "metric=" + metric +
                     ", name='" + name + '\'' +
                     '}';
+        }
+    }
+
+    public static class NeedsSubstitution extends AggregateMetric {
+        public final String substitutionName;
+
+        public NeedsSubstitution(final String substitutionName) {
+            this.substitutionName = substitutionName;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public void validate(final Set<String> scope, final ValidationHelper validationHelper, final Validator validator) {
+        }
+
+        @Override
+        public boolean isOrdered() {
+            throw new UnsupportedOperationException("Should be replaced by something else");
+        }
+
+        @Override
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
+            throw new UnsupportedOperationException("Should be replaced by something else");
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final NeedsSubstitution that = (NeedsSubstitution) o;
+            return Objects.equals(substitutionName, that.substitutionName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(substitutionName);
         }
     }
 
@@ -1506,9 +1559,9 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class FieldMin extends RequiresFTGSMetric {
-        public final Positioned<String> field;
+        public final FieldSet field;
 
-        public FieldMin(Positioned<String> field) {
+        public FieldMin(FieldSet field) {
             this.field = field;
         }
 
@@ -1559,9 +1612,9 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class FieldMax extends RequiresFTGSMetric {
-        public final Positioned<String> field;
+        public final FieldSet field;
 
-        public FieldMax(Positioned<String> field) {
+        public FieldMax(FieldSet field) {
             this.field = field;
         }
 
@@ -1775,14 +1828,14 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Bootstrap extends RequiresFTGSMetric {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final String seed;
         public final AggregateMetric metric;
         public final int numBootstraps;
         public final List<String> varargs;
 
-        public Bootstrap(Positioned<String> field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+        public Bootstrap(FieldSet field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
             this.field = field;
             this.filter = filter;
             this.seed = seed;

@@ -39,12 +39,21 @@ public class TimeRegroupTest extends BasicTest {
         // Remove DISTINCT to allow streaming, rather than regroup.
         QueryServletTestUtils.testAll(AllData.DATASET, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
         QueryServletTestUtils.testAll(AllData.DATASET, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(
+
+        // IQL1 filters out empty groups, so 2 tests here
+        QueryServletTestUtils.testOriginalIQL1(AllData.DATASET, ImmutableList.of(
+                ImmutableList.of("[2015-01-01 23:00:00, 2015-01-01 23:30:00)", "1", "23", "1")),
+                "from organic h today group by time(30minute) select count(), oji, ojc");
+        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, ImmutableList.of(
                 ImmutableList.of("[2015-01-01 23:00:00, 2015-01-01 23:30:00)", "1", "23", "1"),
                 ImmutableList.of("[2015-01-01 23:30:00, 2015-01-02 00:00:00)", "0", "0", "0")),
                 "from organic h today group by time(30minute) select count(), oji, ojc");
+
         QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(d) select count(), oji, ojc");
-        QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
+        // IQL1 fails with error: "You requested a time period (1 days) not evenly divisible by the bucket size (1 weeks)."
+        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
+        // same query with fixed time interval
+        QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2014-12-26 00:00:00, 2015-01-02 00:00:00)", "157", "2659", "312")), "from organic 7d today group by time(1W) select count(), oji, ojc");
     }
 
     @Test

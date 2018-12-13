@@ -15,48 +15,45 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.commands.GetFieldMax;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class ComputeFieldMax implements Command {
-    private final Set<String> scope;
-    private final String field;
+    private final FieldSet field;
 
-    public ComputeFieldMax(Set<String> scope, String field) {
-        this.scope = scope;
+    public ComputeFieldMax(FieldSet field) {
         this.field = field;
     }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final Validator validator) {
-        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
+        ValidationUtil.validateField(field, validationHelper, validator, this);
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new GetFieldMax(scope, field);
+        return new GetFieldMax(field);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ComputeFieldMax that = (ComputeFieldMax) o;
-        return Objects.equals(scope, that.scope) &&
-                Objects.equals(field, that.field);
+        final ComputeFieldMax that = (ComputeFieldMax) o;
+        return Objects.equals(field, that.field);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(scope, field);
+        return Objects.hash(field);
     }
 
     @Override

@@ -16,10 +16,12 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
@@ -28,26 +30,22 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SimpleIterate implements Command {
-    public final String field;
+    public final FieldSet field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     private final List<Optional<String>> formatStrings;
-    public final boolean streamResult;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult) {
+    public SimpleIterate(FieldSet field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
-        this.streamResult = streamResult;
-        if (this.streamResult && opts.topK.isPresent()) {
-            throw new IllegalArgumentException("Can't stream results while doing top-k!");
-        }
     }
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(validationHelper.datasets(), field, validationHelper, validator, this);
+        Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
+        ValidationUtil.validateField(field, validationHelper, validator, this);
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
@@ -76,9 +74,7 @@ public class SimpleIterate implements Command {
                 field,
                 opts.toExecution(namedMetricLookup, groupKeySet),
                 selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
-                formatStrings,
-                streamResult,
-                null
+                formatStrings
         );
     }
 
@@ -87,8 +83,7 @@ public class SimpleIterate implements Command {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SimpleIterate that = (SimpleIterate) o;
-        return streamResult == that.streamResult &&
-                Objects.equals(field, that.field) &&
+        return Objects.equals(field, that.field) &&
                 Objects.equals(opts, that.opts) &&
                 Objects.equals(selecting, that.selecting) &&
                 Objects.equals(formatStrings, that.formatStrings);
@@ -96,7 +91,7 @@ public class SimpleIterate implements Command {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, opts, selecting, formatStrings, streamResult);
+        return Objects.hash(field, opts, selecting, formatStrings);
     }
 
     @Override
@@ -106,7 +101,6 @@ public class SimpleIterate implements Command {
                 ", opts=" + opts +
                 ", selecting=" + selecting +
                 ", formatStrings=" + formatStrings +
-                ", streamResult=" + streamResult +
                 '}';
     }
 }

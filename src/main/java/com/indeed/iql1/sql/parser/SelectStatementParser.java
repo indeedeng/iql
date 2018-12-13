@@ -15,16 +15,16 @@
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.FunctionExpression;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.GroupByClause;
+import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.QueryParts;
 import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.WhereClause;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
-import com.indeed.iql.exceptions.IqlKnownException;
 import org.codehaus.jparsec.Parser;
 import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.Scanners;
@@ -45,24 +45,30 @@ import java.util.List;
 public class SelectStatementParser {
     public static int LOWEST_YEAR_ALLOWED = 0;
 
-    public static IQL1SelectStatement parseSelectStatement(String selectQuery, ImhotepMetadataCache metadata) {
+    public static IQL1SelectStatement parseSelectStatement(
+            final String selectQuery,
+            final DateTime querySubmitTime,
+            final ImhotepMetadataCache metadata) {
         final QueryParts parts;
         try {
             parts = QuerySplitter.splitQuery(selectQuery);
         } catch (Exception e) {
             throw new IqlKnownException.StatementParseException(e, "splitter");
         }
-        return parseSelectStatement(parts, metadata);
+        return parseSelectStatement(parts, querySubmitTime, metadata);
     }
 
-    static IQL1SelectStatement parseSelectStatement(QueryParts parts, ImhotepMetadataCache metadata) {
+    static IQL1SelectStatement parseSelectStatement(
+            final QueryParts parts,
+            final DateTime querySubmitTime,
+            final ImhotepMetadataCache metadata) {
         final SelectClause select;
         final FromClause from;
         final WhereClause where;
         final GroupByClause groupBy;
 
         try {
-            from = parseFromClause(parts.from, false);
+            from = parseFromClause(parts.from, querySubmitTime, false);
         } catch (Exception e) {
             throw new IqlKnownException.StatementParseException(e, "from");
         }
@@ -130,7 +136,7 @@ public class SelectStatementParser {
         return new WhereClause(whereExpression);
     }
 
-    public static FromClause parseFromClause(String text, final boolean allowIllegalDates) {
+    public static FromClause parseFromClause(final String text, final DateTime querySubmitTime, final boolean allowIllegalDates) {
         Parser<String> tokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,
                 Terminals.StringLiteral.DOUBLE_QUOTE_TOKENIZER, QuerySplitter.wordParser);
         Parser<FromClause> fromParser = TerminalParser.STRING.atLeast(3).map(new Map<List<String>, FromClause>() {
@@ -164,9 +170,9 @@ public class SelectStatementParser {
                     startTime = new DateTime(start.replace(' ', 'T'));
                 } catch (IllegalArgumentException ignored) {
                     if(Strings.isNullOrEmpty(start)) {
-                        startTime = DateTime.now().withTimeAtStartOfDay();
+                        startTime = querySubmitTime.withTimeAtStartOfDay();
                     } else {
-                        startTime = tryParseRelativeDate(start);
+                        startTime = tryParseRelativeDate(start, querySubmitTime);
                     }
                 }
 
@@ -174,9 +180,9 @@ public class SelectStatementParser {
                     endTime = new DateTime(end.replace(' ', 'T'));
                 } catch (IllegalArgumentException ignored) {
                     if(Strings.isNullOrEmpty(end)) {
-                        endTime = DateTime.now().plusDays(1).withTimeAtStartOfDay();
+                        endTime = querySubmitTime.plusDays(1).withTimeAtStartOfDay();
                     } else {
-                        endTime = tryParseRelativeDate(end);
+                        endTime = tryParseRelativeDate(end, querySubmitTime);
                     }
                 }
 
@@ -210,24 +216,24 @@ public class SelectStatementParser {
     }
 
     @Nullable
-    private static DateTime tryParseRelativeDate(String value) {
+    private static DateTime tryParseRelativeDate(final String value, final DateTime querySubmitTime) {
         if(Strings.isNullOrEmpty(value)) {
-            return new DateTime().withTimeAtStartOfDay();
+            return querySubmitTime.withTimeAtStartOfDay();
         }
         final String lowercasedValue = value.toLowerCase();
         if("yesterday".startsWith(lowercasedValue)) {
-            return DateTime.now().minusDays(1).withTimeAtStartOfDay();
+            return querySubmitTime.minusDays(1).withTimeAtStartOfDay();
         } else if ("today".startsWith(lowercasedValue)) {
-            return new DateTime().withTimeAtStartOfDay();
+            return querySubmitTime.withTimeAtStartOfDay();
         } else if("tomorrow".startsWith(lowercasedValue)) {
-            return new DateTime().plusDays(1).withTimeAtStartOfDay();
+            return querySubmitTime.plusDays(1).withTimeAtStartOfDay();
         }
 
         Period period = PeriodParser.parseString(value);
         if(period == null) {
             return null;
         }
-        return DateTime.now().withTimeAtStartOfDay().minus(period);
+        return querySubmitTime.withTimeAtStartOfDay().minus(period);
     }
 
     @Nullable

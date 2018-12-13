@@ -48,7 +48,6 @@ import com.indeed.iql2.language.passes.ExtractPrecomputed;
 import com.indeed.iql2.language.passes.FixTopKHaving;
 import com.indeed.iql2.language.passes.HandleWhereClause;
 import com.indeed.iql2.language.passes.RemoveNames;
-import com.indeed.iql2.language.passes.SubstituteDimension;
 import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
@@ -115,7 +114,7 @@ public class Queries {
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
                     dataset.startInclusive.unwrap().toString(),
-                    getRawInput(inputStream, dataset.getDisplayName()),
+                    dataset.getDisplayName().unwrap(),
                     dataset.endExclusive.unwrap().toString(),
                     dataset.alias.or(dataset.dataset).unwrap(),
                     fieldAliases,
@@ -125,7 +124,10 @@ public class Queries {
         return result;
     }
 
-    public static GroupBy parseGroupBy(String rawGroupBy, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static GroupBy parseGroupBy(
+            final String rawGroupBy,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
             @Nullable
             @Override
@@ -133,10 +135,13 @@ public class Queries {
                 return input.groupByElement(useLegacy);
             }
         });
-        return GroupBys.parseGroupBy(groupByElementContext, options, datasetsMetadata, warn, clock);
+        return GroupBys.parseGroupBy(groupByElementContext, context);
     }
 
-    public static AggregateFilter parseAggregateFilter(String rawAggregateFilter, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateFilter parseAggregateFilter(
+            final String rawAggregateFilter,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.AggregateFilterContext aggregateFilterContext = runParser(rawAggregateFilter, new Function<JQLParser, JQLParser.AggregateFilterContext>() {
             @Nullable
             @Override
@@ -144,10 +149,13 @@ public class Queries {
                 return input.aggregateFilter(useLegacy);
             }
         });
-        return AggregateFilters.parseAggregateFilter(aggregateFilterContext, options, datasetsMetadata, warn, clock);
+        return AggregateFilters.parseAggregateFilter(aggregateFilterContext, context);
     }
 
-    public static DocFilter parseDocFilter(String rawDocFilter, boolean useLegacy, final List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock, final JQLParser.FromContentsContext fromContents) {
+    public static DocFilter parseDocFilter(
+            final String rawDocFilter,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.DocFilterContext docFilterContext = runParser(rawDocFilter, new Function<JQLParser, JQLParser.DocFilterContext>() {
             @Nullable
             @Override
@@ -155,10 +163,13 @@ public class Queries {
                 return input.docFilter(useLegacy);
             }
         });
-        return DocFilters.parseDocFilter(docFilterContext, options, datasetsMetadata, fromContents, warn, clock);
+        return DocFilters.parseDocFilter(docFilterContext, context);
     }
 
-    public static DocMetric parseDocMetric(final String rawDocMetric, boolean useLegacy, final List<String> options, final DatasetsMetadata datasetsMetadata, final Consumer<String> warn, final WallClock clock) {
+    public static DocMetric parseDocMetric(
+            final String rawDocMetric,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.DocMetricContext docMetricContext = runParser(rawDocMetric, new Function<JQLParser, JQLParser.DocMetricContext>() {
             @Nullable
             @Override
@@ -166,7 +177,7 @@ public class Queries {
                 return input.docMetric(useLegacy);
             }
         });
-        return DocMetrics.parseDocMetric(docMetricContext, options, datasetsMetadata, warn, clock);
+        return DocMetrics.parseDocMetric(docMetricContext, context);
     }
 
     public static class ParseResult {
@@ -224,10 +235,10 @@ public class Queries {
         }
     }
 
-    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock) {
+    public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock, final DatasetsMetadata datasetsMetadata) {
         Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, DatasetsMetadata.empty(), defaultOptions, clock).query;
+        final Query parsed = parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, clock).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
@@ -421,7 +432,10 @@ public class Queries {
         });
     }
 
-    public static AggregateMetric parseAggregateMetric(String q, boolean useLegacy, List<String> options, DatasetsMetadata datasetsMetadata, Consumer<String> warn, WallClock clock) {
+    public static AggregateMetric parseAggregateMetric(
+            final String q,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.AggregateMetricContext aggregateMetricContext = runParser(q, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
             @Nullable
             @Override
@@ -429,13 +443,16 @@ public class Queries {
                 return input.aggregateMetric(useLegacy);
             }
         });
-        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, options, datasetsMetadata, warn, clock);
+        return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);
     }
 
     public static JQLParser parserForString(String q) {
         final JQLLexer lexer = new JQLLexer(new UpperCaseInputStream(new ANTLRInputStream(q)));
+        lexer.removeErrorListeners();
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
-        return new JQLParser(tokens);
+        final JQLParser parser = new JQLParser(tokens);
+        parser.removeErrorListeners();
+        return parser;
     }
 
     public static List<Command> queryCommands(Query query, DatasetsMetadata datasetsMetadata) {
@@ -449,15 +466,12 @@ public class Queries {
         Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = CollapseFilters.collapseFilters(query3);
         Loggers.trace(log, "query4 = %s", query4);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4, datasetsMetadata);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
-        final Query substitutedDimension = SubstituteDimension.substitute(extracted.query, datasetsMetadata);
-        final ExtractPrecomputed.Extracted dimensionExtracted = new ExtractPrecomputed.Extracted(substitutedDimension, extracted.computedNames);
-        Loggers.trace(log, "substituted = %s", dimensionExtracted);
-        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(dimensionExtracted.query);
+        final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(extracted.query);
         final List<ExecutionStep> firstSteps = query5Result.steps;
 
-        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(dimensionExtracted)));
+        final List<ExecutionStep> executionSteps = Lists.newArrayList(Iterables.concat(firstSteps, ExtractPrecomputed.querySteps(extracted)));
         if (log.isTraceEnabled()) {
             log.trace("executionSteps = " + executionSteps);
             for (final ExecutionStep executionStep : executionSteps) {

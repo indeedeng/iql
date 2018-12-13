@@ -22,13 +22,13 @@ public class DimensionDataset {
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 1, 0, 15, timeZone), 3, 2, "a", "0.3"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 2, 0, 30, timeZone), 3, 5, "b", "0.4"));
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 4, 0, 30, timeZone), 4, 1, "b", "1.0"));
-            shards.add(new Dataset.DatasetShard("dimension", "index20150101.00", flamdex));
+            shards.add(new Dataset.DatasetShard("DIMension", "index20150101.00", flamdex));
         }
 
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
             flamdex.addDocument(makeDocument(new DateTime(2015, 1, 2, 2, 0, 30, timeZone), 4, 6, "b", "0.1"));
-            shards.add(new Dataset.DatasetShard("dimension", "index20150102.00", flamdex));
+            shards.add(new Dataset.DatasetShard("DIMension", "index20150102.00", flamdex));
         }
 
         {

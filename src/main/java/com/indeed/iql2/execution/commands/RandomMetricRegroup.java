@@ -21,7 +21,7 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
-import com.indeed.util.core.TreeTimer;
+import com.indeed.util.logging.TracingTreeTimer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +63,7 @@ public class RandomMetricRegroup implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }

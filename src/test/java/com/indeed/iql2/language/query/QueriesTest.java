@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.StoppedClock;
 import org.joda.time.DateTime;
@@ -33,58 +34,58 @@ import java.util.Set;
  *
  */
 public class QueriesTest {
-
     private static final Set<String> NO_OPTIONS = Collections.emptySet();
 
     @Test
     public void testSplitQuery() {
         final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZoneRetainFields(DateTimeZone.forOffsetHours(-6)).getMillis());
+        final DatasetsMetadata datasetsMetadata = AllData.DATASET.getDatasetsMetadata();
         {
-            final String query = "FROM jobsearch 1d 0d";
+            final String query = "FROM organic 1d 0d";
             Assert.assertEquals(
-                    new SplitQuery("jobsearch 1d 0d", "", "", "", "", ImmutableList.of("", "count()"),
-                            ImmutableList.of(), ImmutableList.of(), "jobsearch",
+                    new SplitQuery("organic 1d 0d", "", "", "", "", ImmutableList.of("", "count()"),
+                            ImmutableList.of(), ImmutableList.of(), "organic",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, true, NO_OPTIONS, clock));
+                    Queries.parseSplitQuery(query, true, NO_OPTIONS, clock, datasetsMetadata));
         }
         {
-            String query = "FROM jobsearch(ojc < 10 tk='a') 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0], ctk SELECT count(), oji";
+            String query = "FROM organic(ojc < 10 tk='a') 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0], tk SELECT count(), oji";
             Assert.assertEquals(
-                    new SplitQuery("jobsearch(ojc < 10 tk='a') 1d 0d",
-                            "ojc > 10 AND country='us'", "country[TOP BY ojc HAVING oji > 0], ctk", "count(), oji", "",
+                    new SplitQuery("organic(ojc < 10 tk='a') 1d 0d",
+                            "ojc > 10 AND country='us'", "country[TOP BY ojc HAVING oji > 0], tk", "count(), oji", "",
                             extractHeadersHelper(query, false),
-                            ImmutableList.of("country[TOP BY ojc HAVING oji > 0]", "ctk"), ImmutableList.of("count()", "oji"), "jobsearch",
+                            ImmutableList.of("country[TOP BY ojc HAVING oji > 0]", "tk"), ImmutableList.of("count()", "oji"), "organic",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock, datasetsMetadata));
         }
         {
-            String query = "FROM jobsearch 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0] AS myalias, ctk SELECT count(), oji";
+            String query = "FROM organic 1d 0d WHERE ojc > 10 AND country='us' GROUP BY country[TOP BY ojc HAVING oji > 0] AS myalias, tk SELECT count(), oji";
             Assert.assertEquals(
-                    new SplitQuery("jobsearch 1d 0d",
-                            "ojc > 10 AND country='us'", "country[TOP BY ojc HAVING oji > 0] AS myalias, ctk", "count(), oji", "",
-                            Lists.newArrayList("myalias", "ctk", "count()", "oji"),
-                            ImmutableList.of("country[TOP BY ojc HAVING oji > 0] AS myalias", "ctk"), ImmutableList.of("count()", "oji"), "jobsearch",
+                    new SplitQuery("organic 1d 0d",
+                            "ojc > 10 AND country='us'", "country[TOP BY ojc HAVING oji > 0] AS myalias, tk", "count(), oji", "",
+                            Lists.newArrayList("myalias", "tk", "count()", "oji"),
+                            ImmutableList.of("country[TOP BY ojc HAVING oji > 0] AS myalias", "tk"), ImmutableList.of("count()", "oji"), "organic",
                             "2015-01-01T00:00:00.000-06:00", "1d", "2015-01-02T00:00:00.000-06:00", "0d",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock, datasetsMetadata));
         }
         {
-            final String query = "FROM jobsearch 1d 0d /* mid */, mobsearch /* after */ " +
+            final String query = "FROM organic 1d 0d /* mid */, sponsored /* after */ " +
                     "WHERE /* before */ ojc > 10 /* mid */ OR country='us' /* after */ " +
-                    "GROUP BY /* before */ country /* mid */, ctk /* after */ " +
+                    "GROUP BY /* before */ country /* mid */, tk /* after */ " +
                     "SELECT /* before */ count() /* num */, oji /* impression */";
             Assert.assertEquals(
-                    new SplitQuery("jobsearch 1d 0d /* mid */, mobsearch /* after */",
+                    new SplitQuery("organic 1d 0d /* mid */, sponsored /* after */",
                             "/* before */ ojc > 10 /* mid */ OR country='us' /* after */",
-                            "/* before */ country /* mid */, ctk /* after */",
+                            "/* before */ country /* mid */, tk /* after */",
                             "/* before */ count() /* num */, oji /* impression */", "",
-                            ImmutableList.of("country", "ctk", "count()", "oji"),
-                            ImmutableList.of("country", "ctk"), ImmutableList.of("count()", "oji"),
+                            ImmutableList.of("country", "tk", "count()", "oji"),
+                            ImmutableList.of("country", "tk"), ImmutableList.of("count()", "oji"),
                             "", "", "", "", "",
                             extractDatasetsHelper(query, false)),
-                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock));
+                    Queries.parseSplitQuery(query, false, NO_OPTIONS, clock, datasetsMetadata));
         }
     }
 
@@ -92,23 +93,23 @@ public class QueriesTest {
     public void extractHeaders() throws Exception {
         final boolean useLegacy = false;
         Assert.assertEquals(ImmutableList.of("", "count()"),
-                extractHeadersHelper("FROM jobsearch 1d 0d", useLegacy));
+                extractHeadersHelper("FROM organic 1d 0d", useLegacy));
         Assert.assertEquals(ImmutableList.of("oji", "count()"),
-                extractHeadersHelper("FROM jobsearch 1d 0d GROUP BY oji", useLegacy));
+                extractHeadersHelper("FROM organic 1d 0d GROUP BY oji", useLegacy));
         Assert.assertEquals(ImmutableList.of("oji", "total_count", "o1.count()", "add"),
-                extractHeadersHelper("FROM jobsearch 1d 0d as o1, mobsearch as o2 GROUP BY oji " +
-                        "SELECT count() as total_count, o1.count(), o1.a+o2.b as add", useLegacy));
-        Assert.assertEquals(ImmutableList.of("myalias", "country", "total_count"),
-                extractHeadersHelper("FROM jobsearch 1d 0d GROUP BY oji AS myalias, country " +
+                extractHeadersHelper("FROM organic 1d 0d as o1, organic as o2 GROUP BY oji " +
+                        "SELECT count() as total_count, o1.count(), o1.oji+o2.ojc as add", useLegacy));
+        Assert.assertEquals(ImmutableList.of("myalias", "ojc", "total_count"),
+                extractHeadersHelper("FROM organic 1d 0d GROUP BY oji AS myalias, ojc " +
                         "SELECT count() as total_count", useLegacy));
-        Assert.assertEquals(ImmutableList.of("myalias", "country", "total_count"),
-                extractHeadersHelper("FROM jobsearch 1d 0d as o1, mobsearch as o2 GROUP BY oji HAVING (x > y) AS myalias, country " +
+        Assert.assertEquals(ImmutableList.of("myalias", "ojc", "total_count"),
+                extractHeadersHelper("FROM organic 1d 0d as o1, organic as o2 GROUP BY oji HAVING (oji > ojc) AS myalias, ojc " +
                         "SELECT count() as total_count", useLegacy));
     }
 
     private List<String> extractHeadersHelper(final String q, final boolean useLegacy) {
         final Query query = Queries.parseQuery(
-                q, useLegacy, DatasetsMetadata.empty(), NO_OPTIONS, new DefaultWallClock()).query;
+                q, useLegacy, AllData.DATASET.getDatasetsMetadata(), NO_OPTIONS, new DefaultWallClock()).query;
         final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
         return Queries.extractHeaders(query, queryContext.start.getInputStream());
     }

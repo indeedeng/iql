@@ -19,17 +19,17 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 
 import java.util.List;
 
 public class ExplodeMonthOfYear implements Command {
-    private final Optional<String> timeField;
+    private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
 
-    public ExplodeMonthOfYear(final Optional<String> timeField, final Optional<String> timeFormat) {
+    public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
         this.timeField = timeField;
         this.timeFormat = timeFormat;
     }

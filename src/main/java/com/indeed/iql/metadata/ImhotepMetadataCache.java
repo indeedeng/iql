@@ -16,7 +16,6 @@
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.imhotep.DatasetInfo;
@@ -26,19 +25,17 @@ import com.indeed.ims.client.yamlFile.DatasetYaml;
 import com.indeed.ims.client.yamlFile.FieldsYaml;
 import com.indeed.ims.client.yamlFile.MetricsYaml;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.Identifiers;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.util.core.time.DefaultWallClock;
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -55,7 +52,7 @@ public class ImhotepMetadataCache {
     private final ImhotepClient imhotepClient;
     private final List<Pattern> disabledFields = Lists.newArrayList();
     @Nullable
-    private ImsClientInterface metadataClient;
+    private final ImsClientInterface metadataClient;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final boolean caseInsensitiveNames;
 
@@ -137,7 +134,7 @@ public class ImhotepMetadataCache {
 
                             }
                         }
-                        MetricsYaml metricsYamls[] = datasetYaml.getMetrics();
+                        MetricsYaml[] metricsYamls = datasetYaml.getMetrics();
                         Map<String, MetricMetadata> metrics = newDataset.fieldToDimension;
 
                         for (MetricsYaml metricYaml : metricsYamls) {
@@ -192,15 +189,22 @@ public class ImhotepMetadataCache {
         }
 
         // new metadata instance is ready for use
-        atomMetadata.set(new DatasetsMetadata(caseInsensitiveNames, newDatasets));
+        atomMetadata.set(new DatasetsMetadata(newDatasets));
 
         log.debug("Finished metadata update");
     }
 
+    @VisibleForTesting
     MetricMetadata getMetricMetadataFromMetricsYaml(MetricsYaml metric, String dataset) {
         try {
-            final MetricMetadata metricMetadata = new MetricMetadata(metric.getName(), metric.getExpr(), metric.getDescription(),
-                    parseMetric(metric.getName(), metric.getExpr(), DatasetsMetadata.empty()));
+            String fieldAlias = null;
+            try {
+                final JQLParser.IdentifierContext identifier = Queries.runParser(metric.getExpr(), JQLParser::identifierTerminal).identifier();
+                fieldAlias = Identifiers.extractIdentifier(identifier);
+            } catch (Exception e) {
+                // Guess it wasn't an alias.
+            }
+            final MetricMetadata metricMetadata = new MetricMetadata(metric.getName(), metric.getExpr(), metric.getDescription(), fieldAlias);
             metricMetadata.setUnit(metric.getUnits());
             metricMetadata.setFriendlyName(metric.getFriendlyName());
             return metricMetadata;
@@ -209,27 +213,6 @@ public class ImhotepMetadataCache {
                     dataset, metric.getName(), metric.getExpr(), e.getMessage()));
             return null;
         }
-    }
-
-    @VisibleForTesting
-    static AggregateMetric parseMetric(final String name, final String expr, List<String> options) {
-        return parseMetric(name, expr, DatasetsMetadata.empty());
-    }
-
-    private static AggregateMetric parseMetric(final String name, final String expr, final DatasetsMetadata datasetsMetadata) {
-        final String metricExpression;
-        if (Strings.isNullOrEmpty(expr)) {
-            metricExpression = name;
-        } else {
-            metricExpression = expr;
-        }
-        final AggregateMetric dimensionMetric = Queries.parseAggregateMetric(
-                metricExpression, true, null, datasetsMetadata,
-                s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)), new DefaultWallClock());
-        if (dimensionMetric.requiresFTGS()) {
-            throw new UnsupportedOperationException("Dimension metric requires FTGS is not supported");
-        }
-        return dimensionMetric;
     }
 
     public DatasetsMetadata get() {
@@ -259,39 +242,11 @@ public class ImhotepMetadataCache {
         final String timeField = DatasetMetadata.TIME_FIELD_NAME;
         final String countsExpression = "count()";
 
-        final List<String> metricParseOptions = Collections.emptyList();
-
-        typeBuilder.put("counts", new MetricMetadata("counts", countsExpression, "Count of all documents",
-                parseMetric("counts", countsExpression, metricParseOptions)));
+        typeBuilder.put("counts", new MetricMetadata("counts", countsExpression, "Count of all documents", null));
         typeBuilder.put("dayofweek", new MetricMetadata("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)",
-                "day of week (days since Sunday)", parseMetric("dayofweek", "(((" + timeField + "-280800)%604800)\\86400)", metricParseOptions)));
+                "day of week (days since Sunday)", null));
         typeBuilder.put("timeofday", new MetricMetadata("timeofday", "((" + timeField + "-21600)%86400)",
-                "time of day (seconds since midnight)", parseMetric("timeofday", "((" + timeField + "-21600)%86400)", metricParseOptions)));
+                "time of day (seconds since midnight)", null));
         return typeBuilder.build();
-    }
-
-    private static Set<String> RESERVED_KEYWORDS = ImmutableSet.of("time", "bucket", "buckets", "lucene", "in");
-
-    private boolean tryAddMetricAlias(String metricName, String replacement, String description, DatasetMetadata datasetMetadata) {
-        // only add the alias if it's safe to do so. it shouldn't hide an existing field or be a reserved keyword
-        if(datasetMetadata.hasField(metricName)
-                && !replacement.startsWith("floatscale")    // allow floatscale operation to replace the original field as floats are not usable as is
-                || RESERVED_KEYWORDS.contains(metricName)) {
-
-            log.trace("Skipped adding alias due to conflict: " + datasetMetadata.name + "." + metricName + "->" + replacement);
-            return false;
-        }
-
-        MetricMetadata metricMetadata = datasetMetadata.getMetric(metricName);
-        if(metricMetadata == null) {
-            metricMetadata = new MetricMetadata(metricName);
-            datasetMetadata.fieldToDimension.put(metricName, metricMetadata);
-        }
-
-        metricMetadata.setExpression(replacement);
-        if(description != null) {
-            metricMetadata.setDescription(description);
-        }
-        return true;
     }
 }

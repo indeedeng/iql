@@ -16,19 +16,21 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 
 import java.util.List;
 
 public class ExplodeRandom implements Command {
-    private final String field;
+    private final FieldSet field;
     private final int k;
     private final String salt;
 
-    public ExplodeRandom(String field, int k, String salt) {
+    public ExplodeRandom(FieldSet field, int k, String salt) {
         this.field = field;
         this.k = k;
         this.salt = salt;
@@ -36,8 +38,9 @@ public class ExplodeRandom implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
+        Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
         for (final String dataset : validationHelper.datasets()) {
-            validationHelper.containsField(dataset, field);
+            validationHelper.containsField(dataset, field.datasetFieldName(dataset));
         }
         if (k <= 1) {
             validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);

@@ -26,10 +26,10 @@ import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
+import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.DynamicMetric;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
@@ -141,6 +141,9 @@ public final class IQLTranslator {
 
         final FromClause fromClause = parse.from;
         final String dataset = fromClause.getDataset();
+        if (!metadata.get().getMetadata(dataset).isPresent()) {
+            throw new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\"");
+        }
         final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
         final List<Stat> stats = Lists.newArrayList();
 

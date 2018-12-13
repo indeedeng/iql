@@ -36,6 +36,9 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
@@ -76,12 +79,13 @@ public class PrettyPrint {
             }
         };
         WallClock clock = new StoppedClock();
-        Query query = Query.parseQuery(queryContext, DatasetsMetadata.empty(), Collections.emptySet(), consumer, clock);
+        Query query = Query.parseQuery(queryContext, datasetsMetadata, Collections.emptySet(), consumer, clock);
         return prettyPrint(queryContext, query, datasetsMetadata, consumer, clock);
     }
 
     private static String prettyPrint(JQLParser.QueryContext queryContext, Query query, DatasetsMetadata datasetsMetadata, Consumer<String> consumer, WallClock clock) {
-        final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata);
+        final FieldResolver fieldResolver = FieldResolver.build(queryContext, queryContext.fromContents(), datasetsMetadata);
+        final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata, fieldResolver.universalScope());
         prettyPrint.pp(query, consumer, clock);
         while (prettyPrint.sb.charAt(prettyPrint.sb.length() - 1) == '\n') {
             prettyPrint.sb.setLength(prettyPrint.sb.length() - 1);
@@ -92,14 +96,17 @@ public class PrettyPrint {
     private final CharStream inputStream;
     private final StringBuilder sb = new StringBuilder();
     private final DatasetsMetadata datasetsMetadata;
+    private final ScopedFieldResolver fieldResolver;
+
     // This is used to prevent the situation where multiple layers of abstraction all share the same comment
     // causing it to be printed multiple times as we pp() each point in the tree.
     // A bit of a hack. Can probably be removed by making the wrappers not pp(), but that's effort.
     private final Set<Interval> seenCommentIntervals = new HashSet<>();
 
-    private PrettyPrint(JQLParser.QueryContext queryContext, final DatasetsMetadata datasetsMetadata) {
+    private PrettyPrint(JQLParser.QueryContext queryContext, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver) {
         this.inputStream = queryContext.start.getInputStream();
         this.datasetsMetadata = datasetsMetadata;
+        this.fieldResolver = fieldResolver;
     }
 
     private String getText(Positional positional) {
@@ -260,16 +267,17 @@ public class PrettyPrint {
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
+            final Query.Context context = new Query.Context(null, datasetsMetadata, null, consumer, clock, fieldResolver);
             if (positional instanceof GroupBy) {
-                positionalIQL2 = Queries.parseGroupBy(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseGroupBy(rawString, false, context);
             } else if (positional instanceof AggregateFilter) {
-                positionalIQL2 = Queries.parseAggregateFilter(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseAggregateFilter(rawString, false, context);
             } else if (positional instanceof AggregateMetric) {
-                positionalIQL2 = Queries.parseAggregateMetric(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseAggregateMetric(rawString, false, context);
             } else if (positional instanceof DocFilter) {
-                positionalIQL2 = Queries.parseDocFilter(rawString, false, null, datasetsMetadata, consumer, clock, null);
+                positionalIQL2 = Queries.parseDocFilter(rawString, false, context);
             } else if (positional instanceof DocMetric) {
-                positionalIQL2 = Queries.parseDocMetric(rawString, false, null, datasetsMetadata, consumer, clock);
+                positionalIQL2 = Queries.parseDocMetric(rawString, false, context);
             } else {
                 throw new IllegalArgumentException("unrecognized type");
             }
@@ -310,7 +318,7 @@ public class PrettyPrint {
                 return null;
             }
 
-            private void timeFieldAndFormat(Optional<Positioned<String>> field, Optional<String> format) {
+            private void timeFieldAndFormat(Optional<FieldSet> field, Optional<String> format) {
                 if (field.isPresent() || format.isPresent()) {
                     if (format.isPresent()) {
                         sb.append(", ").append('"').append(stringEscape(format.get())).append('"');
@@ -362,6 +370,19 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+                sb.append(getText(groupByFieldInQuery.field));
+                if (groupByFieldInQuery.isNegated) {
+                    sb.append(" NOT");
+                }
+                sb.append(" IN (").append(groupByFieldInQuery.query).append(")");
+                if (groupByFieldInQuery.withDefault) {
+                    sb.append(" with default");
+                }
+                return null;
+            }
+
+            @Override
             public Void visit(GroupBy.GroupByField groupByField) {
                 sb.append(getText(groupByField.field));
                 if (groupByField.metric.isPresent() || groupByField.limit.isPresent()) {
@@ -378,9 +399,6 @@ public class PrettyPrint {
                         pp(groupByField.filter.get(), consumer, clock);
                     }
                     sb.append(']');
-                }
-                if (groupByField.forceNonStreaming) {
-                    sb.append('*');
                 }
                 if (groupByField.withDefault) {
                     sb.append(" with default");
@@ -761,6 +779,12 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final AggregateMetric.NeedsSubstitution needsSubstitution) throws RuntimeException {
+                sb.append(needsSubstitution.substitutionName);
+                return null;
+            }
+
+            @Override
             public Void visit(AggregateMetric.GroupStatsLookup groupStatsLookup) {
                 throw new UnsupportedOperationException("Shouldn't be rendering this");
             }
@@ -881,11 +905,8 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocFilter.Between between) {
-                pp(new DocFilter.And(
-                        new DocFilter.MetricGte(new DocMetric.Constant(between.lowerBound), new DocMetric.Field(between.field)),
-                        new DocFilter.MetricLt(new DocMetric.Field(between.field), new DocMetric.Constant(between.upperBound))
-                ), consumer, clock);
+            public Void visit(final DocFilter.Between between) {
+                pp(between.forMetric(new DocMetric.Field(between.field)), consumer, clock);
                 return null;
             }
 

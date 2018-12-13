@@ -22,23 +22,21 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
-import java.util.Set;
 
 public class ComputeBootstrap implements Command {
-    private final Set<String> scope;
-    private final String field;
+    private final FieldSet field;
     private final Optional<AggregateFilter> filter;
     private final String seed;
     private final AggregateMetric metric;
     private final int numBootstraps;
     private final List<String> varargs;
 
-    public ComputeBootstrap(Set<String> scope, String field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
-        this.scope = scope;
+    public ComputeBootstrap(FieldSet field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
         this.field = field;
         this.filter = filter;
         this.seed = seed;
@@ -49,17 +47,16 @@ public class ComputeBootstrap implements Command {
 
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(scope, field, validationHelper, validator, this);
-        metric.validate(scope, validationHelper, validator);
+        ValidationUtil.validateField(field, validationHelper, validator, this);
+        metric.validate(field.datasets(), validationHelper, validator);
         if (filter.isPresent()) {
-            filter.get().validate(scope, validationHelper, validator);
+            filter.get().validate(field.datasets(), validationHelper, validator);
         }
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         return new com.indeed.iql2.execution.commands.ComputeBootstrap(
-                scope,
                 field,
                 filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet)),
                 seed,
@@ -75,7 +72,6 @@ public class ComputeBootstrap implements Command {
         if (o == null || getClass() != o.getClass()) return false;
         ComputeBootstrap that = (ComputeBootstrap) o;
         return numBootstraps == that.numBootstraps &&
-                Objects.equal(scope, that.scope) &&
                 Objects.equal(field, that.field) &&
                 Objects.equal(filter, that.filter) &&
                 Objects.equal(seed, that.seed) &&
@@ -85,14 +81,13 @@ public class ComputeBootstrap implements Command {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(scope, field, filter, seed, metric, numBootstraps, varargs);
+        return Objects.hashCode(field, filter, seed, metric, numBootstraps, varargs);
     }
 
     @Override
     public String toString() {
         return "ComputeBootstrap{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field='" + field + '\'' +
                 ", filter=" + filter +
                 ", seed='" + seed + '\'' +
                 ", metric=" + metric +

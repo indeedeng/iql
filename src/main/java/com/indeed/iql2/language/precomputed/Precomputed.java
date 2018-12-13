@@ -16,6 +16,7 @@ package com.indeed.iql2.language.precomputed;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
@@ -31,6 +32,7 @@ import com.indeed.iql2.language.commands.GroupLookupMergeType;
 import com.indeed.iql2.language.commands.RegroupIntoParent;
 import com.indeed.iql2.language.commands.SumAcross;
 import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.Optionals;
 
 import java.util.Collections;
@@ -44,11 +46,11 @@ public interface Precomputed {
     Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class PrecomputedDistinct implements Precomputed {
-        public final String field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
 
-        public PrecomputedDistinct(String field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
+        public PrecomputedDistinct(FieldSet field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
             this.field = field;
             this.filter = filter;
             this.windowSize = windowSize;
@@ -56,7 +58,7 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new GetGroupDistincts(scope, field, filter, windowSize.or(1)));
+            return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.or(1)));
         }
 
         @Override
@@ -101,17 +103,17 @@ public interface Precomputed {
     }
 
     class PrecomputedPercentile implements Precomputed {
-        public final String field;
+        public final FieldSet field;
         public final double percentile;
 
-        public PrecomputedPercentile(String field, double percentile) {
+        public PrecomputedPercentile(FieldSet field, double percentile) {
             this.field = field;
             this.percentile = percentile;
         }
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new GetGroupPercentiles(scope, field, new double[]{percentile}));
+            return Precomputation.noContext(new GetGroupPercentiles(field, new double[]{percentile}));
         }
 
         @Override
@@ -200,11 +202,11 @@ public interface Precomputed {
     }
 
     class PrecomputedSumAcross implements Precomputed {
-        public final String field;
+        public final FieldSet field;
         public final AggregateMetric metric;
         public final Optional<AggregateFilter> filter;
 
-        public PrecomputedSumAcross(String field, AggregateMetric metric, Optional<AggregateFilter> filter) {
+        public PrecomputedSumAcross(FieldSet field, AggregateMetric metric, Optional<AggregateFilter> filter) {
             this.field = field;
             this.metric = metric;
             this.filter = filter;
@@ -212,7 +214,8 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new SumAcross(scope, field, metric, filter));
+            Preconditions.checkState(scope.equals(field.datasets()));
+            return Precomputation.noContext(new SumAcross(field, metric, filter));
         }
 
         @Override
@@ -302,15 +305,16 @@ public interface Precomputed {
     }
 
     class PrecomputedFieldMin implements Precomputed {
-        public final String field;
+        public final FieldSet field;
 
-        public PrecomputedFieldMin(String field) {
+        public PrecomputedFieldMin(FieldSet field) {
             this.field = field;
         }
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new ComputeFieldMin(scope, field));
+            Preconditions.checkState(scope.equals(field.datasets()));
+            return Precomputation.noContext(new ComputeFieldMin(field));
         }
 
         @Override
@@ -345,15 +349,16 @@ public interface Precomputed {
     }
 
     class PrecomputedFieldMax implements Precomputed {
-        public final String field;
+        public final FieldSet field;
 
-        public PrecomputedFieldMax(String field) {
+        public PrecomputedFieldMax(FieldSet field) {
             this.field = field;
         }
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new ComputeFieldMax(scope, field));
+            Preconditions.checkState(scope.equals(field.datasets()));
+            return Precomputation.noContext(new ComputeFieldMax(field));
         }
 
         @Override
@@ -388,14 +393,14 @@ public interface Precomputed {
     }
 
     class PrecomputedBootstrap implements Precomputed {
-        public final String field;
+        public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final String seed;
         public final AggregateMetric metric;
         public final int numBootstraps;
         public final List<String> varargs;
 
-        public PrecomputedBootstrap(String field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
+        public PrecomputedBootstrap(FieldSet field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
             this.field = field;
             this.filter = filter;
             this.seed = seed;
@@ -406,7 +411,8 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(Set<String> scope) {
-            return Precomputation.noContext(new ComputeBootstrap(scope, field, filter, seed, metric, numBootstraps, varargs));
+            Preconditions.checkState(scope.equals(field.datasets()));
+            return Precomputation.noContext(new ComputeBootstrap(field, filter, seed, metric, numBootstraps, varargs));
         }
 
         @Override

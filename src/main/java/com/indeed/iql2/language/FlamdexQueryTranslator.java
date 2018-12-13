@@ -16,31 +16,31 @@ package com.indeed.iql2.language;
 
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
-import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 import java.util.List;
 
 public class FlamdexQueryTranslator {
-    public static DocFilter translate(Query query, DatasetsMetadata datasetsMetadata) {
+    public static DocFilter translate(Query query, final ScopedFieldResolver fieldResolver) {
         switch (query.getQueryType()) {
             case TERM:
                 final Term term = query.getStartTerm();
-                return new DocFilter.FieldIs(datasetsMetadata, Positioned.unpositioned(term.getFieldName()), translate(term));
+                return new DocFilter.FieldIs(fieldResolver.resolveContextless(term.getFieldName()), translate(term));
             case BOOLEAN:
                 final List<Query> operands = query.getOperands();
                 if (operands.isEmpty()) {
                     return new DocFilter.Always();
                 }
-                DocFilter filter = translate(operands.get(0), datasetsMetadata);
+                DocFilter filter = translate(operands.get(0), fieldResolver);
                 switch (query.getOperator()) {
                     case AND:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.And(filter, translate(operands.get(i), datasetsMetadata));
+                            filter = new DocFilter.And(filter, translate(operands.get(i), fieldResolver));
                         }
                         return filter;
                     case OR:
                         for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.Or(filter, translate(operands.get(i), datasetsMetadata));
+                            filter = new DocFilter.Or(filter, translate(operands.get(i), fieldResolver));
                         }
                         return filter;
                     case NOT:
@@ -61,7 +61,7 @@ public class FlamdexQueryTranslator {
                 if (query.isMaxInclusive()) {
                     end = end + 1;
                 }
-                return new DocFilter.Between(Positioned.unpositioned(field), start, end);
+                return new DocFilter.Between(fieldResolver.resolveContextless(field), start, end, false);
         }
         throw new UnsupportedOperationException("Unhandled query: [" + query + "]");
     }

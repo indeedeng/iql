@@ -19,36 +19,43 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.indeed.iql.exceptions.IqlKnownException;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.apache.log4j.Logger;
 import java.util.stream.Collectors;
 
 public class DatasetMetadata {
     private static final Logger log = Logger.getLogger(DatasetMetadata.class);
 
     public static String TIME_FIELD_NAME = "unixtime";
-    private final Comparator<FieldMetadata> fieldMetadataComparator;
-    private final Comparator<String> fieldNameComparator;
     private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
     @Nullable public String owner;
     @Nullable public String project;
     public boolean deprecated;
+    // Always case sensitive
     public final TreeSet<FieldMetadata> intFields;
+    // Always case sensitive
     public final TreeSet<FieldMetadata> stringFields;
+    // Case insensitive in the keys
+    public final Map<String, Set<String>> fieldNameEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     public Set<String> conflictFieldNames;
     public final Map<String, MetricMetadata> fieldToDimension;
+    private final Map<String, Set<String>> dimensionEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     // Required by LuceneQueryTranslator, so cache it here
     @Nonnull Set<String> iql1IntImhotepFieldSet = Sets.newHashSet();
@@ -65,25 +72,20 @@ public class DatasetMetadata {
 
     public DatasetMetadata(final boolean iql2mode, final String name, final String description, String owner, String project, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
                            final Map<String, MetricMetadata> fieldToDimension) {
-        fieldMetadataComparator = iql2mode ? FieldMetadata.CASE_INSENSITIVE_ORDER : FieldMetadata.CASE_SENSITIVE_ORDER;
-        fieldNameComparator = iql2mode ? String.CASE_INSENSITIVE_ORDER : null;
         this.iql2mode = iql2mode;
         this.name = name;
         this.owner = owner;
         this.project = project;
         this.deprecated = deprecated;
-        this.intFields = toCaseInsensitive(intFields);
-        this.stringFields = toCaseInsensitive(stringFields);
+        this.intFields = toTreeSet(intFields);
+        this.stringFields = toTreeSet(stringFields);
         this.conflictFieldNames = new TreeSet<>();
-
-        final Map<String, MetricMetadata> fieldToDimensionCopy = new TreeMap<>(fieldNameComparator);
-        fieldToDimensionCopy.putAll(fieldToDimension);
-        this.fieldToDimension = fieldToDimensionCopy;
+        this.fieldToDimension = new HashMap<>(fieldToDimension);
         this.description = description;
     }
 
-    private TreeSet<FieldMetadata> toCaseInsensitive(final Set<FieldMetadata> set) {
-        final TreeSet<FieldMetadata> caseInsensitiveSet = new TreeSet<>(fieldMetadataComparator);
+    private TreeSet<FieldMetadata> toTreeSet(final Set<FieldMetadata> set) {
+        final TreeSet<FieldMetadata> caseInsensitiveSet = new TreeSet<>(FieldMetadata.COMPARATOR);
         caseInsensitiveSet.addAll(set);
         return caseInsensitiveSet;
     }
@@ -104,14 +106,10 @@ public class DatasetMetadata {
         this.deprecated = deprecated;
     }
 
-    public TreeSet<String> getIntFieldsStringFromMetadata() {
-        return intFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
-                Collectors.toCollection(()->new TreeSet<>(fieldNameComparator)));
-    }
-
-    public Set<String> getStrFieldsStringFromMetadata() {
-        return stringFields.stream().map(fieldMetadata -> fieldMetadata.getName()).collect(
-                Collectors.toCollection(()->new TreeSet<>(fieldNameComparator)));
+    public Set<String> getIntFieldsStringFromMetadata() {
+        return intFields.stream()
+                .map(FieldMetadata::getName)
+                .collect(Collectors.toSet());
     }
 
     public String getFieldDescription(final String field) {
@@ -142,7 +140,7 @@ public class DatasetMetadata {
 
     private FieldMetadata getIntField(FieldMetadata fakeFieldMetadata) {
         final FieldMetadata ceilingIntObject = intFields.ceiling(fakeFieldMetadata);
-        if (ceilingIntObject != null && fieldMetadataComparator.compare(fakeFieldMetadata, ceilingIntObject) == 0) {
+        if (ceilingIntObject != null && FieldMetadata.COMPARATOR.compare(fakeFieldMetadata, ceilingIntObject) == 0) {
             return ceilingIntObject;
         } else {
             return null;
@@ -151,7 +149,7 @@ public class DatasetMetadata {
 
     private FieldMetadata getStringField(FieldMetadata fakeFieldMetadata) {
         final FieldMetadata ceilingStringObject = stringFields.ceiling(fakeFieldMetadata);
-        if (ceilingStringObject != null && fieldMetadataComparator.compare(fakeFieldMetadata, ceilingStringObject) == 0) {
+        if (ceilingStringObject != null && FieldMetadata.COMPARATOR.compare(fakeFieldMetadata, ceilingStringObject) == 0) {
             return ceilingStringObject;
         }
         return null;
@@ -176,6 +174,50 @@ public class DatasetMetadata {
         return stringFields.contains(new FieldMetadata(field, FieldType.String));
     }
 
+    public String resolveFieldName(final String field) {
+        final Set<String> equivalent = fieldNameEquivalenceSets.getOrDefault(field, Collections.emptySet());
+        // Prefer an exact match
+        if (equivalent.contains(field)) {
+            return field;
+        }
+
+        // Ambiguous, no exact match
+        if (equivalent.size() > 1) {
+            throw new IqlKnownException.UnknownFieldException("Multiple fields match, and none are an exact match: " + equivalent + ", seeking \"" + field + "\"");
+        }
+
+        // None found
+        if (equivalent.isEmpty()) {
+            throw new IqlKnownException.UnknownFieldException("Field not found in dataset \"" + name + "\": \"" + field + "\"");
+        }
+
+        // Otherwise, use the single value available.
+        return Iterables.getOnlyElement(equivalent);
+    }
+
+    @Nullable
+    public MetricMetadata resolveMetric(final String typedName) {
+        final Set<String> equivalent = dimensionEquivalenceSets.getOrDefault(typedName, Collections.emptySet());
+
+        // Prefer an exact match
+        if (equivalent.contains(typedName)) {
+            return Objects.requireNonNull(fieldToDimension.get(typedName));
+        }
+
+        // Ambiguous, no exact match
+        if (equivalent.size() > 1) {
+            throw new IqlKnownException.UnknownFieldException("Multiple dimension metrics match, and none are an exact match: " + equivalent + ", seeking \"" + typedName + "\"");
+        }
+
+        // None found
+        if (equivalent.isEmpty()) {
+            return null;
+        }
+
+        // Otherwise, use the single value available.
+        return Objects.requireNonNull(fieldToDimension.get(Iterables.getOnlyElement(equivalent)));
+    }
+
     @Nonnull
     public Set<String> getIql1IntImhotepFieldSet() {
         return iql1IntImhotepFieldSet;
@@ -197,16 +239,24 @@ public class DatasetMetadata {
         iql1IntImhotepFieldSet = Collections.unmodifiableSet(iql1IntImhotepFieldSet);
 
         Preconditions.checkState(iql1Aliases.isEmpty());
-        for(MetricMetadata metric : fieldToDimension.values()) {
+        for(final Map.Entry<String, MetricMetadata> entry : fieldToDimension.entrySet()) {
+            final MetricMetadata metric = entry.getValue();
             if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
                 iql1Aliases.put(metric.name, metric.expression);
             }
+            dimensionEquivalenceSets
+                    .computeIfAbsent(entry.getKey(), ignored -> new HashSet<>())
+                    .add(entry.getKey());
         }
         iql1Aliases = Collections.unmodifiableMap(iql1Aliases);
 
         final Set<String> intFieldNames = intFields.stream().map(x -> x.name).collect(Collectors.toSet());
         final Set<String> stringFieldNames = stringFields.stream().map(x -> x.name).collect(Collectors.toSet());
         conflictFieldNames = Sets.intersection(intFieldNames, stringFieldNames);
+
+        for (final String fieldName : Iterables.concat(intFieldNames, stringFieldNames)) {
+            fieldNameEquivalenceSets.computeIfAbsent(fieldName, x -> new HashSet<>()).add(fieldName);
+        }
     }
 
     public void toJSON(ObjectNode jsonNode, ObjectMapper mapper, boolean summaryOnly) {

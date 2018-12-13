@@ -20,17 +20,18 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
-import com.indeed.util.core.TreeTimer;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.util.logging.TracingTreeTimer;
 
 /**
  *
  */
 public class ExplodeRandom implements Command {
-    private final String field;
+    private final FieldSet field;
     private final int k;
     private final String salt;
 
-    public ExplodeRandom(String field, int k, String salt) {
+    public ExplodeRandom(FieldSet field, int k, String salt) {
         this.field = field;
         this.k = k;
         this.salt = salt;
@@ -53,7 +54,7 @@ public class ExplodeRandom implements Command {
         resultGroups[k - 1] = k + 1;
         session.process(new SessionCallback() {
             @Override
-            public void handle(TreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 timer.push("randomMultiRegroup");
                 session.randomMultiRegroup(field, isIntField, salt, 1, percentages, resultGroups);
                 timer.pop();

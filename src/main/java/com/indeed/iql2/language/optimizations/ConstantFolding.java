@@ -93,13 +93,6 @@ public class ConstantFolding {
                 }
             } else if (input instanceof DocMetric.Count) {
                 return new DocMetric.Constant(1);
-            } else if (input instanceof DocMetric.Field) {
-                final DocMetric.Field field = (DocMetric.Field) input;
-                try {
-                    final long v = Long.parseLong(field.field);
-                    return new DocMetric.Constant(v);
-                } catch (NumberFormatException e) {
-                }
             } else if (input instanceof DocMetric.IfThenElse) {
                 final DocMetric.IfThenElse ifThenElse = (DocMetric.IfThenElse) input;
                 if (isConstant(ifThenElse.condition)) {

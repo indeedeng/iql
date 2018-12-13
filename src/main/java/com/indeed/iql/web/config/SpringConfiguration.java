@@ -26,8 +26,6 @@ import com.indeed.iql.LocalImhotepDaemonAndShardmaster;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.cache.QueryCacheFactory;
 import com.indeed.iql.cache.RedisHostsOverride;
-import com.indeed.iql.web.SelectQuery;
-import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.CORSInterceptor;
@@ -38,7 +36,9 @@ import com.indeed.iql.web.ImhotepClientPinger;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
+import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql.web.TopTermsCache;
+import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql1.web.SplitterServlet;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.server.web.servlets.ServletsPackageMarker;
@@ -211,6 +211,11 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
                 IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER, topTermsCacheEnabled);
     }
 
+    @Bean
+    public IQLEnv iqlEnv() {
+        return IQLEnv.fromSpring(env);
+    }
+
     // We need 2 instances to be able to use them concurrently
     @Bean(name = "imsClientIQL1")
     public ImsClientInterface imsClientIQL1() {
@@ -253,6 +258,16 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     @Bean
     public Integer rowLimit() {
         return env.getProperty("row.limit", Integer.class, 1000000);
+    }
+
+    @Bean
+    public Long maxCachedQuerySizeLimitBytes() {
+        final long limitInMegabytes = env.getProperty("iql.max.cached.query.size.mb.limit", Long.class, Long.MAX_VALUE);
+        if (limitInMegabytes < Long.MAX_VALUE) {
+            return mbToBytes(limitInMegabytes);
+        } else {
+            return null;
+        }
     }
 
     @Bean

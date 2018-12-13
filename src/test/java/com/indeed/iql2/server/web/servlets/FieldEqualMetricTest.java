@@ -31,6 +31,7 @@ public class FieldEqualMetricTest extends BasicTest {
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1=s2");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3", "4")), "from fieldEqual yesterday today select i1=i2, count()");
         QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today select s1=s2, i1=i2, count()");
+        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today, jobsearch(false) select fieldEqual.s1=fieldEqual.s2, fieldEqual.i1=fieldEqual.i2, count()");
 
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "1"));

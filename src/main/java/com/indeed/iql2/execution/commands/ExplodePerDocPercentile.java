@@ -23,6 +23,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -34,17 +35,17 @@ import java.util.List;
 import java.util.Map;
 
 public class ExplodePerDocPercentile implements Command {
-    public final String field;
+    public final FieldSet field;
     public final int numBuckets;
 
-    public ExplodePerDocPercentile(String field, int numBuckets) {
+    public ExplodePerDocPercentile(FieldSet field, int numBuckets) {
         this.field = field;
         this.numBuckets = numBuckets;
     }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
-        final String field = this.field;
+        final FieldSet field = this.field;
         final int numBuckets = this.numBuckets;
 
         session.checkGroupLimit(numBuckets * session.numGroups);
@@ -52,7 +53,7 @@ public class ExplodePerDocPercentile implements Command {
         session.timer.push("get counts");
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            s.session.pushStat("hasintfield " + field);
+            s.session.pushStat("hasintfield " + field.datasetFieldName(s.displayName));
             final long[] stats = s.session.getGroupStats(0);
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
@@ -141,8 +142,7 @@ public class ExplodePerDocPercentile implements Command {
         }
         session.timer.pop();
 
-        final SingleFieldRegroupTools.FieldOptions options = new SingleFieldRegroupTools.FieldOptions(field, true, true);
-        session.regroupWithSingleFieldRules(rulesBuilder, options, true);
+        session.regroupWithSingleFieldRules(rulesBuilder, field, true, true, true);
         session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));

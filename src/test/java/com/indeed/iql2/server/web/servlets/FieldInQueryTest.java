@@ -16,6 +16,7 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -44,6 +45,45 @@ public class FieldInQueryTest extends BasicTest {
                 "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
+    // Test for IQL-616
+    @Test
+    public void groupByFieldInQuery() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2"));
+        expected.add(ImmutableList.of("1", "84"));
+        expected.add(ImmutableList.of("2", "1"));
+        expected.add(ImmutableList.of("3", "60"));
+        expected.add(ImmutableList.of("5", "1"));
+        expected.add(ImmutableList.of("10", "2"));
+        expected.add(ImmutableList.of("15", "1"));
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET, expected,
+                "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield) select count()", true);
+    }
+
+    @Test
+    public void groupByFieldInQueryWithDefault() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2"));
+        expected.add(ImmutableList.of("1", "84"));
+        expected.add(ImmutableList.of("2", "1"));
+        expected.add(ImmutableList.of("DEFAULT", "64"));
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET, expected,
+                "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield[3]) with default select count()", true);
+    }
+
+    // TODO: this test fails because StackOverflow while transforming high terms tree with ors.
+    // This behavior could be fixed after IMTEPD-454 is implemented.
+    @Ignore("Enable test after fixing IMTEPD-454")
+    @Test
+    public void groupByFieldNotInQuery() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        QueryServletTestUtils.testIQL2(
+                AllData.DATASET, expected,
+                "from organic yesterday today group by ojc not in (from manyValues 1d 0d group by thefield) select count()", true);
+    }
+
     @Test
     public void fieldInQueryInts() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
@@ -69,4 +109,28 @@ public class FieldInQueryTest extends BasicTest {
                 "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
+    @Test
+    public void testIql1FieldInOptimization() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("1", "100"));
+        expected.add(ImmutableList.of("2", "50"));
+        // check that "field in (A, B, ...) group by field" -> "group by field in (A, B...)" optimization
+        // is applied to string field i.e value '3' is absent in results.
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where sf in (\"1\", \"2\") group by sf select count()", true);
+        // check that this optimization is still active if there is 'and' for top-level filters (IQL-745)
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where sf in (\"1\", \"2\") and i >= 0 group by sf select count()", true);
+
+        // check that optimization is not applied to int field
+        expected.add(ImmutableList.of("3", "34"));
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where f in (1, 2) group by f select count()", true);
+        QueryServletTestUtils.testIQL1(
+                AllData.DATASET, expected,
+                "from multiValue yesterday today where f in (1, 2) and i >= 0 group by f select count()", true);
+    }
 }

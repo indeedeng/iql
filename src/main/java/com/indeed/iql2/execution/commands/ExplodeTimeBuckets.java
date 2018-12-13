@@ -17,13 +17,14 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 public class ExplodeTimeBuckets implements Command {
     public final int numBuckets;
-    public final Optional<String> timeField;
+    public final Optional<FieldSet> timeField;
     public final Optional<String> timeFormat;
 
-    public ExplodeTimeBuckets(int numBuckets, Optional<String> timeField, Optional<String> timeFormat) {
+    public ExplodeTimeBuckets(int numBuckets, Optional<FieldSet> timeField, Optional<String> timeFormat) {
         this.numBuckets = numBuckets;
         this.timeField = timeField;
         this.timeFormat = timeFormat;

@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,45 +36,39 @@ import com.indeed.iql2.execution.groupkeys.GroupKeySets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SimpleIterate implements Command {
-    public final String field;
+    public final FieldSet field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     public final List<Optional<String>> formatStrings;
-    public final boolean streamResult;
-    @Nullable
-    public final Set<String> scope;
 
     private int createdGroupCount = 0;
 
-    public SimpleIterate(String field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings, boolean streamResult, Set<String> scope) {
+    public SimpleIterate(
+            final FieldSet field,
+            final FieldIterateOpts opts,
+            final List<AggregateMetric> selecting,
+            final List<Optional<String>> formatStrings) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
         this.formatStrings = formatStrings;
-        this.streamResult = streamResult;
-        this.scope = scope == null ? null : ImmutableSet.copyOf(scope);
-        if (this.streamResult && opts.topK.isPresent()) {
-            throw new IllegalArgumentException("Can't stream results while doing top-k!");
-        }
     }
 
     @Override
@@ -98,23 +91,23 @@ public class SimpleIterate implements Command {
     }
 
     // evaluate results to memory
-    public static List<List<TermSelects>> evaluate(
+    public static void evaluate(
             final Session session,
-            final String field,
+            final FieldSet field,
             final List<AggregateMetric> selecting,
             final FieldIterateOpts fieldOpts,
-            final Set<String> scope) throws ImhotepOutOfMemoryException, IOException {
-        return new SimpleIterate(
+            final ResultCollector out) throws ImhotepOutOfMemoryException, IOException {
+        new SimpleIterate(
                 field,
                 fieldOpts,
                 selecting,
-                Collections.nCopies(selecting.size(), Optional.absent()),
-                false,
-                scope)
-                .evaluate(session, null);
+                Collections.nCopies(selecting.size(), Optional.absent()))
+                .evaluate(session, out);
     }
 
-    public List<List<TermSelects>> evaluate(final Session session, @Nullable Consumer<String> out) throws ImhotepOutOfMemoryException, IOException {
+    public void evaluate(
+            final Session session,
+            final ResultCollector out) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("request metrics");
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
@@ -141,7 +134,8 @@ public class SimpleIterate implements Command {
 
         // TODO: Add a feature flag
         if (session.options.contains(QueryOptions.Experimental.USE_MULTI_FTGS) && !requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
-            return evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
+            evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
+            return;
         }
 
         session.timer.push("push and register metrics");
@@ -155,26 +149,17 @@ public class SimpleIterate implements Command {
         session.timer.pop();
 
         session.timer.push("prepare for iteration");
-        final Queue<TermSelects>[] pqs = new Queue[session.numGroups + 1];
+        final ResultCollector collector;
         if (opts.topK.isPresent()) {
-            // TODO: Share this with Iterate. Or delete Iterate.
-            final Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
-            // TODO: If these queue types change, then a line below with an instanceof check will break.
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
-                for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = BoundedPriorityQueue.newInstance(limit, comparator);
-                }
+                collector = ResultCollector.topKCollector(out, session.numGroups, limit, TermSelects.COMPARATOR);
             } else {
-                // TODO: HOW MUCH CAPACITY?
-                for (int i = 1; i <= session.numGroups; i++) {
-                    pqs[i] = new PriorityQueue<>(100, comparator);
-                }
+                final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
             }
         } else {
-            for (int i = 1; i <= session.numGroups; i++) {
-                pqs[i] = new ArrayDeque<>();
-            }
+            collector = out;
         }
         final Optional<Integer> ftgsRowLimit;
         if (opts.topK.isPresent()) {
@@ -188,16 +173,7 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orNull();
 
-        final Map<String, ImhotepSessionHolder> sessionsMapRaw = session.getSessionsMapRaw();
-        final Map<String, ImhotepSessionHolder> sessionsToUse;
-        if (scope == null) {
-            sessionsToUse = sessionsMapRaw;
-        } else {
-            sessionsToUse = Maps.newHashMap();
-            for (final String dataset : scope) {
-                sessionsToUse.put(dataset, sessionsMapRaw.get(dataset));
-            }
-        }
+        final Map<String, ImhotepSessionHolder> sessionsToUse = session.getSessionsMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
@@ -211,22 +187,12 @@ public class SimpleIterate implements Command {
 
 
         if (session.isIntField(field)) {
-            final Session.IntIterateCallback callback;
-            if (streamResult) {
-                callback = streamingIntCallback(session, filterOrNull, out);
-            } else {
-                callback = nonStreamingIntCallback(session, pqs, topKMetricOrNull, filterOrNull);
-            }
+            final Session.IntIterateCallback callback = intCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiInt");
             Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, session.options);
             session.timer.pop();
         } else if (session.isStringField(field)) {
-            final Session.StringIterateCallback callback;
-            if (streamResult) {
-                callback = streamingStringCallback(session, filterOrNull, out);
-            } else {
-                callback = nonStreamingStringCallback(session, pqs, topKMetricOrNull, filterOrNull);
-            }
+            final Session.StringIterateCallback callback = stringCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiString");
             Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, session.options);
             session.timer.pop();
@@ -234,33 +200,18 @@ public class SimpleIterate implements Command {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
         }
 
-        session.popStats();
+        session.timer.push("ResultCollector.finish()");
+        collector.finish();
+        session.timer.pop();
 
-        if (streamResult) {
-            return Collections.emptyList();
-        } else {
-            session.timer.push("convert results");
-            final List<List<TermSelects>> allTermSelects = new ArrayList<>(session.numGroups);
-            for (int group = 1; group <= session.numGroups; group++) {
-                final Queue<TermSelects> pq = pqs[group];
-                final List<TermSelects> listTermSelects = new ArrayList<>(pq.size());
-                while (!pq.isEmpty()) {
-                    listTermSelects.add(pq.poll());
-                }
-                // TODO: This line is very fragile
-                if (pq instanceof BoundedPriorityQueue || pq instanceof PriorityQueue) {
-                    allTermSelects.add(Lists.reverse(listTermSelects));
-                } else {
-                    allTermSelects.add(listTermSelects);
-                }
-            }
-            session.timer.pop();
-            return allTermSelects;
-        }
+        session.popStats();
     }
 
-    @Nonnull
-    private List<List<TermSelects>> evaluateMultiFtgs(final Session session, final @Nullable Consumer<String> out, final Set<QualifiedPush> allPushes, final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+    private void evaluateMultiFtgs(
+            final Session session,
+            final ResultCollector out,
+            final Set<QualifiedPush> allPushes,
+            final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
         session.timer.push("prepare for iteration");
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
@@ -287,10 +238,10 @@ public class SimpleIterate implements Command {
         }
 
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
-        final Set<String> scope = this.scope == null ? session.sessions.keySet() : this.scope;
-        for (final String dataset : scope) {
-            final ImhotepSessionHolder sessionHolder = session.sessions.get(dataset).session;
-            sessionFields.add(sessionHolder.buildSessionField(field));
+        for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
+            final ImhotepSessionHolder sessionHolder = entry.getValue().session;
+            final String dataset = sessionHolder.getDatasetName();
+            sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset)));
         }
 
         // If we do TopK, we will automatically sort in a new way
@@ -314,49 +265,39 @@ public class SimpleIterate implements Command {
             final int numSelects = selecting.size();
 
             final double[] statsBuf = new double[selects.size()];
-            final double[] outputStatsBuf = numSelects == selects.size() ? statsBuf : new double[numSelects];
 
-            final List<List<TermSelects>> result = new ArrayList<>(session.numGroups);
+            final ResultCollector collector;
 
-            if (!streamResult) {
-                for (int group = 1; group <= session.numGroups; group++) {
-                    result.add(new ArrayList<>());
-                }
+            if (opts.topK.isPresent()) {
+                final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
+            } else {
+                collector = out;
             }
-
-            final String[] formatStrings = formFormatStrings();
 
             Preconditions.checkState(iterator.nextField());
             while (iterator.nextTerm()) {
                 while (iterator.nextGroup()) {
                     iterator.groupStats(statsBuf);
 
-                    if (streamResult) {
-                        if (statsBuf != outputStatsBuf) {
-                            System.arraycopy(statsBuf, 0, outputStatsBuf, 0, outputStatsBuf.length);
-                        }
-                        if (isIntField) {
-                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termIntVal(), outputStatsBuf, formatStrings));
-                        } else {
-                            out.accept(createRow(session.groupKeySet, iterator.group(), iterator.termStringVal(), outputStatsBuf, formatStrings));
-                        }
+                    final boolean newGroup;
+                    if (isIntField) {
+                        newGroup = collector.offer(
+                                iterator.group(),
+                                iterator.termIntVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
+                        );
                     } else {
-                        if (isIntField) {
-                            result.get(iterator.group() - 1).add(new TermSelects(
-                                    iterator.termIntVal(),
-                                    Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                    iterator.group()
-                            ));
-                        } else {
-                            result.get(iterator.group() - 1).add(new TermSelects(
-                                    iterator.termStringVal(),
-                                    Arrays.copyOf(statsBuf, numSelects),
-                                    topKMetricOrNull == null ? 0.0 : statsBuf[sortStat],
-                                    iterator.group()
-                            ));
-                        }
+                        newGroup = collector.offer(
+                                iterator.group(),
+                                iterator.termStringVal(),
+                                Arrays.copyOf(statsBuf, numSelects),
+                                topKMetricOrNull == null ? 0.0 : statsBuf[sortStat]
+                        );
+                    }
 
+                    if (newGroup) {
                         createdGroupCount += 1;
                         session.checkGroupLimitWithoutLog(createdGroupCount);
                     }
@@ -365,17 +306,11 @@ public class SimpleIterate implements Command {
             Preconditions.checkState(!iterator.nextField());
             session.timer.pop();
 
+            session.timer.push("ResultCollector.finish()");
+            collector.finish();
+            session.timer.pop();
+
             session.popStats();
-
-            if (!streamResult && topKMetricOrNull != null) {
-                session.timer.push("Sorting results");
-                for (final List<TermSelects> groupResult : result) {
-                    groupResult.sort(TermSelects.COMPARATOR.reversed());
-                }
-                session.timer.pop();
-            }
-
-            return result;
         }
     }
 
@@ -431,9 +366,22 @@ public class SimpleIterate implements Command {
         return sb.toString();
     }
 
-    private Session.StringIterateCallback streamingStringCallback(final Session session, final AggregateFilter filterOrNull, final Consumer<String> out) {
-        final String[] formatStrings = formFormatStrings();
+    @Nonnull
+    // TODO: move this.
+    public String[] formFormatStrings() {
+        final String[] formatStrings = new String[selecting.size()];
+        for (int i = 0; i < formatStrings.length; i++) {
+            final Optional<String> opt = this.formatStrings.get(i);
+            formatStrings[i] = opt.isPresent() ? opt.get() : null;
+        }
+        return formatStrings;
+    }
 
+    private Session.StringIterateCallback stringCallback(
+            final Session session,
+            final ResultCollector result,
+            final AggregateMetric topKMetricOrNull,
+            final AggregateFilter filterOrNull) {
         return new Session.StringIterateCallback() {
             @Override
             public void term(final String term, final long[] stats, final int group) {
@@ -441,10 +389,19 @@ public class SimpleIterate implements Command {
                     return;
                 }
                 final double[] selectBuffer = new double[selecting.size()];
+                final double value;
+                if (topKMetricOrNull != null) {
+                    value = topKMetricOrNull.apply(term, stats, group);
+                } else {
+                    value = 0.0;
+                }
                 for (int i = 0; i < selecting.size(); i++) {
                     selectBuffer[i] = selecting.get(i).apply(term, stats, group);
                 }
-                out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
+                if (result.offer(group, term, selectBuffer, value)) {
+                    ++createdGroupCount;
+                    session.checkGroupLimitWithoutLog(createdGroupCount);
+                }
             }
 
             @Override
@@ -466,153 +423,260 @@ public class SimpleIterate implements Command {
             @Override
             public boolean needStats() {
                 return ((filterOrNull != null) && filterOrNull.needStats())
+                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
+                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+            }
+        };
+    }
+
+    private Session.IntIterateCallback intCallback(
+            final Session session,
+            final ResultCollector result,
+            final AggregateMetric topKMetricOrNull,
+            final AggregateFilter filterOrNull) {
+        return new Session.IntIterateCallback() {
+            @Override
+            public void term(final long term, final long[] stats, final int group) {
+                if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
+                    return;
+                }
+                final double[] selectBuffer = new double[selecting.size()];
+                final double value;
+                if (topKMetricOrNull != null) {
+                    value = topKMetricOrNull.apply(term, stats, group);
+                } else {
+                    value = 0.0;
+                }
+                for (int i = 0; i < selecting.size(); i++) {
+                    selectBuffer[i] = selecting.get(i).apply(term, stats, group);
+                }
+                if (result.offer(group, term, selectBuffer, value)) {
+                    ++createdGroupCount;
+                    session.checkGroupLimitWithoutLog(createdGroupCount);
+                }
+            }
+
+            @Override
+            public boolean needSorted() {
+                return true;
+            }
+
+            @Override
+            public boolean needGroup() {
+                return true;
+            }
+
+            @Override
+            public boolean needStats() {
+                return ((filterOrNull != null) && filterOrNull.needStats())
+                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
                         || selecting.stream().anyMatch(AggregateMetric::needStats);
 
             }
         };
     }
 
-    @Nonnull
-    private String[] formFormatStrings() {
-        final String[] formatStrings = new String[selecting.size()];
-        for (int i = 0; i < formatStrings.length; i++) {
-            final Optional<String> opt = this.formatStrings.get(i);
-            formatStrings[i] = opt.isPresent() ? opt.get() : null;
+    // interface for adding new terms to groups.
+    public interface ResultCollector {
+
+        // offer methods are expected to be called in sorted order,
+        // all TermSelects for group 1, then group 2, etc.
+        boolean needSortedByGroup();
+
+        // return true iff new group was added
+        boolean offer(final int group, final TermSelects termSelects);
+
+        // finalize work. In topK scenario here all gathered data will be passed further.
+        void finish();
+
+        default boolean offer(
+                final int group,
+                final long intTerm,
+                final double[] selects,
+                final double topMetric) {
+            return offer(group, new TermSelects(intTerm, selects, topMetric));
         }
-        return formatStrings;
-    }
 
-    private Session.StringIterateCallback nonStreamingStringCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
-        return new Session.StringIterateCallback() {
+        default boolean offer(
+                final int group,
+                final String stringTerm,
+                final double[] selects,
+                final double topMetric) {
+            return offer(group, new TermSelects(stringTerm, selects, topMetric));
+        }
+
+        default int offer(final int group, final Collection<TermSelects> termSelects) {
+            int result = 0;
+            for (final TermSelects term : termSelects) {
+                if (offer(group, term)) {
+                    result++;
+                }
+            }
+            return result;
+        }
+
+        class PerGroupCollector implements ResultCollector {
+
+            final TermsAccumulator[] accumulators; // per group accumulators.
+            final ResultCollector out;
+
+            PerGroupCollector(
+                    final TermsAccumulator[] accumulators,
+                    final ResultCollector out) {
+                this.accumulators = accumulators;
+                this.out = out;
+            }
+
             @Override
-            public void term(final String term, final long[] stats, final int group) {
-                if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                    return;
+            public boolean needSortedByGroup() {
+                return false;
+            }
+
+            @Override
+            public boolean offer(final int group, final TermSelects termSelects) {
+                return accumulators[group].addTerm(termSelects);
+            }
+
+            @Override
+            public void finish() {
+                for (int group = 0; group < accumulators.length; group++) {
+                    if (accumulators[group] == null) {
+                        continue;
+                    }
+                    final List<TermSelects> results = accumulators[group].getResult();
+                    out.offer(group, results);
                 }
-                final double[] selectBuffer = new double[selecting.size()];
-                final double value;
-                if (topKMetricOrNull != null) {
-                    value = topKMetricOrNull.apply(term, stats, group);
-                } else {
-                    value = 0.0;
-                }
-                for (int i = 0; i < selecting.size(); i++) {
-                    selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                }
-                final Queue<TermSelects> pq = pqs[group];
-                if (pq instanceof BoundedPriorityQueue)  {
-                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(term, selectBuffer, value, group));
-                        return ;
+                out.finish();
+            }
+        }
+
+        class Streaming implements ResultCollector {
+
+            final Consumer<String> out;
+            final GroupKeySet groupKeySet;
+            final String[] formatStrings;
+
+            public Streaming(
+                    final Consumer<String> out,
+                    final GroupKeySet groupKeySet,
+                    final String[] formatStrings) {
+                this.out = out;
+                this.groupKeySet = groupKeySet;
+                this.formatStrings = formatStrings;
+            }
+
+            @Override
+            public boolean needSortedByGroup() {
+                // TODO: might this be 'false' sometimes?
+                return true;
+            }
+
+            @Override
+            public boolean offer(final int group, final TermSelects termSelects) {
+                if (groupKeySet.isPresent(group)) {
+                    if (termSelects.stringTerm == null) {
+                        out.accept(createRow(groupKeySet, group, termSelects.intTerm, termSelects.selects, formatStrings));
+                    } else {
+                        out.accept(createRow(groupKeySet, group, termSelects.stringTerm, termSelects.selects, formatStrings));
                     }
                 }
-                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
-                    return ;
-                }
-                ++createdGroupCount;
-                session.checkGroupLimitWithoutLog(createdGroupCount);
+                // we could stream forever so pretend nothing have changed.
+                return false;
             }
 
             @Override
-            public boolean needSorted() {
-                return true;
+            public int offer(final int group, final Collection<TermSelects> termSelects) {
+                ResultCollector.super.offer(group, termSelects);
+                // we could stream forever so pretend nothing have changed.
+                return 0;
             }
 
             @Override
-            public boolean needGroup() {
-                return true;
+            public void finish() {
             }
+        }
 
-            @Override
-            public boolean needStats() {
-                return ((filterOrNull != null) && filterOrNull.needStats())
-                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
-                        || selecting.stream().anyMatch(AggregateMetric::needStats);
+        static ResultCollector topKCollector(
+                final ResultCollector prev,
+                final int numGroups,
+                final int limit,
+                final Comparator<TermSelects> comparator) {
+            final TermsAccumulator[] pqs = new TermsAccumulator[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                pqs[i] = new TermsAccumulator.BoundedPriorityQueueAccumulator(limit, comparator);
             }
-        };
+            return new ResultCollector.PerGroupCollector(pqs, prev);
+        }
+
+        static ResultCollector allTermsCollector(
+                final ResultCollector prev,
+                final int numGroups,
+                final Comparator<TermSelects> comparator) {
+            if ((comparator == null) && !prev.needSortedByGroup()) {
+                return prev;
+            }
+            final TermsAccumulator[] pqs = new TermsAccumulator[numGroups + 1];
+            for (int i = 1; i <= numGroups; i++) {
+                pqs[i] = new TermsAccumulator.ArrayAccumulator(comparator);
+            }
+            return new ResultCollector.PerGroupCollector(pqs, prev);
+        }
     }
 
-    private Session.IntIterateCallback streamingIntCallback(final Session session, final AggregateFilter filterOrNull, final Consumer<String> out) {
-        final String[] formatStrings = formFormatStrings();
-        return new Session.IntIterateCallback() {
-            @Override
-            public void term(final long term, final long[] stats, final int group) {
-                if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                    return;
-                }
-                final double[] selectBuffer = new double[selecting.size()];
-                for (int i = 0; i < selecting.size(); i++) {
-                    selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                }
-                out.accept(createRow(session.groupKeySet, group, term, selectBuffer, formatStrings));
+    private interface TermsAccumulator {
+
+        // offer a term. Returns true iff new group is created.
+        boolean addTerm(final TermSelects termSelects);
+
+        // get all accumulated terms
+        List<TermSelects> getResult();
+
+        class BoundedPriorityQueueAccumulator implements TermsAccumulator {
+
+            private final BoundedPriorityQueue<TermSelects> queue;
+
+            public BoundedPriorityQueueAccumulator(final int maxCapacity, final Comparator<TermSelects> comparator) {
+                queue = BoundedPriorityQueue.newInstance(maxCapacity, comparator);
             }
 
             @Override
-            public boolean needSorted() {
+            public boolean addTerm(final TermSelects termSelects) {
+                final boolean wasFool = queue.isFull();
+                return queue.offer(termSelects) && !wasFool;
+            }
+
+            @Override
+            public List<TermSelects> getResult() {
+                final List<TermSelects> listTermSelects = new ArrayList<>(queue.size());
+                while (!queue.isEmpty()) {
+                    listTermSelects.add(queue.poll());
+                }
+                return Lists.reverse(listTermSelects);
+            }
+        }
+
+        class ArrayAccumulator implements TermsAccumulator {
+            private final ArrayList<TermSelects> queue;
+            private final Comparator<TermSelects> comparator;
+
+            public ArrayAccumulator(final Comparator<TermSelects> comparator) {
+                queue = new ArrayList<>();
+                this.comparator = comparator;
+            }
+
+            @Override
+            public boolean addTerm(final TermSelects termSelects) {
+                queue.add(termSelects);
                 return true;
             }
 
             @Override
-            public boolean needGroup() {
-                return true;
-            }
-
-            @Override
-            public boolean needStats() {
-                return ((filterOrNull != null) && filterOrNull.needStats())
-                        || selecting.stream().anyMatch(AggregateMetric::needStats);
-            }
-        };
-    }
-
-    private Session.IntIterateCallback nonStreamingIntCallback(final Session session, final Queue<TermSelects>[] pqs, final AggregateMetric topKMetricOrNull, final AggregateFilter filterOrNull) {
-        return new Session.IntIterateCallback() {
-            @Override
-            public void term(final long term, final long[] stats, final int group) {
-                if (filterOrNull != null && !filterOrNull.allow(term, stats, group)) {
-                    return;
+            public List<TermSelects> getResult() {
+                if (comparator != null) {
+                    queue.sort(comparator);
                 }
-                final double[] selectBuffer = new double[selecting.size()];
-                final double value;
-                if (topKMetricOrNull != null) {
-                    value = topKMetricOrNull.apply(term, stats, group);
-                } else {
-                    value = 0.0;
-                }
-                for (int i = 0; i < selecting.size(); i++) {
-                    selectBuffer[i] = selecting.get(i).apply(term, stats, group);
-                }
-                final Queue<TermSelects> pq = pqs[group];
-                if (pq instanceof BoundedPriorityQueue)  {
-                    if (((BoundedPriorityQueue<TermSelects>) pq).isFull()) {
-                        pq.offer(new TermSelects(term, selectBuffer, value, group));
-                        return ;
-                    }
-                }
-                if (!pq.offer(new TermSelects(term, selectBuffer, value, group))) {
-                    return ;
-                }
-                ++createdGroupCount;
-                session.checkGroupLimitWithoutLog(createdGroupCount);
+                return queue;
             }
-
-            @Override
-            public boolean needSorted() {
-                return true;
-            }
-
-            @Override
-            public boolean needGroup() {
-                return true;
-            }
-
-            @Override
-            public boolean needStats() {
-                return ((filterOrNull != null) && filterOrNull.needStats())
-                        || ((topKMetricOrNull != null) && topKMetricOrNull.needStats())
-                        || selecting.stream().anyMatch(AggregateMetric::needStats);
-
-            }
-        };
+        }
     }
 }

@@ -15,9 +15,11 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.GroupBy;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
@@ -765,10 +767,10 @@ public abstract class AggregateFilter extends AbstractPositional {
     }
 
     public static class Regex extends AggregateFilter {
-        public final Positioned<String> field;
+        public final FieldSet field;
         public final String regex;
 
-        public Regex(Positioned<String> field, String regex) {
+        public Regex(FieldSet field, String regex) {
             this.field = field;
             ValidationUtil.compileRegex(regex);
             this.regex = regex;
@@ -791,9 +793,11 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            Preconditions.checkState(field.datasets().equals(scope));
             for (final String dataset : scope) {
-                if (!validationHelper.containsField(dataset, field.unwrap())) {
-                    validator.error(ErrorMessages.missingField(dataset, field.unwrap(), this));
+                final String fieldName = field.datasetFieldName(dataset);
+                if (!validationHelper.containsField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.missingField(dataset, fieldName, this));
                 }
             }
         }
