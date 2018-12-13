@@ -702,7 +702,7 @@ public class SelectQueryExecution {
                 final List<DatasetWithMissingShards> datasetsWithMissingShards) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
-            timer.push("Execute sub-query: \"" + q + "\"");
+            timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
