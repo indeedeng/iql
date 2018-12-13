@@ -334,8 +334,13 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     }
 
     @Bean
+    public int perUserPendingQueriesLimit() {
+        return env.getProperty("iql.per.user.pending.queries.limit", Integer.class, Integer.MAX_VALUE);
+    }
+
+    @Bean
     public RunningQueriesManager runningQueriesManager() {
-        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb());
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb(), perUserPendingQueriesLimit());
         runningQueriesManager.onStartup();
         return runningQueriesManager;
     }
