@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class GetFieldMax implements IterateHandlerable<long[]>, Command {
+public class GetFieldMax implements IterateHandlerable<double[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMax.class);
 
     public final FieldSet field;
@@ -45,21 +45,23 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         throw new IllegalStateException("Call evaluate() method instead");
     }
 
-    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override
-    public IterateHandler<long[]> iterateHandler(final Session session) {
+    public IterateHandler<double[]> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
 
-    private class IterateHandlerImpl implements IterateHandler<long[]> {
+    private class IterateHandlerImpl implements IterateHandler<double[]> {
         private long[] max;
+        private boolean[] seen;
 
         public IterateHandlerImpl(int numGroups) {
             max = new long[numGroups + 1];
             Arrays.fill(max, Long.MIN_VALUE);
+            seen = new boolean[numGroups + 1];
         }
 
         @Override
@@ -73,6 +75,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
                     max[group] = Math.max(max[group], term);
+                    seen[group] = true;
                 }
 
                 @Override
@@ -100,6 +103,7 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
                     try {
                         final long v = Long.parseLong(term);
                         max[group] = Math.max(max[group], v);
+                        seen[group] = true;
                     } catch (final NumberFormatException ignored) {
                     }
                 }
@@ -122,8 +126,12 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() {
-            return max;
+        public double[] finish() {
+            final double[] results = new double[max.length];
+            for (int i = 0; i < results.length; i++) {
+                results[i] = seen[i] ? max[i] : Double.NaN;
+            }
+            return results;
         }
 
         @Override

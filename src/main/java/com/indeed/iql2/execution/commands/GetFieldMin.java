@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class GetFieldMin implements IterateHandlerable<long[]>, Command {
+public class GetFieldMin implements IterateHandlerable<double[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMin.class);
 
     public final FieldSet field;
@@ -45,21 +45,23 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         throw new IllegalStateException("Call evaluate() method instead");
     }
 
-    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override
-    public IterateHandler<long[]> iterateHandler(final Session session) {
+    public IterateHandler<double[]> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
 
-    private class IterateHandlerImpl implements IterateHandler<long[]> {
+    private class IterateHandlerImpl implements IterateHandler<double[]> {
         private long[] min;
+        private boolean[] seen;
 
         public IterateHandlerImpl(int numGroups) {
             min = new long[numGroups + 1];
             Arrays.fill(min, Long.MAX_VALUE);
+            seen = new boolean[numGroups + 1];
         }
 
         @Override
@@ -73,6 +75,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
                     min[group] = Math.min(min[group], term);
+                    seen[group] = true;
                 }
 
                 @Override
@@ -100,6 +103,7 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
                     try {
                         final long v = Long.parseLong(term);
                         min[group] = Math.min(min[group], v);
+                        seen[group] = true;
                     } catch (NumberFormatException ignored) {
                     }
                 }
@@ -122,8 +126,12 @@ public class GetFieldMin implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() {
-            return min;
+        public double[] finish() {
+            final double[] results = new double[min.length];
+            for (int i = 0; i < results.length; i++) {
+                results[i] = seen[i] ? min[i] : Double.NaN;
+            }
+            return results;
         }
 
         @Override
