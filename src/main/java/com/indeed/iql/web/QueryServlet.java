@@ -876,6 +876,8 @@ public class QueryServlet {
         logString(logEntry, "statement", queryInfo.statementType);
 
         logBoolean(logEntry, "cached", queryInfo.cached);
+        logBoolean(logEntry, "cacheUploadSkipped", queryInfo.cacheUploadSkipped);
+        logLong(logEntry, "resultBytes", queryInfo.resultBytes);
         logSet(logEntry, "dataset", queryInfo.datasets);
         logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
         if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {

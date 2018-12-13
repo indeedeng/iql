@@ -112,7 +112,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class SelectQueryExecution {
@@ -554,7 +553,7 @@ public class SelectQueryExecution {
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 queryCached, totalBytesWritten[0], null, cacheKeys,
-                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
+                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, 0, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
                         return selectExecutionInformation;
@@ -634,7 +633,10 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getTotalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
-                            hasMoreRows.get());
+                            hasMoreRows.get(),
+                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : -1L,
+                            (cacheWriter != null) ? cacheWriter.isOverflowed() : null
+                    );
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
 
@@ -945,10 +947,14 @@ public class SelectQueryExecution {
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
+        public final long resultBytes;
+        @Nullable
+        public final Boolean cacheUploadSkipped;
+
         private SelectExecutionInformation(Multimap<String, List<Shard>> datasetToShards, List<DatasetWithMissingShards> datasetsWithMissingShards,
                                            Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
                                            Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
-                                           final boolean hasMoreRows) {
+                                           final boolean hasMoreRows, final long resultBytes, @Nullable final Boolean cacheUploadSkipped) {
             this.datasetToShards = datasetToShards;
             this.datasetsWithMissingShards = datasetsWithMissingShards;
             this.queryCached = queryCached;
@@ -960,6 +966,8 @@ public class SelectQueryExecution {
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;
             this.hasMoreRows = hasMoreRows;
+            this.resultBytes = resultBytes;
+            this.cacheUploadSkipped = cacheUploadSkipped;
         }
 
         public boolean allCached() {
