@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.commands;
 
+import com.google.common.primitives.Doubles;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
@@ -55,13 +56,11 @@ public class GetFieldMax implements IterateHandlerable<double[]>, Command {
     }
 
     private class IterateHandlerImpl implements IterateHandler<double[]> {
-        private long[] max;
-        private boolean[] seen;
+        private double[] max;
 
         public IterateHandlerImpl(int numGroups) {
-            max = new long[numGroups + 1];
-            Arrays.fill(max, Long.MIN_VALUE);
-            seen = new boolean[numGroups + 1];
+            max = new double[numGroups + 1];
+            Arrays.fill(max, Double.NEGATIVE_INFINITY);
         }
 
         @Override
@@ -75,7 +74,6 @@ public class GetFieldMax implements IterateHandlerable<double[]>, Command {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
                     max[group] = Math.max(max[group], term);
-                    seen[group] = true;
                 }
 
                 @Override
@@ -103,7 +101,6 @@ public class GetFieldMax implements IterateHandlerable<double[]>, Command {
                     try {
                         final long v = Long.parseLong(term);
                         max[group] = Math.max(max[group], v);
-                        seen[group] = true;
                     } catch (final NumberFormatException ignored) {
                     }
                 }
@@ -127,11 +124,10 @@ public class GetFieldMax implements IterateHandlerable<double[]>, Command {
 
         @Override
         public double[] finish() {
-            final double[] results = new double[max.length];
-            for (int i = 0; i < results.length; i++) {
-                results[i] = seen[i] ? max[i] : Double.NaN;
+            for (int i = 0; i < max.length; i++) {
+                max[i] = Doubles.isFinite(max[i]) ? max[i] : Double.NaN;
             }
-            return results;
+            return max;
         }
 
         @Override

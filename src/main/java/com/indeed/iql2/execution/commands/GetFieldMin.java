@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.commands;
 
+import com.google.common.primitives.Doubles;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
@@ -55,13 +56,11 @@ public class GetFieldMin implements IterateHandlerable<double[]>, Command {
     }
 
     private class IterateHandlerImpl implements IterateHandler<double[]> {
-        private long[] min;
-        private boolean[] seen;
+        private double[] min;
 
         public IterateHandlerImpl(int numGroups) {
-            min = new long[numGroups + 1];
-            Arrays.fill(min, Long.MAX_VALUE);
-            seen = new boolean[numGroups + 1];
+            min = new double[numGroups + 1];
+            Arrays.fill(min, Double.POSITIVE_INFINITY);
         }
 
         @Override
@@ -75,7 +74,6 @@ public class GetFieldMin implements IterateHandlerable<double[]>, Command {
                 @Override
                 public void term(final long term, final long[] stats, final int group) {
                     min[group] = Math.min(min[group], term);
-                    seen[group] = true;
                 }
 
                 @Override
@@ -103,7 +101,6 @@ public class GetFieldMin implements IterateHandlerable<double[]>, Command {
                     try {
                         final long v = Long.parseLong(term);
                         min[group] = Math.min(min[group], v);
-                        seen[group] = true;
                     } catch (NumberFormatException ignored) {
                     }
                 }
@@ -127,11 +124,10 @@ public class GetFieldMin implements IterateHandlerable<double[]>, Command {
 
         @Override
         public double[] finish() {
-            final double[] results = new double[min.length];
-            for (int i = 0; i < results.length; i++) {
-                results[i] = seen[i] ? min[i] : Double.NaN;
+            for (int i = 0; i < min.length; i++) {
+                min[i] = Doubles.isFinite(min[i]) ? min[i] : Double.NaN;
             }
-            return results;
+            return min;
         }
 
         @Override
