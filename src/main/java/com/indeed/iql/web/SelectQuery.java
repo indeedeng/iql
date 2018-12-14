@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import org.apache.commons.codec.binary.Base64;
@@ -57,7 +56,8 @@ public class SelectQuery implements Closeable {
     final QueryMetadata queryMetadata;
     private Closeable queryResourceCloser;
     private final ProgressCallback progressCallback;
-    boolean cancelled = false;
+    @Nullable
+    RuntimeException cancellationException = null; // non-null iff query is cancelled
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
     private boolean asynchronousRelease = false;
@@ -139,8 +139,8 @@ public class SelectQuery implements Closeable {
     }
 
     public void checkCancelled() {
-        if(cancelled) {
-            throw new QueryCancelledException("The query was cancelled during execution");
+        if (cancellationException != null) {
+            throw cancellationException;
         }
     }
 
