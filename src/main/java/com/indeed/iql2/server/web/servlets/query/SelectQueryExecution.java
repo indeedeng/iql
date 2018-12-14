@@ -294,6 +294,7 @@ public class SelectQueryExecution {
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
+            queryInfo.datasetFieldsNoDescription = Sets.newHashSet();
 
             for (final FieldExtractor.DatasetField datasetField : datasetFields) {
                 final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
@@ -305,6 +306,9 @@ public class SelectQueryExecution {
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);
+                    if (!datasetsMetadata.fieldHasDescription(datasetField.dataset, field)) {
+                        queryInfo.datasetFieldsNoDescription.add(datasetField.dataset + "." + field);
+                    }
                 }
             }
         }

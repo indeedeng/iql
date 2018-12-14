@@ -679,4 +679,8 @@ public final class IQLQuery implements Closeable {
     public Set<String> getDatasetFields() {
         return this.datasetFields;
     }
+
+    public Set<String> getFields() {
+        return fields;
+    }
 }

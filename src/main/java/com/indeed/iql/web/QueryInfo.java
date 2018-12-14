@@ -85,6 +85,7 @@ public class QueryInfo {
     public @Nullable Integer maxGroups = 0;
     public @Nullable Integer maxConcurrentSessions;
     public @Nullable Set<String> datasetFields;
+    public @Nullable Set<String> datasetFieldsNoDescription;
     public @Nullable Boolean fieldHadDescription;
     public @Nullable Integer selectCount;
     public @Nullable Integer groupByCount;
