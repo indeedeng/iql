@@ -148,14 +148,15 @@ public class RunningQueriesManager {
                 if(pendingQuery.clientInfo.isMultiuserClient) {
                     queriesRunningForIdentity = usernameToRunningCount.getInt(username);
                     queriesPendingForIdentity = usernameToPendingCount.getInt(username);
-                    usernameToPendingCount.add(username, 1);
                     sessionsForIdentity = usernameToSessionsCount.getInt(username);
                 } else {
                     queriesRunningForIdentity = clientToRunningCount.getInt(client);
                     queriesPendingForIdentity = clientToPendingCount.getInt(client);
-                    clientToPendingCount.add(client, 1);
                     sessionsForIdentity = clientToSessionsCount.getInt(client);
                 }
+                
+                usernameToPendingCount.add(username, 1);
+                clientToPendingCount.add(client, 1);
 
                 if(runningQuery.killed) {
                     log.debug("Cancelling query " + runningQuery.qHash + " before it starts running");
