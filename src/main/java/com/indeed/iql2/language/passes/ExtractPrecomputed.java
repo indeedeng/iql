@@ -200,7 +200,8 @@ public class ExtractPrecomputed {
                     final int prevDepth = this.depth;
                     this.setDepth(prevDepth + 1);
                     final int prevStartDepth = this.startDepth;
-                    this.setStartDepth(startDepth + 1);
+                    // New context, depth should be startDepth for the top level within the distinct.
+                    this.setStartDepth(prevDepth + 1);
                     filter = Optional.of(distinct.filter.get().traverse1(this));
                     this.setDepth(prevDepth);
                     this.setStartDepth(prevStartDepth);
