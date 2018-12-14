@@ -1099,22 +1099,24 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Running running = (Running) o;
-            return Objects.equals(metric, running.metric);
+            final Running running = (Running) o;
+            return offset == running.offset &&
+                    Objects.equals(metric, running.metric);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(metric);
+            return Objects.hash(offset, metric);
         }
 
         @Override
         public String toString() {
             return "Running{" +
-                    "metric=" + metric +
+                    "offset=" + offset +
+                    ", metric=" + metric +
                     '}';
         }
     }

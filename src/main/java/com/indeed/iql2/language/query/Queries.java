@@ -39,7 +39,7 @@ import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.UpperCaseInputStream;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.execution.passes.FixDistinctFilterRunning;
+import com.indeed.iql2.language.execution.passes.FixFtgsMetricRunning;
 import com.indeed.iql2.language.execution.passes.GroupIterations;
 import com.indeed.iql2.language.execution.passes.OptimizeLast;
 import com.indeed.iql2.language.optimizations.CollapseFilters;
@@ -485,7 +485,7 @@ public class Queries {
                 log.trace("executionStep = " + executionStep);
             }
         }
-        final List<ExecutionStep> executionSteps3 = FixDistinctFilterRunning.apply(executionSteps2);
+        final List<ExecutionStep> executionSteps3 = FixFtgsMetricRunning.apply(executionSteps2);
         if (log.isTraceEnabled()) {
             log.trace("executionSteps3 = " + executionSteps3);
             for (final ExecutionStep executionStep : executionSteps3) {
