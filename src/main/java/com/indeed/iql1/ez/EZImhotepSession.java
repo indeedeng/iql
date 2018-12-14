@@ -716,6 +716,9 @@ public class EZImhotepSession implements Closeable {
                                                 boolean noGutters, Stringifier<Long> stringifier,
                                                 @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = new Int2ObjectOpenHashMap<>();
+        if ( (max-min)%intervalSize != 0 ) {
+            throw new IllegalArgumentException("IQL1 error message. Have to decide here. ");
+        }
         final int gutterBuckets = noGutters ? 0 : 2;
         final int numBuckets = (int)((max-min-1)/intervalSize + 1 + gutterBuckets);
         for (int group = 1; group < numGroups; group++) {

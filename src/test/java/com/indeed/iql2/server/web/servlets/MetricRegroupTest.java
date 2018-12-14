@@ -101,4 +101,21 @@ public class MetricRegroupTest extends BasicTest {
                 ImmutableList.of("1", "136"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by lucene(\"oji:[1 TO 10]\") select count()", true);
     }
+
+    @Test
+    public void invalidBucketSize() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        try {
+            testIQL2(AllData.DATASET, expected, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) SELECT count()");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("com.indeed.iql.exceptions.IqlKnownException$ParseErrorException"));
+        }
+
+        try {
+            testIQL2(AllData.DATASET, expected, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) SELECT count()");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("com.indeed.iql.exceptions.IqlKnownException$ParseErrorException"));
+        }
+
+    }
 }
