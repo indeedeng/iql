@@ -15,11 +15,13 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.google.common.base.Predicate;
 
 public class MetricRegroupTest extends BasicTest {
     @Test
@@ -105,17 +107,9 @@ public class MetricRegroupTest extends BasicTest {
     @Test
     public void invalidBucketSize() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        try {
-            testIQL2(AllData.DATASET, expected, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) SELECT count()");
-        } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("com.indeed.iql.exceptions.IqlKnownException$ParseErrorException"));
-        }
-
-        try {
-            testIQL2(AllData.DATASET, expected, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) SELECT count()");
-        } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("com.indeed.iql.exceptions.IqlKnownException$ParseErrorException"));
-        }
-
+        Predicate<Exception> IllegalArgumentExceptioner = e -> (e instanceof IllegalArgumentException);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", IllegalArgumentExceptioner);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", IllegalArgumentExceptioner);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", IllegalArgumentExceptioner);
     }
 }

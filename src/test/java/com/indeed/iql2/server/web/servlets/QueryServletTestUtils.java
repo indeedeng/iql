@@ -17,6 +17,7 @@ package com.indeed.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -47,8 +48,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.annotation.Nullable;
+import javax.swing.text.html.Option;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -445,6 +448,23 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL1LegacyMode(client, expected, query, options);
         testIQL2(client, expected, query, options);
     }
+
+    static void expectException(Dataset dataset, String query, LanguageVersion version, Predicate<Exception> exceptionPredicate) {
+        ImhotepClient client = dataset.getNormalClient();
+        try {
+            runQuery(client, query, version, true, Options.create(), Collections.emptySet());
+            Assert.fail("No exception returned in expectException");
+        } catch (Exception e) {
+            Assert.assertTrue(exceptionPredicate.apply(e));
+        }
+    }
+
+    static void expectExceptionAll(Dataset dataset, String query, Predicate<Exception> exceptionPredicate) {
+        for (LanguageVersion languageVersion: LanguageVersion.values()) {
+            expectException(dataset, query, languageVersion, exceptionPredicate);
+        }
+    }
+
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
         final List<List<String>> output = new ArrayList<>();
