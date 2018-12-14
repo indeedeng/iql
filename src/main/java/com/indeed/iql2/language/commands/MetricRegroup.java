@@ -58,6 +58,7 @@ public class MetricRegroup implements Command {
             validator.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
         }
 
+
         // TODO: Validate more List<String>s.... somehow.
     }
 

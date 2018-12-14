@@ -27,6 +27,7 @@ import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.format.DateTimeFormat;
@@ -210,6 +211,16 @@ public class ValidationUtil {
         });
     }
 
+    private static void validateGroupByTimeRange(final ValidationHelper validationHelper, long periodMillis, final Validator validator) {
+        for(Pair<Long, Long> datasetTimeRange: validationHelper.datasetTimeRanges()) {
+            if ( (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())%periodMillis != 0  ) {
+                validator.error("You requested a time period not evenly distributed by bucket size." );
+            }
+        }
+    }
+
+
+
     private static FieldType getFieldType(ValidationHelper validationHelper, String dataset, String field) {
         final boolean isIntField = validationHelper.containsIntOrAliasField(dataset, field);
         final boolean isStrField = validationHelper.containsStringField(dataset, field);
@@ -220,6 +231,10 @@ public class ValidationUtil {
         } else {
             return FieldType.NULL;
         }
+    }
+
+    private static String getTimePeriodFormat(long period) {
+
     }
 
     private enum FieldType {

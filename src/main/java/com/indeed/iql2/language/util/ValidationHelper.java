@@ -18,6 +18,9 @@ import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.Validator;
 
+import com.indeed.util.core.Pair;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,12 +32,15 @@ public class ValidationHelper {
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
+    private final List<Pair<Long, Long>> datasetsTimeRange;
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
+                            final List<Pair<Long, Long>> datasetsTimeRange,
                             final Map<String, Set<String>> datasetAliasIntFields,
                             final Map<String, Set<String>> datasetAliasStringFields,
                             final boolean useLegacy) {
         this.useLegacy = useLegacy;
+        this.datasetsTimeRange = datasetsTimeRange;
         this.datasetsMetadata = datasetsMetadata;
         this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
         this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);
@@ -109,5 +115,9 @@ public class ValidationHelper {
 
     public Set<String> datasets() {
         return datasetsMetadata.getDatasetToMetadata().keySet();
+    }
+
+    public List<Pair<Long, Long>> datasetTimeRanges() {
+        return datasetsTimeRange;
     }
 }
