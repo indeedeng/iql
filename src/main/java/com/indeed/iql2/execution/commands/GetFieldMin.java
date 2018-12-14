@@ -125,7 +125,7 @@ public class GetFieldMin implements IterateHandlerable<double[]>, Command {
         @Override
         public double[] finish() {
             for (int i = 0; i < min.length; i++) {
-                min[i] = Doubles.isFinite(min[i]) ? min[i] : Double.NaN;
+                min[i] = (min[i] == Double.POSITIVE_INFINITY) ? Double.NaN : min[i];
             }
             return min;
         }

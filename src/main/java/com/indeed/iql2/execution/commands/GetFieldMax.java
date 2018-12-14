@@ -125,7 +125,7 @@ public class GetFieldMax implements IterateHandlerable<double[]>, Command {
         @Override
         public double[] finish() {
             for (int i = 0; i < max.length; i++) {
-                max[i] = Doubles.isFinite(max[i]) ? max[i] : Double.NaN;
+                max[i] = (max[i] == Double.NEGATIVE_INFINITY) ? Double.NaN : max[i];
             }
             return max;
         }
