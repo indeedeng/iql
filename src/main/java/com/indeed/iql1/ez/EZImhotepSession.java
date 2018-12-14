@@ -717,7 +717,8 @@ public class EZImhotepSession implements Closeable {
                                                 @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = new Int2ObjectOpenHashMap<>();
         if ( (max-min)%intervalSize != 0 ) {
-            throw new IllegalArgumentException("Bucket range length should be a multiple of interval");
+            final long bucketRange = max - min;
+            throw new IllegalArgumentException("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to " + (max - bucketRange%intervalSize) + " or increase to " + (max + intervalSize - bucketRange%intervalSize));
         }
         final int gutterBuckets = noGutters ? 0 : 2;
         final int numBuckets = (int)((max-min-1)/intervalSize + 1 + gutterBuckets);
