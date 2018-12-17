@@ -47,9 +47,9 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if(computation instanceof SumAcross) {
             results = ((SumAcross)computation).evaluate(session);
         } else if(computation instanceof GetFieldMin) {
-            longResults = ((GetFieldMin)computation).evaluate(session);
+            results = ((GetFieldMin)computation).evaluate(session);
         } else if(computation instanceof GetFieldMax) {
-            longResults = ((GetFieldMax)computation).evaluate(session);
+            results = ((GetFieldMax)computation).evaluate(session);
         } else if (computation instanceof GetGroupPercentiles) {
             final long[][] percentiles = ((GetGroupPercentiles)computation).evaluate(session);
             Preconditions.checkState(percentiles.length == 1, "Only one percentile expected");

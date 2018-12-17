@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.List;
 import java.util.Objects;
 
 public class IntTermGroupKey extends GroupKey {
@@ -25,8 +24,14 @@ public class IntTermGroupKey extends GroupKey {
     }
 
     @Override
-    public void addToList(List<String> list) {
-        list.add(String.valueOf(value));
+    public String render() {
+        return String.valueOf(value);
+    }
+
+    @Override
+    public void appendWithTab(final StringBuilder sb) {
+        sb.append(value);
+        sb.append('\t');
     }
 
     @Override

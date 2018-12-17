@@ -17,7 +17,6 @@ package com.indeed.iql2.execution.groupkeys.sets;
 import com.indeed.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
-import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,7 +26,7 @@ import java.util.Arrays;
 // TODO: Test WITH DEFAULT
 public class TestIntFieldInGroupKeySet {
     private static IntRegroupFieldIn.IntFieldInGroupKeySet create() {
-        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.create(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
+        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
         return new IntRegroupFieldIn.IntFieldInGroupKeySet(previous, new LongArrayList(new long[]{1, 3, 10, 100}), false);
     }
 

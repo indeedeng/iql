@@ -75,7 +75,7 @@ public class QuantilesTest extends BasicTest {
     @Test
     public void testNoDocs() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("[0.0, 1.0)", "0", "9223372036854776000", "NaN", "-9223372036854776000"));
+        expected.add(ImmutableList.of("[0.0, 1.0)", "0", "NaN", "NaN", "NaN"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from quantiles_mandatory yesterday today as A, quantiles_mandatory as B where f<0 group by quantiles(f, 5) select count(), field_min(f), f / count(), field_max(f)", true);
     }
 

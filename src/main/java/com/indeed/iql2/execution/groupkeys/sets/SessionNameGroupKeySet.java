@@ -31,7 +31,7 @@ public class SessionNameGroupKeySet implements GroupKeySet {
         this.previous = previous;
         this.groupKeys = new ArrayList<>(sessionNames.size());
         for (final String sessionName : sessionNames) {
-            groupKeys.add(new StringGroupKey(sessionName));
+            groupKeys.add(StringGroupKey.fromTerm(sessionName));
         }
     }
 

@@ -59,6 +59,7 @@ public class SimpleIterate implements Command {
     public final List<Optional<String>> formatStrings;
 
     private int createdGroupCount = 0;
+    private StringBuilder sb;
 
     public SimpleIterate(
             final FieldSet field,
@@ -334,35 +335,21 @@ public class SimpleIterate implements Command {
     }
 
     // TODO: Move this
-    public static String createRow(GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer, String[] formatStrings) {
-        final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
-        for (final String k : keyColumns) {
-            Session.appendGroupString(k, sb);
-            sb.append('\t');
-        }
+    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer, String[] formatStrings) {
+        GroupKeySets.appendTo(sb, groupKeySet, groupKey);
         Session.appendGroupString(term, sb);
         sb.append('\t');
         Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
-        if (keyColumns.size() + selectBuffer.length > 0) {
-            sb.setLength(sb.length() - 1);
-        }
+        sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
     // TODO: Move this
-    public static String createRow(GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer, String[] formatStrings) {
-        final StringBuilder sb = new StringBuilder();
-        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, groupKey);
-        for (final String k : keyColumns) {
-            Session.appendGroupString(k, sb);
-            sb.append('\t');
-        }
+    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer, String[] formatStrings) {
+        GroupKeySets.appendTo(sb, groupKeySet, groupKey);
         sb.append(term).append('\t');
         Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
-        if (keyColumns.size() + selectBuffer.length > 0) {
-            sb.setLength(sb.length() - 1);
-        }
+        sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
@@ -555,6 +542,7 @@ public class SimpleIterate implements Command {
             final Consumer<String> out;
             final GroupKeySet groupKeySet;
             final String[] formatStrings;
+            private final StringBuilder sb = new StringBuilder();
 
             public Streaming(
                     final Consumer<String> out,
@@ -574,10 +562,11 @@ public class SimpleIterate implements Command {
             @Override
             public boolean offer(final int group, final TermSelects termSelects) {
                 if (groupKeySet.isPresent(group)) {
+                    sb.setLength(0);
                     if (termSelects.stringTerm == null) {
-                        out.accept(createRow(groupKeySet, group, termSelects.intTerm, termSelects.selects, formatStrings));
+                        out.accept(createRow(sb, groupKeySet, group, termSelects.intTerm, termSelects.selects, formatStrings));
                     } else {
-                        out.accept(createRow(groupKeySet, group, termSelects.stringTerm, termSelects.selects, formatStrings));
+                        out.accept(createRow(sb, groupKeySet, group, termSelects.stringTerm, termSelects.selects, formatStrings));
                     }
                 }
                 // we could stream forever so pretend nothing have changed.
