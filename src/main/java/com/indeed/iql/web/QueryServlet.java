@@ -53,9 +53,6 @@ import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql2.IQL2Options;
-import com.indeed.iql2.execution.progress.CompositeProgressCallback;
-import com.indeed.iql2.execution.progress.ProgressCallback;
-import com.indeed.iql2.execution.progress.SpanUpdaterProgressCallback;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
 import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
@@ -243,9 +240,12 @@ public class QueryServlet {
                             .withTag("client", client)
                             .withTag("env", iqlEnv.id)
                             .startActive();
-                    handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp, new SpanUpdaterProgressCallback(activeSpan));
+                    handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
                     if (queryInfo.cached != null) {
                         activeSpan.setTag("cached", queryInfo.cached);
+                    }
+                    if (queryInfo.queryId != null) {
+                        activeSpan.setTag("queryid", queryInfo.queryId);
                     }
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
@@ -347,14 +347,8 @@ public class QueryServlet {
         return value;
     }
 
-    private void handleSelectStatement(
-            final SelectStatement selectStatement,
-            final QueryInfo queryInfo,
-            final ClientInfo clientInfo,
-            final QueryRequestParams queryRequestParams,
-            final HttpServletResponse resp,
-            final ProgressCallback progressCallback
-    ) throws IOException, ImhotepOutOfMemoryException {
+    private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
+                                       QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
         try (final TracingTreeTimer timer = new TracingTreeTimer()) {
 
             final String query = selectStatement.selectQuery;
@@ -372,7 +366,7 @@ public class QueryServlet {
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
-                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), progressCallback);
+                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
@@ -381,10 +375,9 @@ public class QueryServlet {
 
                 final PrintWriter writer = resp.getWriter();
                 final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
-                final CompositeProgressCallback compositeProgressCallback = CompositeProgressCallback.create(eventStreamProgressCallback, progressCallback);
                 final StrictCloser strictCloser = new StrictCloser();
                 SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                        new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, compositeProgressCallback);
+                        new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
                 try {
                     selectQuery.lock(); // blocks and waits if necessary
 
