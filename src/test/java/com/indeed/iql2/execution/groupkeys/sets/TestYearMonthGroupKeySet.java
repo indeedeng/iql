@@ -27,7 +27,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class TestYearMonthGroupKey {
+public class TestYearMonthGroupKeySet {
 
     public static final String FORMAT_STRING = TimeUnit.SECOND.formatString;
     public static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);

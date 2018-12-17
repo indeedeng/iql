@@ -49,7 +49,7 @@ public class YearMonthGroupKeySet implements GroupKeySet {
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final DateTime month) {
-                        return new StringGroupKey.fromTimeRange(formatString, month.getMillis(), month.plusMonths(1).getMillis());
+                        return StringGroupKey.fromTimeRange(formatter, month.getMillis(), month.plusMonths(1).getMillis());
                     }
                 });
     }
