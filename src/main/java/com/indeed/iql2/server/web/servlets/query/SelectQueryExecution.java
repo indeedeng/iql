@@ -254,6 +254,9 @@ public class SelectQueryExecution {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
+        queryInfo.resultBytes = (execInfo.resultBytes == -1L) ? null : (Long) execInfo.resultBytes;
+        queryInfo.cacheUploadSkipped = execInfo.cacheUploadSkipped;
+
         queryInfo.setFromPerformanceStats(execInfo.imhotepPerformanceStats);
 
         if (execInfo.hasMoreRows) {
