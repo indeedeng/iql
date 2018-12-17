@@ -230,7 +230,7 @@ public final class IQLQuery implements Closeable {
                     // do Imhotep regroup on all except the last grouping
                     for (int i = 0; i < groupings.size() - 1; i++) {
                         checkTimeout(timeoutTS);
-                        timer.push("Regroup ", "Regroup " + (i + 1));
+                        timer.push("Regroup", "Regroup " + (i + 1));
                         groupKeys = groupings.get(i).regroup(session, groupKeys);
                         queryInfo.maxGroups = Math.max(queryInfo.maxGroups, session.getNumGroups());
                         regroupMillis += timer.pop();
