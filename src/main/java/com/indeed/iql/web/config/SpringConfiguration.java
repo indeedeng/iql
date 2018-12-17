@@ -131,7 +131,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     QueryCache queryCache(@Autowired(required = false) RedisHostsOverride redisHostsOverride) throws PropertyException {
         final Byte versionForHashing = env.getProperty("query.cache.version", Byte.class);
         if(versionForHashing != null) {
-            SelectQuery.VERSION_FOR_HASHING = versionForHashing;
+            SelectQuery.VERSION_FOR_HASHING += 5347 * versionForHashing;
         }
         final PropertyResolver propertyResolver;
         if(redisHostsOverride != null) {

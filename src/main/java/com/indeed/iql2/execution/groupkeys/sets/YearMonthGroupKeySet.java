@@ -38,8 +38,7 @@ public class YearMonthGroupKeySet implements GroupKeySet {
             final GroupKeySet previous,
             final int numMonths,
             final DateTime startMonth,
-            final String formatString,
-            final boolean useTimeRangeKeys
+            final String formatString
     ) {
         this.previous = previous;
         this.numMonths = numMonths;
@@ -50,11 +49,7 @@ public class YearMonthGroupKeySet implements GroupKeySet {
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final DateTime month) {
-                        if (useTimeRangeKeys) {
-                            return StringGroupKey.fromTimeRange(formatter, month.getMillis(), month.plusMonths(1).getMillis());
-                        } else {
-                            return StringGroupKey.fromTerm(formatter.print(month));
-                        }
+                        return new StringGroupKey.fromTimeRange(formatString, month.getMillis(), month.plusMonths(1).getMillis());
                     }
                 });
     }
