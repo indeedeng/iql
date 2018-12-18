@@ -245,6 +245,9 @@ public class QueryServlet {
                     if (queryInfo.cached != null) {
                         activeSpan.setTag("cached", queryInfo.cached);
                     }
+                    if (queryInfo.queryId != null) {
+                        activeSpan.setTag("queryid", queryInfo.queryId);
+                    }
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
                 } else if (iqlStatement instanceof ShowStatement) {

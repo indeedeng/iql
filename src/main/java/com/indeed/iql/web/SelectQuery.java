@@ -177,6 +177,7 @@ public class SelectQuery implements Closeable {
 
     public void onInserted(long id) {
         this.progressCallback.queryIdAssigned(id);
+        this.queryInfo.queryId = id;
         this.id = id;
     }
 

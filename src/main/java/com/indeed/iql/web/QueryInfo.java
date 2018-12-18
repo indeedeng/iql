@@ -74,6 +74,7 @@ public class QueryInfo {
     public @Nullable Long cpuSlotsWaitTimeMs;
     public @Nullable Long ioSlotsExecTimeMs;
     public @Nullable Long ioSlotsWaitTimeMs;
+    public @Nullable Long queryId;
     public @Nullable Set<String> sessionIDs;
     public @Nullable Integer numShards;
     public @Nullable Long numDocs;
