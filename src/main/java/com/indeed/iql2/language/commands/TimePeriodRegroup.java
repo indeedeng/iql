@@ -49,6 +49,8 @@ public class TimePeriodRegroup implements Command {
         if (timeFormat.isPresent()) {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);
         }
+        ValidationUtil.validateGroupByTimeRange(validationHelper, periodMillis, validator);
+
     }
 
     @Override

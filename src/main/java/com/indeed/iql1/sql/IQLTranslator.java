@@ -60,6 +60,7 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -1183,19 +1184,19 @@ public final class IQLTranslator {
 
             // validate time period bucketing is compatible with the given time range
             if(isTime) {
-                int xMin = (int)(start.getMillis() / 1000);
-                int xMax = (int)(end.getMillis() / 1000);
+                int xMin = (int)(start.getMillis());
+                int xMax = (int)(end.getMillis());
                 long timePeriod = xMax - xMin;
 
                 if (timePeriod % bucketSize != 0) {
                     StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
-                    appendTimePeriod(timePeriod, exceptionBuilder);
+                    ValidationUtil.appendTimePeriod(timePeriod, exceptionBuilder);
                     exceptionBuilder.append(") not evenly divisible by the bucket size (");
-                    appendTimePeriod(bucketSize, exceptionBuilder);
+                    ValidationUtil.appendTimePeriod(bucketSize, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
+                    ValidationUtil.appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
+                    ValidationUtil.appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
                     throw new IqlKnownException.ParseErrorException(exceptionBuilder.toString());
                 }
             }
@@ -1203,36 +1204,7 @@ public final class IQLTranslator {
             return bucketSize;
         }
 
-        private static int appendTimePeriod(long timePeriod, StringBuilder builder) {
-            final int timePeriodUnits;
-            if (timePeriod % SECONDS_IN_WEEK == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_WEEK);
-                builder.append(" weeks");
-                timePeriodUnits = SECONDS_IN_WEEK;
-            } else if (timePeriod % SECONDS_IN_DAY == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_DAY);
-                builder.append(" days");
-                timePeriodUnits = SECONDS_IN_DAY;
-            } else if (timePeriod % SECONDS_IN_HOUR == 0) {
-                // duration is in hours
-                builder.append(timePeriod / SECONDS_IN_HOUR);
-                builder.append(" hours");
-                timePeriodUnits = SECONDS_IN_HOUR;
-            } else if (timePeriod % SECONDS_IN_MINUTE == 0) {
-                // duration is in minutes
-                builder.append(timePeriod / SECONDS_IN_MINUTE);
-                builder.append(" minutes");
-                timePeriodUnits = SECONDS_IN_MINUTE;
-            } else {
-                // duration is seconds
-                builder.append(timePeriod);
-                builder.append(" seconds");
-                timePeriodUnits = 1;
-            }
-            return timePeriodUnits;
-        }
+
 
         private static final int SECONDS_IN_MINUTE = 60;
         private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;

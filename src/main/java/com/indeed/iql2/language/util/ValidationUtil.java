@@ -24,6 +24,7 @@ import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -211,15 +212,22 @@ public class ValidationUtil {
         });
     }
 
-    private static void validateGroupByTimeRange(final ValidationHelper validationHelper, long periodMillis, final Validator validator) {
+    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, long periodMillis, final Validator validator) {
         for(Pair<Long, Long> datasetTimeRange: validationHelper.datasetTimeRanges()) {
-            if ( (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())%periodMillis != 0  ) {
-                validator.error("You requested a time period not evenly distributed by bucket size." );
+            final long timePeriod = datasetTimeRange.getSecond() - datasetTimeRange.getFirst();
+            if (timePeriod%periodMillis != 0) {
+                    final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
+                    appendTimePeriod(timePeriod, exceptionBuilder);
+                    exceptionBuilder.append(") not evenly divisible by the bucket size (");
+                    appendTimePeriod(periodMillis, exceptionBuilder);
+                    exceptionBuilder.append("). To correct, increase the time range by ");
+                    appendTimePeriod(periodMillis - timePeriod%periodMillis, exceptionBuilder);
+                    exceptionBuilder.append(" or reduce the time range by ");
+                    appendTimePeriod(timePeriod%periodMillis, exceptionBuilder);
+                    validator.error(exceptionBuilder.toString());
             }
         }
     }
-
-
 
     private static FieldType getFieldType(ValidationHelper validationHelper, String dataset, String field) {
         final boolean isIntField = validationHelper.containsIntOrAliasField(dataset, field);
@@ -233,8 +241,23 @@ public class ValidationUtil {
         }
     }
 
-    private static String getTimePeriodFormat(long period) {
-
+    public static void appendTimePeriod(long timePeriod, StringBuilder builder) {
+            if (timePeriod % TimeUnit.WEEK.millis == 0) {
+            builder.append(timePeriod / TimeUnit.WEEK.millis);
+            builder.append(" weeks");
+        } else if (timePeriod % TimeUnit.DAY.millis == 0) {
+            builder.append(timePeriod / TimeUnit.DAY.millis);
+            builder.append(" days");
+        } else if (timePeriod % TimeUnit.HOUR.millis == 0) {
+            builder.append(timePeriod / TimeUnit.HOUR.millis);
+            builder.append(" hours");
+        } else if (timePeriod % TimeUnit.MINUTE.millis == 0) {
+            builder.append(timePeriod / TimeUnit.MINUTE.millis);
+            builder.append(" minutes");
+        } else {
+            builder.append(timePeriod/1000);
+            builder.append(" seconds");
+        }
     }
 
     private enum FieldType {

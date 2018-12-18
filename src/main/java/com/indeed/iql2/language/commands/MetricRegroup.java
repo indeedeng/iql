@@ -22,6 +22,7 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Map;
