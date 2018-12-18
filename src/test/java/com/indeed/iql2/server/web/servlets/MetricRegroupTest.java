@@ -104,11 +104,10 @@ public class MetricRegroupTest extends BasicTest {
     }
 
     @Test
-    public void invalidBucketSize() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        Predicate<Exception> IllegalArgumentExceptioner = e -> (e instanceof IllegalArgumentException);
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", IllegalArgumentExceptioner);
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", IllegalArgumentExceptioner);
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", IllegalArgumentExceptioner);
+    public void invalidBucketSize() {
+        Predicate<String> pareseErrorPredicate = e -> (e.contains("Bucket range should be a multiple of the interval"));
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", pareseErrorPredicate);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", pareseErrorPredicate);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", pareseErrorPredicate);
     }
 }

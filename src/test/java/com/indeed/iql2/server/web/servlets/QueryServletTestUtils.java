@@ -447,19 +447,19 @@ public class QueryServletTestUtils extends BasicTest {
         testIQL2(client, expected, query, options);
     }
 
-    static void expectException(Dataset dataset, String query, LanguageVersion version, Predicate<Exception> exceptionPredicate) {
-        ImhotepClient client = dataset.getNormalClient();
+    static void expectException(Dataset dataset, String query, LanguageVersion version, Predicate<String> exceptionMessagePredicate) {
+        final ImhotepClient client = dataset.getNormalClient();
         try {
             runQuery(client, query, version, true, Options.create(), Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (Exception e) {
-            Assert.assertTrue(exceptionPredicate.apply(e));
+            Assert.assertTrue(exceptionMessagePredicate.apply(e.getMessage()));
         }
     }
 
-    static void expectExceptionAll(Dataset dataset, String query, Predicate<Exception> exceptionPredicate) {
+    static void expectExceptionAll(Dataset dataset, String query, Predicate<String> exceptionMessagePredicate) {
         for (LanguageVersion languageVersion: LanguageVersion.values()) {
-            expectException(dataset, query, languageVersion, exceptionPredicate);
+            expectException(dataset, query, languageVersion, exceptionMessagePredicate);
         }
     }
 
