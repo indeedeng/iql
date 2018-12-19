@@ -79,6 +79,6 @@ public class CommandValidator {
             relevantDatasetToMetadata.put(aliasDataset, datasetMetada);
             datasetsTimeRange.add(new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
         }
-        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), datasetsTimeRange,Collections.emptyMap(), Collections.emptyMap(), useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }
 }

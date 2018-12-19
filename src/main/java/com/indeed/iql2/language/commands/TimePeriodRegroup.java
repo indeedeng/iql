@@ -51,7 +51,6 @@ public class TimePeriodRegroup implements Command {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);
         }
         ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis) , validator);
-
     }
 
     @Override

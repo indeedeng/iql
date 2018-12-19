@@ -22,7 +22,6 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
-import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,6 @@ public class MetricRegroup implements Command {
         if (min >= max) {
             validator.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
         }
-
 
         // TODO: Validate more List<String>s.... somehow.
     }
