@@ -212,18 +212,18 @@ public class ValidationUtil {
         });
     }
 
-    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, long periodMillis, final Validator validator) {
+    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final Validator validator) {
         for(Pair<Long, Long> datasetTimeRange: validationHelper.datasetTimeRanges()) {
-            final long timePeriod = datasetTimeRange.getSecond() - datasetTimeRange.getFirst();
-            if (timePeriod%periodMillis != 0) {
+            final long timePeriod = (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())/1000;
+            if (timePeriod%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
                     appendTimePeriod(timePeriod, exceptionBuilder);
                     exceptionBuilder.append(") not evenly divisible by the bucket size (");
-                    appendTimePeriod(periodMillis, exceptionBuilder);
+                    appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    appendTimePeriod(periodMillis - timePeriod%periodMillis, exceptionBuilder);
+                    appendTimePeriod(periodSeconds - timePeriod%periodSeconds, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    appendTimePeriod(timePeriod%periodMillis, exceptionBuilder);
+                    appendTimePeriod(timePeriod%periodSeconds, exceptionBuilder);
                     validator.error(exceptionBuilder.toString());
             }
         }
@@ -242,20 +242,20 @@ public class ValidationUtil {
     }
 
     public static void appendTimePeriod(long timePeriod, StringBuilder builder) {
-            if (timePeriod % TimeUnit.WEEK.millis == 0) {
-            builder.append(timePeriod / TimeUnit.WEEK.millis);
+        if (timePeriod % TimeUnit.WEEK.toSeconds() == 0) {
+            builder.append(timePeriod / TimeUnit.WEEK.toSeconds());
             builder.append(" weeks");
-        } else if (timePeriod % TimeUnit.DAY.millis == 0) {
-            builder.append(timePeriod / TimeUnit.DAY.millis);
+        } else if ((timePeriod % TimeUnit.DAY.toSeconds()) == 0) {
+            builder.append(timePeriod / TimeUnit.DAY.toSeconds());
             builder.append(" days");
         } else if (timePeriod % TimeUnit.HOUR.millis == 0) {
-            builder.append(timePeriod / TimeUnit.HOUR.millis);
+            builder.append(timePeriod / TimeUnit.HOUR.toSeconds());
             builder.append(" hours");
         } else if (timePeriod % TimeUnit.MINUTE.millis == 0) {
-            builder.append(timePeriod / TimeUnit.MINUTE.millis);
+            builder.append(timePeriod / TimeUnit.MINUTE.toSeconds());
             builder.append(" minutes");
         } else {
-            builder.append(timePeriod/1000);
+            builder.append(timePeriod);
             builder.append(" seconds");
         }
     }

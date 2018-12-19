@@ -60,7 +60,6 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
-import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -120,6 +119,7 @@ import static com.indeed.iql1.ez.EZImhotepSession.multiplyShiftRight;
 import static com.indeed.iql1.ez.EZImhotepSession.shiftLeftDivide;
 import static com.indeed.iql1.ez.EZImhotepSession.sub;
 import static com.indeed.iql1.ez.Stats.Stat;
+import static com.indeed.iql2.language.util.ValidationUtil.appendTimePeriod;
 
 /**
  * @author jplaisance
@@ -1184,19 +1184,19 @@ public final class IQLTranslator {
 
             // validate time period bucketing is compatible with the given time range
             if(isTime) {
-                int xMin = (int)(start.getMillis());
-                int xMax = (int)(end.getMillis());
+                int xMin = (int)(start.getMillis() / 1000);
+                int xMax = (int)(end.getMillis() / 1000);
                 long timePeriod = xMax - xMin;
 
                 if (timePeriod % bucketSize != 0) {
                     StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
-                    ValidationUtil.appendTimePeriod(timePeriod, exceptionBuilder);
+                    appendTimePeriod(timePeriod, exceptionBuilder);
                     exceptionBuilder.append(") not evenly divisible by the bucket size (");
-                    ValidationUtil.appendTimePeriod(bucketSize, exceptionBuilder);
+                    appendTimePeriod(bucketSize, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    ValidationUtil.appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
+                    appendTimePeriod(bucketSize - timePeriod%bucketSize, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    ValidationUtil.appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
+                    appendTimePeriod(timePeriod%bucketSize, exceptionBuilder);
                     throw new IqlKnownException.ParseErrorException(exceptionBuilder.toString());
                 }
             }
