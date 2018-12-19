@@ -35,6 +35,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
     @Override
     public void validate(ValidationHelper validationHelper, Validator validator) {
         computation.validate(validationHelper, validator);
+        validationHelper.registerComputed(name);
     }
 
     @Override

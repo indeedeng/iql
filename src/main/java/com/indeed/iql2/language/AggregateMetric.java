@@ -1328,7 +1328,9 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-
+            if (!validationHelper.isComputed(name)) {
+                validator.error("Cannot use value that has not been computed yet. Likely cause: DISTINCT, PERCENTILE, FIELD_MIN, FIELD_MAX, or SUM_OVER used in a Top K BY clause.");
+            }
         }
 
         @Override
