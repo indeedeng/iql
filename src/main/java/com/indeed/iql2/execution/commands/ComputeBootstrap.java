@@ -237,9 +237,7 @@ public class ComputeBootstrap implements Command, IterateHandlerable<Void> {
                     default: {
                         try {
                             final double percentile = Double.parseDouble(vararg);
-                            System.out.println("percentile = " + percentile);
                             final double z = -Math.sqrt(2) * Erf.erfcInv(2 * percentile);
-                            System.out.println("z = " + z);
                             final double[] storage = new double[session.numGroups + 1];
                             for (int group = 1; group <= session.numGroups; group++) {
                                 storage[group] = means[group] + z * variances[group];
