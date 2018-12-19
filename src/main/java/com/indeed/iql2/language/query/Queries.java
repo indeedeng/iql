@@ -81,44 +81,25 @@ public class Queries {
         public final String displayName;
         public final String end;
         public final String name;
-        public final Map<String, String> fieldAliases;
-        public final Map<String, String> dimensionAliases;
 
-        public QueryDataset(String dataset, String start, String displayName, String end, String name, Map<String, String> fieldAliases, Map<String, String> dimensionAliases) {
+        public QueryDataset(String dataset, String start, String displayName, String end, String name) {
             this.dataset = dataset;
             this.start = start;
             this.displayName = displayName;
             this.end = end;
             this.name = name;
-            this.fieldAliases = fieldAliases;
-            this.dimensionAliases = dimensionAliases;
         }
     }
 
-    public static List<QueryDataset> createDatasetMap(
-            CharStream inputStream,
-            Query query,
-            Map<String, Map<String, String>> datasetToDimensionAliasFields
-    ) {
+    public static List<QueryDataset> createDatasetMap(Query query) {
         final List<QueryDataset> result = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
-            final Map<String, String> fieldAliases = dataset
-                    .fieldAliases
-                    .entrySet()
-                    .stream()
-                    .collect(
-                        Collectors.toMap(e -> e.getKey().unwrap(), e -> e.getValue().unwrap())
-                    );
-            final Map<String, String> dimensionAliases = datasetToDimensionAliasFields
-                    .getOrDefault(dataset.dataset.unwrap(), Collections.emptyMap());
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
                     dataset.startInclusive.unwrap().toString(),
                     dataset.getDisplayName().unwrap(),
                     dataset.endExclusive.unwrap().toString(),
-                    dataset.alias.or(dataset.dataset).unwrap(),
-                    fieldAliases,
-                    dimensionAliases
+                    dataset.alias.or(dataset.dataset).unwrap()
             ));
         }
         return result;
