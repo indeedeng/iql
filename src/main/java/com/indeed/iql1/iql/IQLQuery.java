@@ -437,8 +437,10 @@ public final class IQLQuery implements Closeable {
             final boolean exceedsRowLimit = rowsLoaded >= rowLimit && rows.hasNext();
             return new WriteResults(rowsWritten, null, resultsCache.iterator(), exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
+            File unsortedFile = null;
+            File sortedFile = null;
             try {
-                final File unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
+                unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
                 // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
                 final PrintWriter fileOutputStream = new PrintWriter(new OutputStreamWriter(
                         new BufferedOutputStream(new FileOutputStream(unsortedFile)), Charsets.UTF_8));
@@ -453,7 +455,6 @@ public final class IQLQuery implements Closeable {
                 fileOutputStream.close();
                 log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
-                final File sortedFile;
                 if(requiresSorting) { // do on disk sort with gnu sort
                     sortedFile = sortFile(unsortedFile, groupingColumns, selectColumns);
                 } else {
@@ -461,11 +462,27 @@ public final class IQLQuery implements Closeable {
                 }
 
                 // send the results out to the client
-                copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
+                try {
+                    copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
+                } finally {
+                    if (sortedFile != unsortedFile) {
+                        if (sortedFile.delete()) {
+                            sortedFile = null;
+                        } else {
+                            log.warn("Failed to delete temporary file " + sortedFile.toString());
+                        }
+                    }
+                }
 
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
                 return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
-            } catch (IOException e) {
+            } catch (final Exception e) {
+                if ((unsortedFile != null) && !unsortedFile.delete()) {
+                    log.warn("Failed to delete temporary file " + unsortedFile.toString());
+                }
+                if ((sortedFile != null) && !sortedFile.delete()) {
+                    log.warn("Failed to delete temporary file " + sortedFile.toString());
+                }
                 throw Throwables.propagate(e);
             }
         }
@@ -476,18 +493,18 @@ public final class IQLQuery implements Closeable {
      * Expects inputFile to have ".tmp" in the name
      */
     private File sortFile(File inputFile, int groupingColumns, int selectColumns) {
+        File sortedFile = null;
         try {
             final long started;
-            final File sortedFile;
             started = System.currentTimeMillis();
             sortedFile = new File(inputFile.getPath().replace(".tmp", ".sorted.tmp"));
             final List<String> sortCmd = Lists.newArrayList("sort", "-o", sortedFile.getPath(), "-t", "\t");
 
             // TODO: custom sorting orders
-            for(int i = 1; i <= groupingColumns; i++) {
+            for (int i = 1; i <= groupingColumns; i++) {
                 sortCmd.add("-k" + i + "," + i);
             }
-            for(int i = groupingColumns + 1; i <= groupingColumns + selectColumns; i++) {
+            for (int i = groupingColumns + 1; i <= groupingColumns + selectColumns; i++) {
                 sortCmd.add("-k" + i + "," + i + "n");
             }
             sortCmd.add(inputFile.getPath());
@@ -497,9 +514,13 @@ public final class IQLQuery implements Closeable {
             sortProc.waitFor();
             log.trace("Sorted to: " + sortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
             return sortedFile;
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        } catch (InterruptedException e) {
+        } catch (final Exception e) {
+            if ((sortedFile != null) && !sortedFile.delete()) {
+                log.warn("Failed to delete temporary file " + sortedFile.toString());
+            }
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw Throwables.propagate(e);
         }
     }
