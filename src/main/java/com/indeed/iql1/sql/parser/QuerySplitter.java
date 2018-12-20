@@ -103,7 +103,7 @@ public class QuerySplitter {
         // consume any token as long as it is not one of the excluded ones
         alternatives.add(TERMS.token(excludedTerms).not().next(Parsers.ANY_TOKEN));
 
-        return Parsers.sequence(Parsers.ANY_TOKEN.optional(), Parsers.or(alternatives).many()).source().token();
+        return Parsers.or(alternatives).many().source().token();
     }
 
     static void runBenchmark() {
