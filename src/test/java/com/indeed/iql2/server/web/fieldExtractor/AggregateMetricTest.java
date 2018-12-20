@@ -160,11 +160,6 @@ public class AggregateMetricTest extends BaseTest{
 	}
 
 	@Test
-	public void testBootstrap() {
-		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC), "from organic yesterday today select bootstrap(oji, ojc, 5, 'a')");
-	}
-
-	@Test
 	public void testDivideByCount() {
 		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select variance(oji/count())");
 	}
