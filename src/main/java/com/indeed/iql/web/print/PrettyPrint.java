@@ -1365,6 +1365,32 @@ public class PrettyPrint {
                 sb.append("len(").append(getText(stringLen.field)).append(")");
                 return null;
             }
+
+            @Override
+            public Void visit(final DocMetric.Random random) throws RuntimeException {
+                sb.append("random_")
+                    .append(random.isIntField ? "int" : "str")
+                    .append('(')
+                    .append(getText(random.field))
+                    .append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.RandomMetric random) throws RuntimeException {
+                sb.append("random(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
         });
 
         appendCommentAfterText(docMetric, sb);

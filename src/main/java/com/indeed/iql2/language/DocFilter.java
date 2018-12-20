@@ -1374,12 +1374,14 @@ public abstract class DocFilter extends AbstractPositional {
 
     public static class Sample extends DocFilter {
         public final FieldSet field;
+        public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String seed;
 
-        public Sample(FieldSet field, long numerator, long denominator, String seed) {
+        public Sample(FieldSet field, final boolean isIntField, long numerator, long denominator, String seed) {
             this.field = field;
+            this.isIntField = isIntField;
             this.numerator = numerator;
             this.denominator = denominator;
             this.seed = seed;
@@ -1392,7 +1394,13 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            throw new UnsupportedOperationException("Sample::asZeroOneMetric is not implemented");
+            return new DocMetric.Max(
+                    new DocMetric.Constant(0),
+                    new DocMetric.Subtract(
+                            new DocMetric.Random(field, isIntField, 2, seed),
+                            new DocMetric.Constant(1)
+                    )
+            );
         }
 
         @Override
@@ -1462,7 +1470,13 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            throw new UnsupportedOperationException("SampleDocMetric::asZeroOneMetric is not implemented");
+            return new DocMetric.Max(
+                    new DocMetric.Constant(0),
+                    new DocMetric.Subtract(
+                            new DocMetric.RandomMetric(metric, 2, seed),
+                            new DocMetric.Constant(1)
+                    )
+            );
         }
 
         @Override

@@ -83,6 +83,8 @@ RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
 BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
+RANDOM_INT: 'RANDOM_INT' ;
+RANDOM_STR: 'RANDOM_STR' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
 
@@ -128,7 +130,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
+    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | RANDOM_INT | RANDOM_STR | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
@@ -283,6 +285,8 @@ jqlDocMetricAtom
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | INTTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomIntTermCount
     | STRTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomStrTermCount
+    | RANDOM '(' singlyScopedField ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomField
+    | RANDOM '(' jqlDocMetric ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomMetric
     | singlyScopedField '=~' regex=STRING_LITERAL # DocMetricAtomRegex
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
