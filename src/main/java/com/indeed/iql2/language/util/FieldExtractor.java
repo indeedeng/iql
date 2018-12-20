@@ -745,11 +745,6 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.GroupStatsMultiLookup groupStatsMultiLookup) throws RuntimeException {
-				return ImmutableSet.of();
-			}
-
-			@Override
 			public Set<DatasetField> visit(final AggregateMetric.SumAcross sumAcross) throws RuntimeException {
 				return union(getDatasetFields(sumAcross.groupBy), getDatasetFields(sumAcross.metric));
 			}
@@ -784,17 +779,6 @@ public class FieldExtractor {
 				for (final AggregateMetric metric : max.metrics) {
 					set.addAll(getDatasetFields(metric));
 				}
-				return set;
-			}
-
-			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Bootstrap bootstrap) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				set.addAll(bootstrap.field.datasetFields());
-				if (bootstrap.filter.isPresent()) {
-					set.addAll(getDatasetFields(bootstrap.filter.get()));
-				}
-				set.addAll(getDatasetFields(bootstrap.metric));
 				return set;
 			}
 

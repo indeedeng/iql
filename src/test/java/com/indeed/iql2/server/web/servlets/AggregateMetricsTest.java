@@ -274,31 +274,4 @@ public class AggregateMetricsTest extends BasicTest {
                 "from organic 2015-01-01 00:00 2015-01-01 01:00 as o1, organic 2015-01-01 01:00 2015-01-01 02:00 as o2 " +
                         "SELECT AVG(o1.oji), AVG(o2.oji), AVG(DISTINCT(o1.tk)), PRINTF('%.2f', AVG(oji)), PRINTF('%.2f', AVG(o1.oji+o2.oji))");
     }
-
-    @Test
-    public void testBootstrap() throws Exception {
-        testBootstrapMetric("\"min\"", "0.0204");
-        testBootstrapMetric("\"max\"", "0.1772");
-        //testBootstrapMetric("all", "")); // TODO: write separate test for "all"
-        testBootstrapMetric("\"numTerms\"", "4.0000");
-        testBootstrapMetric("\"skippedTerms\"", "0.0000");
-        testBootstrapMetric("\"mean\"", "0.1213");
-        testBootstrapMetric("\"variance\"", "0.0030");
-
-        // double value as metric means persentile
-        testBootstrapMetric("0.25", "0.1193");
-        testBootstrapMetric("0.50", "0.1213");
-        testBootstrapMetric("0.75", "0.1233");
-    }
-
-    private void testBootstrapMetric(final String metric, final String expectedValue) throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", expectedValue));
-        QueryServletTestUtils.testIQL2(AllData.DATASET,
-                expected,
-                "from organic yesterday today select PRINTF('%.4f', BOOTSTRAP(tk, ojc / oji, 100, \"seed\", " + metric + "))");
-    }
-
-
-
 }

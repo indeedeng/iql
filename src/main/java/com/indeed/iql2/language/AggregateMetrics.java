@@ -508,24 +508,6 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterAggregateBootstrap(JQLParser.AggregateBootstrapContext ctx) {
-                final FieldSet field = fieldResolver.resolve(ctx.field);
-                final Optional<AggregateFilter> filter;
-                if (ctx.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.filter, context));
-                } else {
-                    filter = Optional.absent();
-                }
-                final AggregateMetric metric = AggregateMetrics.parseJQLAggregateMetric(ctx.metric, context);
-                final int numBootstraps = Integer.parseInt(ctx.numBootstraps.getText());
-                final List<String> varargs = new ArrayList<>();
-                for (final Token vararg : ctx.varargs) {
-                    varargs.add(vararg.getText());
-                }
-                accept(field.wrap(new AggregateMetric.Bootstrap(field, filter, ParserCommon.unquote(ctx.seed.getText()), metric, numBootstraps, varargs)));
-            }
-
-            @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 accept(field.wrap(new AggregateMetric.FieldMin(field)));
