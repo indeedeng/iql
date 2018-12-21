@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
-import com.indeed.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -105,28 +104,11 @@ public class GetGroupStats implements Command {
         session.timer.push("computing aggregated stats");
         final List<AggregateMetric> selectedMetrics = this.metrics;
 
-        int totalStats = 0;
-        for (final AggregateMetric metric : selectedMetrics) {
-            if (metric instanceof MultiPerGroupConstant) {
-                totalStats += ((MultiPerGroupConstant) metric).values.size();
-            } else {
-                totalStats += 1;
-            }
-        }
-
-        final double[][] groupStats = new double[totalStats][];
-        int statIndex = 0;
-        for (final AggregateMetric metric : selectedMetrics) {
-            if (metric instanceof MultiPerGroupConstant) {
-                for (final double[] value : ((MultiPerGroupConstant) metric).values) {
-                    groupStats[statIndex] = value;
-                    statIndex += 1;
-                }
-            } else {
-                final double[] statGroups = metric.getGroupStats(allStats, numGroups);
-                groupStats[statIndex] = statGroups;
-                statIndex += 1;
-            }
+        final double[][] groupStats = new double[selectedMetrics.size()][];
+        for (int i = 0; i < selectedMetrics.size(); i++) {
+            final AggregateMetric metric = selectedMetrics.get(i);
+            final double[] statGroups = metric.getGroupStats(allStats, numGroups);
+            groupStats[i] = statGroups;
         }
         session.timer.pop();
 
