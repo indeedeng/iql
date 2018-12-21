@@ -197,6 +197,13 @@ public class Session {
                     break;
                 }
             }
+
+            // Move to beginning of the loop if we ever start to allow the last
+            // command to leave the session in whatever state it wants to, to shave
+            // off some unnecessary operations.
+            if (optionsSet.contains(QueryOptions.PARANOID)) {
+                session.ensureNoStats();
+            }
         }
 
         if (optionsList.contains(QueryOptions.DIE_AT_END)) {
@@ -222,6 +229,14 @@ public class Session {
         }
 
         return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
+    }
+
+    private void ensureNoStats() {
+        for (final ImhotepSessionInfo session : sessions.values()) {
+            if (session.session.getNumStats() != 0) {
+                throw new IllegalStateException("At start of command execution, session " + session.displayName + " does not have zero stats!");
+            }
+        }
     }
 
     private static long createSubSessions(

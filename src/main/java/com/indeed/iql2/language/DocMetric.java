@@ -1528,11 +1528,11 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Lucene lucene = (Lucene) o;
-            return query == lucene.query;
+            final Lucene lucene = (Lucene) o;
+            return Objects.equals(query, lucene.query);
         }
 
         @Override
@@ -1543,7 +1543,8 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public String toString() {
             return "Lucene{" +
-                    "query='" + query + '}';
+                    "query='" + query + '\'' +
+                    '}';
         }
     }
 

@@ -279,6 +279,28 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
+        final Query paranoidQuery;
+        if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
+            timer.push("reparse query (paranoid mode)");
+            paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            timer.pop();
+
+            timer.push("check query equals() and hashCode()");
+            if (!paranoidQuery.equals(parseResult.query)) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query equals() failure!");
+            }
+            if (paranoidQuery.hashCode() != parseResult.query.hashCode()) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
+            }
+            timer.pop();
+        } else {
+            paranoidQuery = null;
+        }
+
         {
             queryInfo.statementType = "select";
 
@@ -330,7 +352,7 @@ public class SelectQueryExecution {
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
-                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
+                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser, paranoidQuery).executeParsedQuery();
         } catch (final Exception e) {
             selectQuery.checkCancelled();
             throw e;
@@ -352,6 +374,9 @@ public class SelectQueryExecution {
         private final StrictCloser strictCloser;
 
         private final Query originalQuery;
+        // Query reparsed in order to check some aspects of query repeatability.
+        // See IQL-775 for details.
+        private final Query paranoidQuery;
 
         private final ProgressCallback progressCallback;
         private final Map<Query, Boolean> queryCached = new HashMap<>();
@@ -359,16 +384,16 @@ public class SelectQueryExecution {
         private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
         private ParsedQueryExecution(
-                boolean isTopLevelQuery,
-                CharStream inputStream,
-                Consumer<String> out,
-                Set<String> warnings,
-                ProgressCallback progressCallback,
-                Query query,
-                @Nullable Integer groupLimit,
-                SelectQuery selectQuery,
-                StrictCloser strictCloser
-        ) {
+                final boolean isTopLevelQuery,
+                final CharStream inputStream,
+                final Consumer<String> out,
+                final Set<String> warnings,
+                final ProgressCallback progressCallback,
+                final Query query,
+                final @Nullable Integer groupLimit,
+                final SelectQuery selectQuery,
+                final StrictCloser strictCloser,
+                final Query paranoidQuery) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
@@ -378,6 +403,7 @@ public class SelectQueryExecution {
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
             this.selectQuery = selectQuery;
             this.strictCloser = strictCloser;
+            this.paranoidQuery = paranoidQuery;
         }
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
@@ -731,7 +757,7 @@ public class SelectQueryExecution {
                             }
                         }
                     }
-                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
+                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser, paranoidQuery).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                 cacheKeys.addAll(execInfo.cacheKeys);
                 allShardsUsed.putAll(execInfo.datasetToShards);

@@ -35,7 +35,7 @@ public class PrettyPrintTest {
         Assert.assertEquals("FROM jobsearch yesterday today\nSELECT [oji+ojc]", PrettyPrint.prettyPrint("from jobsearch yesterday today select oji+ojc", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (country=\"us\") (oji=10)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where country:us oji:10 select count()", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE ctkrcvd=~\".*\"\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where ctkrcvd=~\".*\" select count()", true, DATASETS_METADATA));
-        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (escaped=\"stuff\\\"\")\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where escaped='stuff\"' select count()", true, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE escaped='stuff\"'\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where escaped='stuff\"' select count()", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch 2d 1d\nWHERE (not(country=\"us\")) (not(country=\"us\"))\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch 2d 1d WHERE -country:us and -country=us", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT count() /  2", PrettyPrint.prettyPrint("from jobsearch 2d 1d select count() /  2", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch 2d 1d\nSELECT [1]", PrettyPrint.prettyPrint("from jobsearch 2d 1d select 1", true, DATASETS_METADATA));

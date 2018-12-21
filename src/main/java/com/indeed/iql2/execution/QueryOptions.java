@@ -30,6 +30,9 @@ public class QueryOptions {
     // Fail after executing last command
     public static final String DIE_AT_END = "die_at_end";
 
+    // Ensure that a bunch of (not free to check) invariants are met during query execution
+    public static final String PARANOID = "paranoid";
+
     // Temporary features, now in test mode.
     // After testing should be deleted or moved to main features list.
     public static class Experimental {

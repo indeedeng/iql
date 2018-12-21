@@ -14,8 +14,7 @@
 
 package com.indeed.iql2.language;
 
-import com.indeed.iql2.language.JQLBaseListener;
-import com.indeed.iql2.language.JQLParser;
+import java.util.Objects;
 
 public class Term {
     public final String stringTerm;
@@ -108,6 +107,21 @@ public class Term {
 
     public com.indeed.flamdex.query.Term toFlamdex(String field) {
         return new com.indeed.flamdex.query.Term(field, isIntTerm, intTerm, stringTerm == null ? "" : stringTerm);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Term term = (Term) o;
+        return intTerm == term.intTerm &&
+                isIntTerm == term.isIntTerm &&
+                Objects.equals(stringTerm, term.stringTerm);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stringTerm, intTerm, isIntTerm);
     }
 
     @Override
