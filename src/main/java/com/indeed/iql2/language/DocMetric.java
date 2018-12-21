@@ -1758,7 +1758,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(final String dataset) {
             final String datasetField = field.datasetFieldName(dataset);
-            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + ((double) numerator) / denominator + "] \"" + salt + "\" " + datasetField);
+            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + ((double) numerator) / denominator + "] " + datasetField + " \"" + salt + "\"");
         }
 
         @Override
@@ -1831,7 +1831,7 @@ public abstract class DocMetric extends AbstractPositional {
         public List<String> getPushes(final String dataset) {
             final String datasetField = field.datasetFieldName(dataset);
             final String percentages = makePercentages(max);
-            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + percentages + "] \"" + salt + "\" " + datasetField);
+            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + percentages + "] " + datasetField + " \"" + salt + "\"");
         }
 
         @Override
