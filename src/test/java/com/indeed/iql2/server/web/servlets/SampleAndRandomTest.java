@@ -1,9 +1,11 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.*;
@@ -87,6 +89,21 @@ public class SampleAndRandomTest extends BasicTest {
                 ImmutableList.of("sampled", "50", "50") // <-- this number matching 3 / 4 numbers is the key
         );
         testIQL2(expected, query, Options.create(true));
+    }
+
+    @Test
+    public void testQuoteInSalt() throws Exception {
+        runQuery(
+            AllData.DATASET.getNormalClient(),
+            "from countries yesterday today " +
+                    "where sample(country, 50, 100, '\"salt with quotes \"\"\"\"') " +
+                    "group by random(country, 10, '\"more quotes\"\\'') " +
+                    "select [m(sample(country, 5, 10, '\"quotey\"'))], [random(country, 5, '\"quotey\"')]",
+                LanguageVersion.IQL2,
+                true,
+                Options.create(true),
+                Collections.emptySet()
+        );
     }
 
     @Test
