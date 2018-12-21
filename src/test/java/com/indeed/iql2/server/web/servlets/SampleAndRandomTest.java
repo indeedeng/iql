@@ -49,6 +49,19 @@ public class SampleAndRandomTest extends BasicTest {
     }
 
     @Test
+    public void testStringSampleConsistencyUneven() throws Exception {
+        final String query =
+                "FROM countries yesterday today as all, countries(SAMPLE(country, 8, 10, \"\")) as sampled\n" +
+                "GROUP BY DATASET()\n" +
+                "SELECT count(), [m(SAMPLE(country, 8, 10, \"\"))]";
+        final ImmutableList<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("all", "64", "53"),
+                ImmutableList.of("sampled", "53", "53")
+        );
+        testIQL2(expected, query, Options.create(true));
+    }
+
+    @Test
     public void testIntSampleConsistency() throws Exception {
         final String query =
                 "FROM countries yesterday today as all, countries(SAMPLE(random, 1, 2, \"aoe\")) as sampled\n" +
@@ -58,6 +71,20 @@ public class SampleAndRandomTest extends BasicTest {
         final ImmutableList<List<String>> expected = ImmutableList.of(
                 ImmutableList.of("all", "64", "33"),
                 ImmutableList.of("sampled", "33", "33") // <-- this number matching 3 / 4 numbers is the key
+        );
+        testIQL2(expected, query, Options.create(true));
+    }
+
+    @Test
+    public void testIntSampleConsistencyUneven() throws Exception {
+        final String query =
+                "FROM countries yesterday today as all, countries(SAMPLE(random, 8, 10, \"aoe\")) as sampled\n" +
+                "GROUP BY DATASET()\n" +
+                "SELECT count(), [m(SAMPLE(random, 8, 10, \"aoe\"))]";
+        // The fact that this is also 33 is just a coincidence
+        final ImmutableList<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("all", "64", "50"),
+                ImmutableList.of("sampled", "50", "50") // <-- this number matching 3 / 4 numbers is the key
         );
         testIQL2(expected, query, Options.create(true));
     }
