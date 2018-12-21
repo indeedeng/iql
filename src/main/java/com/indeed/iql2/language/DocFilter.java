@@ -1394,12 +1394,11 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            return new DocMetric.Max(
-                    new DocMetric.Constant(0),
-                    new DocMetric.Subtract(
-                            new DocMetric.Random(field, isIntField, 2, seed),
-                            new DocMetric.Constant(1)
-                    )
+            // Sample() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.Sample(field, isIntField, (denominator - numerator), denominator, seed),
+                    new DocMetric.Constant(2)
             );
         }
 
@@ -1470,12 +1469,11 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            return new DocMetric.Max(
-                    new DocMetric.Constant(0),
-                    new DocMetric.Subtract(
-                            new DocMetric.RandomMetric(metric, 2, seed),
-                            new DocMetric.Constant(1)
-                    )
+            // SampleMetric() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.SampleMetric(metric, denominator - numerator, denominator, seed),
+                    new DocMetric.Constant(2)
             );
         }
 

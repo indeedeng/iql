@@ -510,6 +510,16 @@ public class FieldExtractor {
 			}
 
 			@Override
+			public Set<DatasetField> visit(final DocMetric.Sample random) throws RuntimeException {
+				return random.field.datasetFields();
+			}
+
+			@Override
+			public Set<DatasetField> visit(final DocMetric.SampleMetric random) throws RuntimeException {
+				return getDatasetFields(random.metric);
+			}
+
+			@Override
 			public Set<DatasetField> visit(final DocMetric.Random random) throws RuntimeException {
 				return random.field.datasetFields();
 			}

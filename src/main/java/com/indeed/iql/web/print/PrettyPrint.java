@@ -1367,9 +1367,37 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(final DocMetric.Sample random) throws RuntimeException {
+                sb.append("sample")
+                        .append('(')
+                        .append(getText(random.field))
+                        .append(", ")
+                        .append(random.numerator)
+                        .append(", ")
+                        .append(random.denominator)
+                        .append(", \"")
+                        .append(random.salt)
+                        .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.SampleMetric random) throws RuntimeException {
+                sb.append("sample(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.numerator)
+                    .append(", ")
+                    .append(random.denominator)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
             public Void visit(final DocMetric.Random random) throws RuntimeException {
-                sb.append("random_")
-                    .append(random.isIntField ? "int" : "str")
+                sb.append("random")
                     .append('(')
                     .append(getText(random.field))
                     .append(", ")
