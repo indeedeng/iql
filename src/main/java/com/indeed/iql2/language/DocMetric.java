@@ -1965,7 +1965,7 @@ public abstract class DocMetric extends AbstractPositional {
         public List<String> getPushes(final String dataset) {
             final List<String> result = new ArrayList<>(metric.getPushes(dataset));
             final String percentages = makePercentages(max);
-            result.add("random_metric  [" + percentages + "] \"" + salt + "\"");
+            result.add("random_metric [" + percentages + "] \"" + salt + "\"");
             return result;
         }
 
