@@ -130,8 +130,14 @@ public class ImhotepMetadataCache {
                             if (fieldMetadata != null) {
                                 fieldMetadata.setDescription(fieldYaml.getDescription());
                                 fieldMetadata.setHidden(fieldYaml.getHidden());
-                                fieldMetadata.setFriendlyName(fieldYaml.getFriendlyName());
-
+                                fieldMetadata.setAliases(fieldYaml.getAliases());
+                                for (String alias : fieldMetadata.getAliases()) {
+                                    newDataset.getIql1ExpressionAliases().put(alias, fieldMetadata.getName());
+                                    // TODO: make aliases not go through computed metrics?
+                                    final MetricMetadata aliasAsComputedMetric = new MetricMetadata(alias,
+                                            fieldMetadata.getName(), null, fieldMetadata.getName());
+                                    newDataset.fieldToDimension.put(alias, aliasAsComputedMetric);
+                                }
                             }
                         }
                         MetricsYaml[] metricsYamls = datasetYaml.getMetrics();
@@ -206,7 +212,6 @@ public class ImhotepMetadataCache {
             }
             final MetricMetadata metricMetadata = new MetricMetadata(metric.getName(), metric.getExpr(), metric.getDescription(), fieldAlias);
             metricMetadata.setUnit(metric.getUnits());
-            metricMetadata.setFriendlyName(metric.getFriendlyName());
             return metricMetadata;
         } catch (Exception e) {
             log.error(String.format("can't parse DimensionMetric, dataset: %s, name: %s, expr: %s, error: %s",

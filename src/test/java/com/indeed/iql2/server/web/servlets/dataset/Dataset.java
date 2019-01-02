@@ -223,7 +223,6 @@ public class Dataset {
                     continue;
                 }
                 DatasetYaml dataset = new DatasetYaml();
-                dataset.setType("Imhotep");
                 dataset.setName(shard.dataset);
 
                 List<MetricsYaml> metrics = Lists.newArrayList();

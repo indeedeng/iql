@@ -60,7 +60,7 @@ public class DatasetMetadata {
     // Required by LuceneQueryTranslator, so cache it here
     @Nonnull Set<String> iql1IntImhotepFieldSet = Sets.newHashSet();
     // used by the preprocessor
-    @Nonnull Map<String, String> iql1Aliases = Maps.newHashMap();
+    @Nonnull Map<String, String> iql1ExpressionAliases = Maps.newHashMap();
 
     public DatasetMetadata(boolean iql2mode, String name) {
         this(iql2mode, name, null, null, null, false);
@@ -224,8 +224,8 @@ public class DatasetMetadata {
     }
 
     @Nonnull
-    public Map<String, String> getIql1Aliases() {
-        return iql1Aliases;
+    public Map<String, String> getIql1ExpressionAliases() {
+        return iql1ExpressionAliases;
     }
 
     /**
@@ -238,17 +238,16 @@ public class DatasetMetadata {
         }
         iql1IntImhotepFieldSet = Collections.unmodifiableSet(iql1IntImhotepFieldSet);
 
-        Preconditions.checkState(iql1Aliases.isEmpty());
         for(final Map.Entry<String, MetricMetadata> entry : fieldToDimension.entrySet()) {
             final MetricMetadata metric = entry.getValue();
             if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
-                iql1Aliases.put(metric.name, metric.expression);
+                iql1ExpressionAliases.put(metric.name, metric.expression);
             }
             dimensionEquivalenceSets
                     .computeIfAbsent(entry.getKey(), ignored -> new HashSet<>())
                     .add(entry.getKey());
         }
-        iql1Aliases = Collections.unmodifiableMap(iql1Aliases);
+        iql1ExpressionAliases = Collections.unmodifiableMap(iql1ExpressionAliases);
 
         final Set<String> intFieldNames = intFields.stream().map(x -> x.name).collect(Collectors.toSet());
         final Set<String> stringFieldNames = stringFields.stream().map(x -> x.name).collect(Collectors.toSet());
@@ -283,7 +282,7 @@ public class DatasetMetadata {
         final ArrayNode metricsArray = mapper.createArrayNode();
         jsonNode.set("metrics", metricsArray);
         for(MetricMetadata metric : fieldToDimension.values()) {
-            if(metric.isHidden()) {
+            if(metric.isHidden() || metric.isAlias() || Strings.isNullOrEmpty(metric.getExpression())) {
                 continue;
             }
             final ObjectNode datasetInfo = mapper.createObjectNode();

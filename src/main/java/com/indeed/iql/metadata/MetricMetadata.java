@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 public class MetricMetadata {
     public @Nonnull final String name;
     public @Nullable String fieldAlias;
-    public @Nullable String friendlyName;
     public @Nullable String description;
     public @Nullable String expression;
     public @Nullable String unit;
@@ -47,15 +46,6 @@ public class MetricMetadata {
     @Nonnull
     public String getName() {
         return name;
-    }
-
-    @Nullable
-    public String getFriendlyName() {
-        return friendlyName;
-    }
-
-    public void setFriendlyName(@Nullable String friendlyName) {
-        this.friendlyName = friendlyName;
     }
 
     @Nullable
@@ -108,10 +98,22 @@ public class MetricMetadata {
         return Optional.fromNullable(fieldAlias);
     }
 
+    private String getAugmentedDescription() {
+        if (Strings.isNullOrEmpty(expression)) {
+            return Strings.nullToEmpty(getDescription());
+        }
+
+        final String expressionDescription = "(computed metric: " + expression + ")";
+        if (Strings.isNullOrEmpty(description)) {
+            return expressionDescription;
+        } else {
+            return description + " " + expressionDescription;
+        }
+    }
+
     public void toJSON(ObjectNode jsonNode) {
         jsonNode.put("name", getName());
-        final String description = Strings.nullToEmpty(getDescription());
-        jsonNode.put("description", description);
+        jsonNode.put("description", getAugmentedDescription());
         String unit = getUnit();
         if(unit != null) {
             jsonNode.put("unit", unit);
