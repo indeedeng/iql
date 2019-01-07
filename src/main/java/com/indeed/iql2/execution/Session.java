@@ -16,12 +16,10 @@ package com.indeed.iql2.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -85,14 +83,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author jwolfe
@@ -241,13 +236,12 @@ public class Session {
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
             final ProgressCallback progressCallback
-    ) throws ImhotepOutOfMemoryException, IOException {
+    ) throws ImhotepOutOfMemoryException {
         long firstStartTimeMillis = 0;
         for (int i = 0; i < sessionRequest.size(); i++) {
             final Queries.QueryDataset dataset = sessionRequest.get(i);
             final String imhotepDataset = dataset.dataset;
             Preconditions.checkNotNull(imhotepDataset, "Dataset does not exist: %s", dataset.name);
-            final Map<String, String> dimensionAliases = dataset.dimensionAliases;
             treeTimer.push("session", "session:" + dataset.displayName);
 
             treeTimer.push("get dataset info");
@@ -255,15 +249,7 @@ public class Session {
             final DatasetInfo datasetInfo = client.getDatasetInfo(imhotepDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
-            final Set<String> sessionStringFields = new HashSet<>();
-
-            for (String stringField : datasetInfo.getStringFields()) {
-                if (dimensionAliases.containsKey(stringField)) {
-                    sessionIntFields.add(stringField);
-                } else {
-                    sessionStringFields.add(stringField);
-                }
-            }
+            final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
             final DateTime startDateTime = parseDateTime(dataset.start);
             final DateTime endDateTime = parseDateTime(dataset.end);
@@ -324,42 +310,6 @@ public class Session {
             treeTimer.pop();
         }
         return firstStartTimeMillis;
-    }
-
-    private static Map<String, String> combineAliases(final Map<String, String> fieldAliases, final Map<String, String> dimensionAliases) {
-        final Map<String, String> combinedAliases = new HashMap<>();
-        combinedAliases.putAll(dimensionAliases);
-        combinedAliases.putAll(fieldAliases);
-        final Map<String, String> resolvedAliasesFields = resolveAliasToRealField(combinedAliases);
-        return resolvedAliasesFields.entrySet().stream()
-                .filter(e -> !e.getKey().equals(e.getValue()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-
-    private static Map<String, String> resolveAliasToRealField(Map<String, String> fieldAliases) {
-        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
-        for (String originField : fieldAliases.keySet()) {
-            String targetField = fieldAliases.get(originField);
-            final Set<String> seenField = new LinkedHashSet<>();
-            seenField.add(targetField);
-            while (fieldAliases.containsKey(targetField)) {
-                final String newTargetField = fieldAliases.get(targetField);
-                // for the dimension: same -> same
-                if (newTargetField.equals(targetField)) {
-                    break;
-                }
-                if (seenField.contains(newTargetField)) {
-                    throw new IllegalArgumentException(
-                            String.format("field alias has circular reference: %s -> %s", originField,
-                                    Joiner.on(" -> ").join(seenField.toArray())));
-                }
-                seenField.add(newTargetField);
-                targetField = newTargetField;
-            }
-            resolvedAliasToRealFieldBuilder.put(originField, targetField);
-        }
-        return resolvedAliasToRealFieldBuilder.build();
     }
 
     private static ImhotepSessionHolder wrapSession(

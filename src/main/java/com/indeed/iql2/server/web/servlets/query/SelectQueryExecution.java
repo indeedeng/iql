@@ -608,7 +608,7 @@ public class SelectQueryExecution {
                     };
                 }
 
-                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(query);
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
