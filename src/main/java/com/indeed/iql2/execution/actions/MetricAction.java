@@ -46,34 +46,30 @@ public class MetricAction implements Action {
 
     @Override
     public void apply(Session session) throws ImhotepOutOfMemoryException {
-        if (targetGroup == 1 && session.numGroups == 1 && ((positiveGroup == 1 && negativeGroup == 0) || (positiveGroup == 0 && negativeGroup == 1))) {
-            // TODO: Parallelize
-            session.process(new SessionCallback() {
-                @Override
-                public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                    if (scope.contains(name)) {
-                        final List<String> pushes = Lists.newArrayList(perDatasetPushes.get(name));
+        // TODO: Parallelize
+        session.process(new SessionCallback() {
+            @Override
+            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+                if (scope.contains(name)) {
+                    final List<String> pushes = Lists.newArrayList(perDatasetPushes.get(name));
 
-                        final int index = Session.pushStatsWithTimer(session, pushes, timer);
+                    final int index = Session.pushStatsWithTimer(session, pushes, timer);
 
-                        if (index != 1) {
-                            throw new IllegalArgumentException(
-                                    "Didn't end up with 1 stat after pushing in index named \"" + name + "\", pushes = [" + pushes + "]");
-                        }
-
-                        timer.push("metricFilter");
-                        session.metricFilter(0, 1, 1, positiveGroup == 0);
-                        timer.pop();
-
-                        timer.push("popStat");
-                        session.popStat();
-                        timer.pop();
+                    if (index != 1) {
+                        throw new IllegalArgumentException(
+                                "Didn't end up with 1 stat after pushing in index named \"" + name + "\", pushes = [" + pushes + "]");
                     }
+
+                    timer.push("metricFilter");
+                    session.metricFilter(0, 1, 1, targetGroup, negativeGroup, positiveGroup);
+                    timer.pop();
+
+                    timer.push("popStat");
+                    session.popStat();
+                    timer.pop();
                 }
-            });
-        } else {
-            throw new UnsupportedOperationException("Can only do MetricAction filters when negativeGroup or positive group > 1. Must implement targeted metricFilter/regroup first! Probable cause: a metric inequality inside of or after an OR in the query");
-        }
+            }
+        });
     }
 
     @Override

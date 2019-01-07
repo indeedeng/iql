@@ -1374,12 +1374,14 @@ public abstract class DocFilter extends AbstractPositional {
 
     public static class Sample extends DocFilter {
         public final FieldSet field;
+        public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String seed;
 
-        public Sample(FieldSet field, long numerator, long denominator, String seed) {
+        public Sample(FieldSet field, final boolean isIntField, long numerator, long denominator, String seed) {
             this.field = field;
+            this.isIntField = isIntField;
             this.numerator = numerator;
             this.denominator = denominator;
             this.seed = seed;
@@ -1392,7 +1394,12 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            throw new UnsupportedOperationException("Sample::asZeroOneMetric is not implemented");
+            // Sample() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.Sample(field, isIntField, (denominator - numerator), denominator, seed),
+                    new DocMetric.Constant(2)
+            );
         }
 
         @Override
@@ -1462,7 +1469,12 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            throw new UnsupportedOperationException("SampleDocMetric::asZeroOneMetric is not implemented");
+            // SampleMetric() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.SampleMetric(metric, denominator - numerator, denominator, seed),
+                    new DocMetric.Constant(2)
+            );
         }
 
         @Override

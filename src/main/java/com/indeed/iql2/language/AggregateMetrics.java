@@ -118,12 +118,12 @@ public class AggregateMetrics {
         return fieldResolver.resolveAggregateMetric(identifier);
     }
 
-    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricAtomContext ctx, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricAtomContext ctx, final Query.Context context) {
         final JQLParser.SinglyScopedFieldContext identifier = DocMetrics.asPlainField(ctx);
         if (identifier == null) {
-            return new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx, fieldResolver, datasetsMetadata));
+            return new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx, context));
         }
-        return fieldResolver.resolveAggregateMetric(identifier);
+        return context.fieldResolver.resolveAggregateMetric(identifier);
     }
 
     private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricContext ctx, final Query.Context context) {
@@ -546,7 +546,7 @@ public class AggregateMetrics {
                         return;
                     }
                 }
-                accept(parsePossibleDimensionAggregateMetric(ctx.jqlDocMetricAtom(), fieldResolver, context.datasetsMetadata));
+                accept(parsePossibleDimensionAggregateMetric(ctx.jqlDocMetricAtom(), context));
             }
 
             @Override

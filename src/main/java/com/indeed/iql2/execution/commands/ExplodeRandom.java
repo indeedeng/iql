@@ -15,11 +15,11 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.logging.TracingTreeTimer;
 
@@ -40,23 +40,22 @@ public class ExplodeRandom implements Command {
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         final boolean isIntField = session.isIntField(field);
-        final int numGroups = session.numGroups;
-        if (numGroups != 1) {
-            throw new IqlKnownException.ExecutionException("Can only use RANDOM() regroup as first GROUP BY");
-        }
-        final double[] percentages = new double[k - 1];
-        final int[] resultGroups = new int[k];
-        for (int i = 0; i < k - 1; i++) {
-            final double end = ((double)(i + 1)) / k;
-            percentages[i] = end;
-            resultGroups[i] = i + 2;
-        }
-        resultGroups[k - 1] = k + 1;
+
+        final DocMetric.Random randomDocMetric = new DocMetric.Random(field, isIntField, k, salt);
+
         session.process(new SessionCallback() {
             @Override
-            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                timer.push("randomMultiRegroup");
-                session.randomMultiRegroup(field, isIntField, salt, 1, percentages, resultGroups);
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+                timer.push("pushStats");
+                session.pushStats(randomDocMetric.getPushes(session.getDatasetName()));
+                timer.pop();
+
+                timer.push("metricRegroup");
+                session.metricRegroup(0, 0, k + 1, 1, true);
+                timer.pop();
+
+                timer.push("popStat");
+                session.popStat();
                 timer.pop();
             }
         });

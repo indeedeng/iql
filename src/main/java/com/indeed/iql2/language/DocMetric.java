@@ -80,6 +80,10 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(Lucene lucene) throws E;
         T visit(FieldEqualMetric equalMetric) throws E;
         T visit(StringLen hasStringField) throws E;
+        T visit(Sample random) throws E;
+        T visit(SampleMetric random) throws E;
+        T visit(Random random) throws E;
+        T visit(RandomMetric random) throws E;
     }
 
     public abstract DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
@@ -1726,5 +1730,288 @@ public abstract class DocMetric extends AbstractPositional {
                     "field='" + field + '\'' +
                     '}';
         }
+    }
+
+    // 0 for documents missing the field
+    // 1 for documents with hash(term, salt) < probability
+    // 2 for documents with hash(term, salt) >= probability
+    public static class Sample extends DocMetric {
+        public final FieldSet field;
+        public final boolean isIntField;
+        public final long numerator;
+        public final long denominator;
+        public final String salt;
+
+        public Sample(final FieldSet field, final boolean isIntField, final long numerator, final long denominator, final String salt) {
+            this.field = field;
+            this.isIntField = isIntField;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.salt = salt;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            final String datasetField = field.datasetFieldName(dataset);
+            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + ((double) numerator) / denominator + "] " + datasetField + " \"" + salt + "\"");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (isIntField) {
+                if (!validationHelper.containsIntField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                }
+            } else {
+                if (!validationHelper.containsStringField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                }
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final Sample sample = (Sample) o;
+            return isIntField == sample.isIntField &&
+                    numerator == sample.numerator &&
+                    denominator == sample.denominator &&
+                    Objects.equals(field, sample.field) &&
+                    Objects.equals(salt, sample.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, isIntField, numerator, denominator, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "Sample{" +
+                    "field=" + field +
+                    ", isIntField=" + isIntField +
+                    ", numerator=" + numerator +
+                    ", denominator=" + denominator +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    public static class Random extends DocMetric {
+        public final FieldSet field;
+        public final boolean isIntField;
+        public final int max;
+        public final String salt;
+
+        public Random(final FieldSet field, final boolean isIntField, final int max, final String salt) {
+            this.field = field;
+            this.isIntField = isIntField;
+            this.max = max;
+            this.salt = salt;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(this);
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            final String datasetField = field.datasetFieldName(dataset);
+            final String percentages = makePercentages(max);
+            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + percentages + "] " + datasetField + " \"" + salt + "\"");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (isIntField) {
+                if (!validationHelper.containsIntField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                }
+            } else {
+                if (!validationHelper.containsStringField(dataset, fieldName)) {
+                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                }
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final Random random = (Random) o;
+            return isIntField == random.isIntField &&
+                    max == random.max &&
+                    Objects.equals(field, random.field) &&
+                    Objects.equals(salt, random.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, isIntField, max, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "Random{" +
+                    "field=" + field +
+                    ", isIntField=" + isIntField +
+                    ", max=" + max +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    // 0 for documents missing the field
+    // 1 for documents with hash(term, salt) < probability
+    // 2 for documents with hash(term, salt) >= probability
+    public static class SampleMetric extends DocMetric {
+        public final DocMetric metric;
+        public final long numerator;
+        public final long denominator;
+        public final String salt;
+
+        public SampleMetric(final DocMetric metric, final long numerator, final long denominator, final String salt) {
+            this.metric = metric;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.salt = salt;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(new SampleMetric(metric.transform(g, i), numerator, denominator, salt));
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            final List<String> result = new ArrayList<>(metric.getPushes(dataset));
+            result.add("random_metric  [" + ((double) numerator) / denominator + "] \"" + salt + "\"");
+            return result;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+            metric.validate(dataset, validationHelper, validator);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final SampleMetric that = (SampleMetric) o;
+            return numerator == that.numerator &&
+                    denominator == that.denominator &&
+                    Objects.equals(metric, that.metric) &&
+                    Objects.equals(salt, that.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric, numerator, denominator, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "SampleMetric{" +
+                    "metric=" + metric +
+                    ", numerator=" + numerator +
+                    ", denominator=" + denominator +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    public static class RandomMetric extends DocMetric {
+        public final DocMetric metric;
+        public final int max;
+        public final String salt;
+
+        public RandomMetric(final DocMetric metric, final int max, final String salt) {
+            this.metric = metric;
+            this.max = max;
+            this.salt = salt;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(new RandomMetric(metric.transform(g, i), max, salt));
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            final List<String> result = new ArrayList<>(metric.getPushes(dataset));
+            final String percentages = makePercentages(max);
+            result.add("random_metric [" + percentages + "] \"" + salt + "\"");
+            return result;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+            metric.validate(dataset, validationHelper, validator);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final RandomMetric that = (RandomMetric) o;
+            return max == that.max &&
+                    Objects.equals(metric, that.metric) &&
+                    Objects.equals(salt, that.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metric, max, salt);
+        }
+
+        @Override
+        public String toString() {
+            return "RandomMetric{" +
+                    "metric=" + metric +
+                    ", max=" + max +
+                    ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    private static String makePercentages(final int max) {
+        final StringBuilder percentages = new StringBuilder();
+        for (int i = 1; i < max; i++) {
+            if (percentages.length() > 0) {
+                percentages.append(',');
+            }
+            percentages.append(((double)i) / max);
+        }
+        return percentages.toString();
     }
 }

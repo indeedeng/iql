@@ -49,34 +49,29 @@ public class SampleMetricAction implements Action {
 
     @Override
     public void apply(final Session session) throws ImhotepOutOfMemoryException {
-        if ((targetGroup == 1) && (session.numGroups == 1) && ((positiveGroup == 1 && negativeGroup == 0) || (positiveGroup == 0 && negativeGroup == 1))) {
-            // TODO: Parallelize
-            session.process(new SessionCallback() {
-                @Override
-                public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                    if (!perDatasetMetric.containsKey(name)) {
-                        return;
-                    }
-                    final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name));
-
-                    final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
-
-                    if (numStats != 1) {
-                        throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                    }
-
-                    timer.push("randomMetricRegroup");
-                    session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
-                    timer.pop();
-
-                    timer.push("popStat");
-                    session.popStat();
-                    timer.pop();
+        session.process(new SessionCallback() {
+            @Override
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+                if (!perDatasetMetric.containsKey(name)) {
+                    return;
                 }
-            });
-        } else {
-            throw new UnsupportedOperationException("Can only do SampleMetricAction filters when negativeGroup or positive group > 1.");
-        }
+                final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name));
+
+                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
+
+                if (numStats != 1) {
+                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
+                }
+
+                timer.push("randomMetricRegroup");
+                session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
+                timer.pop();
+
+                timer.push("popStat");
+                session.popStat();
+                timer.pop();
+            }
+        });
     }
 
     @Override

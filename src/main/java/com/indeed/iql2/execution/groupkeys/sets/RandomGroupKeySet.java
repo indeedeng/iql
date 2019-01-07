@@ -34,24 +34,25 @@ public class RandomGroupKeySet implements GroupKeySet {
 
     @Override
     public int parentGroup(int group) {
-        return 1;
+        return 1 + (group - 1) / numGroups;
     }
 
     @Override
     public GroupKey groupKey(int group) {
-        if (group == 1) {
+        final int innerGroup = (group - 1) % numGroups;
+        if (innerGroup == 0) {
             return DefaultGroupKey.create("No term");
         }
-        return new IntTermGroupKey(group - 1);
+        return new IntTermGroupKey(innerGroup);
     }
 
     @Override
     public int numGroups() {
-        return numGroups;
+        return previous.numGroups() * numGroups;
     }
 
     @Override
     public boolean isPresent(int group) {
-        return group <= numGroups;
+        return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
     }
 }

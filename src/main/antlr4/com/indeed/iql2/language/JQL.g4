@@ -281,6 +281,8 @@ jqlDocMetricAtom
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | INTTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomIntTermCount
     | STRTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomStrTermCount
+    | RANDOM '(' singlyScopedField ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomField
+    | RANDOM '(' jqlDocMetric ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomMetric
     | singlyScopedField '=~' regex=STRING_LITERAL # DocMetricAtomRegex
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract

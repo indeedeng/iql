@@ -453,6 +453,10 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
+    static void testAll(List<List<String>> expected, String query, Options options) throws Exception {
+        testAll(AllData.DATASET, expected, query, options);
+    }
+
     static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
         testOriginalIQL1(client, expected, query, options);
         testIQL1LegacyMode(client, expected, query, options);

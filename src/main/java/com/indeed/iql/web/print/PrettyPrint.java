@@ -1355,6 +1355,60 @@ public class PrettyPrint {
                 sb.append("len(").append(getText(stringLen.field)).append(")");
                 return null;
             }
+
+            @Override
+            public Void visit(final DocMetric.Sample random) throws RuntimeException {
+                sb.append("sample")
+                        .append('(')
+                        .append(getText(random.field))
+                        .append(", ")
+                        .append(random.numerator)
+                        .append(", ")
+                        .append(random.denominator)
+                        .append(", \"")
+                        .append(random.salt)
+                        .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.SampleMetric random) throws RuntimeException {
+                sb.append("sample(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.numerator)
+                    .append(", ")
+                    .append(random.denominator)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.Random random) throws RuntimeException {
+                sb.append("random")
+                    .append('(')
+                    .append(getText(random.field))
+                    .append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.RandomMetric random) throws RuntimeException {
+                sb.append("random(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
         });
 
         appendCommentAfterText(docMetric, sb);
