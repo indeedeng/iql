@@ -16,7 +16,11 @@ public class TimeRangeTest {
     public static final DateTime STOPPED_TIME = new DateTime(2015, 1, 1, 0, 0, ZONE);
 
     private void testStartEnd(final String query, final DateTime start, final DateTime end) {
-        final Queries.ParseResult result = Queries.parseQuery(query, false, DATASETS_METADATA, Collections.emptySet(), new StoppedClock(STOPPED_TIME.getMillis()));
+        testStartEnd(query, start, end, false);
+    }
+
+    private void testStartEnd(final String query, final DateTime start, final DateTime end, final boolean useLegacy) {
+        final Queries.ParseResult result = Queries.parseQuery(query, useLegacy, DATASETS_METADATA, Collections.emptySet(), new StoppedClock(STOPPED_TIME.getMillis()));
         for (final Dataset dataset : result.query.datasets) {
             Assert.assertEquals("Start doesn't match", start, dataset.startInclusive.unwrap());
             Assert.assertEquals("End doesn't match", end, dataset.endExclusive.unwrap());
@@ -84,6 +88,14 @@ public class TimeRangeTest {
                 new DateTime(2014, 12, 31, 0, 0, ZONE),
                 new DateTime(2015, 1, 1, 0, 0, ZONE)
         );
+        for (final String today : new String[]{"t", "to", "tod", "toda", "today"}) {
+            testStartEnd(
+                    "from organic 1d " + today,
+                    new DateTime(2014, 12, 31, 0, 0, ZONE),
+                    new DateTime(2015, 1, 1, 0, 0, ZONE),
+                    true
+            );
+        }
         testStartEnd(
                 "from organic d today",
                 new DateTime(2014, 12, 31, 0, 0, ZONE),
