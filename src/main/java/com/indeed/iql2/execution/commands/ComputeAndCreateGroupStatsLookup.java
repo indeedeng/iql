@@ -57,10 +57,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if (computation instanceof GetGroupStats) {
             final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
             results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
-        } else if (computation instanceof ComputeBootstrap) {
-            computation.execute(session);
-            // This already did stuff internally
-            return;
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }

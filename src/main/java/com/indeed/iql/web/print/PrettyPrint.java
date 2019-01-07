@@ -790,11 +790,6 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateMetric.GroupStatsMultiLookup groupStatsMultiLookup) throws RuntimeException {
-                throw new UnsupportedOperationException("Shouldn't be rendering this");
-            }
-
-            @Override
             public Void visit(AggregateMetric.SumAcross sumAcross) {
                 sb.append("sum_over(");
                 pp(sumAcross.groupBy, consumer, clock);
@@ -857,11 +852,6 @@ public class PrettyPrint {
                 }));
                 sb.append(')');
                 return null;
-            }
-
-            @Override
-            public Void visit(AggregateMetric.Bootstrap bootstrap) throws RuntimeException {
-                throw new UnsupportedOperationException("You need to implement this");
             }
         });
 

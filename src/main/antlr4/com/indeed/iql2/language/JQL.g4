@@ -81,7 +81,6 @@ ROUNDING: 'ROUNDING' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
-BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
@@ -128,7 +127,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
+    | PRINTF | EXTRACT | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
@@ -194,7 +193,6 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
-    | BOOTSTRAP '(' field=scopedField (HAVING filter=jqlAggregateFilter)? ',' metric=jqlAggregateMetric ',' numBootstraps=NAT ',' seed=STRING_LITERAL (',' varargs+=(DOUBLE | STRING_LITERAL))* ')' #AggregateBootstrap
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross

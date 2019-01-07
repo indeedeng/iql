@@ -10,7 +10,6 @@ public class FtgsRunningTest extends BasicTest {
     // PERCENTILE doesn't support having
     // FIELD_MIN doesn't support having
     // FIELD_MAX doesn't support having
-    // BOOTSTRAP is deprecated
     // This leaves just DISTINCT and SUM_OVER.
 
     @Test
