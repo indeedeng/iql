@@ -150,6 +150,7 @@ public class SelectQueryExecution {
     public final String query;
     public final int version;
     public final boolean isStream;
+    private final boolean returnNewestShardVersionHeader;
     public final boolean skipValidation;
     private final WallClock clock;
 
@@ -169,6 +170,7 @@ public class SelectQueryExecution {
             final String query,
             final int version,
             final boolean isStream,
+            final boolean returnNewestShardVersionHeader,
             final boolean skipValidation,
             final WallClock clock,
             final QueryMetadata queryMetadata,
@@ -183,6 +185,7 @@ public class SelectQueryExecution {
         this.isStream = isStream;
         this.limits = limits;
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
+        this.returnNewestShardVersionHeader = returnNewestShardVersionHeader;
         this.skipValidation = skipValidation;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
@@ -498,7 +501,7 @@ public class SelectQueryExecution {
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
             if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), true);
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
 
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
