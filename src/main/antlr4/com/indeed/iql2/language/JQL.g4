@@ -464,6 +464,7 @@ dateTime
     | NAT // This is for unix timestamps.
     | timePeriod
     | TODAYS
+    | TO
     | TOMORROWS
     | YESTERDAYS
     | AGO
