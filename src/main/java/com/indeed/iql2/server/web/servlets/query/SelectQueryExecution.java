@@ -352,7 +352,7 @@ public class SelectQueryExecution {
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
-                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser, paranoidQuery).executeParsedQuery();
+                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
             selectQuery.checkCancelled();
             throw e;
@@ -374,9 +374,6 @@ public class SelectQueryExecution {
         private final StrictCloser strictCloser;
 
         private final Query originalQuery;
-        // Query reparsed in order to check some aspects of query repeatability.
-        // See IQL-775 for details.
-        private final Query paranoidQuery;
 
         private final ProgressCallback progressCallback;
         private final Map<Query, Boolean> queryCached = new HashMap<>();
@@ -392,8 +389,7 @@ public class SelectQueryExecution {
                 final Query query,
                 final @Nullable Integer groupLimit,
                 final SelectQuery selectQuery,
-                final StrictCloser strictCloser,
-                final Query paranoidQuery) {
+                final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
@@ -403,7 +399,6 @@ public class SelectQueryExecution {
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
             this.selectQuery = selectQuery;
             this.strictCloser = strictCloser;
-            this.paranoidQuery = paranoidQuery;
         }
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
@@ -757,7 +752,7 @@ public class SelectQueryExecution {
                             }
                         }
                     }
-                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser, paranoidQuery).executeParsedQuery();
+                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                 cacheKeys.addAll(execInfo.cacheKeys);
                 allShardsUsed.putAll(execInfo.datasetToShards);
