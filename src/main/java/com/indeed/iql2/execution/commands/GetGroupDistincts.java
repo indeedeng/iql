@@ -15,6 +15,8 @@
 package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.QualifiedPush;
@@ -26,8 +28,11 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,17 +61,65 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         return new IterateHandlerImpl(session);
     }
 
+    private interface GroupStatsChecker {
+        boolean allow(final long[] stats, final int group);
+    }
+
+    // This could be accomplished with a circular buffer of size numStats*windowSize, saving a ton of RAM,
+    // but this leads to substantial code complexity and isn't actually worth it.
+    // We're likely spending megabytes on the heap on this, but gigabytes on tmpfs allocations of the FTGS stream anyway.
+    // We don't need to save those megabytes.
     private class IterateHandlerImpl implements IterateHandler<long[]> {
-        private final BitSet groupSeen = new BitSet();
-        private boolean started = false;
-        private int lastGroup = 0;
+        private final List<QualifiedPush> filterPushes;
+        private final int[] statIndexes;
+
+        private final BitSet groupsSeen;
+
+        // g = group
+        // { g0s0, g0s1, g1s0, g1s1, ... }
+        private final long[] groupStatValues;
+
+        // Used to hold `numStats` values while processing locally.
+        // No invariants about state after use -- clear before use.
+        private final long[] tmpRollingSumsBuffer;
+
+        private final int numStats;
+        private final int numGroups;
 
         private final long[] groupCounts;
-        private final Session session;
+        private final int[] parentGroups;
 
-        private IterateHandlerImpl(Session session) {
-            this.groupCounts = new long[session.numGroups + 1];
-            this.session = session;
+        private GroupStatsChecker groupStatsChecker;
+
+        private IterateHandlerImpl(final Session session) {
+            // TODO: Add statIndex[] array because other things than us can be on the same FTGS.
+            this.filterPushes = Lists.newArrayList(filter.transform(x -> x.requires()).or(Collections.emptySet()));
+            this.statIndexes = new int[filterPushes.size()];
+            this.numStats = filterPushes.size();
+            this.numGroups = session.numGroups;
+            this.groupStatValues = new long[numStats * (numGroups + 1)];
+            this.tmpRollingSumsBuffer = new long[numStats];
+            this.groupsSeen = new BitSet();
+            this.groupCounts = new long[numGroups + 1];
+            this.parentGroups = new int[numGroups + 1];
+            Arrays.setAll(parentGroups, group -> session.groupKeySet.parentGroup(group));
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return filter.transform(x -> x.requires()).or(Collections.emptySet());
+        }
+
+        @Override
+        public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
+            Arrays.setAll(statIndexes, x -> metricIndexes.get(filterPushes.get(x)));
+            if (filter.isPresent()) {
+                final Map<QualifiedPush, Integer> localIndexes = new HashMap<>();
+                for (int i = 0; i < filterPushes.size(); i++) {
+                    localIndexes.put(filterPushes.get(i), i);
+                }
+                filter.get().register(localIndexes, groupKeySet);
+            }
         }
 
         @Override
@@ -74,58 +127,113 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             return field.datasets();
         }
 
-        public Set<QualifiedPush> requires() {
-            if (filter.isPresent()) {
-                return filter.get().requires();
-            } else {
-                return Collections.emptySet();
+        private void copyStats(final int group, final long[] groupStats) {
+            for (int stat = 0; stat < numStats; stat++) {
+                groupStatValues[group * numStats + stat] = groupStats[statIndexes[stat]];
             }
         }
 
-        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
-            if (filter.isPresent()) {
-                filter.get().register(metricIndexes, groupKeySet);
+        private void newTerm() {
+            int maxGroupExcl = 0;
+            int group = groupsSeen.nextSetBit(0);
+            if (group != -1) {
+                int startGroup = group;
+                int parentGroup = parentGroups[group];
+                // No need to look backwards because any values that weren't in the bitset also won't have stats set.
+                System.arraycopy(groupStatValues, group * numStats, tmpRollingSumsBuffer, 0, numStats);
+                while (true) {
+                    // Start invariant: Current `group` values have been added to tmpRollingSumsBuffer.
+                    //                  BUT Current group has not been processed
+
+                    if (groupsSeen.get(group)) {
+                        maxGroupExcl = group + windowSize;
+                    }
+
+                    final boolean countIt;
+                    if (filter.isPresent()) {
+                        countIt = groupStatsChecker.allow(tmpRollingSumsBuffer, group);
+                    } else {
+                        countIt = true;
+                    }
+
+                    if (countIt) {
+                        groupCounts[group] += 1;
+                    }
+
+                    group += 1;
+
+                    if (group > numGroups) {
+                        break;
+                    }
+
+                    if ((group >= maxGroupExcl) || (parentGroups[group] != parentGroup)) {
+                        // We've reached the end of this run of groups
+                        group = groupsSeen.nextSetBit(group);
+                        if (group == -1) {
+                            break;
+                        }
+                        startGroup = group;
+                        parentGroup = parentGroups[group];
+                        maxGroupExcl = group + windowSize;
+                        // No need to look backwards because any values that weren't in the bitset also won't have stats set.
+                        System.arraycopy(groupStatValues, group * numStats, tmpRollingSumsBuffer, 0, numStats);
+                    } else {
+                        final int subtractedGroup = group - windowSize;
+                        // Subtract out `group - windowSize` if necessary
+                        if (subtractedGroup >= startGroup) {
+                            for (int stat = 0; stat < numStats; stat++) {
+                                tmpRollingSumsBuffer[stat] -= groupStatValues[(subtractedGroup * numStats) + stat];
+                            }
+                        }
+
+                        // Add in new `group`
+                        for (int stat = 0; stat < numStats; stat++) {
+                            tmpRollingSumsBuffer[stat] += groupStatValues[(group * numStats) + stat];
+                        }
+                    }
+                }
             }
-        }
-
-        @Override
-        public Session.IntIterateCallback intIterateCallback() {
-            return new IntIterateCallback();
-        }
-
-        @Override
-        public Session.StringIterateCallback stringIterateCallback() {
-            return new StringIterateCallback();
+            // TODO: Is this or zeroing all the ones in `groupsSeen` better?
+            Arrays.fill(groupStatValues, 0L);
+            groupsSeen.clear();
         }
 
         @Override
         public long[] finish() {
-            if (windowSize > 1) {
-                updateAllSeenGroups();
-            }
+            newTerm();
             return groupCounts;
         }
 
-        private class IntIterateCallback implements Session.IntIterateCallback {
+        @Override
+        public Session.IntIterateCallback intIterateCallback() {
+            Preconditions.checkState(groupStatsChecker == null, "groupStatsChecker must be null before this point!");
+            final IterateHandlerImpl.IntIterateCallback result = new IterateHandlerImpl.IntIterateCallback();
+            this.groupStatsChecker = result;
+            return result;
+        }
+
+        @Override
+        public Session.StringIterateCallback stringIterateCallback() {
+            Preconditions.checkState(groupStatsChecker == null, "groupStatsChecker must be null before this point!");
+            final IterateHandlerImpl.StringIterateCallback result = new IterateHandlerImpl.StringIterateCallback();
+            this.groupStatsChecker = result;
+            return result;
+        }
+
+
+        private class IntIterateCallback implements Session.IntIterateCallback, GroupStatsChecker {
             private long currentTerm = 0;
 
             @Override
             public void term(final long term, final long[] stats, final int group) {
-                if (started && currentTerm != term) {
-                    updateAllSeenGroups();
-                    groupSeen.clear();
-                } else if (started) {
-                    updateSeenGroupsUntil(group);
+                if (term != currentTerm) {
+                    newTerm();
                 }
                 currentTerm = term;
-                started = true;
-                lastGroup = group;
-                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    updateGroups(group, groupSeen);
+                if (numStats > 0) {
+                    copyStats(group, stats);
                 }
-                if (groupSeen.get(group)) {
-                    groupCounts[group]++;
-                }
+                groupsSeen.set(group);
             }
 
             @Override
@@ -142,28 +250,26 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             public boolean needStats() {
                 return filter.isPresent() && filter.get().needStats();
             }
+
+            @Override
+            public boolean allow(final long[] stats, final int group) {
+                return filter.get().allow(currentTerm, stats, group);
+            }
         }
 
-        private class StringIterateCallback implements Session.StringIterateCallback {
-            private String currentTerm;
+        private class StringIterateCallback implements Session.StringIterateCallback, GroupStatsChecker {
+            private String currentTerm = null;
 
             @Override
             public void term(final String term, final long[] stats, final int group) {
-                if (started && !currentTerm.equals(term)) {
-                    updateAllSeenGroups();
-                    groupSeen.clear();
-                } else if (started) {
-                    updateSeenGroupsUntil(group);
+                if (!term.equals(currentTerm)) {
+                    newTerm();
                 }
                 currentTerm = term;
-                started = true;
-                lastGroup = group;
-                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    updateGroups(group, groupSeen);
+                if (numStats > 0) {
+                    copyStats(group, stats);
                 }
-                if (groupSeen.get(group)) {
-                    groupCounts[group]++;
-                }
+                groupsSeen.set(group);
             }
 
             @Override
@@ -180,33 +286,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             public boolean needStats() {
                 return filter.isPresent() && filter.get().needStats();
             }
-        }
 
-        private void updateAllSeenGroups() {
-            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                groupCounts[lastGroup]++;
-            }
-        }
-
-        private void updateSeenGroupsUntil(int group) {
-            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
-                groupCounts[lastGroup]++;
-            }
-        }
-
-        private void updateGroups(final int group, final BitSet groupSeen) {
-            if (windowSize == 1) {
-                // DISTINCT(...) == DISTINCT_WINDOW(1,...)
-                groupSeen.set(group);
-            } else {
-                // DISTINCT_WINDOW
-                final int parent = session.groupKeySet.parentGroup(group);
-                final int numGroups = session.groupKeySet.numGroups();
-                for (int offset = 0; offset < windowSize; offset++) {
-                    if (group + offset <= numGroups && session.groupKeySet.parentGroup(group + offset) == parent) {
-                        groupSeen.set(group + offset);
-                    }
-                }
+            @Override
+            public boolean allow(final long[] stats, final int group) {
+                return filter.get().allow(currentTerm, stats, group);
             }
         }
     }

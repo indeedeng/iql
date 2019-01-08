@@ -111,6 +111,8 @@ public class Session {
     private final long firstStartTimeMillis;
     public final Set<String> options;
 
+    // Includes group zero.
+    // Exactly equivalent to maxGroup.
     public int numGroups = 1;
 
     public static final String INFINITY_SYMBOL = "∞";
