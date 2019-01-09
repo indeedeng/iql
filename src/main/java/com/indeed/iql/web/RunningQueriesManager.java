@@ -16,6 +16,8 @@ package com.indeed.iql.web;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.imhotep.exceptions.QueryCancelledException;
+import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -34,6 +36,7 @@ import java.util.Set;
 
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
+    public final int perUserPendingQueriesLimit;
     private final IQLDB iqldb;
 
     private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
@@ -44,8 +47,9 @@ public class RunningQueriesManager {
 
     private volatile long lastTriedStartingQueries = 0;
 
-    public RunningQueriesManager(IQLDB iqldb) {
+    public RunningQueriesManager(IQLDB iqldb, final int perUserPendingQueriesLimit) {
         this.iqldb = iqldb;
+        this.perUserPendingQueriesLimit = perUserPendingQueriesLimit;
     }
 
     public void onStartup() {
@@ -78,7 +82,7 @@ public class RunningQueriesManager {
 
                 log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
-                final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb);
+                final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb, perUserPendingQueriesLimit);
                 final List<SelectQuery> queriesStarted = result.queriesStarting;
 
                 queriesWaiting.removeAll(result.queriesStarting);
@@ -109,7 +113,7 @@ public class RunningQueriesManager {
         }
     }
 
-    private static RunningQueriesUpdateResult tryStartPendingQueries(List<SelectQuery> pendingQueries, IQLDB iqldb) {
+    private static RunningQueriesUpdateResult tryStartPendingQueries(List<SelectQuery> pendingQueries, IQLDB iqldb, int perUserPendingQueriesLimit) {
         final LongSet cancelledQueries = new LongOpenHashSet();
         final Long2ObjectMap<SelectQuery> idToPendingQuery = new Long2ObjectOpenHashMap<>();
         for(SelectQuery query : pendingQueries) {
@@ -123,8 +127,10 @@ public class RunningQueriesManager {
         final List<SelectQuery> queriesStarting = Lists.newArrayList();
         final Set<String> qhashesRunning = Sets.newHashSet();
         final Object2IntOpenHashMap<String> usernameToRunningCount = new Object2IntOpenHashMap<>();
+        final Object2IntOpenHashMap<String> usernameToPendingCount = new Object2IntOpenHashMap<>();
         final Object2IntOpenHashMap<String> usernameToSessionsCount = new Object2IntOpenHashMap<>();
         final Object2IntOpenHashMap<String> clientToRunningCount = new Object2IntOpenHashMap<>();
+        final Object2IntOpenHashMap<String> clientToPendingCount = new Object2IntOpenHashMap<>();
         final Object2IntOpenHashMap<String> clientToSessionsCount = new Object2IntOpenHashMap<>();
         for(final RunningQuery runningQuery: alreadyRunningQueries) {
             if(runningQuery.killed) {
@@ -135,26 +141,46 @@ public class RunningQueriesManager {
             if(pendingQuery != null) {
                 // the query we are looking at is something we may be able to start if the limits allow. let's check
                 final int queriesRunningForIdentity;
+                final int queriesPendingForIdentity;
                 final int sessionsForIdentity;
                 final String username = pendingQuery.clientInfo.username;
                 final String client = pendingQuery.clientInfo.client;
                 if(pendingQuery.clientInfo.isMultiuserClient) {
                     queriesRunningForIdentity = usernameToRunningCount.getInt(username);
+                    queriesPendingForIdentity = usernameToPendingCount.getInt(username);
                     sessionsForIdentity = usernameToSessionsCount.getInt(username);
                 } else {
                     queriesRunningForIdentity = clientToRunningCount.getInt(client);
+                    queriesPendingForIdentity = clientToPendingCount.getInt(client);
                     sessionsForIdentity = clientToSessionsCount.getInt(client);
                 }
+                
+                usernameToPendingCount.add(username, 1);
+                clientToPendingCount.add(client, 1);
 
                 if(runningQuery.killed) {
                     log.debug("Cancelling query " + runningQuery.qHash + " before it starts running");
-                    pendingQuery.cancelled = true;
+                    pendingQuery.cancellationException = new QueryCancelledException("The query was cancelled during execution");
+                }
+
+                if (queriesPendingForIdentity > perUserPendingQueriesLimit) {
+                    log.debug("Aborting query " + runningQuery.qHash + " before it starts running due to too many pending queries for identity.");
+                    pendingQuery.cancellationException = new IqlKnownException.TooManyPendingQueriesException(
+                            "Number of currently pending queries for user \"" + queriesPendingForIdentity + "\" is too high" +
+                            "(" + queriesPendingForIdentity + " >= " + perUserPendingQueriesLimit + "). " +
+                            "Please wait for earlier queries to complete before submitting new queries."
+                    );
+                }
+
+                if (pendingQuery.cancellationException != null) {
+                    cancelledQueries.add(pendingQuery.id);
                 }
 
                 if((qhashesRunning.contains(pendingQuery.queryHash) ||
                         !pendingQuery.limits.satisfiesConcurrentQueriesLimit(queriesRunningForIdentity + 1) ||
                         !pendingQuery.limits.satisfiesConcurrentImhotepSessionsLimit(sessionsForIdentity + pendingQuery.sessions))
-                        && !runningQuery.killed) {
+                        && !runningQuery.killed
+                        && pendingQuery.cancellationException == null) {
                     queriesThatCouldntStart.add(pendingQuery);
                 } else {
                     queriesStarting.add(pendingQuery);
@@ -183,7 +209,9 @@ public class RunningQueriesManager {
     private void applyCancellations(LongSet cancelledQueries) {
         for(SelectQuery runningQuery : queriesRunning) {
             if(cancelledQueries.contains(runningQuery.id)) {
-                runningQuery.cancelled = true;
+                if (runningQuery.cancellationException == null) {
+                    runningQuery.cancellationException = new QueryCancelledException("The query was cancelled during execution");
+                }
                 runningQuery.kill();
             }
         }
@@ -198,6 +226,7 @@ public class RunningQueriesManager {
             selectQuery.onStarted(DateTime.now());
             return;
         }
+
         iqldb.insertRunningQuery(selectQuery);
         synchronized (queriesWaiting) {
             queriesWaiting.add(selectQuery);
@@ -267,7 +296,7 @@ public class RunningQueriesManager {
                     query.queryStartTimestamp,
                     IQLDB.hostname,
                     query.sessions,
-                    query.cancelled
+                    query.cancellationException != null
             ));
         }
         return runningQueries;

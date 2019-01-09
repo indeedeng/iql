@@ -13,12 +13,18 @@
  */
  package com.indeed.iql.metadata;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * @author vladimir
@@ -26,25 +32,34 @@ import java.util.Comparator;
 
 public class FieldMetadata {
     @Nonnull final String name;
-    @Nullable String friendlyName;
     @Nullable String description;
     @Nonnull
     FieldType type;
+    @Nonnull
+    List<String> aliases;   // first entry is the canonical name by convention
     int frequency;
     boolean isHidden;
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType type) {
         this.name = name;
         this.type = type;
+        aliases = Lists.newArrayList();
     }
 
+    /** True field name as known to Imhotep */
     @Nonnull
     public String getName() {
         return name;
     }
 
-    public String getFriendlyName() {
-        return friendlyName;
+    /** Name with canonical alias applied if it exists */
+    @Nonnull
+    public String getCanonicalName() {
+        if(aliases.isEmpty()) {
+            return name;
+        } else {
+            return aliases.get(0);
+        }
     }
 
     public String getDescription() {
@@ -61,14 +76,36 @@ public class FieldMetadata {
         return this;
     }
 
-    public FieldMetadata setFriendlyName(@Nullable String friendlyName) {
-        this.friendlyName = friendlyName;
-        return this;
-    }
-
     public FieldMetadata setDescription(@Nullable String description) {
         this.description = description;
         return this;
+    }
+
+    /** Aliases of this field other than the canonical name */
+    @Nonnull
+    public List<String> getNonCanonicalNames() {
+        if (aliases.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            final List<String> nonCanonicalNames = Lists.newArrayList(aliases);
+            if (!name.equals(nonCanonicalNames.get(0))) {
+                nonCanonicalNames.set(0, name);
+            } else {
+                nonCanonicalNames.remove(0);    // the true name is actually the canonical name so avoid duplication
+            }
+            return nonCanonicalNames;
+        }
+    }
+
+    public List<String> getAliases() {
+        return aliases;
+    }
+
+    public void setAliases(String aliases) {
+        if(!Strings.isNullOrEmpty(aliases)) {
+            // either space or comma can be use as names separator in IMS
+            this.aliases.addAll(Arrays.asList(StringUtils.split(aliases, " ,")));
+        }
     }
 
     public boolean isHidden() {
@@ -98,17 +135,35 @@ public class FieldMetadata {
     }
 
     public void toJSON(@Nonnull ObjectNode jsonNode) {
-        jsonNode.put("name", getName());
-        final String description = Strings.nullToEmpty(getDescription());
+        jsonNode.put("name", getCanonicalName());
+        final String description = getAugmentedDescription();
         jsonNode.put("description", description);
         jsonNode.put("type", getType().toString());
         jsonNode.put("frequency", getFrequency());
+        if (getAliases().size() > 0) {
+            final ArrayNode aliasesArray = jsonNode.putArray("aliases");
+            for (String alias : getNonCanonicalNames()) {
+                aliasesArray.add(alias);
+            }
+        }
+    }
 
+    private String getAugmentedDescription() {
+        if (aliases.isEmpty()) {
+            return Strings.nullToEmpty(getDescription());
+        }
+
+        final String aliasesDescription = "(aliases: " + StringUtils.join(getNonCanonicalNames(), ", ") + ")";
+        if (Strings.isNullOrEmpty(description)) {
+            return aliasesDescription;
+        } else {
+            return description + " " + aliasesDescription;
+        }
     }
 
     public String toTSV() {
-        final String description = Strings.nullToEmpty(getDescription());
-        return getName() + "\t" + description.replaceAll("[\r\n\t]+", " ");
+        final String description = getAugmentedDescription();
+        return getCanonicalName() + "\t" + description.replaceAll("[\r\n\t]+", " ");
     }
 
     public static final Comparator<FieldMetadata> COMPARATOR = new CaseSensitiveComparator();

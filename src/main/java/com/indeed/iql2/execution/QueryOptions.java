@@ -35,14 +35,13 @@ public class QueryOptions {
     public static class Experimental {
         public static final String USE_MULTI_FTGS = "multiftgs";
         public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
-        public static final String CONSISTENT_TIME_BUCKETS = "consistenttime";
 
         private Experimental() {
         }
     }
 
     public static boolean includeInCacheKey(final String option) {
-        return Experimental.CONSISTENT_TIME_BUCKETS.equals(option);
+        return false;
     }
 
     private QueryOptions() {

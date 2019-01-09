@@ -90,8 +90,8 @@ public interface ExecutionStep {
     }
 
     class ComputeManyPrecomputed implements ExecutionStep {
-        private final Set<String> scope;
-        private final List<Pair<Precomputed, String>> computations;
+        public final Set<String> scope;
+        public final List<Pair<Precomputed, String>> computations;
 
         public ComputeManyPrecomputed(Set<String> scope, List<Pair<Precomputed, String>> computations) {
             this.scope = scope;

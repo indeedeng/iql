@@ -16,10 +16,9 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
-import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKey;
+import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -90,13 +89,11 @@ public class ExplodeMonthOfYear implements Command {
 
         session.remapGroups(fromGroups, toGroups);
 
-        final boolean useTimeRangekeys = session.options.contains(QueryOptions.Experimental.CONSISTENT_TIME_BUCKETS);
-        final YearMonthGroupKey groupKeySet = new YearMonthGroupKey(
+        final YearMonthGroupKeySet groupKeySet = new YearMonthGroupKeySet(
                 session.groupKeySet,
                 numMonths,
                 startMonth,
-                timeFormat.or(useTimeRangekeys ? TimeUnit.SECOND.formatString : TimeUnit.MONTH.formatString),
-                useTimeRangekeys
+                timeFormat.or(TimeUnit.SECOND.formatString)
         );
         session.assumeDense(groupKeySet);
     }

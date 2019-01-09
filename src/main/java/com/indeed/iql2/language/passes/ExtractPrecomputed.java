@@ -200,7 +200,8 @@ public class ExtractPrecomputed {
                     final int prevDepth = this.depth;
                     this.setDepth(prevDepth + 1);
                     final int prevStartDepth = this.startDepth;
-                    this.setStartDepth(startDepth + 1);
+                    // New context, depth should be startDepth for the top level within the distinct.
+                    this.setStartDepth(prevDepth + 1);
                     filter = Optional.of(distinct.filter.get().traverse1(this));
                     this.setDepth(prevDepth);
                     this.setStartDepth(prevStartDepth);
@@ -278,29 +279,6 @@ public class ExtractPrecomputed {
             } else if (input instanceof AggregateMetric.FieldMax) {
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
                 return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field));
-            } else if (input instanceof AggregateMetric.Bootstrap) {
-                final AggregateMetric.Bootstrap bootstrap = (AggregateMetric.Bootstrap) input;
-                final List<String> lookups = new ArrayList<>();
-                for (final String vararg : bootstrap.varargs) {
-                    if ("\"all\"".equals(vararg)) {
-                        for (int i = 0; i < bootstrap.numBootstraps; i++) {
-                            lookups.add(bootstrap.seed + "[" + bootstrap.numBootstraps + "].values[" + i + "]");
-                        }
-                    } else {
-                        lookups.add(bootstrap.seed + "[" + bootstrap.numBootstraps + "]." + vararg);
-                    }
-                }
-                final Optional<AggregateFilter> filter;
-                if (bootstrap.filter.isPresent()) {
-                    filter = Optional.of(bootstrap.filter.get().traverse1(this));
-                } else {
-                    filter = Optional.absent();
-                }
-                final Precomputed.PrecomputedBootstrap precomputedBootstrap = new Precomputed.PrecomputedBootstrap(bootstrap.field, filter, bootstrap.seed, bootstrap.metric.traverse1(this), bootstrap.numBootstraps, bootstrap.varargs);
-                final ComputationInfo computationInfo = new ComputationInfo(precomputedBootstrap, depth, scope);
-                final String name = bootstrap.seed + "[" + bootstrap.numBootstraps + "]";
-                computedNames.get(computationType).put(computationInfo, name);
-                return new AggregateMetric.GroupStatsMultiLookup(lookups);
             } else if (input instanceof AggregateMetric.DivideByCount) {
                 final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
                 final Set<String> datasets = new HashSet<>();

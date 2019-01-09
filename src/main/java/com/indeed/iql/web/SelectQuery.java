@@ -16,9 +16,9 @@ package com.indeed.iql.web;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Throwables;
+import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import org.apache.commons.codec.binary.Base64;
@@ -40,7 +40,7 @@ import java.util.concurrent.CountDownLatch;
 public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
-    public static byte VERSION_FOR_HASHING = 4;
+    public static int VERSION_FOR_HASHING = 5;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     private final RunningQueriesManager runningQueriesManager;
@@ -57,7 +57,8 @@ public class SelectQuery implements Closeable {
     final QueryMetadata queryMetadata;
     private Closeable queryResourceCloser;
     private final ProgressCallback progressCallback;
-    boolean cancelled = false;
+    @Nullable
+    RuntimeException cancellationException = null; // non-null iff query is cancelled
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
     private boolean asynchronousRelease = false;
@@ -114,7 +115,7 @@ public class SelectQuery implements Closeable {
                 sha1.update(csv ? (byte)1 : 0);
             }
         }
-        sha1.update(VERSION_FOR_HASHING);
+        sha1.update(Ints.toByteArray(VERSION_FOR_HASHING));
         return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 
@@ -139,8 +140,8 @@ public class SelectQuery implements Closeable {
     }
 
     public void checkCancelled() {
-        if(cancelled) {
-            throw new QueryCancelledException("The query was cancelled during execution");
+        if (cancellationException != null) {
+            throw cancellationException;
         }
     }
 
@@ -176,6 +177,7 @@ public class SelectQuery implements Closeable {
 
     public void onInserted(long id) {
         this.progressCallback.queryIdAssigned(id);
+        this.queryInfo.queryId = id;
         this.id = id;
     }
 

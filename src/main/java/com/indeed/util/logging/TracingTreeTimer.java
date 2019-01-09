@@ -2,6 +2,7 @@ package com.indeed.util.logging;
 
 import com.indeed.util.core.TreeTimer;
 import io.opentracing.ActiveSpan;
+import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 
 import java.util.Stack;
@@ -12,15 +13,29 @@ import java.util.Stack;
 public class TracingTreeTimer implements AutoCloseable {
     private final TreeTimer treeTimer;
     private final Stack<ActiveSpan> activeSpanStack = new Stack<>();
+    private final Tracer tracer;
 
-    public TracingTreeTimer() {
+    public TracingTreeTimer(final Tracer tracer) {
+        this.tracer = tracer;
         treeTimer = new TreeTimer();
     }
 
+    public TracingTreeTimer() {
+        this(GlobalTracer.get());
+    }
+
     public void push(String s) {
-        final ActiveSpan activeSpan = GlobalTracer.get().buildSpan(s).startActive();
+        push(s, s);
+    }
+
+    public void push(String operationName, String detailedString) {
+        final Tracer.SpanBuilder spanBuilder = tracer.buildSpan(operationName);
+        if (!operationName.equals(detailedString)) {
+            spanBuilder.withTag("details", detailedString);
+        }
+        final ActiveSpan activeSpan = spanBuilder.startActive();
         activeSpanStack.push(activeSpan);
-        treeTimer.push(s);
+        treeTimer.push(detailedString);
     }
 
     public int pop() {

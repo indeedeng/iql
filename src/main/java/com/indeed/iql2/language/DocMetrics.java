@@ -15,11 +15,13 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ValidationUtil;
+import org.antlr.v4.runtime.Token;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -387,7 +389,7 @@ public class DocMetrics {
 
             @Override
             public void enterDocAtom(JQLParser.DocAtomContext ctx) {
-                accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), context.fieldResolver, context.datasetsMetadata));
+                accept(parseJQLDocMetricAtom(ctx.jqlDocMetricAtom(), context));
             }
 
             @Override
@@ -412,9 +414,11 @@ public class DocMetrics {
     }
 
     public static DocMetric parseJQLDocMetricAtom(
-            JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext,
-            final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+            final JQLParser.JqlDocMetricAtomContext jqlDocMetricAtomContext,
+            final Query.Context context) {
         final DocMetric[] ref = new DocMetric[1];
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
+
 
         jqlDocMetricAtomContext.enterRule(new JQLBaseListener() {
             private void accept(DocMetric value) {
@@ -480,6 +484,31 @@ public class DocMetrics {
                 accept(field.wrap(new DocMetric.StrTermCount(field)));
             }
 
+            private String parseSalt(@Nullable final Token token) {
+                if (token == null) {
+                    return "DEFAULT SALT";
+                } else {
+                    return ParserCommon.unquote(token.getText());
+                }
+            }
+
+            @Override
+            public void enterDocMetricAtomRandomField(final JQLParser.DocMetricAtomRandomFieldContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
+                final int max = Integer.parseInt(ctx.max.getText());
+                final String salt = parseSalt(ctx.seed);
+                final FieldType fieldType = fieldResolver.fieldType(field);
+                accept(field.wrap(new DocMetric.Random(field, fieldType == FieldType.Integer, max, salt)));
+            }
+
+            @Override
+            public void enterDocMetricAtomRandomMetric(final JQLParser.DocMetricAtomRandomMetricContext ctx) {
+                final DocMetric metric = parseJQLDocMetric(ctx.jqlDocMetric(), context);
+                final int max = Integer.parseInt(ctx.max.getText());
+                final String salt = parseSalt(ctx.seed);
+                accept(new DocMetric.RandomMetric(metric, max, salt));
+            }
+
             @Override
             public void enterDocMetricAtomRegex(JQLParser.DocMetricAtomRegexContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
@@ -508,7 +537,7 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetsMetadata, fieldResolver));
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), context.datasetsMetadata, fieldResolver));
             }
 
             @Override

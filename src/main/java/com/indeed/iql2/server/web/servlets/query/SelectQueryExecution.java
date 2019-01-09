@@ -254,6 +254,9 @@ public class SelectQueryExecution {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
+        queryInfo.resultBytes = execInfo.resultBytes;
+        queryInfo.cacheUploadSkipped = execInfo.cacheUploadSkipped;
+
         queryInfo.setFromPerformanceStats(execInfo.imhotepPerformanceStats);
 
         if (execInfo.hasMoreRows) {
@@ -294,6 +297,7 @@ public class SelectQueryExecution {
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
+            queryInfo.datasetFieldsNoDescription = Sets.newHashSet();
 
             for (final FieldExtractor.DatasetField datasetField : datasetFields) {
                 final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
@@ -305,6 +309,9 @@ public class SelectQueryExecution {
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);
+                    if (!datasetsMetadata.fieldHasDescription(datasetField.dataset, field)) {
+                        queryInfo.datasetFieldsNoDescription.add(datasetField.dataset + "." + field);
+                    }
                 }
             }
         }
@@ -553,7 +560,7 @@ public class SelectQueryExecution {
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 queryCached, totalBytesWritten[0], null, cacheKeys,
-                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, 0, null);
+                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, null, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
                         return selectExecutionInformation;
@@ -601,7 +608,7 @@ public class SelectQueryExecution {
                     };
                 }
 
-                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(query);
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
@@ -634,7 +641,7 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
                             hasMoreRows.get(),
-                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : -1L,
+                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
                             (cacheWriter != null) ? cacheWriter.isOverflowed() : null
                     );
 
@@ -702,7 +709,7 @@ public class SelectQueryExecution {
                 final List<DatasetWithMissingShards> datasetsWithMissingShards) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
-            timer.push("Execute sub-query: \"" + q + "\"");
+            timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
@@ -947,14 +954,15 @@ public class SelectQueryExecution {
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
-        public final long resultBytes;
+        @Nullable
+        public final Long resultBytes;
         @Nullable
         public final Boolean cacheUploadSkipped;
 
         private SelectExecutionInformation(Multimap<String, List<Shard>> datasetToShards, List<DatasetWithMissingShards> datasetsWithMissingShards,
                                            Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
                                            Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
-                                           final boolean hasMoreRows, final long resultBytes, @Nullable final Boolean cacheUploadSkipped) {
+                                           final boolean hasMoreRows, @Nullable final Long resultBytes, @Nullable final Boolean cacheUploadSkipped) {
             this.datasetToShards = datasetToShards;
             this.datasetsWithMissingShards = datasetsWithMissingShards;
             this.queryCached = queryCached;

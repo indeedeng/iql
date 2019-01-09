@@ -17,8 +17,6 @@ class ResolvedDataset {
     final String name;
     // Name as per imhotep's definition of it
     final String imhotepName;
-    // Mapping from field aliases to actual field name, case resolved
-    final Map<String, String> fieldAliases;
     // Outer key is case insensitive field name.
     // Inner key is case sensitive field name.
     // Inner value is case correct aliased field (real imhotep field name).
@@ -28,7 +26,6 @@ class ResolvedDataset {
     ResolvedDataset(final String name, final String imhotepName, final Map<String, String> fieldAliases, final DatasetMetadata datasetMetadata) {
         this.name = name;
         this.imhotepName = imhotepName;
-        this.fieldAliases = fieldAliases;
 
         fieldAliasEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (final Map.Entry<String, String> entry : fieldAliases.entrySet()) {

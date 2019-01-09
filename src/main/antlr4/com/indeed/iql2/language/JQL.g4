@@ -81,7 +81,6 @@ ROUNDING: 'ROUNDING' ;
 EXTRACT : 'EXTRACT' ;
 RELATIVE: 'RELATIVE' ;
 DATASET: 'DATASET' ;
-BOOTSTRAP: 'BOOTSTRAP' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
@@ -128,7 +127,7 @@ identifier
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
-    | PRINTF | EXTRACT | BOOTSTRAP | RANDOM | OPTIONS
+    | PRINTF | EXTRACT | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
@@ -194,7 +193,6 @@ jqlAggregateMetric
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
-    | BOOTSTRAP '(' field=scopedField (HAVING filter=jqlAggregateFilter)? ',' metric=jqlAggregateMetric ',' numBootstraps=NAT ',' seed=STRING_LITERAL (',' varargs+=(DOUBLE | STRING_LITERAL))* ')' #AggregateBootstrap
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
@@ -283,6 +281,8 @@ jqlDocMetricAtom
     | HASSTRFIELD '(' singlyScopedField ')' # DocMetricAtomHasStringField
     | INTTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomIntTermCount
     | STRTERMCOUNT '(' singlyScopedField ')' # DocMetricAtomStrTermCount
+    | RANDOM '(' singlyScopedField ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomField
+    | RANDOM '(' jqlDocMetric ',' max=integer (',' seed=STRING_LITERAL)? ')' # DocMetricAtomRandomMetric
     | singlyScopedField '=~' regex=STRING_LITERAL # DocMetricAtomRegex
     | FLOATSCALE '(' singlyScopedField (',' mult=number (',' add=number)?)? ')' # DocMetricAtomFloatScale
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
@@ -466,6 +466,7 @@ dateTime
     | NAT // This is for unix timestamps.
     | timePeriod
     | TODAYS
+    | TO
     | TOMORROWS
     | YESTERDAYS
     | AGO

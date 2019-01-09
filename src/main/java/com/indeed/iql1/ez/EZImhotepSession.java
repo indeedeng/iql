@@ -853,7 +853,7 @@ public class EZImhotepSession implements Closeable {
 
         final Int2ObjectMap<PriorityQueue<ScoredLong>> intTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredLong>>();
         final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> stringTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<String>>>();
-        final Comparator<ScoredObject> scoredObjectComparator;
+        final Comparator<ScoredObject<String>> scoredObjectComparator;
         final Comparator<ScoredLong> scoredLongComparator;
         private final StatReference count;
         private final int k;
@@ -864,7 +864,7 @@ public class EZImhotepSession implements Closeable {
             this.count = count;
             this.k = k;
             this.isBottom = isBottom;
-            scoredObjectComparator = isBottom ? ScoredObject.BOTTOM_SCORE_COMPARATOR : ScoredObject.TOP_SCORE_COMPARATOR;
+            scoredObjectComparator = isBottom ? ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder()) : ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
             scoredLongComparator = isBottom ? ScoredLong.BOTTOM_SCORE_COMPARATOR : ScoredLong.TOP_SCORE_COMPARATOR;
         }
 

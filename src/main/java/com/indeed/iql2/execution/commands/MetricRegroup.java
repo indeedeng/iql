@@ -83,7 +83,7 @@ public class MetricRegroup implements Command {
                 timer.pop();
 
                 if (withDefaultBucket) {
-                    timer.push("merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
+                    timer.push("merge gutters into default/regroupWithProtos", "merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
                     final int rulesCount = intermediateBuckets * groupsBefore;
                     final int[] fromGroups = new int[rulesCount];
                     final int[] toGroups = new int[rulesCount];

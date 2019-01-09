@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -112,7 +113,8 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(new DocFilter.Sample(field, numerator, denominator, seed));
+                final FieldType fieldType = fieldResolver.fieldType(field);
+                accept(new DocFilter.Sample(field, fieldType == FieldType.Integer, numerator, denominator, seed));
             }
 
             @Override
@@ -280,7 +282,8 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(field.wrap(new DocFilter.Sample(field, numerator, denominator, seed)));
+                final FieldType fieldType = fieldResolver.fieldType(field);
+                accept(field.wrap(new DocFilter.Sample(field, fieldType == FieldType.Integer, numerator, denominator, seed)));
             }
 
             @Override

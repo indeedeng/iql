@@ -103,6 +103,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -243,6 +244,9 @@ public class QueryServlet {
                     handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
                     if (queryInfo.cached != null) {
                         activeSpan.setTag("cached", queryInfo.cached);
+                    }
+                    if (queryInfo.queryId != null) {
+                        activeSpan.setTag("queryid", queryInfo.queryId);
                     }
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
@@ -412,6 +416,10 @@ public class QueryServlet {
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
+        queryInfo.datasetFieldsNoDescription = iqlQuery.getFields().stream()
+                .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field))
+                .map((field) -> iqlQuery.getDataset() + "." + field)
+                .collect(Collectors.toSet());
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
@@ -882,6 +890,9 @@ public class QueryServlet {
         logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
         if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
+        }
+        if (queryInfo.datasetFieldsNoDescription != null && queryInfo.datasetFieldsNoDescription.size() > 0) {
+            logSet(logEntry, "datasetFieldsNoDescription", queryInfo.datasetFieldsNoDescription);
         }
         if (queryInfo.totalDatasetRangeDays != null) {
             logInteger(logEntry, "days", queryInfo.totalDatasetRangeDays);

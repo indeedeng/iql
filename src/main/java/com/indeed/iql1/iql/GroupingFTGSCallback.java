@@ -35,7 +35,7 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
     private static final Logger log = Logger.getLogger(GroupingFTGSCallbackNoExplode.class);
     private final List<StatReference> statRefs;
     private final Int2ObjectMap<GroupKey> groupKeys;
-    private final List<Object> allTerms = Lists.newArrayList();
+    private final List<Comparable> allTerms = Lists.newArrayList();
     private final Int2ObjectMap<Map<Object, double[]>> groupToTermsStats = new Int2ObjectOpenHashMap<Map<Object, double[]>>();
     private final int termLimit;
     private final Limits limits;
@@ -57,7 +57,7 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
         termGroup(term, group);
     }
 
-    private void termGroup(Object term, int group) {
+    private void termGroup(Comparable term, int group) {
         final int allTermsCount = allTerms.size();
 
         if(allTermsCount == 0 || !allTerms.get(allTermsCount-1).equals(term)) {
@@ -94,13 +94,13 @@ public final class GroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
             final Map<Object, double[]> termsStats = groupToTermsStats.get(group);
 
             if(termsStats == null) { // this grouping was skipped by FTGS, so assigning 0 stats to all terms
-                for(Object missingTerm : allTerms) {
+                for(Comparable missingTerm : allTerms) {
                     ret.add(new GroupStats(groupKeys.get(group).add(missingTerm), emptyArray));
                 }
                 continue;
             }
 
-            for(Object term : allTerms) {
+            for(Comparable term : allTerms) {
                 double[] stats = termsStats.get(term);
                 if(stats == null) {
                     stats = emptyArray;

@@ -790,11 +790,6 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateMetric.GroupStatsMultiLookup groupStatsMultiLookup) throws RuntimeException {
-                throw new UnsupportedOperationException("Shouldn't be rendering this");
-            }
-
-            @Override
             public Void visit(AggregateMetric.SumAcross sumAcross) {
                 sb.append("sum_over(");
                 pp(sumAcross.groupBy, consumer, clock);
@@ -857,11 +852,6 @@ public class PrettyPrint {
                 }));
                 sb.append(')');
                 return null;
-            }
-
-            @Override
-            public Void visit(AggregateMetric.Bootstrap bootstrap) throws RuntimeException {
-                throw new UnsupportedOperationException("You need to implement this");
             }
         });
 
@@ -1363,6 +1353,60 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.StringLen stringLen) {
                 sb.append("len(").append(getText(stringLen.field)).append(")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.Sample random) throws RuntimeException {
+                sb.append("sample")
+                        .append('(')
+                        .append(getText(random.field))
+                        .append(", ")
+                        .append(random.numerator)
+                        .append(", ")
+                        .append(random.denominator)
+                        .append(", \"")
+                        .append(random.salt)
+                        .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.SampleMetric random) throws RuntimeException {
+                sb.append("sample(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.numerator)
+                    .append(", ")
+                    .append(random.denominator)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.Random random) throws RuntimeException {
+                sb.append("random")
+                    .append('(')
+                    .append(getText(random.field))
+                    .append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
+                return null;
+            }
+
+            @Override
+            public Void visit(final DocMetric.RandomMetric random) throws RuntimeException {
+                sb.append("random(");
+                pp(random.metric, consumer, clock);
+                sb.append(", ")
+                    .append(random.max)
+                    .append(", \"")
+                    .append(random.salt)
+                    .append("\")");
                 return null;
             }
         });

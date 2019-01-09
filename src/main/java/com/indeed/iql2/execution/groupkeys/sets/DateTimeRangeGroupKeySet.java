@@ -14,9 +14,15 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
-import com.indeed.iql2.execution.groupkeys.TimeRangeGroupKey;
+import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public class DateTimeRangeGroupKeySet implements GroupKeySet {
@@ -26,12 +32,24 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
     private final int numBuckets;
     private final String format;
 
+    private final LoadingCache<Integer, StringGroupKey> buildGroupKey;
+
     public DateTimeRangeGroupKeySet(GroupKeySet previous, long earliestStart, long periodMillis, int numBuckets, String format) {
         this.previous = previous;
         this.earliestStart = earliestStart;
         this.periodMillis = periodMillis;
         this.numBuckets = numBuckets;
         this.format = format;
+        final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
+        buildGroupKey = CacheBuilder.newBuilder()
+                .build(new CacheLoader<Integer, StringGroupKey>() {
+                    @Override
+                    public StringGroupKey load(final Integer groupOffset) {
+                        final long start = earliestStart + groupOffset * periodMillis;
+                        final long end = earliestStart + (groupOffset + 1) * periodMillis;
+                        return StringGroupKey.fromTimeRange(formatter, start, end);
+                    }
+                });
     }
 
     @Override
@@ -48,9 +66,7 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
     public GroupKey groupKey(int group) {
         final int oldGroup = this.parentGroup(group);
         final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
-        final long start = earliestStart + groupOffset * periodMillis;
-        final long end = earliestStart + (groupOffset + 1) * periodMillis;
-        return new TimeRangeGroupKey(format, start, end);
+        return buildGroupKey.getUnchecked(groupOffset);
     }
 
     @Override

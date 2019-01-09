@@ -184,37 +184,44 @@ public class Dataset extends AbstractPositional {
         return result;
     }
 
-    public static Positioned<DateTime> parseDateTime(JQLParser.DateTimeContext dateTimeContext, boolean useLegacy, WallClock clock) {
+    public static Positioned<DateTime> parseDateTime(final JQLParser.DateTimeContext dateTimeContext, final boolean useLegacy, final WallClock clock) {
+        return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock), dateTimeContext);
+    }
+
+    private static DateTime innerParseDateTime(final JQLParser.DateTimeContext dateTimeContext, final boolean useLegacy, final WallClock clock) {
         final String textValue = dateTimeContext.getText();
         final DateTime wordDate = parseWordDate(textValue, useLegacy, clock);
         if (wordDate != null) {
-            return Positioned.from(wordDate, dateTimeContext);
+            return wordDate;
         } else {
             if (dateTimeContext.DATETIME_TOKEN() != null) {
-                return Positioned.from(createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T")), dateTimeContext);
+                return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
             } else if (dateTimeContext.DATE_TOKEN() != null) {
-                return Positioned.from(createDateTime(dateTimeContext.DATE_TOKEN().getText()), dateTimeContext);
+                return createDateTime(dateTimeContext.DATE_TOKEN().getText());
             } else if (dateTimeContext.STRING_LITERAL() != null) {
                 final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+                if (unquoted.trim().equalsIgnoreCase("y")) {
+                    return parseWordDate(unquoted, useLegacy, clock);
+                }
                 try {
                     // Don't use createDataTime method here since error will be caught and processed.
-                    return Positioned.from(new DateTime(unquoted.replaceAll(" ", "T")), dateTimeContext);
+                    return new DateTime(unquoted.replaceAll(" ", "T"));
                 } catch (IllegalArgumentException e) {
                     final JQLParser jqlParser = Queries.parserForString(unquoted);
                     final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
                     if (jqlParser.getNumberOfSyntaxErrors() > 0) {
                         final DateTime dt = parseWordDate(unquoted, useLegacy, clock);
                         if (dt != null) {
-                            return Positioned.from(dt, dateTimeContext);
+                            return dt;
                         }
                         throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + unquoted);
                     }
-                    return Positioned.from(TimePeriods.timePeriodDateTime(timePeriod, clock, useLegacy), dateTimeContext);
+                    return TimePeriods.timePeriodDateTime(timePeriod, clock, useLegacy);
                 }
             } else if (dateTimeContext.timePeriod() != null) {
-                return Positioned.from(TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock, useLegacy), dateTimeContext);
+                return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock, useLegacy);
             } else if (dateTimeContext.NAT() != null) {
-                return Positioned.from(parseUnixTimestamp(dateTimeContext.NAT().getText()), dateTimeContext);
+                return parseUnixTimestamp(dateTimeContext.NAT().getText());
             }
         }
         throw new IqlKnownException.ParseErrorException("Unhandled dateTime: " + dateTimeContext.getText());

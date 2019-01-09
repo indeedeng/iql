@@ -14,7 +14,7 @@
 
 package com.indeed.iql1.iql;
 
-import com.google.common.primitives.Doubles;
+import java.lang.Double;
 
 import java.util.Comparator;
 
@@ -26,31 +26,22 @@ public class ScoredLong {
     public static final Comparator<ScoredLong> TOP_SCORE_COMPARATOR = new Comparator<ScoredLong>() {
         @Override
         public int compare(final ScoredLong o1, final ScoredLong o2) {
-            double score1 = o1.getScore();
-            if(Double.isNaN(score1)) {
-                score1 = Double.NEGATIVE_INFINITY;
+            final int r = Double.compare(-o2.getScore(), -o1.getScore()); // considers NaN as the lowest score value
+            if (r != 0) {
+                return r;
             }
-            double score2 = o2.getScore();
-            if(Double.isNaN(score2)) {
-                score2 = Double.NEGATIVE_INFINITY;
-            }
-            return Doubles.compare(score1, score2);
+            return Long.compare(o1.value, o2.value);
         }
     };
 
     public static final Comparator<ScoredLong> BOTTOM_SCORE_COMPARATOR = new Comparator<ScoredLong>() {
         @Override
         public int compare(final ScoredLong o1, final ScoredLong o2) {
-            double score1 = o1.getScore();
-            if(Double.isNaN(score1)) {
-                score1 = Double.POSITIVE_INFINITY;
+            final int r = Double.compare(o2.getScore(), o1.getScore()); // considers NaN as the highest score value
+            if (r != 0) {
+                return r;
             }
-            double score2 = o2.getScore();
-            if(Double.isNaN(score2)) {
-                score2 = Double.POSITIVE_INFINITY;
-            }
-            // reverse the result
-            return -Doubles.compare(score1, score2);
+            return Long.compare(o2.value, o1.value);
         }
     };
 

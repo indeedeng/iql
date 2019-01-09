@@ -34,21 +34,24 @@ import java.util.Set;
  * @author zheli
  */
 public class CommandValidator {
+    private CommandValidator() {
+    }
+
     public static void validate(final List<Command> commands, final Query query,
                                 final DatasetsMetadata datasetsMetadata,
                                 final Set<String> errors, final Set<String> warnings) {
         final Validator validator = new Validator() {
             @Override
-            public void error(String error) {
+            public void error(final String error) {
                 errors.add(error);
             }
 
             @Override
-            public void warn(String warn) {
+            public void warn(final String warn) {
                 warnings.add(warn);
             }
         };
-        final ValidationHelper validationHelper = buildDatasetsFields(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
+        final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
         for (final Command command : commands) {
             command.validate(validationHelper, validator);
         }
@@ -63,17 +66,17 @@ public class CommandValidator {
         }
     }
 
-    private static ValidationHelper buildDatasetsFields(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
-                                                        final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
+    private static ValidationHelper buildValidationHelper(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
+                                                          final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
-            final DatasetMetadata datasetMetada = datasetsMetadata.getMetadata(actualDataset).orNull();
-            if (datasetMetada == null) {
+            final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orNull();
+            if (datasetMetadata == null) {
                 continue;
             }
-            relevantDatasetToMetadata.put(aliasDataset, datasetMetada);
+            relevantDatasetToMetadata.put(aliasDataset, datasetMetadata);
         }
         return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }

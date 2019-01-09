@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.commands;
 
+import com.google.common.primitives.Doubles;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
@@ -30,7 +31,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class GetFieldMax implements IterateHandlerable<long[]>, Command {
+public class GetFieldMax implements IterateHandlerable<double[]>, Command {
     private static final Logger log = Logger.getLogger(GetFieldMax.class);
 
     public final FieldSet field;
@@ -45,21 +46,21 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         throw new IllegalStateException("Call evaluate() method instead");
     }
 
-    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
     @Override
-    public IterateHandler<long[]> iterateHandler(final Session session) {
+    public IterateHandler<double[]> iterateHandler(final Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
 
-    private class IterateHandlerImpl implements IterateHandler<long[]> {
-        private long[] max;
+    private class IterateHandlerImpl implements IterateHandler<double[]> {
+        private double[] max;
 
         public IterateHandlerImpl(int numGroups) {
-            max = new long[numGroups + 1];
-            Arrays.fill(max, Long.MIN_VALUE);
+            max = new double[numGroups + 1];
+            Arrays.fill(max, Double.NEGATIVE_INFINITY);
         }
 
         @Override
@@ -122,7 +123,10 @@ public class GetFieldMax implements IterateHandlerable<long[]>, Command {
         }
 
         @Override
-        public long[] finish() {
+        public double[] finish() {
+            for (int i = 0; i < max.length; i++) {
+                max[i] = (max[i] == Double.NEGATIVE_INFINITY) ? Double.NaN : max[i];
+            }
             return max;
         }
 

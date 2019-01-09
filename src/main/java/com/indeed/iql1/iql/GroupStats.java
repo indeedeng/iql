@@ -15,6 +15,8 @@
 
 import com.indeed.iql1.ez.GroupKey;
 
+import java.util.Comparator;
+
 /**
 * @author jplaisance
 */
@@ -34,4 +36,8 @@ public final class GroupStats {
     public double[] getStats() {
         return stats;
     }
+
+    public static final Comparator<GroupStats> GROUP_STATS_COMPARATOR =
+            (o1, o2) -> o2.groupKey.getLastInserted().compareTo(o1.groupKey.getLastInserted());
+
 }

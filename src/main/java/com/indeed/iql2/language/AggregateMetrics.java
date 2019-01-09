@@ -118,12 +118,12 @@ public class AggregateMetrics {
         return fieldResolver.resolveAggregateMetric(identifier);
     }
 
-    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricAtomContext ctx, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricAtomContext ctx, final Query.Context context) {
         final JQLParser.SinglyScopedFieldContext identifier = DocMetrics.asPlainField(ctx);
         if (identifier == null) {
-            return new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx, fieldResolver, datasetsMetadata));
+            return new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx, context));
         }
-        return fieldResolver.resolveAggregateMetric(identifier);
+        return context.fieldResolver.resolveAggregateMetric(identifier);
     }
 
     private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricContext ctx, final Query.Context context) {
@@ -508,24 +508,6 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterAggregateBootstrap(JQLParser.AggregateBootstrapContext ctx) {
-                final FieldSet field = fieldResolver.resolve(ctx.field);
-                final Optional<AggregateFilter> filter;
-                if (ctx.filter != null) {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.filter, context));
-                } else {
-                    filter = Optional.absent();
-                }
-                final AggregateMetric metric = AggregateMetrics.parseJQLAggregateMetric(ctx.metric, context);
-                final int numBootstraps = Integer.parseInt(ctx.numBootstraps.getText());
-                final List<String> varargs = new ArrayList<>();
-                for (final Token vararg : ctx.varargs) {
-                    varargs.add(vararg.getText());
-                }
-                accept(field.wrap(new AggregateMetric.Bootstrap(field, filter, ParserCommon.unquote(ctx.seed.getText()), metric, numBootstraps, varargs)));
-            }
-
-            @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 accept(field.wrap(new AggregateMetric.FieldMin(field)));
@@ -564,7 +546,7 @@ public class AggregateMetrics {
                         return;
                     }
                 }
-                accept(parsePossibleDimensionAggregateMetric(ctx.jqlDocMetricAtom(), fieldResolver, context.datasetsMetadata));
+                accept(parsePossibleDimensionAggregateMetric(ctx.jqlDocMetricAtom(), context));
             }
 
             @Override

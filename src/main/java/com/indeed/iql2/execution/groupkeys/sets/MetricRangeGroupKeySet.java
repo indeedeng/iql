@@ -14,12 +14,16 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.LowGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.RangeGroupKey;
+import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 
 import java.util.Objects;
 
@@ -31,6 +35,9 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final long interval;
     private final boolean withDefaultBucket;
     private final boolean fromPredicate;
+    private final HighGutterGroupKey highGutterGroupKey;
+    private final LowGutterGroupKey lowGutterGroupKey;
+    private final LoadingCache<Integer, GroupKey> buildGroupKey;
 
     public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredicate) {
         this.previous = previous;
@@ -40,6 +47,21 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
         this.interval = interval;
         this.withDefaultBucket = withDefaultBucket;
         this.fromPredicate = fromPredicate;
+        this.highGutterGroupKey = new HighGutterGroupKey(min + (interval * (numBuckets - 2)));
+        this.lowGutterGroupKey = new LowGutterGroupKey(min);
+        this.buildGroupKey = CacheBuilder.newBuilder()
+                .build(new CacheLoader<Integer, GroupKey>() {
+                    @Override
+                    public GroupKey load(final Integer innerGroup) {
+                        if (fromPredicate) {
+                            return new IntTermGroupKey(innerGroup);
+                        } else {
+                            final long minInclusive = min + (innerGroup * interval);
+                            final long maxExclusive = min + ((innerGroup + 1) * interval);
+                            return new RangeGroupKey(minInclusive, maxExclusive);
+                        }
+                    }
+                });
     }
 
     @Override
@@ -55,18 +77,14 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     @Override
     public GroupKey groupKey(int group) {
         final int innerGroup = (group - 1) % numBuckets;
-        if (!excludeGutters && innerGroup == numBuckets - 1) {
-            return new HighGutterGroupKey(min + interval * (numBuckets - 2));
-        } else if (!excludeGutters && innerGroup == numBuckets - 2) {
-            return new LowGutterGroupKey(min);
-        } else if (withDefaultBucket && innerGroup == numBuckets - 1) {
+        if (!excludeGutters && (innerGroup == (numBuckets - 1))) {
+            return highGutterGroupKey;
+        } else if (!excludeGutters && (innerGroup == (numBuckets - 2))) {
+            return lowGutterGroupKey;
+        } else if (withDefaultBucket && (innerGroup == (numBuckets - 1))) {
             return DefaultGroupKey.DEFAULT_INSTANCE;
-        } else if (fromPredicate) {
-            return new IntTermGroupKey(innerGroup);
         } else {
-            final long minInclusive = min + innerGroup * interval;
-            final long maxExclusive = min + (innerGroup + 1) * interval;
-            return new RangeGroupKey(minInclusive, maxExclusive);
+            return buildGroupKey.getUnchecked(innerGroup);
         }
     }
 

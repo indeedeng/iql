@@ -18,6 +18,7 @@ import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.Validator;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,6 +30,7 @@ public class ValidationHelper {
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
+    private final Set<String> definedComputations = new HashSet<>();
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
                             final Map<String, Set<String>> datasetAliasIntFields,
@@ -109,5 +111,15 @@ public class ValidationHelper {
 
     public Set<String> datasets() {
         return datasetsMetadata.getDatasetToMetadata().keySet();
+    }
+
+    public void registerComputed(final String name) {
+        if (!definedComputations.add(name)) {
+            throw new IllegalStateException("Tried to define the same name more than once: " + name);
+        }
+    }
+
+    public boolean isComputed(final String name) {
+        return definedComputations.contains(name);
     }
 }

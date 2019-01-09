@@ -36,6 +36,7 @@ public class AllData {
         datasets.add(BigDataset.create());
         datasets.add(ExactCaseDataset.createDataset());
         datasets.add(SyntheticDataset.createDataset());
+        datasets.add(CountriesDataset.createDataset());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

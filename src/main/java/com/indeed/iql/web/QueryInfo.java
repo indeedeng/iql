@@ -74,6 +74,7 @@ public class QueryInfo {
     public @Nullable Long cpuSlotsWaitTimeMs;
     public @Nullable Long ioSlotsExecTimeMs;
     public @Nullable Long ioSlotsWaitTimeMs;
+    public @Nullable Long queryId;
     public @Nullable Set<String> sessionIDs;
     public @Nullable Integer numShards;
     public @Nullable Long numDocs;
@@ -85,6 +86,7 @@ public class QueryInfo {
     public @Nullable Integer maxGroups = 0;
     public @Nullable Integer maxConcurrentSessions;
     public @Nullable Set<String> datasetFields;
+    public @Nullable Set<String> datasetFieldsNoDescription;
     public @Nullable Boolean fieldHadDescription;
     public @Nullable Integer selectCount;
     public @Nullable Integer groupByCount;

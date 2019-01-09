@@ -36,6 +36,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     public void validate(ValidationHelper validationHelper, Validator validator) {
         for (final Pair<Command, String> pair : namedComputations) {
             pair.getFirst().validate(validationHelper, validator);
+            validationHelper.registerComputed(pair.getSecond());
         }
     }
 

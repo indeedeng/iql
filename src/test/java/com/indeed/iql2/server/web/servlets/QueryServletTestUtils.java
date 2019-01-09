@@ -37,6 +37,7 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.iql.web.config.IQLEnv;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
@@ -82,7 +83,7 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), true);
         metadataCache.updateDatasets();
-        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb, Integer.MAX_VALUE);
 
         return new QueryServlet(
                 options.tmpDir,
@@ -369,8 +370,16 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     // test only IQL2
+    static void testIQL2(List<List<String>> expected, String query) throws Exception {
+        testIQL2(AllData.DATASET, expected, query);
+    }
+
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL2(dataset, expected, query, false);
+    }
+
+    static void testIQL2(List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testIQL2(AllData.DATASET, expected, query, skipTestDimension);
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
@@ -379,6 +388,10 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL2(ImhotepClient client, List<List<String>> expected, String query) throws Exception {
         testIQL2(client, expected, query, Options.create());
+    }
+
+    static void testIQL2(List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL2(AllData.DATASET, expected, query, options);
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
@@ -439,6 +452,10 @@ public class QueryServletTestUtils extends BasicTest {
         if (!options.skipTestDimension) {
             testAll(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
+    }
+
+    static void testAll(List<List<String>> expected, String query, Options options) throws Exception {
+        testAll(AllData.DATASET, expected, query, options);
     }
 
     static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
