@@ -214,16 +214,16 @@ public class ValidationUtil {
 
     public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final Validator validator) {
         for(Pair<Long, Long> datasetTimeRange: validationHelper.datasetTimeRanges()) {
-            final long timePeriod = (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())/1000;
-            if (timePeriod%periodSeconds != 0) {
+            final long timePeriodSeconds = (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())/1000;
+            if (timePeriodSeconds%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
-                    appendTimePeriod(timePeriod, exceptionBuilder);
+                    appendTimePeriod(timePeriodSeconds, exceptionBuilder);
                     exceptionBuilder.append(") not evenly divisible by the bucket size (");
                     appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    appendTimePeriod(periodSeconds - timePeriod%periodSeconds, exceptionBuilder);
+                    appendTimePeriod(periodSeconds - timePeriodSeconds%periodSeconds, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    appendTimePeriod(timePeriod%periodSeconds, exceptionBuilder);
+                    appendTimePeriod(timePeriodSeconds%periodSeconds, exceptionBuilder);
                     validator.error(exceptionBuilder.toString());
             }
         }
@@ -241,21 +241,21 @@ public class ValidationUtil {
         }
     }
 
-    public static void appendTimePeriod(long timePeriod, StringBuilder builder) {
-        if (timePeriod % TimeUnit.WEEK.toSeconds() == 0) {
-            builder.append(timePeriod / TimeUnit.WEEK.toSeconds());
+    public static void appendTimePeriod(long timePeriodSeconds, StringBuilder builder) {
+        if (timePeriodSeconds % TimeUnit.WEEK.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.WEEK.toSeconds());
             builder.append(" weeks");
-        } else if ((timePeriod % TimeUnit.DAY.toSeconds()) == 0) {
-            builder.append(timePeriod / TimeUnit.DAY.toSeconds());
+        } else if ((timePeriodSeconds % TimeUnit.DAY.toSeconds()) == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.DAY.toSeconds());
             builder.append(" days");
-        } else if (timePeriod % TimeUnit.HOUR.millis == 0) {
-            builder.append(timePeriod / TimeUnit.HOUR.toSeconds());
+        } else if (timePeriodSeconds % TimeUnit.HOUR.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.HOUR.toSeconds());
             builder.append(" hours");
-        } else if (timePeriod % TimeUnit.MINUTE.millis == 0) {
-            builder.append(timePeriod / TimeUnit.MINUTE.toSeconds());
+        } else if (timePeriodSeconds % TimeUnit.MINUTE.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.MINUTE.toSeconds());
             builder.append(" minutes");
         } else {
-            builder.append(timePeriod);
+            builder.append(timePeriodSeconds);
             builder.append(" seconds");
         }
     }
