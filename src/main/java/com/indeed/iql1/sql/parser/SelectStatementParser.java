@@ -73,7 +73,7 @@ public class SelectStatementParser {
             throw new IqlKnownException.StatementParseException(e, "from");
         }
         final String dataset = from.getDataset();
-        final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getIql1Aliases() : Collections.<String, String>emptyMap();
+        final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getIql1ExpressionAliases() : Collections.<String, String>emptyMap();
 
         try {
             select = parseSelectClause(parts.select, aliases);

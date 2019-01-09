@@ -57,6 +57,10 @@ public class MetricRegroup implements Command {
         if (min >= max) {
             validator.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
         }
+        if ((max-min)%interval != 0) {
+            final long bucketRange = max - min;
+            validator.error("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to " + (max - bucketRange%interval) + " or increase to " + (max + interval - bucketRange%interval));
+        }
 
         // TODO: Validate more List<String>s.... somehow.
     }

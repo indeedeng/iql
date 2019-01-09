@@ -21,6 +21,7 @@ import com.indeed.iql2.language.Validator;
 import com.indeed.util.core.Pair;
 
 import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -33,6 +34,7 @@ public class ValidationHelper {
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
     private final List<Pair<Long, Long>> datasetsTimeRange;
+    private final Set<String> definedComputations = new HashSet<>();
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
                             final List<Pair<Long, Long>> datasetsTimeRange,
@@ -116,8 +118,22 @@ public class ValidationHelper {
     public Set<String> datasets() {
         return datasetsMetadata.getDatasetToMetadata().keySet();
     }
+<<<<<<< HEAD
 
     public List<Pair<Long, Long>> datasetTimeRanges() {
         return datasetsTimeRange;
     }
+||||||| merged common ancestors
+=======
+
+    public void registerComputed(final String name) {
+        if (!definedComputations.add(name)) {
+            throw new IllegalStateException("Tried to define the same name more than once: " + name);
+        }
+    }
+
+    public boolean isComputed(final String name) {
+        return definedComputations.contains(name);
+    }
+>>>>>>> 21c18470fc93316472e51db81f673292878fc917
 }

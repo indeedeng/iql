@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class DumbGroupKeySet implements GroupKeySet {
+    public static final DumbGroupKeySet INITIAL_GROUP_KEY_SET = new DumbGroupKeySet(null, new int[]{-1, -1}, Arrays.<GroupKey>asList(null, InitialGroupKey.INSTANCE));
     public final GroupKeySet previous;
     public final int[] groupParents;
     public final List<GroupKey> groupKeys;
@@ -33,8 +34,8 @@ public class DumbGroupKeySet implements GroupKeySet {
         this.groupKeys = Collections.unmodifiableList(groupKeys);
     }
 
-    public static DumbGroupKeySet create() {
-        return new DumbGroupKeySet(null, new int[]{-1, -1}, Arrays.<GroupKey>asList(null, InitialGroupKey.INSTANCE));
+    public static DumbGroupKeySet empty() {
+        return INITIAL_GROUP_KEY_SET;
     }
 
     public static DumbGroupKeySet create(GroupKeySet previous, int[] groupParents, List<GroupKey> groupKeys) {

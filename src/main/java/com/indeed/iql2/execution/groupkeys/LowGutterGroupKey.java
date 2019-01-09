@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.List;
 import java.util.Objects;
 
 public class LowGutterGroupKey extends GroupKey {
@@ -25,8 +24,8 @@ public class LowGutterGroupKey extends GroupKey {
     }
 
     @Override
-    public void addToList(List<String> list) {
-        list.add("< " + min);
+    public String render() {
+        return "< " + min;
     }
 
     @Override

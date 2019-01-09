@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
-import com.indeed.iql2.execution.metrics.aggregate.MultiPerGroupConstant;
 import com.indeed.iql2.execution.metrics.aggregate.ParentLag;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.GroupBy;
@@ -28,7 +27,6 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -63,14 +61,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Named named) throws E;
         T visit(NeedsSubstitution needsSubstitution) throws E;
         T visit(GroupStatsLookup groupStatsLookup) throws E;
-        T visit(GroupStatsMultiLookup groupStatsMultiLookup) throws E;
         T visit(SumAcross sumAcross) throws E;
         T visit(IfThenElse ifThenElse) throws E;
         T visit(FieldMin fieldMin) throws E;
         T visit(FieldMax fieldMax) throws E;
         T visit(Min min) throws E;
         T visit(Max max) throws E;
-        T visit(Bootstrap bootstrap) throws E;
         T visit(DivideByCount divideByCount) throws E;
     }
 
@@ -1099,22 +1095,24 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Running running = (Running) o;
-            return Objects.equals(metric, running.metric);
+            final Running running = (Running) o;
+            return offset == running.offset &&
+                    Objects.equals(metric, running.metric);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(metric);
+            return Objects.hash(offset, metric);
         }
 
         @Override
         public String toString() {
             return "Running{" +
-                    "metric=" + metric +
+                    "offset=" + offset +
+                    ", metric=" + metric +
                     '}';
         }
     }
@@ -1326,7 +1324,9 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-
+            if (!validationHelper.isComputed(name)) {
+                validator.error("Cannot use value that has not been computed yet. Likely cause: DISTINCT, PERCENTILE, FIELD_MIN, FIELD_MAX, or SUM_OVER used in a Top K BY clause.");
+            }
         }
 
         @Override
@@ -1356,68 +1356,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         public String toString() {
             return "GroupStatsLookup{" +
                     "name='" + name + '\'' +
-                    '}';
-        }
-    }
-
-    public static class GroupStatsMultiLookup extends AggregateMetric {
-        public final List<String> names;
-
-        public GroupStatsMultiLookup(List<String> names) {
-            this.names = names;
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this);
-        }
-
-        @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-
-        }
-
-        @Override
-        public boolean isOrdered() {
-            return false;
-        }
-
-        @Override
-        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
-            final List<double[]> metrics = new ArrayList<>();
-            for (final String name : names) {
-                metrics.add(namedMetricLookup.apply(name).values);
-            }
-            return new MultiPerGroupConstant(metrics);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupStatsMultiLookup that = (GroupStatsMultiLookup) o;
-            return com.google.common.base.Objects.equal(names, that.names);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(names);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupStatsMultiLookup{" +
-                    "names=" + names +
                     '}';
         }
     }
@@ -1823,85 +1761,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         public String toString() {
             return "Max{" +
                     "metrics=" + metrics +
-                    '}';
-        }
-    }
-
-    public static class Bootstrap extends RequiresFTGSMetric {
-        public final FieldSet field;
-        public final Optional<AggregateFilter> filter;
-        public final String seed;
-        public final AggregateMetric metric;
-        public final int numBootstraps;
-        public final List<String> varargs;
-
-        public Bootstrap(FieldSet field, Optional<AggregateFilter> filter, String seed, AggregateMetric metric, int numBootstraps, List<String> varargs) {
-            this.field = field;
-            this.filter = filter;
-            this.seed = seed;
-            this.metric = metric;
-            this.numBootstraps = numBootstraps;
-            this.varargs = varargs;
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            final Optional<AggregateFilter> filter;
-            if (this.filter.isPresent()) {
-                filter = Optional.of(this.filter.get().transform(f, g, h, i, groupByFunction));
-            } else {
-                filter = Optional.absent();
-            }
-            return f.apply(new Bootstrap(field, filter, seed, metric.transform(f, g, h, i, groupByFunction), numBootstraps, varargs));
-        }
-
-        @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Bootstrap(field, filter, seed, f.apply(metric), numBootstraps, varargs);
-        }
-
-        @Override
-        public boolean isOrdered() {
-            return false;
-        }
-
-        @Override
-        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
-            throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Bootstrap bootstrap = (Bootstrap) o;
-            return numBootstraps == bootstrap.numBootstraps &&
-                    com.google.common.base.Objects.equal(field, bootstrap.field) &&
-                    com.google.common.base.Objects.equal(filter, bootstrap.filter) &&
-                    com.google.common.base.Objects.equal(seed, bootstrap.seed) &&
-                    com.google.common.base.Objects.equal(metric, bootstrap.metric) &&
-                    com.google.common.base.Objects.equal(varargs, bootstrap.varargs);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field, filter, seed, metric, numBootstraps, varargs);
-        }
-
-        @Override
-        public String toString() {
-            return "Bootstrap{" +
-                    "field=" + field +
-                    ", filter=" + filter +
-                    ", seed='" + seed + '\'' +
-                    ", metric=" + metric +
-                    ", numBootstraps=" + numBootstraps +
-                    ", varargs=" + varargs +
                     '}';
         }
     }

@@ -27,8 +27,6 @@ import java.util.List;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL1;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testOriginalIQL1;
 
 public class MetricMetadataTest extends BasicTest {
     private ImsClientInterface imsClient = new DimensionUtils.ImsClient();
@@ -96,10 +94,10 @@ public class MetricMetadataTest extends BasicTest {
             final List<List<String>> expected = new ArrayList<>();
             expected.add(ImmutableList.of("[0, 2)", "1"));
             expected.add(ImmutableList.of("[2, 4)", "1"));
-            expected.add(ImmutableList.of("[4, 6)", "0"));
+            expected.add(ImmutableList.of("[4, 6)", "2"));
             expected.add(ImmutableList.of("< 0", "0"));
-            expected.add(ImmutableList.of(">= 6", "3"));
-            testIQL2(dataset, expected, "from dimension yesterday today GROUP BY bucket(plus, 0, 5, 2)", options);
+            expected.add(ImmutableList.of(">= 6", "1"));
+            testIQL2(dataset, expected, "from dimension yesterday today GROUP BY bucket(plus, 0, 6, 2)", options);
         }
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("1", "1")), "from dimension yesterday today GROUP BY i2 HAVING i1divi2 > 1", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("0", "2"), ImmutableList.of("2", "2")), "from dimension yesterday today, dimension2 GROUP BY i2 HAVING count() > 1", options);
@@ -116,10 +114,9 @@ public class MetricMetadataTest extends BasicTest {
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from DIMension yesterday today WHERE aliasi1=0 AND i2 = 0 SELECT counts", options);
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today WHERE plus=5 SELECT counts", options);
         testAll(dataset, ImmutableList.of(ImmutableList.of("", "3")), "from DIMension yesterday today WHERE plus!=5 SELECT counts", options);
-        // 'between(...)' is different in Iql1 (upper bound is inluded), so two tests here.
-        // change it after IQL-458 is fixed
-        testOriginalIQL1(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from DIMension yesterday today WHERE between(plus, 0, 5) SELECT counts", options);
-        testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today WHERE between(plus, 0, 5) SELECT counts", options);
+        // 'between(...)' is different in Iql1 (upper bound is included) and Iql2 (upper is excluded), so two tests here.
+        testIQL1(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
+        testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from DIMension yesterday today where between(plus, 0, 5) SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE i1=plus SELECT counts", options);
         testIQL2(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from dimension yesterday today WHERE plus=calc SELECT counts", options);
         assertFailQuery("from DIMension yesterday today WHERE i1divi2=1", "equality for aggregate metric is not supported");

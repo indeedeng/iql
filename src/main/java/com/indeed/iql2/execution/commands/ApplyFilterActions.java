@@ -31,7 +31,7 @@ public class ApplyFilterActions implements Command {
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         for (final Action action : actions) {
-            session.timer.push("action.apply " + action);
+            session.timer.push("action.apply " + action.getClass().getSimpleName(), "action.apply " + action);
             action.apply(session);
             session.timer.pop();
         }

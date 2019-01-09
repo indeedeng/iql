@@ -8,6 +8,8 @@ import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateMetric;
@@ -19,6 +21,7 @@ import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.passes.SubstituteDimension;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,6 +36,8 @@ import java.util.stream.Collectors;
  * @author jwolfe
  */
 public class ScopedFieldResolver {
+    private static final Logger log = Logger.getLogger(ScopedFieldResolver.class);
+
     private final FieldResolver fieldResolver;
     private final Set<String> scope;
 
@@ -121,6 +126,47 @@ public class ScopedFieldResolver {
     public FieldSet resolve(final JQLParser.ScopedFieldContext ctx) {
         final ScopedFieldResolver resolver = forScope(ctx);
         return resolver.resolve(ctx.field, resolver != this, ctx);
+    }
+
+    public FieldType fieldType(final FieldSet field) {
+        boolean anyString = false;
+        boolean anyInt = false;
+        for (final String dataset : field.datasets()) {
+            if (FieldResolver.FAILED_TO_RESOLVE_DATASET.equals(dataset)) {
+                continue;
+            }
+            final DatasetMetadata metadata = fieldResolver.datasets.get(dataset).datasetMetadata;
+            final String datasetFieldName = field.datasetFieldName(dataset);
+            if (FieldResolver.FAILED_TO_RESOLVE_FIELD.equals(datasetFieldName)) {
+                continue;
+            }
+            final FieldMetadata fieldMetadata = metadata.getField(datasetFieldName);
+            switch (fieldMetadata.getType()) {
+                case String:
+                    anyString = true;
+                    break;
+                case Integer:
+                    anyInt = true;
+                    break;
+            }
+        }
+
+        if (anyInt) {
+            return FieldType.Integer;
+        }
+
+        if (anyString) {
+            return FieldType.String;
+        }
+
+        // Should only occur if we didn't resolve any fields with the given name,
+        // and we don't want to throw an exception so that we can get our
+        // parsing validation errors that indicate the source of failure.
+        // Let's pretend we're a String!
+
+        log.warn("FieldSet did not contain any valid dataset fields, so defaulting to String type");
+
+        return FieldType.String;
     }
 
     public interface MetricResolverCallback<T> {
@@ -347,20 +393,20 @@ public class ScopedFieldResolver {
     public static class BetweenCallback implements MetricResolverCallback<DocFilter> {
         private final long lowerBound;
         private final long upperBound;
+        private final boolean isUpperIncluded;
 
-        public BetweenCallback(final long lowerBound, final long upperBound) {
+        public BetweenCallback(final long lowerBound, final long upperBound, final boolean isUpperIncluded) {
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
+            this.isUpperIncluded = isUpperIncluded;
         }
 
         public DocFilter plainFields(final FieldSet fieldSet) {
-            return new DocFilter.Between(fieldSet, lowerBound, upperBound);
+            return new DocFilter.Between(fieldSet, lowerBound, upperBound, isUpperIncluded);
         }
 
         public DocFilter metric(final DocMetric metric) {
-            return new DocFilter.And(
-                    new DocFilter.MetricGte(metric, new DocMetric.Constant(lowerBound)),
-                    new DocFilter.MetricLt(metric, new DocMetric.Constant(upperBound)));
+            return DocFilter.Between.forMetric(metric, lowerBound, upperBound, isUpperIncluded);
         }
     }
 

@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -75,7 +76,7 @@ public class DocFilters {
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound)));
+                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, true)));
             }
 
             @Override
@@ -112,7 +113,8 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(new DocFilter.Sample(field, numerator, denominator, seed));
+                final FieldType fieldType = fieldResolver.fieldType(field);
+                accept(new DocFilter.Sample(field, fieldType == FieldType.Integer, numerator, denominator, seed));
             }
 
             @Override
@@ -241,7 +243,7 @@ public class DocFilters {
             public void enterDocBetween(JQLParser.DocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound)));
+                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, false)));
             }
 
             @Override
@@ -280,7 +282,8 @@ public class DocFilters {
                 } else {
                     seed = String.valueOf(Math.random());
                 }
-                accept(field.wrap(new DocFilter.Sample(field, numerator, denominator, seed)));
+                final FieldType fieldType = fieldResolver.fieldType(field);
+                accept(field.wrap(new DocFilter.Sample(field, fieldType == FieldType.Integer, numerator, denominator, seed)));
             }
 
             @Override

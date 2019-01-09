@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.google.common.base.Predicate;
 
 public class MetricRegroupTest extends BasicTest {
     @Test
@@ -84,5 +85,29 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
         // IQL1 does not support regroup with default
         QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
+    }
+
+    @Test
+    public void testRegroupBetweeen() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "3", "15"));
+        expected.add(ImmutableList.of("1", "148", "291"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by between(ojc, 1, 11) select count(), ojc");
+    }
+
+    @Test
+    public void testRegroupLucene() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("0", "15"),
+                ImmutableList.of("1", "136"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by lucene(\"oji:[1 TO 10]\") select count()", true);
+    }
+
+    @Test
+    public void invalidBucketSize() {
+        final Predicate<String> containsBucketErrorMessage = e -> (e.contains("Bucket range should be a multiple of the interval"));
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", containsBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", containsBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", containsBucketErrorMessage);
     }
 }

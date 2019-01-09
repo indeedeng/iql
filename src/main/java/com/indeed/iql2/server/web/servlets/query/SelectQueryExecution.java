@@ -42,6 +42,7 @@ import com.indeed.iql.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -87,9 +88,8 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -138,6 +138,8 @@ public class SelectQueryExecution {
 
     private final DatasetsMetadata datasetsMetadata;
 
+    @Nullable
+    private final Long maxCachedQuerySizeLimitBytes;
     // Query output state
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
@@ -157,6 +159,7 @@ public class SelectQueryExecution {
             @Nullable final File tmpDir,
             final QueryCache queryCache,
             final Limits limits,
+            @Nullable final Long maxCachedQuerySizeLimitBytes,
             final ImhotepClient imhotepClient,
             final DatasetsMetadata datasetsMetadata,
             final PrintWriter outputStream,
@@ -179,6 +182,7 @@ public class SelectQueryExecution {
         this.timer = timer;
         this.isStream = isStream;
         this.limits = limits;
+        this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.skipValidation = skipValidation;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
@@ -250,6 +254,9 @@ public class SelectQueryExecution {
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
+        queryInfo.resultBytes = execInfo.resultBytes;
+        queryInfo.cacheUploadSkipped = execInfo.cacheUploadSkipped;
+
         queryInfo.setFromPerformanceStats(execInfo.imhotepPerformanceStats);
 
         if (execInfo.hasMoreRows) {
@@ -290,6 +297,7 @@ public class SelectQueryExecution {
 
             final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
             queryInfo.datasetFields = Sets.newHashSet();
+            queryInfo.datasetFieldsNoDescription = Sets.newHashSet();
 
             for (final FieldExtractor.DatasetField datasetField : datasetFields) {
                 final DatasetInfo datasetInfo = imhotepClient.getDatasetToDatasetInfo().get(datasetField.dataset);
@@ -301,6 +309,9 @@ public class SelectQueryExecution {
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);
+                    if (!datasetsMetadata.fieldHasDescription(datasetField.dataset, field)) {
+                        queryInfo.datasetFieldsNoDescription.add(datasetField.dataset + "." + field);
+                    }
                 }
             }
         }
@@ -514,7 +525,7 @@ public class SelectQueryExecution {
 
             final boolean cacheEnabled = queryCache.isEnabled() && !skipCache;
             final File cacheFile;
-            final BufferedWriter cacheWriter;
+            final TruncatingBufferedOutputStream cacheWriter;
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
                 strictCloser.registerOrClose(innerStrictCloser);
@@ -549,7 +560,7 @@ public class SelectQueryExecution {
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 queryCached, totalBytesWritten[0], null, cacheKeys,
-                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows);
+                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, null, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
                         return selectExecutionInformation;
@@ -557,13 +568,15 @@ public class SelectQueryExecution {
 
                     final Consumer<String> oldOut = out;
                     cacheFile = File.createTempFile("query", ".cache.tmp", tmpDir);
-                    // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
-                    cacheWriter = new BufferedWriter(new FileWriter(cacheFile));
+                    cacheWriter = new TruncatingBufferedOutputStream(new FileOutputStream(cacheFile), maxCachedQuerySizeLimitBytes);
+
                     out = s -> {
                         oldOut.accept(s);
                         try {
-                            cacheWriter.write(s);
-                            cacheWriter.newLine();
+                            if (!cacheWriter.isOverflowed()) {
+                                cacheWriter.write(s.getBytes(Charsets.UTF_8));
+                                cacheWriter.write('\n');
+                            }
                         } catch (IOException e) {
                             throw Throwables.propagate(e);
                         }
@@ -595,7 +608,7 @@ public class SelectQueryExecution {
                     };
                 }
 
-                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(inputStream, query, datasetsMetadata.getDatasetToDimensionAliasFields());
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(query);
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
@@ -627,7 +640,10 @@ public class SelectQueryExecution {
                             infoCollectingProgressCallback.getTotalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
                             infoCollectingProgressCallback.getMaxConcurrentSessions(),
-                            hasMoreRows.get());
+                            hasMoreRows.get(),
+                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
+                            (cacheWriter != null) ? cacheWriter.isOverflowed() : null
+                    );
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
 
@@ -639,19 +655,25 @@ public class SelectQueryExecution {
                             @Override
                             public Void call() {
                                 try {
-                                    if (isTopLevelQuery) {
-                                        try {
-                                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                            queryMetadata.toOutputStream(metadataCacheStream);
-                                        } catch (Exception e) {
-                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                    if (cacheWriter.isOverflowed()) {
+                                        // If the results were too big, we do not want to write to the cache.
+                                        log.warn("Skipping cache upload due to overflow");
+                                        Closeables2.closeQuietly(cacheWriter, log);
+                                    } else {
+                                        if (isTopLevelQuery) {
+                                            try {
+                                                final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                                queryMetadata.toOutputStream(metadataCacheStream);
+                                            } catch (Exception e) {
+                                                log.warn("Failed to upload metadata cache: " + cacheFileName, e);
+                                            }
                                         }
-                                    }
-                                    try {
-                                        cacheWriter.close();
-                                        queryCache.writeFromFile(cacheFileName, cacheFile);
-                                    } catch (Exception e) {
-                                        log.warn("Failed to upload cache: " + cacheFileName, e);
+                                        try {
+                                            cacheWriter.close();
+                                            queryCache.writeFromFile(cacheFileName, cacheFile);
+                                        } catch (Exception e) {
+                                            log.warn("Failed to upload cache: " + cacheFileName, e);
+                                        }
                                     }
                                 } finally {
                                     if (cacheUploadingCounter.decrementAndGet() == 0) {
@@ -687,7 +709,7 @@ public class SelectQueryExecution {
                 final List<DatasetWithMissingShards> datasetsWithMissingShards) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
-            timer.push("Execute sub-query: \"" + q + "\"");
+            timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
@@ -932,10 +954,15 @@ public class SelectQueryExecution {
         public final int maxConcurrentSessions;
         public final boolean hasMoreRows;
 
+        @Nullable
+        public final Long resultBytes;
+        @Nullable
+        public final Boolean cacheUploadSkipped;
+
         private SelectExecutionInformation(Multimap<String, List<Shard>> datasetToShards, List<DatasetWithMissingShards> datasetsWithMissingShards,
                                            Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
                                            Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
-                                           final boolean hasMoreRows) {
+                                           final boolean hasMoreRows, @Nullable final Long resultBytes, @Nullable final Boolean cacheUploadSkipped) {
             this.datasetToShards = datasetToShards;
             this.datasetsWithMissingShards = datasetsWithMissingShards;
             this.queryCached = queryCached;
@@ -947,6 +974,8 @@ public class SelectQueryExecution {
             this.maxNumGroups = maxNumGroups;
             this.maxConcurrentSessions = maxConcurrentSessions;
             this.hasMoreRows = hasMoreRows;
+            this.resultBytes = resultBytes;
+            this.cacheUploadSkipped = cacheUploadSkipped;
         }
 
         public boolean allCached() {

@@ -716,6 +716,10 @@ public class EZImhotepSession implements Closeable {
                                                 boolean noGutters, Stringifier<Long> stringifier,
                                                 @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = new Int2ObjectOpenHashMap<>();
+        if ( (max-min)%intervalSize != 0 ) {
+            final long bucketRange = max - min;
+            throw new IllegalArgumentException("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to " + (max - bucketRange%intervalSize) + " or increase to " + (max + intervalSize - bucketRange%intervalSize));
+        }
         final int gutterBuckets = noGutters ? 0 : 2;
         final int numBuckets = (int)((max-min-1)/intervalSize + 1 + gutterBuckets);
         for (int group = 1; group < numGroups; group++) {
@@ -849,7 +853,7 @@ public class EZImhotepSession implements Closeable {
 
         final Int2ObjectMap<PriorityQueue<ScoredLong>> intTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredLong>>();
         final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> stringTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<String>>>();
-        final Comparator<ScoredObject> scoredObjectComparator;
+        final Comparator<ScoredObject<String>> scoredObjectComparator;
         final Comparator<ScoredLong> scoredLongComparator;
         private final StatReference count;
         private final int k;
@@ -860,7 +864,7 @@ public class EZImhotepSession implements Closeable {
             this.count = count;
             this.k = k;
             this.isBottom = isBottom;
-            scoredObjectComparator = isBottom ? ScoredObject.BOTTOM_SCORE_COMPARATOR : ScoredObject.TOP_SCORE_COMPARATOR;
+            scoredObjectComparator = isBottom ? ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder()) : ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
             scoredLongComparator = isBottom ? ScoredLong.BOTTOM_SCORE_COMPARATOR : ScoredLong.TOP_SCORE_COMPARATOR;
         }
 

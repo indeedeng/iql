@@ -93,23 +93,11 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof GetFieldMax) {
                 final GetFieldMax getFieldMax = (GetFieldMax) computation;
                 fields.add(getFieldMax.field);
-                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
-                    public double[] apply(long[] input) {
-                        return longToDouble(input);
-                    }
-                }, getFieldMax.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, Functions.identity(), getFieldMax.iterateHandler(session), name));
             } else if (computation instanceof GetFieldMin) {
                 final GetFieldMin getFieldMin = (GetFieldMin) computation;
                 fields.add(getFieldMin.field);
-                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
-                    public double[] apply(long[] input) {
-                        return longToDouble(input);
-                    }
-                }, getFieldMin.iterateHandler(session), name));
-            } else if (computation instanceof ComputeBootstrap) {
-                final ComputeBootstrap computeBootstrap = (ComputeBootstrap) computation;
-                fields.add(computeBootstrap.field);
-                handlerables.add(computeBootstrap.iterateHandler(session));
+                handlerables.add(new NameIt<>(session, Functions.identity(), getFieldMin.iterateHandler(session), name));
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }

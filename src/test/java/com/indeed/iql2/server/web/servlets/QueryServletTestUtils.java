@@ -17,6 +17,7 @@ package com.indeed.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +37,7 @@ import com.indeed.iql.web.TopTermsCache;
 import com.indeed.iql.web.config.IQLEnv;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
@@ -81,7 +83,7 @@ public class QueryServletTestUtils extends BasicTest {
     public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), true);
         metadataCache.updateDatasets();
-        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb);
+        final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(iqldb, Integer.MAX_VALUE);
 
         return new QueryServlet(
                 options.tmpDir,
@@ -94,6 +96,7 @@ public class QueryServletTestUtils extends BasicTest {
                 executorService,
                 new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8)),
+                options.maxCacheQuerySizeLimitBytes,
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
                 options.wallClock,
@@ -196,6 +199,8 @@ public class QueryServletTestUtils extends BasicTest {
         private ImsClientInterface imsClient;
         private boolean skipTestDimension = false;
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+        @Nullable
+        private Long maxCacheQuerySizeLimitBytes;
 
         Options() {
         }
@@ -248,6 +253,11 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options setTmpDir(@Nullable final File tmpDir) {
             this.tmpDir = tmpDir;
+            return this;
+        }
+
+        public Options setMaxCacheQuerySizeLimitBytes(@Nullable final Long maxCacheQuerySizeLimitBytes) {
+            this.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
             return this;
         }
     }
@@ -360,8 +370,16 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     // test only IQL2
+    static void testIQL2(List<List<String>> expected, String query) throws Exception {
+        testIQL2(AllData.DATASET, expected, query);
+    }
+
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query) throws Exception {
         testIQL2(dataset, expected, query, false);
+    }
+
+    static void testIQL2(List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
+        testIQL2(AllData.DATASET, expected, query, skipTestDimension);
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
@@ -370,6 +388,10 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL2(ImhotepClient client, List<List<String>> expected, String query) throws Exception {
         testIQL2(client, expected, query, Options.create());
+    }
+
+    static void testIQL2(List<List<String>> expected, String query, Options options) throws Exception {
+        testIQL2(AllData.DATASET, expected, query, options);
     }
 
     static void testIQL2(Dataset dataset, List<List<String>> expected, String query, Options options) throws Exception {
@@ -432,11 +454,32 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
+    static void testAll(List<List<String>> expected, String query, Options options) throws Exception {
+        testAll(AllData.DATASET, expected, query, options);
+    }
+
     static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
         testOriginalIQL1(client, expected, query, options);
         testIQL1LegacyMode(client, expected, query, options);
         testIQL2(client, expected, query, options);
     }
+
+    static void expectException(Dataset dataset, String query, LanguageVersion version, Predicate<String> exceptionMessagePredicate) {
+        final ImhotepClient client = dataset.getNormalClient();
+        try {
+            runQuery(client, query, version, true, Options.create(), Collections.emptySet());
+            Assert.fail("No exception returned in expectException");
+        } catch (Exception e) {
+            Assert.assertTrue(exceptionMessagePredicate.apply(e.getMessage()));
+        }
+    }
+
+    static void expectExceptionAll(Dataset dataset, String query, Predicate<String> exceptionMessagePredicate) {
+        for (LanguageVersion languageVersion: LanguageVersion.values()) {
+            expectException(dataset, query, languageVersion, exceptionMessagePredicate);
+        }
+    }
+
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
         final List<List<String>> output = new ArrayList<>();

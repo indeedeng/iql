@@ -65,6 +65,7 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.build.testOutputDirectory}/config/log4j.xml</log4j.configuration>
                     </systemPropertyVariables>
+                    <argLine>-Xmx1024m</argLine>
                 </configuration>
             </plugin>
         </plugins>
@@ -398,11 +399,10 @@
             <version>4.5.5</version>
         </dependency>
 
-        <!-- OpenTracing deps -->
         <dependency>
             <groupId>io.opentracing</groupId>
             <artifactId>opentracing-util</artifactId>
-            <version>0.30.0</version>
+            <version>${opentracing.version}</version>
         </dependency>
 
         <!-- IQL2 deps -->
@@ -446,6 +446,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-mock</artifactId>
+            <version>${opentracing.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <properties>
@@ -455,8 +462,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <imhotep.version>3.1.145</imhotep.version>
-        <ims.version>4.0.10</ims.version>
+        <imhotep.version>3.1.152</imhotep.version>
+        <ims.version>4.0.11</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>
@@ -465,6 +472,7 @@
         <lucene.version>2.4.1</lucene.version>
         <hadoop.version>2.6.0-cdh5.8.2</hadoop.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>
+        <opentracing.version>0.30.0</opentracing.version>
     </properties>
 
 </project>

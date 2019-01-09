@@ -16,12 +16,10 @@ package com.indeed.iql2.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -29,7 +27,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
-import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
@@ -49,6 +46,7 @@ import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.iql.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
 import com.indeed.iql2.execution.commands.SimpleIterate;
@@ -85,13 +83,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * @author jwolfe
@@ -104,7 +100,7 @@ public class Session {
 
     private static final Logger log = Logger.getLogger(Session.class);
 
-    public GroupKeySet groupKeySet = DumbGroupKeySet.create();
+    public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
 
@@ -240,29 +236,20 @@ public class Session {
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
             final ProgressCallback progressCallback
-    ) throws ImhotepOutOfMemoryException, IOException {
+    ) throws ImhotepOutOfMemoryException {
         long firstStartTimeMillis = 0;
         for (int i = 0; i < sessionRequest.size(); i++) {
             final Queries.QueryDataset dataset = sessionRequest.get(i);
             final String imhotepDataset = dataset.dataset;
             Preconditions.checkNotNull(imhotepDataset, "Dataset does not exist: %s", dataset.name);
-            final Map<String, String> dimensionAliases = dataset.dimensionAliases;
-            treeTimer.push("session:" + dataset.displayName);
+            treeTimer.push("session", "session:" + dataset.displayName);
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardInfo");
             final DatasetInfo datasetInfo = client.getDatasetInfo(imhotepDataset);
             treeTimer.pop();
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
-            final Set<String> sessionStringFields = new HashSet<>();
-
-            for (String stringField : datasetInfo.getStringFields()) {
-                if (dimensionAliases.containsKey(stringField)) {
-                    sessionIntFields.add(stringField);
-                } else {
-                    sessionStringFields.add(stringField);
-                }
-            }
+            final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
             final DateTime startDateTime = parseDateTime(dataset.start);
             final DateTime endDateTime = parseDateTime(dataset.end);
@@ -285,7 +272,7 @@ public class Session {
             // TODO: message should be "build session builder (xxx shards on yyy daemons)"
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
-            treeTimer.push("build session builder (" + chosenShards.size() + " shards)");
+            treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
             final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
             // Just in case they have resources, registerOrClose the wrapped session as well.
@@ -325,42 +312,6 @@ public class Session {
         return firstStartTimeMillis;
     }
 
-    private static Map<String, String> combineAliases(final Map<String, String> fieldAliases, final Map<String, String> dimensionAliases) {
-        final Map<String, String> combinedAliases = new HashMap<>();
-        combinedAliases.putAll(dimensionAliases);
-        combinedAliases.putAll(fieldAliases);
-        final Map<String, String> resolvedAliasesFields = resolveAliasToRealField(combinedAliases);
-        return resolvedAliasesFields.entrySet().stream()
-                .filter(e -> !e.getKey().equals(e.getValue()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-
-    private static Map<String, String> resolveAliasToRealField(Map<String, String> fieldAliases) {
-        ImmutableMap.Builder<String, String> resolvedAliasToRealFieldBuilder = new ImmutableMap.Builder<>();
-        for (String originField : fieldAliases.keySet()) {
-            String targetField = fieldAliases.get(originField);
-            final Set<String> seenField = new LinkedHashSet<>();
-            seenField.add(targetField);
-            while (fieldAliases.containsKey(targetField)) {
-                final String newTargetField = fieldAliases.get(targetField);
-                // for the dimension: same -> same
-                if (newTargetField.equals(targetField)) {
-                    break;
-                }
-                if (seenField.contains(newTargetField)) {
-                    throw new IllegalArgumentException(
-                            String.format("field alias has circular reference: %s -> %s", originField,
-                                    Joiner.on(" -> ").join(seenField.toArray())));
-                }
-                seenField.add(newTargetField);
-                targetField = newTargetField;
-            }
-            resolvedAliasToRealFieldBuilder.put(originField, targetField);
-        }
-        return resolvedAliasToRealFieldBuilder.build();
-    }
-
     private static ImhotepSessionHolder wrapSession(
             final String datasetName,
             final ImhotepSession build) {
@@ -380,7 +331,7 @@ public class Session {
     public void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
                                 final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = lCommand.toString();
-        timer.push("evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
+        timer.push("evaluateCommand " + lCommand.getClass().getSimpleName(), "evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
@@ -408,7 +359,7 @@ public class Session {
     public void evaluateCommandToTSV(final com.indeed.iql2.language.commands.Command lCommand,
                                      final Consumer<String> out,
                                      final List<String> options) throws ImhotepOutOfMemoryException, IOException {
-        timer.push("evaluateCommandToTSV " + lCommand);
+        timer.push("evaluateCommandToTSV " + lCommand.getClass().getSimpleName(), "evaluateCommandToTSV " + lCommand);
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             try {
@@ -434,19 +385,12 @@ public class Session {
                         if (!groupKeySet.isPresent(group)) {
                             continue;
                         }
-                        final List<String> keyColumns = GroupKeySets.asList(groupKeySet, group);
-                        if (keyColumns.isEmpty()) {
-                            sb.append("\t");
-                        } else {
-                            for (final String k : keyColumns) {
-                                appendGroupString(k, sb);
-                                sb.append('\t');
-                            }
+                        GroupKeySets.appendTo(sb, groupKeySet, group);
+                        if (sb.length() == 0) {
+                            sb.append('\t');
                         }
                         writeDoubleStatsWithFormatString(results, group, formatStrings, sb);
-                        if (keyColumns.size() + results.length > 0) {
-                            sb.setLength(sb.length() - 1);
-                        }
+                        sb.setLength(sb.length() - 1);
                         out.accept(sb.toString());
                         sb.setLength(0);
                     }
@@ -463,12 +407,16 @@ public class Session {
 
     public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb) {
         if (formatString != null) {
-            sb.append(String.format(formatString, stat)).append('\t');
-        } else if (DoubleMath.isMathematicalInteger(stat)) {
-            sb.append(String.format("%.0f", stat)).append('\t');
+            sb.append(String.format(formatString, stat));
         } else {
-            sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat)).append('\t');
+            final long value = MathUtils.integralDoubleAsLong(stat);
+            if (value != Long.MAX_VALUE) {
+                sb.append(value);
+            } else {
+                sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat));
+            }
         }
+        sb.append('\t');
     }
 
     public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
@@ -557,7 +505,7 @@ public class Session {
     }
 
     public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
-        timer.push("pushStats ('" + String.join("', '", pushes) + "')");
+        timer.push("pushStats", "pushStats ('" + String.join("', '", pushes) + "')");
         final int result = session.pushStats(pushes);
         timer.pop();
         return result;
@@ -596,7 +544,7 @@ public class Session {
         final int oldNumGroups = this.numGroups;
         // TODO: Parallelize
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
+            timer.push("session", "session:" + sessionInfo.displayName);
 
             final ImhotepSessionHolder session = sessionInfo.session;
             final String fieldName;
@@ -636,7 +584,7 @@ public class Session {
         final BitSet anyPresent = new BitSet();
         // TODO: Parallelize?
         for (Map.Entry<String, ImhotepSessionHolder> imhotepSessionEntry : getSessionsMapRaw().entrySet()) {
-            timer.push("session:" + getSessionsMap().get(imhotepSessionEntry.getKey()).displayName);
+            timer.push("session", "session:" + getSessionsMap().get(imhotepSessionEntry.getKey()).displayName);
 
             final ImhotepSessionHolder session = imhotepSessionEntry.getValue();
             timer.push("push counts");
@@ -749,7 +697,7 @@ public class Session {
     public void popStats() {
         timer.push("popStats");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
+            timer.push("session", "session:" + sessionInfo.displayName);
             final ImhotepSessionHolder session = sessionInfo.session;
             final int numStats = session.getNumStats();
             for (int i = 0; i < numStats; i++) {
@@ -798,7 +746,7 @@ public class Session {
             final RequestTools.GroupMultiRemapRuleSender sender =
                     ((SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached) builder).createSender();
             for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-                timer.push("session: " + sessionInfo.displayName);
+                timer.push("session", "session: " + sessionInfo.displayName);
                 sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
                 timer.pop();
             }
@@ -826,14 +774,14 @@ public class Session {
 
             for (final Map.Entry<String, List<ImhotepSessionInfo>> entry : realFieldToSessions.entrySet()) {
                 final String realField = entry.getKey();
-                timer.push("real field: " + realField);
+                timer.push("real field", "real field: " + realField);
                 final SingleFieldRegroupTools.FieldOptions realFieldOptions = new SingleFieldRegroupTools.FieldOptions(realField, intType, inequality);
                 final Iterator<GroupMultiRemapMessage> messages =
                         Iterators.transform(Arrays.asList(rules).iterator(),
                                 rule -> SingleFieldRegroupTools.marshal(rule, realFieldOptions));
                 final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
                 for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
-                    timer.push("session:" + sessionInfo.displayName);
+                    timer.push("session", "session:" + sessionInfo.displayName);
                     sessionInfo.session.regroupWithSender(sender, errorOnCollisions);
                     timer.pop();
                 }
@@ -855,7 +803,7 @@ public class Session {
         // TODO: Parallelize
         timer.push("remapGroups");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
+            timer.push("session","session:" + sessionInfo.displayName);
             sessionInfo.session.regroup(fromGroups, toGroups, true);
             timer.pop();
         }
@@ -866,7 +814,7 @@ public class Session {
         // TODO: Parallelize
         timer.push("popStat");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session:" + sessionInfo.displayName);
+            timer.push("session", "session:" + sessionInfo.displayName);
             sessionInfo.session.popStat();
             timer.pop();
         }
@@ -875,11 +823,11 @@ public class Session {
 
     public void intOrRegroup(String field, long[] terms, int targetGroup, int negativeGroup, int positiveGroup, Set<String> scope) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("intOrRegroup(" + terms.length + " terms)");
+        timer.push("intOrRegroup", "intOrRegroup(" + terms.length + " terms)");
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(s);
-                timer.push("session:" + sessionInfo.displayName);
+                timer.push("session", "session:" + sessionInfo.displayName);
                 sessionInfo.session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -889,11 +837,11 @@ public class Session {
 
     public void stringOrRegroup(FieldSet field, String[] terms, int targetGroup, int negativeGroup, int positiveGroup) throws ImhotepOutOfMemoryException {
         // TODO: Parallelize
-        timer.push("stringOrRegroup(" + terms.length + " terms)");
+        timer.push("stringOrRegroup", "stringOrRegroup(" + terms.length + " terms)");
         for (final String dataset : field.datasets()) {
             if (sessions.containsKey(dataset)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(dataset);
-                timer.push("session:" + sessionInfo.displayName);
+                timer.push("session", "session:" + sessionInfo.displayName);
                 sessionInfo.session.stringOrRegroup(field.datasetFieldName(dataset), terms, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -906,7 +854,7 @@ public class Session {
         timer.push("regroup");
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
-                timer.push("session:" + sessions.get(s).displayName);
+                timer.push("session", "session:" + sessions.get(s).displayName);
                 // remapping just one group, leaving other groups as-is
                 sessions.get(s).session.regroup(new int[]{fromGroup}, new int[]{toGroup}, false);
                 timer.pop();
@@ -922,7 +870,7 @@ public class Session {
             final String dataset = entry.getKey();
             if (field.containsDataset(dataset)) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
-                timer.push("session:" + entry.getValue().displayName);
+                timer.push("session", "session:" + entry.getValue().displayName);
                 v.session.regexRegroup(field.datasetFieldName(dataset), regex, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -936,7 +884,7 @@ public class Session {
         for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
             final String dataset = entry.getKey();
             if (field.containsDataset(dataset)) {
-                timer.push("session:" + entry.getValue().displayName);
+                timer.push("session", "session:" + entry.getValue().displayName);
                 entry.getValue().session.randomRegroup(field.datasetFieldName(dataset), isIntField, seed, probability, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -960,7 +908,7 @@ public class Session {
         } else {
             return result; // or error?
         }
-        timer.push("getSimpleDistinct session:" + info.displayName);
+        timer.push("getSimpleDistinct", "getSimpleDistinct session:" + info.displayName);
         try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
             timer.pop();
             final int size = Math.min(iterator.getNumGroups(), result.length);
@@ -1068,7 +1016,7 @@ public class Session {
             timer.push("request remote FTGS iterator");
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSessionHolder session = sessions.get(sessionName);
-                timer.push("session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
+                timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
                 final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
@@ -1157,7 +1105,7 @@ public class Session {
 
         final ImhotepSessionHolder session = Iterables.getOnlyElement(sessions.values());
         final String dataset = session.getDatasetName();
-        timer.push("request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
+        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
 
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
@@ -1339,7 +1287,7 @@ public class Session {
             // TODO: Parallelize
             final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             for (final String sessionName : sessions.keySet()) {
-                timer.push("session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
+                timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
                 final ImhotepSessionHolder session = sessions.get(sessionName);
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
@@ -1394,7 +1342,7 @@ public class Session {
 
         final ImhotepSessionHolder session = Iterables.getOnlyElement(sessions.values());
         final String dataset = session.getDatasetName();
-        timer.push("request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
+        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
 
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,

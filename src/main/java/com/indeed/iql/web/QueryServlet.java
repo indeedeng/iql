@@ -103,6 +103,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -142,6 +143,8 @@ public class QueryServlet {
     private final RunningQueriesManager runningQueriesManager;
     private final ExecutorService cacheUploadExecutorService;
     private final AccessControl accessControl;
+    @Nullable
+    private final Long maxCachedQuerySizeLimitBytes;
     private final MetricStatsEmitter metricStatsEmitter;
     private final FieldFrequencyCache fieldFrequencyCache;
     private final WallClock clock;
@@ -159,6 +162,7 @@ public class QueryServlet {
                         final RunningQueriesManager runningQueriesManager,
                         final ExecutorService cacheUploadExecutorService,
                         final AccessControl accessControl,
+                        @Nullable final Long maxCachedQuerySizeLimitBytes,
                         final MetricStatsEmitter metricStatsEmitter,
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
@@ -173,6 +177,7 @@ public class QueryServlet {
         this.runningQueriesManager = runningQueriesManager;
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.accessControl = accessControl;
+        this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.metricStatsEmitter = metricStatsEmitter;
         this.fieldFrequencyCache = fieldFrequencyCache;
         this.clock = clock;
@@ -239,6 +244,9 @@ public class QueryServlet {
                     handleSelectStatement((SelectStatement) iqlStatement, queryInfo, clientInfo, queryRequestParams, resp);
                     if (queryInfo.cached != null) {
                         activeSpan.setTag("cached", queryInfo.cached);
+                    }
+                    if (queryInfo.queryId != null) {
+                        activeSpan.setTag("queryid", queryInfo.queryId);
                     }
                 } else if (iqlStatement instanceof DescribeStatement) {
                     handleDescribeStatement((DescribeStatement) iqlStatement, queryRequestParams, resp, queryInfo);
@@ -356,7 +364,7 @@ public class QueryServlet {
                 // IQL2
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        tmpDir, queryCache, limits, imhotepClient,
+                        tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
                         clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
@@ -408,6 +416,10 @@ public class QueryServlet {
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
+        queryInfo.datasetFieldsNoDescription = iqlQuery.getFields().stream()
+                .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field))
+                .map((field) -> iqlQuery.getDataset() + "." + field)
+                .collect(Collectors.toSet());
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
@@ -872,10 +884,15 @@ public class QueryServlet {
         logString(logEntry, "statement", queryInfo.statementType);
 
         logBoolean(logEntry, "cached", queryInfo.cached);
+        logBoolean(logEntry, "cacheUploadSkipped", queryInfo.cacheUploadSkipped);
+        logLong(logEntry, "resultBytes", queryInfo.resultBytes);
         logSet(logEntry, "dataset", queryInfo.datasets);
         logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
         if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
+        }
+        if (queryInfo.datasetFieldsNoDescription != null && queryInfo.datasetFieldsNoDescription.size() > 0) {
+            logSet(logEntry, "datasetFieldsNoDescription", queryInfo.datasetFieldsNoDescription);
         }
         if (queryInfo.totalDatasetRangeDays != null) {
             logInteger(logEntry, "days", queryInfo.totalDatasetRangeDays);

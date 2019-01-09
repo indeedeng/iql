@@ -128,7 +128,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (term.isIntTerm) {
                 return new DocMetric.HasInt(field, term.intTerm);
             } else {
-                return new DocMetric.HasString(field, term.stringTerm);
+                return new DocMetric.HasString(field, term.stringTerm, true);
             }
         }
 
@@ -292,11 +292,33 @@ public abstract class DocFilter extends AbstractPositional {
         public final FieldSet field;
         public final long lowerBound;
         public final long upperBound;
+        public final boolean isUpperInclusive;
 
-        public Between(FieldSet field, long lowerBound, long upperBound) {
+        public Between(
+                final FieldSet field,
+                final long lowerBound,
+                final long upperBound,
+                final boolean isUpperInclusive) {
             this.field = field;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
+            this.isUpperInclusive = isUpperInclusive;
+        }
+
+        public DocFilter forMetric(final DocMetric metric) {
+            return forMetric(metric, lowerBound, upperBound, isUpperInclusive);
+        }
+
+        public static DocFilter forMetric(
+                final DocMetric metric,
+                final long lower,
+                final long upper,
+                final boolean includeUpper) {
+            final DocFilter lowerCondition = new MetricGte(metric, new DocMetric.Constant(lower));
+            final DocFilter upperCondition = includeUpper ?
+                    new MetricLte(metric, new DocMetric.Constant(upper)) :
+                    new MetricLt(metric, new DocMetric.Constant(upper));
+            return new And(lowerCondition, upperCondition);
         }
 
         @Override
@@ -305,11 +327,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new And(
-                    new MetricGte(new DocMetric.Field(field), new DocMetric.Constant(lowerBound)),
-                    new MetricLt(new DocMetric.Field(field), new DocMetric.Constant(upperBound))
-            ).asZeroOneMetric(dataset);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            return forMetric(new DocMetric.Field(field)).asZeroOneMetric(dataset);
         }
 
         @Override
@@ -317,7 +336,7 @@ public abstract class DocFilter extends AbstractPositional {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
             final Map<String, Query> datasetToQuery = new HashMap<>();
             for (final String dataset : field.datasets()) {
-                datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, false));
+                datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive));
             }
             return Collections.<Action>singletonList(new QueryAction(datasetToQuery, target, positive, negative));
         }
@@ -337,14 +356,15 @@ public abstract class DocFilter extends AbstractPositional {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Between between = (Between) o;
-            return Objects.equals(lowerBound, between.lowerBound) &&
-                    Objects.equals(upperBound, between.upperBound) &&
+            return (lowerBound == between.lowerBound) &&
+                    (upperBound == between.upperBound) &&
+                    (isUpperInclusive == between.isUpperInclusive) &&
                     Objects.equals(field, between.field);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field, lowerBound, upperBound);
+            return Objects.hash(field, lowerBound, upperBound, isUpperInclusive);
         }
 
         @Override
@@ -353,6 +373,7 @@ public abstract class DocFilter extends AbstractPositional {
                     "field='" + field + '\'' +
                     ", lowerBound=" + lowerBound +
                     ", upperBound=" + upperBound +
+                    ", isUpperInclusive=" + isUpperInclusive +
                     '}';
         }
     }
@@ -1353,12 +1374,14 @@ public abstract class DocFilter extends AbstractPositional {
 
     public static class Sample extends DocFilter {
         public final FieldSet field;
+        public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String seed;
 
-        public Sample(FieldSet field, long numerator, long denominator, String seed) {
+        public Sample(FieldSet field, final boolean isIntField, long numerator, long denominator, String seed) {
             this.field = field;
+            this.isIntField = isIntField;
             this.numerator = numerator;
             this.denominator = denominator;
             this.seed = seed;
@@ -1371,7 +1394,12 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            throw new UnsupportedOperationException("Sample::asZeroOneMetric is not implemented");
+            // Sample() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.Sample(field, isIntField, (denominator - numerator), denominator, seed),
+                    new DocMetric.Constant(2)
+            );
         }
 
         @Override
@@ -1441,7 +1469,12 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            throw new UnsupportedOperationException("SampleDocMetric::asZeroOneMetric is not implemented");
+            // SampleMetric() returns 0 for no term, 1 for below p, and 2 for above p.
+            // We do (1 - p) to keep the same half of the divide as SAMPLE does.
+            return new DocMetric.MetricEqual(
+                    new DocMetric.SampleMetric(metric, denominator - numerator, denominator, seed),
+                    new DocMetric.Constant(2)
+            );
         }
 
         @Override

@@ -2,33 +2,6 @@
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
-
-    <appender name="FILE" class="org.apache.log4j.DailyRollingFileAppender">
-        <param name="File"   value="logs/iql.log" />
-        <param name="DatePattern" value="'.'yyyy-MM-dd" />
-        <param name="BufferedIO" value="false" />
-        <param name="Append" value="true" />
-        <param name="Encoding" value="UTF-8" />
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d %-5p [%c{1}] %m%n"/>
-        </layout>
-    </appender>
-
-    <appender name="ERRORLOG" class="org.apache.log4j.DailyRollingFileAppender">
-        <param name="File" value="logs/iql-error.log" />
-        <param name="DatePattern" value="'.'yyyy-MM" />
-        <param name="BufferedIO" value="false" />
-        <param name="Append" value="true" />
-        <param name="Encoding" value="UTF-8" />
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d %-5p [%c{1}] %m%n"/>
-        </layout>
-        <filter class="org.apache.log4j.varia.LevelRangeFilter">
-            <param name="LevelMin" value="ERROR"/>
-            <param name="LevelMax" value="FATAL"/>
-        </filter>
-    </appender>
-
     <appender name="STDOUT" class="org.apache.log4j.ConsoleAppender">
         <param name="target" value="System.out"/>
         <layout class="org.apache.log4j.PatternLayout">
@@ -50,20 +23,12 @@
         </filter>
     </appender>
 
-    <category name="com.indeed">
-        <priority value="DEBUG" />
-    </category>
-
     <category name="com.indeed.util.varexport.VarExporter">
         <priority value="ERROR" />
     </category>
 
     <category name="com.indeed.status.core.DependencyPinger">
         <priority value="ERROR" />
-    </category>
-
-    <category name="com.indeed.boxcar.support.client.BongoServerSource">
-        <priority value="INFO" />
     </category>
 
     <category name="org.apache.zookeeper">
@@ -78,9 +43,7 @@
     </category>
 
     <root>
-        <priority value ="INFO" />
-        <appender-ref ref="FILE" />
-        <appender-ref ref="ERRORLOG" />
+        <priority value ="WARN" />
         <appender-ref ref="STDOUT" />
         <appender-ref ref="STDERR" />
     </root>

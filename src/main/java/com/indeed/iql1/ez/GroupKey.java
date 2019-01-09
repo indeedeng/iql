@@ -23,7 +23,7 @@ import java.util.Iterator;
 /**
  * @author jplaisance
  */
-public final class GroupKey<E> implements Iterable<E> {
+public final class GroupKey<E extends Comparable> implements Iterable<E> {
     private static final Logger log = Logger.getLogger(GroupKey.class);
 
     private final @Nullable List<E> front;
@@ -31,11 +31,11 @@ public final class GroupKey<E> implements Iterable<E> {
 
     private static final GroupKey EMPTY = new GroupKey(null, null);
 
-    public static <E> GroupKey<E> empty() {
+    public static <E extends Comparable> GroupKey<E> empty() {
         return EMPTY;
     }
 
-    public static <E> GroupKey<E> singleton(E e) {
+    public static <E extends Comparable> GroupKey<E> singleton(E e) {
         return EMPTY.add(e);
     }
 
@@ -60,11 +60,14 @@ public final class GroupKey<E> implements Iterable<E> {
     private static final class List<E> {
         private final E head;
 
-        private final List<E> tail;
+        private final @Nullable List<E> tail;
+
+        private @Nullable E last;
 
         private List(final E head, final @Nullable List<E> tail) {
             this.head = head;
             this.tail = tail;
+            this.last = (tail==null)? head : tail.last;
         }
 
         public boolean equals(final Object o) {
@@ -84,18 +87,26 @@ public final class GroupKey<E> implements Iterable<E> {
             result = 31 * result + (tail != null ? tail.hashCode() : 0);
             return result;
         }
+
+        public E getLast() {
+            return this.last;
+        }
     }
 
     public E head() {
         if (front == null) {
             if (back == null) throw new IllegalStateException("empty key has no head");
-            List<E> ptr = back;
-            while (ptr.tail != null) {
-                ptr = ptr.tail;
-            }
-            return ptr.head;
+            return back.last;
         }
         return front.head;
+    }
+
+    public E getLastInserted() {
+        if (back == null) {
+            if (front == null) throw new IllegalStateException("Key is empty");
+            return front.last;
+        }
+        return back.head;
     }
 
     public GroupKey<E> tail() {
@@ -141,4 +152,6 @@ public final class GroupKey<E> implements Iterable<E> {
         result = 31 * result + (back != null ? back.hashCode() : 0);
         return result;
     }
+
+
 }

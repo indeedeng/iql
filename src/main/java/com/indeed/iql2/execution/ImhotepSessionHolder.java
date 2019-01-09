@@ -23,6 +23,9 @@ import java.util.Map;
  *
  */
 public class ImhotepSessionHolder implements Closeable {
+    /**
+     * NOT the Imhotep dataset name. The IQL dataset name (alias or whatever).
+     */
     private final String datasetName;
     private final RemoteImhotepMultiSession session;
 
@@ -98,6 +101,10 @@ public class ImhotepSessionHolder implements Closeable {
             final long max,
             final boolean negate) throws ImhotepOutOfMemoryException {
         session.metricFilter(stat, min, max, negate);
+    }
+
+    public void metricFilter(final int stat, final long min, final long max, final int targetGroup, final int negativeGroup, final int positiveGroup) throws ImhotepOutOfMemoryException {
+        session.metricFilter(stat, min, max, targetGroup, negativeGroup, positiveGroup);
     }
 
     public void regexRegroup(

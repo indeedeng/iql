@@ -47,9 +47,9 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if(computation instanceof SumAcross) {
             results = ((SumAcross)computation).evaluate(session);
         } else if(computation instanceof GetFieldMin) {
-            longResults = ((GetFieldMin)computation).evaluate(session);
+            results = ((GetFieldMin)computation).evaluate(session);
         } else if(computation instanceof GetFieldMax) {
-            longResults = ((GetFieldMax)computation).evaluate(session);
+            results = ((GetFieldMax)computation).evaluate(session);
         } else if (computation instanceof GetGroupPercentiles) {
             final long[][] percentiles = ((GetGroupPercentiles)computation).evaluate(session);
             Preconditions.checkState(percentiles.length == 1, "Only one percentile expected");
@@ -57,10 +57,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if (computation instanceof GetGroupStats) {
             final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
             results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
-        } else if (computation instanceof ComputeBootstrap) {
-            computation.execute(session);
-            // This already did stuff internally
-            return;
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }

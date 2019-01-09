@@ -50,7 +50,6 @@ public class DimensionUtils {
 
             DatasetYaml dataset = new DatasetYaml();
             dataset.setName("dimension2");
-            dataset.setType("Imhotep");
             dataset.setDescription("dimension2 dataset");
             dataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
             return dataset;
@@ -108,7 +107,6 @@ public class DimensionUtils {
 
             DatasetYaml dimensionDataset = new DatasetYaml();
             dimensionDataset.setName("DIMension");
-            dimensionDataset.setType("Imhotep");
             dimensionDataset.setDescription("dimension dataset");
             dimensionDataset.setMetrics(metrics.toArray(new MetricsYaml[metrics.size()]));
             return dimensionDataset;
