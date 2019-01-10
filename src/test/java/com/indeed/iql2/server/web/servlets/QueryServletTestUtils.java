@@ -17,7 +17,7 @@ package com.indeed.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -470,7 +470,7 @@ public class QueryServletTestUtils extends BasicTest {
             runQuery(client, query, version, true, Options.create(), Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (Exception e) {
-            Assert.assertTrue(exceptionMessagePredicate.apply(e.getMessage()));
+            Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 

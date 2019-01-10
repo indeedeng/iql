@@ -20,7 +20,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 public class MetricRegroupTest extends BasicTest {
     @Test
