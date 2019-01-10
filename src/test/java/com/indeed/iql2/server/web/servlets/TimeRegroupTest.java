@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
@@ -51,7 +52,7 @@ public class TimeRegroupTest extends BasicTest {
 
         QueryServletTestUtils.testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(d) select count(), oji, ojc");
         // IQL1 fails with error: "You requested a time period (1 days) not evenly divisible by the bucket size (1 weeks)."
-        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-08 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1W) select count(), oji, ojc");
+        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "151", "2653", "306")), "from organic yesterday today group by time(1d) select count(), oji, ojc");
         // same query with fixed time interval
         QueryServletTestUtils.testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("[2014-12-26 00:00:00, 2015-01-02 00:00:00)", "157", "2659", "312")), "from organic 7d today group by time(1W) select count(), oji, ojc");
     }
@@ -254,5 +255,14 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
+    }
+
+    @Test
+    public void testInvalidTimeBucket() {
+        final Predicate<String> containsTimeBucketErrorMessage = e -> (e.contains("You requested a time period") );
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 10d today group by time(1w) select count()", containsTimeBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage);
     }
 }
