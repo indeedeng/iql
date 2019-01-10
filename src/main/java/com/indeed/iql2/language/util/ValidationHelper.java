@@ -118,13 +118,10 @@ public class ValidationHelper {
     public Set<String> datasets() {
         return datasetsMetadata.getDatasetToMetadata().keySet();
     }
-<<<<<<< HEAD
 
     public List<Pair<Long, Long>> datasetTimeRanges() {
         return datasetsTimeRange;
     }
-||||||| merged common ancestors
-=======
 
     public void registerComputed(final String name) {
         if (!definedComputations.add(name)) {
@@ -135,5 +132,4 @@ public class ValidationHelper {
     public boolean isComputed(final String name) {
         return definedComputations.contains(name);
     }
->>>>>>> 21c18470fc93316472e51db81f673292878fc917
 }
