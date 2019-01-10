@@ -35,22 +35,6 @@ public class TestQuerySplitter {
                 "wh2 = ' test from where group by select ' and wh3 = 'te's\"t\"3", "grp", "sel"));
     }
 
-
-    @org.junit.Test
-    public void testSplitAmbiguousTermsFrom() {
-        // keyword in dataset part of FROM
-        doLINQTest(new QueryParts("where", "", "", "sel"));
-        doLINQTest(new QueryParts("group by", "", "", "sel"));
-        doLINQTest(new QueryParts("select", "", "", "sel"));
-
-        doSQLTest(new QueryParts("where", "", "", "sel"));
-        doSQLTest(new QueryParts("group by", "", "", "sel"));
-
-        // keyword in date part of FROM
-        doLINQTest(new QueryParts("jobsearch from", "", "", "sel"));
-        doSQLTest(new QueryParts("jobsearch select", "", "", "sel"));
-    }
-
     @org.junit.Test
     public void testSplitAmbiguousTermsWhere() {
         doTest(new QueryParts("frm", "a=b group = 1", "", "sel"));

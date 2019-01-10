@@ -108,7 +108,22 @@ public class QueryServletTestUtils extends BasicTest {
     public enum LanguageVersion {
         ORIGINAL_IQL1, // original IQL1
         IQL1_LEGACY_MODE, // legacy mode in IQL2
-        IQL2
+        IQL2;
+
+        public void addRequestParameters(final MockHttpServletRequest request) {
+            switch (this) {
+                case ORIGINAL_IQL1:
+                    request.addParameter("v", "1");
+                    break;
+                case IQL1_LEGACY_MODE:
+                    request.addParameter("v", "1");
+                    request.addParameter("legacymode", "1");
+                    break;
+                case IQL2:
+                    request.addParameter("v", "2");
+                    break;
+            }
+        }
     }
 
     static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, Set<String> extraQueryOptions) throws Exception {
@@ -128,18 +143,7 @@ public class QueryServletTestUtils extends BasicTest {
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
         request.addParameter("client", "test");
-        switch (version) {
-            case ORIGINAL_IQL1:
-                request.addParameter("v", "1");
-                break;
-            case IQL1_LEGACY_MODE:
-                request.addParameter("v", "1");
-                request.addParameter("legacymode", "1");
-                break;
-            case IQL2:
-                request.addParameter("v", "2");
-                break;
-        }
+        version.addRequestParameters(request);
         final MockHttpServletResponse response = new MockHttpServletResponse();
         queryServlet.query(request, response, query);
         final List<List<String>> output = new ArrayList<>();

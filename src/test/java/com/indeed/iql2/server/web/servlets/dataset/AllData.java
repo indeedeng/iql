@@ -36,6 +36,8 @@ public class AllData {
         datasets.add(BigDataset.create());
         datasets.add(ExactCaseDataset.createDataset());
         datasets.add(SyntheticDataset.createDataset());
+        // Defines keywords, from, where, group, select, and limit
+        datasets.add(KeywordDatasets.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

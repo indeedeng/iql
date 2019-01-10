@@ -20,6 +20,7 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.QueryParts;
 import com.indeed.iql1.sql.parser.QuerySplitter;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.language.query.SplitQuery;
 import com.indeed.iql2.server.web.servlets.SplitServlet;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -50,10 +51,18 @@ public class SplitterServlet {
 
     @RequestMapping("/split")
     @ResponseBody
-    protected Object doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) throws ServletException, IOException {
+    public Object doGet(final HttpServletRequest req, final HttpServletResponse resp, @RequestParam("q") String query) {
         if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
             return splitServletV2.split(req, resp, query);
         }
+
+        final Object rawSplitResult = splitServletV2.split(req, resp, query);
+        if (rawSplitResult instanceof SplitQuery) {
+            // Use proper splitter result on success
+            return rawSplitResult;
+        }
+
+        // Fall back to legacy best guess splitter
 
         resp.setContentType("application/json");
         final ObjectMapper mapper = new ObjectMapper();
