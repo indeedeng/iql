@@ -135,20 +135,24 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
         private void newTerm() {
             int maxGroupExcl = 0;
-            int group = groupsSeen.nextSetBit(0);
-            if (group != -1) {
-                int startGroup = group;
-                int parentGroup = parentGroups[group];
+            int group = 0;
+            while (true) {
+                group = groupsSeen.nextSetBit(group);
+                if (group == -1) {
+                    break;
+                }
+
+                final int startGroup = group;
+                final int parentGroup = parentGroups[group];
                 // No need to look backwards because any values that weren't in the bitset also won't have stats set.
                 System.arraycopy(groupStatValues, group * numStats, tmpRollingSumsBuffer, 0, numStats);
-                while (true) {
-                    // Start invariant: Current `group` values have been added to tmpRollingSumsBuffer.
-                    //                  BUT Current group has not been processed
 
+                // Process all values at this group and moving forward until we hit the end of the parent group
+                // or a place not covered by the union of the windows.
+                while (true) {
                     if (groupsSeen.get(group)) {
                         maxGroupExcl = group + windowSize;
                     }
-
                     final boolean countIt;
                     if (filter.isPresent()) {
                         countIt = groupStatsChecker.allow(tmpRollingSumsBuffer, group);
@@ -162,21 +166,8 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
                     group += 1;
 
-                    if (group > numGroups) {
+                    if ((group > numGroups) || (group >= maxGroupExcl) || (parentGroups[group] != parentGroup)) {
                         break;
-                    }
-
-                    if ((group >= maxGroupExcl) || (parentGroups[group] != parentGroup)) {
-                        // We've reached the end of this run of groups
-                        group = groupsSeen.nextSetBit(group);
-                        if (group == -1) {
-                            break;
-                        }
-                        startGroup = group;
-                        parentGroup = parentGroups[group];
-                        maxGroupExcl = group + windowSize;
-                        // No need to look backwards because any values that weren't in the bitset also won't have stats set.
-                        System.arraycopy(groupStatValues, group * numStats, tmpRollingSumsBuffer, 0, numStats);
                     } else {
                         final int subtractedGroup = group - windowSize;
                         // Subtract out `group - windowSize` if necessary
