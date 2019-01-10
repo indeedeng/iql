@@ -84,11 +84,5 @@
         <exclude name="DataClass"/> <!-- Little benefit -->
         <exclude name="LoosePackageCoupling"/> <!-- needs package list -->
     </rule>
-    <rule ref="category/java/design.xml/CyclomaticComplexity">
-        <properties>
-            <property name="methodReportLevel" value="20" />
-        </properties>
-    </rule>
-
 
 </ruleset>
