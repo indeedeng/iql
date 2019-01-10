@@ -71,7 +71,7 @@ public class CommandValidator {
     private static ValidationHelper buildValidationHelper(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
                                                           final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
-        List<Pair<Long, Long>> datasetsTimeRange = new ArrayList<Pair<Long, Long>>();
+        final HashMap<String, Pair<Long,Long>> datasetsTimeRange = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
@@ -80,7 +80,7 @@ public class CommandValidator {
                 continue;
             }
             relevantDatasetToMetadata.put(aliasDataset, datasetMetadata);
-            datasetsTimeRange.add(new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
+            datasetsTimeRange.put(aliasDataset,new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
         }
         return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }

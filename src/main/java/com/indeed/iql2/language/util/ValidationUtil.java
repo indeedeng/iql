@@ -213,17 +213,18 @@ public class ValidationUtil {
     }
 
     public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final Validator validator) {
-        for(Pair<Long, Long> datasetTimeRange: validationHelper.datasetTimeRanges()) {
-            final long timePeriodSeconds = (datasetTimeRange.getSecond() - datasetTimeRange.getFirst())/1000;
-            if (timePeriodSeconds%periodSeconds != 0) {
+        for(Map.Entry<String, Pair<Long, Long>> datasetTimeRange: validationHelper.datasetTimeRanges().entrySet()) {
+            final long datasetTimePeriodSeconds = (datasetTimeRange.getValue().getSecond() - datasetTimeRange.getValue().getFirst())/1000;
+            if (datasetTimePeriodSeconds%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
-                    appendTimePeriod(timePeriodSeconds, exceptionBuilder);
-                    exceptionBuilder.append(") not evenly divisible by the bucket size (");
+                    appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
+                    exceptionBuilder.append(") for dataset " + datasetTimeRange.getKey());
+                    exceptionBuilder.append(" not evenly divisible by the bucket size (");
                     appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    appendTimePeriod(periodSeconds - timePeriodSeconds%periodSeconds, exceptionBuilder);
+                    appendTimePeriod(periodSeconds - datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    appendTimePeriod(timePeriodSeconds%periodSeconds, exceptionBuilder);
+                    appendTimePeriod(datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
                     validator.error(exceptionBuilder.toString());
             }
         }

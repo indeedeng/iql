@@ -33,11 +33,11 @@ public class ValidationHelper {
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
-    private final List<Pair<Long, Long>> datasetsTimeRange;
+    private final Map<String, Pair<Long, Long>> datasetsTimeRange;
     private final Set<String> definedComputations = new HashSet<>();
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
-                            final List<Pair<Long, Long>> datasetsTimeRange,
+                            final Map<String, Pair<Long, Long>> datasetsTimeRange,
                             final Map<String, Set<String>> datasetAliasIntFields,
                             final Map<String, Set<String>> datasetAliasStringFields,
                             final boolean useLegacy) {
@@ -119,7 +119,7 @@ public class ValidationHelper {
         return datasetsMetadata.getDatasetToMetadata().keySet();
     }
 
-    public List<Pair<Long, Long>> datasetTimeRanges() {
+    public Map<String, Pair<Long, Long>> datasetTimeRanges() {
         return datasetsTimeRange;
     }
 
