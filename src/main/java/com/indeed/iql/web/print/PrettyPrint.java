@@ -199,8 +199,8 @@ public class PrettyPrint {
         }
         sb.append('\n');
 
+        sb.append("WHERE ");
         if (query.filter.isPresent()) {
-            sb.append("WHERE ");
             final List<DocFilter> filters = new ArrayList<>();
             unAnd(query.filter.get(), filters);
             for (int i = 0; i < filters.size(); i++) {
@@ -209,40 +209,36 @@ public class PrettyPrint {
                 }
                 pp(filters.get(i), consumer, clock);
             }
-            sb.append('\n');
         }
+        sb.append('\n');
 
-        if (!query.groupBys.isEmpty()) {
-            sb.append("GROUP BY ");
-            final boolean isMultiGroupBy = query.groupBys.size() > 1;
-            boolean isFirst = true;
-            for (final GroupByEntry groupBy : query.groupBys) {
-                if (isFirst && isMultiGroupBy) {
-                    sb.append("\n    ");
-                } else if (!isFirst) {
-                    sb.append("\n  , ");
-                }
-                isFirst = false;
-                pp(groupBy, consumer, clock);
+        sb.append("GROUP BY ");
+        final boolean isMultiGroupBy = query.groupBys.size() > 1;
+        boolean isFirstGroupBy = true;
+        for (final GroupByEntry groupBy : query.groupBys) {
+            if (isFirstGroupBy && isMultiGroupBy) {
+                sb.append("\n    ");
+            } else if (!isFirstGroupBy) {
+                sb.append("\n  , ");
             }
-            sb.append('\n');
+            isFirstGroupBy = false;
+            pp(groupBy, consumer, clock);
         }
+        sb.append('\n');
 
-        if (!query.selects.isEmpty()) {
-            sb.append("SELECT ");
-            final boolean isMultiSelect = query.selects.size() > 1;
-            boolean isFirst = true;
-            for (final AggregateMetric select : query.selects) {
-                if (isFirst && isMultiSelect) {
-                    sb.append("\n    ");
-                } else if (!isFirst) {
-                    sb.append("\n  , ");
-                }
-                isFirst = false;
-                pp(select, consumer, clock);
+        sb.append("SELECT ");
+        final boolean isMultiSelect = query.selects.size() > 1;
+        boolean isFirstSelect = true;
+        for (final AggregateMetric select : query.selects) {
+            if (isFirstSelect && isMultiSelect) {
+                sb.append("\n    ");
+            } else if (!isFirstSelect) {
+                sb.append("\n  , ");
             }
-            sb.append('\n');
+            isFirstSelect = false;
+            pp(select, consumer, clock);
         }
+        sb.append('\n');
     }
 
     private void unAnd(DocFilter filter, List<DocFilter> into) {
