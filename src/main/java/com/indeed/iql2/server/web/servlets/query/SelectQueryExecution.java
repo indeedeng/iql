@@ -19,6 +19,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -115,6 +116,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -497,10 +500,23 @@ public class SelectQueryExecution {
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
-            if (QueryOptions.Experimental.includeHosts(query.options)) {
+            if (QueryOptions.Experimental.hasHosts(query.options)) {
                 final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(query.options);
-                for (Map.Entry<String, List<Shard>> entry : mutableDatasetToChosenShards.entrySet()) {
-                    entry.setValue(remapShardsByModulo(entry.getValue(), hostsFromOption));
+                final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(query.options);
+
+                for (final Map.Entry<String, List<Shard>> entry : mutableDatasetToChosenShards.entrySet()) {
+                    List<Shard> remappedShards;
+                    switch (method) {
+                        case NUMDOC_MAPPING:
+                            remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
+                            break;
+
+                        case MODULO_MAPPING:
+                        default:
+                            remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
+                            break;
+                    }
+                    entry.setValue(remappedShards);
                 }
             }
             final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
@@ -933,52 +949,45 @@ public class SelectQueryExecution {
     }
 
     private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
-        if (hosts.isEmpty()) {
-            throw new IqlKnownException.UnknownHostException("no hosts in options");
-        }
+        Preconditions.checkArgument(!hosts.isEmpty());
 
-        List<Shard> remappedShards = new ArrayList<>(shards.size());
-        for (int shardIndex = 0; shardIndex < shards.size(); shardIndex++) {
-            final int hostIndex = shardIndex % hosts.size();
-            remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
-        }
-        return remappedShards;
+        return shards.stream()
+                .map(shard -> {
+                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
+                    return shard.withHost(hosts.get(hostIndex));
+                })
+                .collect(Collectors.toList());
     }
 
     // It's a NP-complete K-partition problem: https://en.wikipedia.org/wiki/Partition_problem
     // and we take the greedy approximate algorithm https://en.wikipedia.org/wiki/Partition_problem#The_greedy_algorithm
     private static List<Shard> remapShardsByNumDocs(final List<Shard> shards, final List<Host> hosts) {
-        if (hosts.isEmpty()) {
-            throw new IqlKnownException.UnknownHostException("no hosts in options");
-        }
+        Preconditions.checkArgument(!hosts.isEmpty());
 
         // sort numdocs in descending order and keep pair<NumDoc, ShardIndex> in the list
-        final List<Pair<Integer, Integer>> shardNumDocs = Lists.newArrayListWithCapacity(shards.size());
-        int shardIndex = 0;
-        for (final Shard shard : shards) {
-            shardNumDocs.add(Pair.of(shard.getNumDocs(), shardIndex++));
-        }
-        Collections.sort(shardNumDocs, (s1, s2) -> s2.getFirst().compareTo(s1.getFirst()));
+        final List<Pair<Integer, Integer>> shardNumDocs = IntStream.range(0, shards.size())
+                .mapToObj(i -> Pair.of(shards.get(i).getNumDocs(), i))
+                .sorted((s1, s2) -> s2.getFirst().compareTo(s1.getFirst()))
+                .collect(Collectors.toList());
 
         // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
-        final PriorityQueue<Pair<Integer, List<Integer>>> docSumQueue = new PriorityQueue<>(
+        final PriorityQueue<Pair<Long, List<Integer>>> docSumQueue = new PriorityQueue<>(
                 hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
-        for (final Pair<Integer, Integer> numDocPair : shardNumDocs) {
-            if (docSumQueue.size() < hosts.size()) {
-                docSumQueue.add(Pair.of(numDocPair.getFirst(), new ArrayList<Integer>() {{ add(numDocPair.getSecond()); }}));
-            } else {
-                final Pair<Integer, List<Integer>> poll = docSumQueue.poll();
-                poll.getSecond().add(numDocPair.getSecond());
-                docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
-            }
-        }
+        hosts.stream().forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
+        shardNumDocs.stream().forEach(
+                numDocPair -> {
+                    final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+                    poll.getSecond().add(numDocPair.getSecond());
+                    docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
+                }
+        );
 
         final List<Shard> remappedShards = Lists.newArrayListWithCapacity(shards.size());
         int hostIndex = 0;
         while (!docSumQueue.isEmpty()) {
-            final Pair<Integer, List<Integer>> poll = docSumQueue.poll();
-            for (final int shardIndex2 : poll.getSecond()) {
-                remappedShards.add(shards.get(shardIndex2).withHost(hosts.get(hostIndex)));
+            final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+            for (final int shardIndex : poll.getSecond()) {
+                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
             }
             hostIndex++;
         }

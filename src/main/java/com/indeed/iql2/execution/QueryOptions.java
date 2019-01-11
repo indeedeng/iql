@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -46,29 +47,46 @@ public class QueryOptions {
     public static class Experimental {
         public static final String USE_MULTI_FTGS = "multiftgs";
         public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
-        public static final String HOSTS_PREFIX = "hosts";
+        public static final Pattern HOSTS_MAPPING_METHOD_PATTERN = Pattern.compile("^hostsmappingmethod=(\\w|_)*$");
+        public static final Pattern HOSTS_PATTERN = Pattern.compile("^hosts=\\[.*\\]$");
 
-        private static Splitter COMMA_SPLITTER = Splitter.on(",");
-        private static Splitter COLON_SPLITTER = Splitter.on(":");
+        private static final Splitter COMMA_SPLITTER = Splitter.on(",");
+        private static final Splitter COLON_SPLITTER = Splitter.on(":");
+        private static final Splitter EQUALITY_SPLITTER = Splitter.on("=");
 
         private Experimental() {
         }
 
-        public static boolean includeHosts(final Collection<String> queryOptions) {
+        public static HostsMappingMethod parseHostMappingMethod(final Collection<String> queryOptions) {
+            final Optional<String> mappingStr = queryOptions
+                    .stream()
+                    .filter(option -> HOSTS_MAPPING_METHOD_PATTERN.matcher(option.trim()).matches())
+                    .findFirst();
+            if (!mappingStr.isPresent()) {
+                return HostsMappingMethod.getDefaultMethod();
+            }
+
+            final String[] methodParts = Iterables.toArray(EQUALITY_SPLITTER.split(mappingStr.get().trim()), String.class);
+            return (methodParts.length != 2 ?
+                    HostsMappingMethod.getDefaultMethod() :
+                    HostsMappingMethod.fromString(methodParts[1]));
+        }
+
+        public static boolean hasHosts(final Collection<String> queryOptions) {
             return getHosts(queryOptions).isPresent();
         }
 
         public static List<Host> parseHosts(final Collection<String> queryOptions) {
-            final Optional<String> hostsStr = getHosts(queryOptions);
-            if (!hostsStr.isPresent()) {
+            final Optional<String> hostsOption = getHosts(queryOptions);
+            if (!hostsOption.isPresent()) {
                 return Collections.emptyList();
             }
 
-            final String cleanHostsStr = hostsStr.get().trim();
+            final String hostListStr = hostsOption.get().trim().replaceAll("(^hosts=\\[)|(\\]$)", "");
             // Format of Hosts String: hosts=[hosts1,host2,...]
             try {
                 return COMMA_SPLITTER
-                        .splitToList(cleanHostsStr.substring(7, cleanHostsStr.length()-1))
+                        .splitToList(hostListStr)
                         .stream()
                         .map(hostStr -> {
                             final String[] hostParts = Iterables.toArray(COLON_SPLITTER.split(hostStr.trim()), String.class);
@@ -76,12 +94,44 @@ public class QueryOptions {
                         })
                         .collect(Collectors.toList());
             } catch (final Exception e) {
-                throw new IqlKnownException.UnknownHostException("couldn't parse hosts string in options");
+                throw new IqlKnownException.UnknownHostException("couldn't parse the hosts string in options", e);
             }
         }
 
         private static Optional<String> getHosts(final Collection<String> queryOptions) {
-            return queryOptions.stream().filter(option -> option.startsWith(HOSTS_PREFIX)).findFirst();
+            return queryOptions
+                    .stream()
+                    .filter(option -> HOSTS_PATTERN.matcher(option.trim()).matches())
+                    .findFirst();
+        }
+    }
+
+    public enum HostsMappingMethod {
+        MODULO_MAPPING("modulo"), // the default method
+        NUMDOC_MAPPING("num_doc");
+
+        private final String value;
+
+        HostsMappingMethod(final String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+
+        public static HostsMappingMethod getDefaultMethod() {
+            return HostsMappingMethod.MODULO_MAPPING;
+        }
+
+        public static HostsMappingMethod fromString(final String text) {
+            for (HostsMappingMethod method : HostsMappingMethod.values()) {
+                if (method.value.equals(text)) {
+                    return method;
+                }
+            }
+            return getDefaultMethod();
         }
     }
 

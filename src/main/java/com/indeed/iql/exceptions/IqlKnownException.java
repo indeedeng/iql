@@ -57,8 +57,8 @@ public class IqlKnownException extends RuntimeException {
     }
 
     public static class UnknownHostException extends IqlKnownException {
-        public UnknownHostException(final String message) {
-            super(message);
+        public UnknownHostException(final String message, final Throwable cause) {
+            super(message, cause);
         }
     }
 
