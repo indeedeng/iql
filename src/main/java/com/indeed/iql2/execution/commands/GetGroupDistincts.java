@@ -54,10 +54,6 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         return new IterateHandlerImpl(session);
     }
 
-    // This could be accomplished with a circular buffer of size numStats*windowSize, saving a ton of RAM,
-    // but this leads to substantial code complexity and isn't actually worth it.
-    // We're likely spending megabytes on the heap on this, but gigabytes on tmpfs allocations of the FTGS stream anyway.
-    // We don't need to save those megabytes.
     private class IterateHandlerImpl implements IterateHandler<long[]> {
         private final long[] groupCounts;
 
