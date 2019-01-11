@@ -65,11 +65,11 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             if (computation instanceof GetGroupDistincts) {
                 final GetGroupDistincts getGroupDistincts = (GetGroupDistincts) computation;
                 fields.add(getGroupDistincts.field);
-                handlerables.add(new NameIt<>(session, new Function<long[], double[]>() {
-                    public double[] apply(long[] longs) {
-                        return longToDouble(longs);
-                    }
-                }, getGroupDistincts.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, ComputeAndCreateGroupStatsLookups::longToDouble, getGroupDistincts.iterateHandler(session), name));
+            } else if (computation instanceof GetGroupDistinctsWindowed) {
+                final GetGroupDistinctsWindowed getGroupDistinctsWindowed = (GetGroupDistinctsWindowed) computation;
+                fields.add(getGroupDistinctsWindowed.field);
+                handlerables.add(new NameIt<>(session, ComputeAndCreateGroupStatsLookups::longToDouble, getGroupDistinctsWindowed.iterateHandler(session), name));
             } else if (computation instanceof GetSimpleGroupDistincts) {
                 final long[] groupStats = ((GetSimpleGroupDistincts)computation).evaluate(session);
                 final double[] results = longToDouble(groupStats);
@@ -131,9 +131,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         final Set<FieldSet> fields = new HashSet<>();
         for (final Pair<Command, String> computation : namedComputations) {
             final Command command = computation.getFirst();
-            allDistinct &= (command instanceof GetGroupDistincts || command instanceof GetSimpleGroupDistincts);
-            if (command instanceof GetGroupDistincts) {
-                final GetGroupDistincts distinct = (GetGroupDistincts) command;
+            allDistinct &= (command instanceof GetGroupDistinctsWindowed || command instanceof GetSimpleGroupDistincts);
+            if (command instanceof GetGroupDistinctsWindowed) {
+                final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;
                 allNonWindowed &= distinct.windowSize == 1;
                 fields.add(distinct.field);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));

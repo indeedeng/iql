@@ -42,6 +42,8 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         long[] longResults = null;
         if (computation instanceof GetGroupDistincts) {
             longResults = ((GetGroupDistincts)computation).evaluate(session);
+        } else if(computation instanceof GetGroupDistinctsWindowed) {
+            longResults = ((GetGroupDistinctsWindowed)computation).evaluate(session);
         } else if(computation instanceof GetSimpleGroupDistincts) {
             longResults = ((GetSimpleGroupDistincts)computation).evaluate(session);
         } else if(computation instanceof SumAcross) {
