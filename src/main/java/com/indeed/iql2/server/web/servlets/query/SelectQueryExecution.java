@@ -279,6 +279,28 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
+        final Query paranoidQuery;
+        if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
+            timer.push("reparse query (paranoid mode)");
+            paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            timer.pop();
+
+            timer.push("check query equals() and hashCode()");
+            if (!paranoidQuery.equals(parseResult.query)) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query equals() failure!");
+            }
+            if (paranoidQuery.hashCode() != parseResult.query.hashCode()) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
+            }
+            timer.pop();
+        } else {
+            paranoidQuery = null;
+        }
+
         {
             queryInfo.statementType = "select";
 
@@ -359,16 +381,15 @@ public class SelectQueryExecution {
         private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
         private ParsedQueryExecution(
-                boolean isTopLevelQuery,
-                CharStream inputStream,
-                Consumer<String> out,
-                Set<String> warnings,
-                ProgressCallback progressCallback,
-                Query query,
-                @Nullable Integer groupLimit,
-                SelectQuery selectQuery,
-                StrictCloser strictCloser
-        ) {
+                final boolean isTopLevelQuery,
+                final CharStream inputStream,
+                final Consumer<String> out,
+                final Set<String> warnings,
+                final ProgressCallback progressCallback,
+                final Query query,
+                final @Nullable Integer groupLimit,
+                final SelectQuery selectQuery,
+                final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
