@@ -140,7 +140,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <!-- The checkstyle.xml defines the rules to check, also import-control whitelists import directions -->
+                    <!-- The checkstyle.xml defines the rules to check -->
                     <configLocation>${maven.multiModuleProjectDirectory}/linters/checkstyle/checkstyle.xml</configLocation>
                     <!-- Set to true to break the build on warnings -->
                     <failOnViolation>false</failOnViolation>

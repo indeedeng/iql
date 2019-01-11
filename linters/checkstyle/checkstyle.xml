@@ -154,9 +154,5 @@
             <property name="ignoreComments" value="true"/>
         </module>
 
-        <module name="ImportControl">
-            <!--This location is relative to the checkstyle invocation :-(( -->
-            <property name="file" value="${basedir}/import-control.xml"/>
-        </module>
     </module>
 </module>
