@@ -36,6 +36,7 @@ import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.iql.StrictCloser;
@@ -106,6 +107,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -494,7 +496,14 @@ public class SelectQueryExecution {
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
-            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
+            final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
+            if (QueryOptions.Experimental.includeHosts(query.options)) {
+                final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(query.options);
+                for (Map.Entry<String, List<Shard>> entry : mutableDatasetToChosenShards.entrySet()) {
+                    entry.setValue(remapShardsByModulo(entry.getValue(), hostsFromOption));
+                }
+            }
+            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
             if (isTopLevelQuery) {
@@ -921,6 +930,59 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
+        if (hosts.isEmpty()) {
+            throw new IqlKnownException.UnknownHostException("no hosts in options");
+        }
+
+        List<Shard> remappedShards = new ArrayList<>(shards.size());
+        for (int shardIndex = 0; shardIndex < shards.size(); shardIndex++) {
+            final int hostIndex = shardIndex % hosts.size();
+            remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
+        }
+        return remappedShards;
+    }
+
+    // It's a NP-complete K-partition problem: https://en.wikipedia.org/wiki/Partition_problem
+    // and we take the greedy approximate algorithm https://en.wikipedia.org/wiki/Partition_problem#The_greedy_algorithm
+    private static List<Shard> remapShardsByNumDocs(final List<Shard> shards, final List<Host> hosts) {
+        if (hosts.isEmpty()) {
+            throw new IqlKnownException.UnknownHostException("no hosts in options");
+        }
+
+        // sort numdocs in descending order and keep pair<NumDoc, ShardIndex> in the list
+        final List<Pair<Integer, Integer>> shardNumDocs = Lists.newArrayListWithCapacity(shards.size());
+        int shardIndex = 0;
+        for (final Shard shard : shards) {
+            shardNumDocs.add(Pair.of(shard.getNumDocs(), shardIndex++));
+        }
+        Collections.sort(shardNumDocs, (s1, s2) -> s2.getFirst().compareTo(s1.getFirst()));
+
+        // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
+        final PriorityQueue<Pair<Integer, List<Integer>>> docSumQueue = new PriorityQueue<>(
+                hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
+        for (final Pair<Integer, Integer> numDocPair : shardNumDocs) {
+            if (docSumQueue.size() < hosts.size()) {
+                docSumQueue.add(Pair.of(numDocPair.getFirst(), new ArrayList<Integer>() {{ add(numDocPair.getSecond()); }}));
+            } else {
+                final Pair<Integer, List<Integer>> poll = docSumQueue.poll();
+                poll.getSecond().add(numDocPair.getSecond());
+                docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
+            }
+        }
+
+        final List<Shard> remappedShards = Lists.newArrayListWithCapacity(shards.size());
+        int hostIndex = 0;
+        while (!docSumQueue.isEmpty()) {
+            final Pair<Integer, List<Integer>> poll = docSumQueue.poll();
+            for (final int shardIndex2 : poll.getSecond()) {
+                remappedShards.add(shards.get(shardIndex2).withHost(hosts.get(hostIndex)));
+            }
+            hostIndex++;
+        }
+        return remappedShards;
     }
 
     public static Optional<Long> newestStaticShard(Multimap<String, List<Shard>> datasetToShards) {

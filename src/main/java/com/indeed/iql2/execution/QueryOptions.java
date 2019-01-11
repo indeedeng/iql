@@ -14,6 +14,17 @@
 
 package com.indeed.iql2.execution;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
+import com.indeed.imhotep.client.Host;
+import com.indeed.iql.exceptions.IqlKnownException;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 /**
  * @author aibragimov
  *
@@ -35,8 +46,42 @@ public class QueryOptions {
     public static class Experimental {
         public static final String USE_MULTI_FTGS = "multiftgs";
         public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
+        public static final String HOSTS_PREFIX = "hosts";
+
+        private static Splitter COMMA_SPLITTER = Splitter.on(",");
+        private static Splitter COLON_SPLITTER = Splitter.on(":");
 
         private Experimental() {
+        }
+
+        public static boolean includeHosts(final Collection<String> queryOptions) {
+            return getHosts(queryOptions).isPresent();
+        }
+
+        public static List<Host> parseHosts(final Collection<String> queryOptions) {
+            final Optional<String> hostsStr = getHosts(queryOptions);
+            if (!hostsStr.isPresent()) {
+                return Collections.emptyList();
+            }
+
+            final String cleanHostsStr = hostsStr.get().trim();
+            // Format of Hosts String: hosts=[hosts1,host2,...]
+            try {
+                return COMMA_SPLITTER
+                        .splitToList(cleanHostsStr.substring(7, cleanHostsStr.length()-1))
+                        .stream()
+                        .map(hostStr -> {
+                            final String[] hostParts = Iterables.toArray(COLON_SPLITTER.split(hostStr.trim()), String.class);
+                            return new Host(hostParts[0], Integer.parseInt(hostParts[1]));
+                        })
+                        .collect(Collectors.toList());
+            } catch (final Exception e) {
+                throw new IqlKnownException.UnknownHostException("couldn't parse hosts string in options");
+            }
+        }
+
+        private static Optional<String> getHosts(final Collection<String> queryOptions) {
+            return queryOptions.stream().filter(option -> option.startsWith(HOSTS_PREFIX)).findFirst();
         }
     }
 
