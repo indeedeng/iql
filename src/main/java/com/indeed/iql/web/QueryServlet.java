@@ -225,7 +225,7 @@ public class QueryServlet {
                             "'username' is the LDAP name of the user that requested the query to be performed " +
                             "or in case of automated tools the Google group of the team responsible for the tool.");
                 }
-                accessControl.checkAllowedAccess(userName, client);
+                accessControl.checkAllowedIQLAccess(userName, client);
 
                 final IQLStatement iqlStatement = StatementParser.parseIQLToStatement(query);
                 queryInfo.statementType = iqlStatement.getStatementType();
@@ -295,12 +295,13 @@ public class QueryServlet {
         }
     }
 
-    private void setQueryInfoFromSelectStatement(IQL1SelectStatement IQL1SelectStatement, QueryInfo queryInfo) {
+    private void setQueryInfoFromSelectStatement(IQL1SelectStatement IQL1SelectStatement, QueryInfo queryInfo, ClientInfo clientInfo) {
         final FromClause from = IQL1SelectStatement.from;
         final GroupByClause groupBy = IQL1SelectStatement.groupBy;
         final SelectClause select =  IQL1SelectStatement.select;
 
         if(from != null) {
+            accessControl.checkAllowedDatasetAccess(clientInfo.username, from.getDataset());
             queryInfo.datasets = Collections.singleton(from.getDataset());
 
             if(from.getStart() != null && from.getEnd() != null) {
@@ -367,12 +368,12 @@ public class QueryServlet {
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
-                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions());
+                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), accessControl);
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
                 final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCacheIQL1);
-                setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo);
+                setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
                 final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
@@ -703,6 +704,7 @@ public class QueryServlet {
 
     private void handleDescribeStatement(DescribeStatement describeStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, QueryInfo queryInfo) throws IOException {
         queryInfo.datasets = Sets.newHashSet(describeStatement.dataset);
+        accessControl.checkAllowedDatasetAccess(queryRequestParams.username, describeStatement.dataset);
         if(Strings.isNullOrEmpty(describeStatement.field)) {
             handleDescribeDataset(describeStatement, queryRequestParams, resp);
         } else {
@@ -768,6 +770,7 @@ public class QueryServlet {
     }
 
     private void handleShowStatement(QueryRequestParams queryRequestParams, final HttpServletResponse resp) throws IOException {
+        final String username = queryRequestParams.username;
         final PrintWriter outputStream = resp.getWriter();
         if (queryRequestParams.json) {
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
@@ -775,6 +778,9 @@ public class QueryServlet {
             final ArrayNode array = OBJECT_MAPPER.createArrayNode();
             jsonRoot.set("datasets", array);
             for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+                if (!accessControl.userCanAccessDataset(username, dataset.name)) {
+                    continue;
+                }
                 final ObjectNode datasetInfo = OBJECT_MAPPER.createObjectNode();
                 dataset.toJSON(datasetInfo, OBJECT_MAPPER, true);
                 array.add(datasetInfo);
@@ -782,6 +788,9 @@ public class QueryServlet {
             OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
             for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+                if (!accessControl.userCanAccessDataset(username, dataset.name)) {
+                    continue;
+                }
                 outputStream.println(dataset.name);
             }
         }
@@ -1068,6 +1077,7 @@ public class QueryServlet {
         public final boolean skipValidation;
         public final boolean legacyMode;
         public final String imhotepUserName;
+        public final String username;
         public final String requestURL;
         public final String remoteAddr;
 
@@ -1083,6 +1093,7 @@ public class QueryServlet {
             json = req.getParameter("json") != null || contentType.contains("application/json");
             getTotals = req.getParameter("totals") != null;
             skipValidation = "1".equals(req.getParameter("skipValidation"));
+            username = userName;
             imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
             requestURL = req.getRequestURL().toString();
             remoteAddr = req.getRemoteAddr();

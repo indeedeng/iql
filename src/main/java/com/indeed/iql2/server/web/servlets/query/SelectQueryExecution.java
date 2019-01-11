@@ -44,6 +44,7 @@ import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
@@ -123,6 +124,7 @@ public class SelectQueryExecution {
     // System configuration
     @Nullable
     private final File tmpDir;
+    private final AccessControl accessControl;
 
     // IQL2 server systems
     private final QueryCache queryCache;
@@ -173,7 +175,8 @@ public class SelectQueryExecution {
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
-            final ImmutableSet<String> defaultIQL2Options) {
+            final ImmutableSet<String> defaultIQL2Options,
+            final AccessControl accessControl) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
@@ -192,6 +195,7 @@ public class SelectQueryExecution {
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
+        this.accessControl = accessControl;
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -312,6 +316,7 @@ public class SelectQueryExecution {
                 if (actualDataset == null) {
                     continue;
                 }
+                accessControl.checkAllowedDatasetAccess(clientInfo.username, actualDataset);
                 queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
