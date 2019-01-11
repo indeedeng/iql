@@ -125,30 +125,28 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
 
         session.timer.push("checking aggregate distinct eligibility");
         final Map<String, AggregateFilter> namedFilters = new TreeMap<>();
-        boolean allDistinct = true;
-        boolean allNonWindowed = true;
+        boolean allNonWindowedDistinct = true;
         boolean allNonOrdered = true;
         final Set<FieldSet> fields = new HashSet<>();
         for (final Pair<Command, String> computation : namedComputations) {
             final Command command = computation.getFirst();
-            allDistinct &= (command instanceof GetGroupDistinctsWindowed || command instanceof GetSimpleGroupDistincts);
-            if (command instanceof GetGroupDistinctsWindowed) {
-                final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;
-                allNonWindowed &= distinct.windowSize == 1;
+            if (command instanceof GetGroupDistincts) {
+                final GetGroupDistincts distinct = (GetGroupDistincts) command;
                 fields.add(distinct.field);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
                 namedFilters.put(computation.getSecond(), filter);
-            }
-            if (command instanceof GetSimpleGroupDistincts) {
+            } else if (command instanceof GetSimpleGroupDistincts) {
                 final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
                 fields.add(FieldSet.of(distinct.scope, distinct.field));
                 namedFilters.put(computation.getSecond(), new AggregateFilter.Constant(true));
+            } else {
+                allNonWindowedDistinct = false;
             }
         }
         session.timer.pop();
 
-        if (!(allDistinct && allNonWindowed && allNonOrdered)) {
+        if (!(allNonWindowedDistinct && allNonOrdered)) {
             return false;
         }
 
