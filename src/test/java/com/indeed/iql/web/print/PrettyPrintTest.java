@@ -50,22 +50,22 @@ public class PrettyPrintTest {
 
     @Test
     public void testSample() {
-        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE sample(country, 3, 4, \"myseed\")\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where sample(country, 3, 4, \"myseed\")", true, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE sample(country, 3, 4, \"myseed\")\nGROUP BY \nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today where sample(country, 3, 4, \"myseed\")", true, DATASETS_METADATA));
     }
 
     @Test
     public void testSampleMetric() {
-        Assert.assertEquals("FROM jobsearch yesterday today\nSELECT [m(sample(country, 3, 4, \"myseed\"))]", PrettyPrint.prettyPrint("from jobsearch yesterday today select [m(sample(country, 3, 4, \"myseed\"))]", false, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT [m(sample(country, 3, 4, \"myseed\"))]", PrettyPrint.prettyPrint("from jobsearch yesterday today select [m(sample(country, 3, 4, \"myseed\"))]", false, DATASETS_METADATA));
     }
 
     @Test
     public void testRandom() {
-        Assert.assertEquals("FROM jobsearch yesterday today\nGROUP BY random(country, 10)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by random(country, 10)", false, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY random(country, 10)\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by random(country, 10)", false, DATASETS_METADATA));
     }
 
     @Test
     public void testRandomMetric() {
-        Assert.assertEquals("FROM jobsearch yesterday today\nSELECT [random(country, 10)]", PrettyPrint.prettyPrint("from jobsearch yesterday today select [random(country, 10)]", false, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT [random(country, 10)]", PrettyPrint.prettyPrint("from jobsearch yesterday today select [random(country, 10)]", false, DATASETS_METADATA));
     }
 
     @Test
