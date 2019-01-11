@@ -111,7 +111,7 @@ public class Session {
     private final long firstStartTimeMillis;
     public final Set<String> options;
 
-    // Includes group zero.
+    // Does not count group zero.
     // Exactly equivalent to maxGroup.
     public int numGroups = 1;
 
