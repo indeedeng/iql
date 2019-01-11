@@ -16,9 +16,15 @@ package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 
-public class Add extends AggregateMetric.Binary {
-    public Add(final AggregateMetric m1, final AggregateMetric m2) {
-        super(m1, m2);
+import java.util.List;
+
+public class Add extends AggregateMetric.Multiple {
+    private Add(final List<AggregateMetric> metrics) {
+        super(metrics);
+    }
+
+    public static AggregateMetric create(final List<AggregateMetric> metrics) {
+        return new Add(metrics);
     }
 
     @Override

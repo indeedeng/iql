@@ -276,8 +276,7 @@ public class ScopedFieldResolver {
 
         final String identifier = Identifiers.extractIdentifier(ctx);
 
-        AggregateMetric result = null;
-
+        final List<AggregateMetric> possiblyQualifiedMetrics = new ArrayList<>(scope.size());
         for (final String dataset : scope) {
             final ScopedFieldResolver scopedResolver = forScope(Collections.singleton(dataset));
             final MetricMetadata metricMetadata = scopedResolver.lookupDimensionMetric(dataset, identifier);
@@ -296,14 +295,13 @@ public class ScopedFieldResolver {
                 possiblyQualifiedMetric = metric;
             }
 
-            if (result == null) {
-                result = possiblyQualifiedMetric;
-            } else {
-                result = new AggregateMetric.Add(possiblyQualifiedMetric, result);
-            }
+            possiblyQualifiedMetrics.add(possiblyQualifiedMetric);
         }
 
-        if (!foundDimensionMetric) {
+        final AggregateMetric result;
+        if (foundDimensionMetric) {
+            result = AggregateMetric.Add.create(possiblyQualifiedMetrics);
+        }else {
             result = new AggregateMetric.DocStats(new DocMetric.Field(resolve(ctx)));
         }
 

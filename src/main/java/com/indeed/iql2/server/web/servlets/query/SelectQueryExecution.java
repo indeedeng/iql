@@ -475,7 +475,7 @@ public class SelectQueryExecution {
                                 } else if (result.getFirst() != null) {
                                     filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
                                 }
-                                final DocFilter.Ors orred = new DocFilter.Ors(filters);
+                                final DocFilter orred = DocFilter.Or.create(filters);
                                 final DocFilter maybeNegated;
                                 if (fieldInQuery.isNegated) {
                                     maybeNegated = new DocFilter.Not(orred);

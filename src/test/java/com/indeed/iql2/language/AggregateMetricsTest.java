@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -30,14 +31,11 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Collections;
 
-import static com.indeed.iql2.language.AggregateMetric.Add;
 import static com.indeed.iql2.language.AggregateMetric.Divide;
 import static com.indeed.iql2.language.AggregateMetric.DocStats;
 import static com.indeed.iql2.language.AggregateMetric.Multiply;
 import static com.indeed.iql2.language.AggregateMetric.Subtract;
 import static com.indeed.iql2.language.DocMetricsTest.docField;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class AggregateMetricsTest {
     private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
@@ -77,14 +75,22 @@ public class AggregateMetricsTest {
         return new AggregateMetric.DocStats(new DocMetric.Field(FieldSet.of("synthetic", field)));
     }
 
+    private static DocMetric add(final DocMetric m1, final DocMetric m2) {
+        return DocMetric.Add.create(ImmutableList.of(m1, m2));
+    }
+
+    private static AggregateMetric add(final AggregateMetric m1, final AggregateMetric m2) {
+        return AggregateMetric.Add.create(ImmutableList.of(m1, m2));
+    }
+
     @Test
     public void testIQL2AdditivePrecedence() throws Exception {
         CommonArithmetic.testAdditivePrecedence(
                 PARSE_IQL2_AGGREGATE_METRIC,
-                new Add(aggField("X"), aggField("Y")),
+                add(aggField("X"), aggField("Y")),
                 new Subtract(aggField("X"), aggField("Y")),
-                new Subtract(new Add(aggField("X"), aggField("Y")), aggField("Z")),
-                new Add(new Subtract(aggField("X"), aggField("Y")), aggField("Z"))
+                new Subtract(add(aggField("X"), aggField("Y")), aggField("Z")),
+                add(new Subtract(aggField("X"), aggField("Y")), aggField("Z"))
         );
     }
 
@@ -92,11 +98,11 @@ public class AggregateMetricsTest {
     public void testIQL2LotsOfArithmetic() throws Exception {
         CommonArithmetic.testLotsOfArithmetic(
                 PARSE_IQL2_AGGREGATE_METRIC,
-                new Add(new Multiply(aggField("A"), aggField("B")), new Multiply(aggField("C"), aggField("D"))),
+                add(new Multiply(aggField("A"), aggField("B")), new Multiply(aggField("C"), aggField("D"))),
                 // "A * B / C * D + (A * B - C * D + E)"
-                new Add(
+                add(
                         new Multiply(new Divide(new Multiply(aggField("A"), aggField("B")), aggField("C")), aggField("D")),
-                        new Add(new Subtract(new Multiply(aggField("A"), aggField("B")), new Multiply(aggField("C"), aggField("D"))), aggField("E"))
+                        add(new Subtract(new Multiply(aggField("A"), aggField("B")), new Multiply(aggField("C"), aggField("D"))), aggField("E"))
                 )
         );
     }
@@ -105,10 +111,10 @@ public class AggregateMetricsTest {
     public void testV1AdditivePrecedence() throws Exception {
         CommonArithmetic.testAdditivePrecedence(
                 PARSE_LEGACY_AGGREGATE_METRIC,
-                new AggregateMetric.DocStats(new DocMetric.Add(docField("X"), docField("Y"))),
+                new AggregateMetric.DocStats(add(docField("X"), docField("Y"))),
                 new AggregateMetric.DocStats(new DocMetric.Subtract(docField("X"), docField("Y"))),
-                new AggregateMetric.DocStats(new DocMetric.Subtract(new DocMetric.Add(docField("X"), docField("Y")), docField("Z"))),
-                new DocStats(new DocMetric.Add(new DocMetric.Subtract(docField("X"), docField("Y")), docField("Z")))
+                new AggregateMetric.DocStats(new DocMetric.Subtract(add(docField("X"), docField("Y")), docField("Z"))),
+                new DocStats(add(new DocMetric.Subtract(docField("X"), docField("Y")), docField("Z")))
         );
     }
 
@@ -117,14 +123,14 @@ public class AggregateMetricsTest {
     public void testV1LotsOfArithmetic() throws Exception {
         CommonArithmetic.testLotsOfArithmetic(
                 PARSE_LEGACY_AGGREGATE_METRIC,
-                new AggregateMetric.DocStats(new DocMetric.Add(new DocMetric.Multiply(docField("A"), docField("B")), new DocMetric.Multiply(docField("C"), docField("D")))),
+                new AggregateMetric.DocStats(add(new DocMetric.Multiply(docField("A"), docField("B")), new DocMetric.Multiply(docField("C"), docField("D")))),
                 // "A * B / C * D + (A * B - C * D + E)"
                 new Divide(
                         new AggregateMetric.DocStats(new DocMetric.Multiply(docField("A"), docField("B"))),
                         new AggregateMetric.DocStats(
-                                new DocMetric.Add(
+                                add(
                                         new DocMetric.Multiply(docField("C"), docField("D")),
-                                        new DocMetric.Add(
+                                        add(
                                                 new DocMetric.Subtract(
                                                         new DocMetric.Multiply(docField("A"), docField("B")),
                                                         new DocMetric.Multiply(docField("C"), docField("D"))

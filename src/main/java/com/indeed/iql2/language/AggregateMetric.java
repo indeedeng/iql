@@ -27,6 +27,7 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -246,32 +247,145 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Add extends Binop {
-        public Add(AggregateMetric m1, AggregateMetric m2) {
-            super(m1, m2);
+    public abstract static class Multiple extends AggregateMetric {
+        public final List<AggregateMetric> metrics;
+
+        protected Multiple(final List<AggregateMetric> metrics) {
+            this.metrics = metrics;
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public boolean isOrdered() {
+            return metrics.stream().anyMatch(AggregateMetric::isOrdered);
+        }
+
+        @Override
+        public void validate(
+                final Set<String> scope,
+                final ValidationHelper validationHelper,
+                final Validator validator) {
+            for (final AggregateMetric metric : metrics) {
+                metric.validate(scope, validationHelper, validator);
+            }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if ((o == null) || (getClass() != o.getClass())) {
+                return false;
+            }
+            final Multiple other = (Multiple) o;
+            if (metrics.size() != other.metrics.size()) {
+                return false;
+            }
+            for (int i = 0; i < metrics.size(); i++) {
+                if (!Objects.equals(metrics.get(i), other.metrics.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 0;
+            for (final AggregateMetric metric : metrics) {
+                hash = hash * 31 + metric.hashCode();
+            }
+            return hash;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append(this.getClass().getSimpleName()).append('{');
+            for (int i = 0; i < metrics.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append('m').append(i+1).append('=').append(metrics.get(i));
+            }
+            sb.append('}');
+            return sb.toString();
+        }
+    }
+
+    public static class Add extends Multiple {
+        private Add(final List<AggregateMetric> metrics) {
+            super(metrics);
+        }
+
+        // create filter that is equivalent to '+' of all metrics and simplify it.
+        public static AggregateMetric create(final List<AggregateMetric> original) {
+            // unwrapping another Add if present.
+            final List<AggregateMetric> unwrapAdd = new ArrayList<>(original.size());
+            for (final AggregateMetric metric : original) {
+                if (metric instanceof Add) {
+                    unwrapAdd.addAll(((Multiple) metric).metrics);
+                } else {
+                    unwrapAdd.add(metric);
+                }
+            }
+            final List<AggregateMetric> metrics = new ArrayList<>(unwrapAdd.size());
+            double constant = 0;
+            // iterating throw metrics and gathering all constants into one.
+            for (final AggregateMetric metric : unwrapAdd) {
+                if (metric instanceof Constant) {
+                    constant += ((Constant)metric).value;
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (constant != 0) {
+                metrics.add(new Constant(constant));
+            }
+            if (metrics.isEmpty()) {
+                return new Constant(0);
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Add(metrics);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new Add(m1.transform(f, g, h, i, groupByFunction), m2.transform(f, g, h, i, groupByFunction)));
+        public AggregateMetric transform(
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i,
+                final Function<GroupBy, GroupBy> groupByFunction) {
+            final List<AggregateMetric> transformed =
+                    metrics.stream()
+                    .map(m -> m.transform(f, g, h, i, groupByFunction))
+                    .collect(Collectors.toList());
+            return f.apply(create(transformed));
         }
 
         @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Add(f.apply(m1), f.apply(m2));
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateMetric> traversed =
+                    metrics.stream()
+                    .map(m -> f.apply(m))
+                    .collect(Collectors.toList());
+            return create(traversed);
         }
 
         @Override
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
-            return new com.indeed.iql2.execution.metrics.aggregate.Add(
-                    m1.toExecutionMetric(namedMetricLookup, groupKeySet),
-                    m2.toExecutionMetric(namedMetricLookup, groupKeySet)
-            );
+            final List<com.indeed.iql2.execution.metrics.aggregate.AggregateMetric> executionMetrics =
+                    metrics.stream()
+                    .map(m -> m.toExecutionMetric(namedMetricLookup, groupKeySet))
+                    .collect(Collectors.toList());
+            return com.indeed.iql2.execution.metrics.aggregate.Add.create(executionMetrics);
         }
     }
 

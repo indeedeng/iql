@@ -23,6 +23,7 @@ import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -86,7 +87,7 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    // Base class for binary opetations on AggregateFilter
+    // Base class for binary operations on AggregateFilter
     abstract class Binary implements AggregateFilter {
         private final AggregateFilter left;
         private final AggregateFilter right;
@@ -149,6 +150,87 @@ public interface AggregateFilter extends Pushable {
         @Override
         public boolean needStats() {
             return left.needStats() || right.needStats();
+        }
+    }
+
+    // Base class for operations on multiple AggregateFilters
+    abstract class Multiple implements AggregateFilter {
+        protected final List<AggregateFilter> filters;
+
+        protected Multiple(final List<AggregateFilter> filters) {
+            if (filters.size() < 2) {
+                throw new IllegalArgumentException("2 or more filters expected");
+            }
+            this.filters = filters;
+        }
+
+        abstract boolean eval(final boolean left, final boolean right);
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return filters.stream().map(Pushable::requires).reduce(Sets::union).get();
+        }
+
+        @Override
+        public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
+            filters.forEach(f -> f.register(metricIndexes, groupKeySet));
+        }
+
+        @Override
+        public boolean[] getGroupStats(final long[][] stats, final int numGroups) {
+            return filters
+                    .stream()
+                    .map(f -> f.getGroupStats(stats, numGroups))
+                    .reduce((left, right) -> {
+                        for (int i = 0; i < left.length; i++) {
+                            left[i] = eval(left[i], right[i]);
+                        }
+                        return left;
+                    }).get();
+        }
+
+        @Override
+        public boolean allow(final String term, final long[] stats, final int group) {
+            return filters
+                    .stream()
+                    .map(f -> f.allow(term, stats, group))
+                    .reduce(this::eval)
+                    .get();
+        }
+
+        @Override
+        public boolean allow(final long term, final long[] stats, final int group) {
+            return filters
+                    .stream()
+                    .map(f -> f.allow(term, stats, group))
+                    .reduce(this::eval)
+                    .get();
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs);
+
+        @Override
+        public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return filters
+                    .stream()
+                    .map(f -> f.toImhotep(atomicStats))
+                    .reduce(this::toImhotep)
+                    .get();
+        }
+
+        @Override
+        public boolean needSorted() {
+            return filters.stream().anyMatch(AggregateFilter::needSorted);
+        }
+
+        @Override
+        public boolean needGroup() {
+            return filters.stream().anyMatch(AggregateFilter::needGroup);
+        }
+
+        @Override
+        public boolean needStats() {
+            return filters.stream().anyMatch(AggregateFilter::needStats);
         }
     }
 
@@ -457,9 +539,13 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class And extends Binary {
-        public And(final AggregateFilter f1, final AggregateFilter f2) {
-            super(f1, f2);
+    class And extends Multiple {
+        private And(final List<AggregateFilter> filters) {
+            super(filters);
+        }
+
+        public static AggregateFilter create(final List<AggregateFilter> filters) {
+            return new And(filters);
         }
 
         @Override
@@ -473,9 +559,13 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class Or extends Binary {
-        public Or(final AggregateFilter f1, final AggregateFilter f2) {
-            super(f1, f2);
+    class Or extends Multiple {
+        private Or(final List<AggregateFilter> filters) {
+            super(filters);
+        }
+
+        public static AggregateFilter create(final List<AggregateFilter> filters) {
+            return new Or(filters);
         }
 
         @Override

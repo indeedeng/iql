@@ -24,8 +24,11 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class AggregateFilter extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
@@ -574,79 +577,135 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class And extends AggregateFilter {
-        public final AggregateFilter f1;
-        public final AggregateFilter f2;
+    public static abstract class Multiple extends AggregateFilter {
+        public final List<AggregateFilter> filters;
 
-        public And(AggregateFilter f1, AggregateFilter f2) {
-            this.f1 = f1;
-            this.f2 = f2;
+        protected Multiple(final List<AggregateFilter> filters) {
+            this.filters = filters;
+        }
+
+        protected abstract AggregateFilter createFilter(final List<AggregateFilter> from);
+
+        @Override
+        public final AggregateFilter transform(
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i,
+                final Function<GroupBy, GroupBy> groupByFunction) {
+            final List<AggregateFilter> transformed =
+                    filters
+                    .stream()
+                    .map(filter -> filter.transform(f, g, h, i, groupByFunction))
+                    .collect(Collectors.toList());
+            return h.apply(createFilter(transformed));
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
+        public final AggregateFilter traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateFilter> traversed =
+                    filters
+                    .stream()
+                    .map(filter ->filter.traverse1(f))
+                    .collect(Collectors.toList());
+            return createFilter(traversed);
         }
 
         @Override
-        public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new And(f1.transform(f,g,h,i, groupByFunction), f2.transform(f,g,h,i, groupByFunction)));
+        public final void validate(
+                final Set<String> scope,
+                final ValidationHelper validationHelper,
+                final Validator validator) {
+            for (final AggregateFilter filter : filters) {
+                filter.validate(scope, validationHelper, validator);
+            }
         }
 
         @Override
-        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new And(f1.traverse1(f), f2.traverse1(f));
+        public final boolean isOrdered() {
+            return filters.stream().anyMatch(AggregateFilter::isOrdered);
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            f1.validate(scope, validationHelper, validator);
-            f2.validate(scope, validationHelper, validator);
+        public final boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Multiple other = (Multiple) o;
+            if (filters.size() != other.filters.size()) {
+                return false;
+            }
+            for (int i = 0; i < filters.size(); i++) {
+                if (!Objects.equals(filters.get(i), other.filters.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
-        public boolean isOrdered() {
-            return f1.isOrdered() || f2.isOrdered();
+        public final int hashCode() {
+            int hash = 0;
+            for (final AggregateFilter filter : filters) {
+                hash = hash * 31 + filter.hashCode();
+            }
+            return hash;
         }
 
         @Override
-        public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
-            return new com.indeed.iql2.execution.AggregateFilter.And(
-                    f1.toExecutionFilter(namedMetricLookup, groupKeySet),
-                    f2.toExecutionFilter(namedMetricLookup, groupKeySet)
-            );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            And and = (And) o;
-            return Objects.equals(f1, and.f1) &&
-                    Objects.equals(f2, and.f2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(f1, f2);
-        }
-
-        @Override
-        public String toString() {
-            return "And{" +
-                    "f1=" + f1 +
-                    ", f2=" + f2 +
-                    '}';
+        public final String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append(getClass().getSimpleName()).append('{');
+            for (int i = 0; i < filters.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append('f').append(i+1).append('=').append(filters.get(i));
+            }
+            sb.append('}');
+            return sb.toString();
         }
     }
 
-    public static class Or extends AggregateFilter {
-        public final AggregateFilter f1;
-        public final AggregateFilter f2;
+    public static class And extends Multiple {
+        private And(final List<AggregateFilter> filters) {
+            super(filters);
+        }
 
-        public Or(AggregateFilter f1, AggregateFilter f2) {
-            this.f1 = f1;
-            this.f2 = f2;
+        // create filter that is equivalent to 'and' of all filters and simplify it.
+        public static AggregateFilter create(final List<AggregateFilter> original) {
+            final List<AggregateFilter> filters = new ArrayList<>(original.size());
+            for (final AggregateFilter filter : original) {
+                if (filter instanceof Never) {
+                    // result is constant false
+                    return new Never();
+                }
+                if (filter instanceof Always) {
+                    // skipping as it does not affect result
+                    continue;
+                }
+                if (filter instanceof And) {
+                    // unwrapping filters from another And
+                    filters.addAll(((And)filter).filters);
+                } else {
+                    filters.add(filter);
+                }
+            }
+            if (filters.isEmpty()) {
+                return new Always();
+            }
+            if (filters.size() == 1) {
+                return filters.get(0);
+            }
+            return new And(filters);
+        }
+
+        @Override
+        public AggregateFilter createFilter(final List<AggregateFilter> filters) {
+            return create(filters);
         }
 
         @Override
@@ -655,54 +714,70 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Or(f1.transform(f, g, h, i, groupByFunction), f2.transform(f, g, h, i, groupByFunction)));
+        public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(
+                final Function<String, PerGroupConstant> namedMetricLookup,
+                final GroupKeySet groupKeySet) {
+            final List<com.indeed.iql2.execution.AggregateFilter> executionFilters =
+                    filters.stream()
+                    .map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet))
+                    .collect(Collectors.toList());
+            return com.indeed.iql2.execution.AggregateFilter.And.create(executionFilters);
+        }
+    }
+
+    public static class Or extends Multiple {
+
+        private Or(final List<AggregateFilter> filters) {
+            super(filters);
+        }
+
+        // create filter that is equivalent to 'or' of all filters and simplify it.
+        public static AggregateFilter create(final List<AggregateFilter> original) {
+            final List<AggregateFilter> filters = new ArrayList<>(original.size());
+            for (final AggregateFilter filter : original) {
+                if (filter instanceof Never) {
+                    // skipping as it does not affect result
+                    continue;
+                }
+                if (filter instanceof Always) {
+                    // result is constant true
+                    return new Always();
+                }
+                if (filter instanceof Or) {
+                    // unwrapping filters from another Or
+                    filters.addAll(((Or) filter).filters);
+                } else {
+                    filters.add(filter);
+                }
+            }
+            if (filters.isEmpty()) {
+                return new Never();
+            }
+            if (filters.size() == 1) {
+                return filters.get(0);
+            }
+            return new Or(filters);
         }
 
         @Override
-        public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Or(f1.traverse1(f), f2.traverse1(f));
+        public AggregateFilter createFilter(final List<AggregateFilter> filters) {
+            return create(filters);
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            f1.validate(scope, validationHelper, validator);
-            f2.validate(scope, validationHelper, validator);
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
         }
 
         @Override
-        public boolean isOrdered() {
-            return f1.isOrdered() || f2.isOrdered();
-        }
-
-        @Override
-        public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
-            return new com.indeed.iql2.execution.AggregateFilter.Or(
-                    f1.toExecutionFilter(namedMetricLookup, groupKeySet),
-                    f2.toExecutionFilter(namedMetricLookup, groupKeySet)
-            );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Or or = (Or) o;
-            return Objects.equals(f1, or.f1) &&
-                    Objects.equals(f2, or.f2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(f1, f2);
-        }
-
-        @Override
-        public String toString() {
-            return "Or{" +
-                    "f1=" + f1 +
-                    ", f2=" + f2 +
-                    '}';
+        public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(
+                final Function<String, PerGroupConstant> namedMetricLookup,
+                final GroupKeySet groupKeySet) {
+            final List<com.indeed.iql2.execution.AggregateFilter> executionFilters =
+                    filters.stream()
+                    .map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet))
+                    .collect(Collectors.toList());
+            return com.indeed.iql2.execution.AggregateFilter.Or.create(executionFilters);
         }
     }
 

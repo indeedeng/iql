@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Queries;
@@ -63,7 +64,7 @@ public class DocMetrics {
                 final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
                 final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(ImmutableList.of(left, right)));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }
@@ -294,7 +295,7 @@ public class DocMetrics {
                 final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), context);
                 final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), context);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(ImmutableList.of(left, right)));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }

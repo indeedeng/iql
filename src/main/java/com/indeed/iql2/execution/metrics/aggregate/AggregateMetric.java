@@ -20,6 +20,7 @@ import com.indeed.iql2.execution.Pushable;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -177,4 +178,90 @@ public interface AggregateMetric extends Pushable {
         }
     }
 
+    // Base class for multiple argument function
+    abstract class Multiple implements AggregateMetric {
+        public final List<AggregateMetric> metrics;
+
+        protected Multiple(final List<AggregateMetric> metrics) {
+            if (metrics.size() < 2) {
+                throw new IllegalArgumentException("2 or more arguments expected.");
+            }
+            this.metrics = metrics;
+        }
+
+        abstract double eval(final double left, final double right);
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return metrics
+                    .stream()
+                    .map(Pushable::requires)
+                    .reduce(Sets::union)
+                    .get();
+        }
+
+        @Override
+        public void register(
+                final Map<QualifiedPush, Integer> metricIndexes,
+                final GroupKeySet groupKeySet) {
+            metrics.forEach(m -> m.register(metricIndexes, groupKeySet));
+        }
+
+        @Override
+        public double[] getGroupStats(final long[][] stats, final int numGroups) {
+            return metrics
+                    .stream()
+                    .map(m -> m.getGroupStats(stats, numGroups))
+                    .reduce((left, right) -> {
+                        for (int i = 0; i < left.length; i++) {
+                            left[i] = eval(left[i], right[i]);
+                        }
+                        return left;
+                    }).get();
+        }
+
+        @Override
+        public double apply(final String term, final long[] stats, final int group) {
+            return metrics
+                    .stream()
+                    .mapToDouble(m -> m.apply(term, stats, group))
+                    .reduce(this::eval)
+                    .getAsDouble();
+        }
+
+        @Override
+        public double apply(final long term, final long[] stats, final int group) {
+            return metrics
+                    .stream()
+                    .mapToDouble(m -> m.apply(term, stats, group))
+                    .reduce(this::eval)
+                    .getAsDouble();
+        }
+
+        @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return metrics
+                    .stream()
+                    .map(m -> m.toImhotep(atomicStats))
+                    .reduce(this::toImhotep)
+                    .get();
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree lhs, final AggregateStatTree rhs);
+
+        @Override
+        public boolean needSorted() {
+            return metrics.stream().anyMatch(AggregateMetric::needSorted);
+        }
+
+        @Override
+        public boolean needGroup() {
+            return metrics.stream().anyMatch(AggregateMetric::needGroup);
+        }
+
+        @Override
+        public boolean needStats() {
+            return metrics.stream().anyMatch(AggregateMetric::needStats);
+        }
+    }
 }

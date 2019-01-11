@@ -1,5 +1,6 @@
 package com.indeed.iql2.language.query.fieldresolution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -17,15 +18,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.indeed.iql2.language.query.fieldresolution.FieldResolver.FAILED_TO_RESOLVE_DATASET;
 import static com.indeed.iql2.language.query.fieldresolution.FieldResolver.FAILED_TO_RESOLVE_FIELD;
 import static com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -153,6 +151,10 @@ public class FieldResolverTest {
         return resolver;
     }
 
+    private static DocMetric add(final DocMetric m1, final DocMetric m2) {
+        return DocMetric.Add.create(ImmutableList.of(m1, m2));
+    }
+
     @Test
     public void testDimensionsDocMetric() {
         final DocMetric failure = new DocMetric.Field(FieldSet.of("Failure", "Failure"));
@@ -164,10 +166,10 @@ public class FieldResolverTest {
         assertEquals(i1, scopedResolver.resolveDocMetric(parseIdentifier("i1"), PLAIN_DOC_METRIC_CALLBACK));
 
         final DocMetric.Field i2 = new DocMetric.Field(FieldSet.of("DIMension", "i2"));
-        assertEquals(new DocMetric.Add(i1, i2), scopedResolver.resolveDocMetric(parseIdentifier("plus"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(add(i1, i2), scopedResolver.resolveDocMetric(parseIdentifier("plus"), PLAIN_DOC_METRIC_CALLBACK));
 
         // Ensure it's not wrapped in qualified because {DIMension}={DIMension}
-        assertEquals(new DocMetric.Add(i1, i2), scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.plus"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(add(i1, i2), scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.plus"), PLAIN_DOC_METRIC_CALLBACK));
     }
 
     @Test
@@ -203,7 +205,7 @@ public class FieldResolverTest {
 
             @Override
             public DocFilter metric(final DocMetric metric) {
-                Assert.assertEquals(new DocMetric.Add(i1, i2), metric);
+                Assert.assertEquals(add(i1, i2), metric);
                 return success;
             }
         }));
@@ -218,7 +220,7 @@ public class FieldResolverTest {
 
             @Override
             public DocFilter metric(final DocMetric metric) {
-                Assert.assertEquals(new DocMetric.Add(i1, i2), metric);
+                Assert.assertEquals(add(i1, i2), metric);
                 return success;
             }
         }));
@@ -232,8 +234,8 @@ public class FieldResolverTest {
         final DocMetric.Field i1 = new DocMetric.Field(FieldSet.of("DIMension", "i1"));
         final DocMetric.Field i2 = new DocMetric.Field(FieldSet.of("DIMension", "i2"));
         assertEquals(new AggregateMetric.DocStats(i1), scopedResolver.resolveAggregateMetric(parseIdentifier("i1")));
-        assertEquals(new AggregateMetric.DocStats(new DocMetric.Add(i1, i2)), scopedResolver.resolveAggregateMetric(parseIdentifier("plus")));
-        assertEquals(new AggregateMetric.DocStats(new DocMetric.Add(i1, i2)), scopedResolver.resolveAggregateMetric(parseSinglyScopedField("dimension.plus")));
+        assertEquals(new AggregateMetric.DocStats(add(i1, i2)), scopedResolver.resolveAggregateMetric(parseIdentifier("plus")));
+        assertEquals(new AggregateMetric.DocStats(add(i1, i2)), scopedResolver.resolveAggregateMetric(parseSinglyScopedField("dimension.plus")));
     }
 
     @Test
@@ -252,7 +254,7 @@ public class FieldResolverTest {
                 ImmutableMap.of(
                         "DIMension",
                         new DocMetric.Multiply( // calc = (i1 + i2) * 10
-                                new DocMetric.Add(
+                                add(
                                         new DocMetric.Field(FieldSet.of("DIMension", "i1")),
                                         new DocMetric.Field(FieldSet.of("DIMension", "i2"))
                                 ),
@@ -260,7 +262,7 @@ public class FieldResolverTest {
                         ),
                         "dimension2",
                         new DocMetric.Multiply( // calc = (i1 + i2) * 10
-                                new DocMetric.Add(
+                                add(
                                         new DocMetric.Field(FieldSet.of("dimension2", "i1")),
                                         new DocMetric.Field(FieldSet.of("dimension2", "i1")) // i2 is aliased to i1
                                 ),
