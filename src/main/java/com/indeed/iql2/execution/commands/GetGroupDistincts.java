@@ -101,13 +101,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         private class IntIterateCallback implements Session.IntIterateCallback {
             @Override
             public void term(final long term, final long[] stats, final int group) {
-                final boolean countIt;
-                if (filter.isPresent()) {
-                    countIt = filter.get().allow(term, stats, group);
-                } else {
-                    countIt = true;
-                }
-                if (countIt) {
+                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     groupCounts[group] += 1;
                 }
             }
@@ -131,13 +125,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         private class StringIterateCallback implements Session.StringIterateCallback {
             @Override
             public void term(final String term, final long[] stats, final int group) {
-                final boolean countIt;
-                if (filter.isPresent()) {
-                    countIt = filter.get().allow(term, stats, group);
-                } else {
-                    countIt = true;
-                }
-                if (countIt) {
+                if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
                     groupCounts[group] += 1;
                 }
             }

@@ -155,14 +155,7 @@ public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Co
                     if (groupsSeen.get(group)) {
                         maxGroupExcl = group + windowSize;
                     }
-                    final boolean countIt;
-                    if (filter.isPresent()) {
-                        countIt = groupStatsChecker.allow(tmpRollingSumsBuffer, group);
-                    } else {
-                        countIt = true;
-                    }
-
-                    if (countIt) {
+                    if (!filter.isPresent() || groupStatsChecker.allow(tmpRollingSumsBuffer, group)) {
                         groupCounts[group] += 1;
                     }
 
