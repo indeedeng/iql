@@ -319,7 +319,7 @@ public abstract class DocFilter extends AbstractPositional {
             final DocFilter upperCondition = includeUpper ?
                     new MetricLte(metric, new DocMetric.Constant(upper)) :
                     new MetricLt(metric, new DocMetric.Constant(upper));
-            return And.create(ImmutableList.of(lowerCondition, upperCondition));
+            return And.create(lowerCondition, upperCondition);
         }
 
         @Override
@@ -894,6 +894,10 @@ public abstract class DocFilter extends AbstractPositional {
             return new And(filters);
         }
 
+        public static DocFilter create(final DocFilter f1, final DocFilter f2) {
+            return create(ImmutableList.of(f1, f2));
+        }
+
         // unwrap And filters if present
         public static List<DocFilter> unwrap(final List<DocFilter> filters) {
             if (filters.isEmpty()) {
@@ -990,6 +994,10 @@ public abstract class DocFilter extends AbstractPositional {
                 return filters.get(0);
             }
             return new Or(filters);
+        }
+
+        public static DocFilter create(final DocFilter f1, final DocFilter f2) {
+            return create(ImmutableList.of(f1, f2));
         }
 
         @Override

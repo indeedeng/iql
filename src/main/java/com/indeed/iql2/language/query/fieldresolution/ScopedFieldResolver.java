@@ -301,7 +301,7 @@ public class ScopedFieldResolver {
         final AggregateMetric result;
         if (foundDimensionMetric) {
             result = AggregateMetric.Add.create(possiblyQualifiedMetrics);
-        }else {
+        } else {
             result = new AggregateMetric.DocStats(new DocMetric.Field(resolve(ctx)));
         }
 

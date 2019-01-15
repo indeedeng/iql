@@ -15,7 +15,6 @@
 package com.indeed.iql2.language.passes;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.query.GroupBy;
@@ -32,7 +31,7 @@ public class FixTopKHaving {
                 final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                 final AggregateFilter newFilter;
                 if (groupByField.filter.isPresent()) {
-                    newFilter = AggregateFilter.And.create(ImmutableList.of(groupByField.filter.get(), groupBy.filter.get()));
+                    newFilter = AggregateFilter.And.create(groupByField.filter.get(), groupBy.filter.get());
                 } else {
                     newFilter = groupBy.filter.get();
                 }

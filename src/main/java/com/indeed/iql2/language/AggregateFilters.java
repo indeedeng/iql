@@ -88,7 +88,7 @@ public class AggregateFilters {
             public void enterAggregateAnd(JQLParser.AggregateAndContext ctx) {
                 final AggregateFilter left = parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context);
                 final AggregateFilter right = parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context);
-                accept(AggregateFilter.And.create(ImmutableList.of(left, right)));
+                accept(AggregateFilter.And.create(left, right));
             }
 
             public void enterAggregateMetricInequality(JQLParser.AggregateMetricInequalityContext ctx) {

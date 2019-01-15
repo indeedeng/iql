@@ -651,6 +651,10 @@ public abstract class DocMetric extends AbstractPositional {
             return new Add(metrics);
         }
 
+        public static DocMetric create(final DocMetric m1, final DocMetric m2) {
+            return create(ImmutableList.of(m1, m2));
+        }
+
         @Override
         public DocMetric transform(
                 final Function<DocMetric, DocMetric> g,
@@ -1436,7 +1440,7 @@ public abstract class DocMetric extends AbstractPositional {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             final DocMetric trueOrZero = new Multiply(truth, trueCase);
             final DocMetric falseOrZero = new Multiply(new Subtract(new Constant(1), truth), falseCase);
-            return new PushableDocMetric(Add.create(ImmutableList.of(trueOrZero, falseOrZero))).getPushes(dataset);
+            return new PushableDocMetric(Add.create(trueOrZero, falseOrZero)).getPushes(dataset);
         }
 
         @Override

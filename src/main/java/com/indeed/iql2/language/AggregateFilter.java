@@ -16,6 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.GroupBy;
@@ -701,6 +702,10 @@ public abstract class AggregateFilter extends AbstractPositional {
                 return filters.get(0);
             }
             return new And(filters);
+        }
+
+        public static AggregateFilter create(final AggregateFilter f1, final AggregateFilter f2) {
+            return create(ImmutableList.of(f1, f2));
         }
 
         @Override

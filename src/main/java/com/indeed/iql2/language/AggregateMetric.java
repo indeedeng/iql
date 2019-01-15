@@ -16,6 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -349,6 +350,10 @@ public abstract class AggregateMetric extends AbstractPositional {
                 return metrics.get(0);
             }
             return new Add(metrics);
+        }
+
+        public static AggregateMetric create(final AggregateMetric m1, final AggregateMetric m2) {
+            return create(ImmutableList.of(m1, m2));
         }
 
         @Override

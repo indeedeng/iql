@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.collect.ImmutableList;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Query;
@@ -134,7 +133,7 @@ public class DocFilters {
             public void enterLegacyDocOr(final JQLParser.LegacyDocOrContext ctx) {
                 final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
                 final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
-                accept(DocFilter.Or.create(ImmutableList.of(left, right)));
+                accept(DocFilter.Or.create(left, right));
             }
 
             @Override
@@ -183,7 +182,7 @@ public class DocFilters {
             public void enterLegacyDocAnd(final JQLParser.LegacyDocAndContext ctx) {
                 final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
                 final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
-                accept(DocFilter.And.create(ImmutableList.of(left, right)));
+                accept(DocFilter.And.create(left, right));
             }
 
             @Override
@@ -363,7 +362,7 @@ public class DocFilters {
             public void enterDocOr(final JQLParser.DocOrContext ctx) {
                 final DocFilter left = parseJQLDocFilter(ctx.jqlDocFilter(0), context);
                 final DocFilter right = parseJQLDocFilter(ctx.jqlDocFilter(1), context);
-                accept(DocFilter.Or.create(ImmutableList.of(left, right)));
+                accept(DocFilter.Or.create(left, right));
             }
 
             @Override
@@ -412,7 +411,7 @@ public class DocFilters {
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
                 final DocFilter left = parseJQLDocFilter(ctx.jqlDocFilter(0), context);
                 final DocFilter right = parseJQLDocFilter(ctx.jqlDocFilter(1), context);
-                accept(DocFilter.And.create(ImmutableList.of(left, right)));
+                accept(DocFilter.And.create(left, right));
             }
 
             @Override

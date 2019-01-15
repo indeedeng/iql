@@ -15,7 +15,6 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
@@ -230,7 +229,7 @@ public class AggregateMetrics {
                 final AggregateMetric left = parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), context);
                 final AggregateMetric right = parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), context);
                 if (ctx.plus != null) {
-                    accept(AggregateMetric.Add.create(ImmutableList.of(left, right)));
+                    accept(AggregateMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new AggregateMetric.Subtract(left, right));
                 }
