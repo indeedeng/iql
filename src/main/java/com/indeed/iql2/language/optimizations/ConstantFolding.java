@@ -23,21 +23,7 @@ public class ConstantFolding {
     public static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
         @Override
         public DocMetric apply(DocMetric input) {
-            if (input instanceof DocMetric.Add) {
-                // Add (Constant x) (Constant y) = Constant (x + y)
-                // Add (Constant 0) x = x
-                // Add x (Constant 0) = x
-                final DocMetric.Add add = (DocMetric.Add) input;
-                final Pair<DocMetric, DocMetric> normalized = normalize(add.m1, add.m2);
-                if (isConstant(normalized.getFirst()) && isConstant(normalized.getSecond())) {
-                    return new DocMetric.Constant(getConstant(normalized.getFirst()) + getConstant(normalized.getSecond()));
-                } else if (isConstant(normalized.getFirst())) {
-                    final long c = getConstant(normalized.getFirst());
-                    if (c == 0) {
-                        return normalized.getSecond();
-                    }
-                }
-            } else if (input instanceof DocMetric.Multiply) {
+            if (input instanceof DocMetric.Multiply) {
                 // Multiply (Constant x) (Constant y) = Constant (x * y)
                 // Multiply (Constant 0) x = Constant 0
                 // Multiply x (Constant 0) = x
@@ -203,33 +189,7 @@ public class ConstantFolding {
     public static final Function<DocFilter, DocFilter> FILTER_OPTIMIZER = new Function<DocFilter, DocFilter>() {
         @Override
         public DocFilter apply(DocFilter input) {
-            if (input instanceof DocFilter.And) {
-                final DocFilter.And and = (DocFilter.And) input;
-                if (isConstant(and.f1) && isConstant(and.f2)) {
-                    return makeConstant(getConstant(and.f1) && getConstant(and.f2));
-                } else if (isConstant(and.f1) && !getConstant(and.f1)) {
-                    return new DocFilter.Never();
-                } else if (isConstant(and.f2) && !getConstant(and.f2)) {
-                    return new DocFilter.Never();
-                } else if (isConstant(and.f1) && getConstant(and.f1)) {
-                    return and.f2;
-                } else if (isConstant(and.f2) && getConstant(and.f2)) {
-                    return and.f1;
-                }
-            } else if (input instanceof DocFilter.Or) {
-                final DocFilter.Or or = (DocFilter.Or) input;
-                if (isConstant(or.f1) && isConstant(or.f2)) {
-                    return makeConstant(getConstant(or.f1) || getConstant(or.f2));
-                } else if (isConstant(or.f1) && getConstant(or.f1)) {
-                    return new DocFilter.Always();
-                } else if (isConstant(or.f2) && getConstant(or.f2)) {
-                    return new DocFilter.Always();
-                } else if (isConstant(or.f1) && !getConstant(or.f1)) {
-                    return or.f2;
-                } else if (isConstant(or.f2) && !getConstant(or.f2)) {
-                    return or.f1;
-                }
-            } else if (input instanceof DocFilter.MetricEqual) {
+            if (input instanceof DocFilter.MetricEqual) {
                 final DocFilter.MetricEqual metricEqual = (DocFilter.MetricEqual) input;
                 if (isConstant(metricEqual.m1) && isConstant(metricEqual.m2)) {
                     return makeConstant(getConstant(metricEqual.m1) == getConstant(metricEqual.m2));

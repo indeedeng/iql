@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -608,24 +609,129 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    public static class Add extends Binop {
-        public Add(DocMetric m1, DocMetric m2) {
-            super(m1, m2);
+    public static class Add extends DocMetric {
+        public final List<DocMetric> metrics;
+
+        private Add(final List<DocMetric> metrics) {
+            this.metrics = metrics;
+        }
+
+        // create filter that is equivalent to '+' of all metrics and simplify it.
+        public static DocMetric create(final List<DocMetric> original) {
+            // unwrapping another Add if present.
+            final List<DocMetric> unwraped = new ArrayList<>(original.size());
+            for (final DocMetric metric : original) {
+                if (metric instanceof Add) {
+                    unwraped.addAll(((Add)metric).metrics);
+                } else {
+                    unwraped.add(metric);
+                }
+            }
+            final List<DocMetric> metrics = new ArrayList<>(unwraped.size());
+            // iterating throw metrics and gathering all constants into one.
+            long constant = 0;
+            for (final DocMetric metric : unwraped) {
+                if (metric instanceof Constant) {
+                    constant += ((Constant)metric).value;
+                } else if (metric instanceof Count) {
+                    constant++;
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (constant != 0) {
+                metrics.add(new Constant(constant));
+            }
+            if (metrics.isEmpty()) {
+                return new Constant(0);
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Add(metrics);
+        }
+
+        public static DocMetric create(final DocMetric m1, final DocMetric m2) {
+            return create(ImmutableList.of(m1, m2));
         }
 
         @Override
-        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Add(m1.transform(g, i), m2.transform(g, i)));
+        public DocMetric transform(
+                final Function<DocMetric, DocMetric> g,
+                final Function<DocFilter, DocFilter> i) {
+            final List<DocMetric> transformed = new ArrayList<>(metrics.size());
+            for (final DocMetric metric : metrics) {
+                transformed.add(metric.transform(g, i));
+            }
+            return g.apply(create(transformed));
         }
 
         @Override
-        public List<String> getPushes(String dataset) {
-            return binop(dataset, "+");
+        public List<String> getPushes(final String dataset) {
+            final List<String> result = new ArrayList<>();
+            for (int i = 0; i < metrics.size(); i++) {
+                result.addAll(metrics.get(i).getPushes(dataset));
+                if (i > 0) {
+                    result.add("+");
+                }
+            }
+            return result;
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Add add = (Add) o;
+            if (metrics.size() != add.metrics.size()) {
+                return false;
+            }
+            for (int i = 0; i < metrics.size(); i++) {
+                if (!Objects.equals(metrics.get(i), add.metrics.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 0;
+            for (final DocMetric metric : metrics) {
+                hash = hash * 31 + metric.hashCode();
+            }
+            return hash;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append("Add{");
+            for (int i = 0; i < metrics.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append('m').append(i+1).append('=').append(metrics.get(i));
+            }
+            sb.append('}');
+            return sb.toString();
+        }
+
+        @Override
+        public void validate(
+                final String dataset,
+                final ValidationHelper validationHelper,
+                final Validator validator) {
+            metrics.forEach(m -> m.validate(dataset, validationHelper, validator));
         }
     }
 
@@ -1332,7 +1438,9 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(String dataset) {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
-            return new PushableDocMetric(new Add(new Multiply(truth, trueCase), new Multiply(new Subtract(new Constant(1), truth), falseCase))).getPushes(dataset);
+            final DocMetric trueOrZero = new Multiply(truth, trueCase);
+            final DocMetric falseOrZero = new Multiply(new Subtract(new Constant(1), truth), falseCase);
+            return new PushableDocMetric(Add.create(trueOrZero, falseOrZero)).getPushes(dataset);
         }
 
         @Override

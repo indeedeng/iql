@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
 import com.indeed.iql2.language.commands.ApplyGroupFilter;
@@ -233,21 +232,6 @@ public interface ExecutionStep {
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
-        }
-
-
-        public AggregateFilter termsAsFilter() {
-            AggregateFilter result = new AggregateFilter.Never();
-            if (isIntField) {
-                for (final long term : intTerms) {
-                    result = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.term(term)), result);
-                }
-            } else {
-                for (final String term : stringTerms) {
-                    result = new AggregateFilter.Or(new AggregateFilter.TermIs(Term.term(term)), result);
-                }
-            }
-            return result;
         }
 
         @Override

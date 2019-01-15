@@ -32,20 +32,6 @@ import java.util.Set;
 import static com.indeed.iql2.language.DocMetrics.extractPlainDimensionDocMetric;
 
 public class DocFilters {
-    public static DocFilter and(List<DocFilter> filters) {
-        if (filters == null || filters.isEmpty()) {
-            return new DocFilter.Always();
-        }
-        if (filters.size() == 1) {
-            return filters.get(0);
-        }
-        DocFilter result = filters.get(0);
-        for (int i = 1; i < filters.size(); i++) {
-            result = new DocFilter.And(result, filters.get(i));
-        }
-        return result;
-    }
-
     public static DocFilter parseDocFilter(
             final JQLParser.DocFilterContext docFilterContext,
             final Query.Context context) {
@@ -144,8 +130,10 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocOr(JQLParser.LegacyDocOrContext ctx) {
-                accept(new DocFilter.Or(parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata), parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata)));
+            public void enterLegacyDocOr(final JQLParser.LegacyDocOrContext ctx) {
+                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
+                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
+                accept(DocFilter.Or.create(left, right));
             }
 
             @Override
@@ -191,8 +179,10 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocAnd(JQLParser.LegacyDocAndContext ctx) {
-                accept(new DocFilter.And(parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata), parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata)));
+            public void enterLegacyDocAnd(final JQLParser.LegacyDocAndContext ctx) {
+                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
+                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
+                accept(DocFilter.And.create(left, right));
             }
 
             @Override
@@ -369,8 +359,10 @@ public class DocFilters {
             }
 
             @Override
-            public void enterDocOr(JQLParser.DocOrContext ctx) {
-                accept(new DocFilter.Or(parseJQLDocFilter(ctx.jqlDocFilter(0), context), parseJQLDocFilter(ctx.jqlDocFilter(1), context)));
+            public void enterDocOr(final JQLParser.DocOrContext ctx) {
+                final DocFilter left = parseJQLDocFilter(ctx.jqlDocFilter(0), context);
+                final DocFilter right = parseJQLDocFilter(ctx.jqlDocFilter(1), context);
+                accept(DocFilter.Or.create(left, right));
             }
 
             @Override
@@ -417,9 +409,9 @@ public class DocFilters {
 
             @Override
             public void enterDocAnd(JQLParser.DocAndContext ctx) {
-                accept(new DocFilter.And(
-                        parseJQLDocFilter(ctx.jqlDocFilter(0), context),
-                        parseJQLDocFilter(ctx.jqlDocFilter(1), context)));
+                final DocFilter left = parseJQLDocFilter(ctx.jqlDocFilter(0), context);
+                final DocFilter right = parseJQLDocFilter(ctx.jqlDocFilter(1), context);
+                accept(DocFilter.And.create(left, right));
             }
 
             @Override

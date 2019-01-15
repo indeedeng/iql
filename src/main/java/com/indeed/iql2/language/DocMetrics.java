@@ -63,7 +63,7 @@ public class DocMetrics {
                 final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
                 final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }
@@ -294,7 +294,7 @@ public class DocMetrics {
                 final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), context);
                 final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), context);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }

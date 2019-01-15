@@ -22,7 +22,6 @@ import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
-import org.antlr.v4.runtime.Token;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -226,11 +225,11 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterAggregatePlusOrMinus(JQLParser.AggregatePlusOrMinusContext ctx) {
+            public void enterAggregatePlusOrMinus(final JQLParser.AggregatePlusOrMinusContext ctx) {
                 final AggregateMetric left = parseJQLAggregateMetric(ctx.jqlAggregateMetric(0), context);
                 final AggregateMetric right = parseJQLAggregateMetric(ctx.jqlAggregateMetric(1), context);
                 if (ctx.plus != null) {
-                    accept(new AggregateMetric.Add(left, right));
+                    accept(AggregateMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new AggregateMetric.Subtract(left, right));
                 }

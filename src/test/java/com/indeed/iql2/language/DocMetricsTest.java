@@ -87,22 +87,22 @@ public class DocMetricsTest {
         for (final boolean useLegacy : new boolean[]{false, true}) {
             CommonArithmetic.testAdditivePrecedence(
                     useLegacy ? PARSE_LEGACY_DOC_METRIC : PARSE_IQL2_DOC_METRIC,
-                    new Add(docField("X"), docField("Y")),
+                    Add.create(docField("X"), docField("Y")),
                     new Subtract(docField("X"), docField("Y")),
-                    new Subtract(new Add(docField("X"), docField("Y")), docField("Z")),
-                    new Add(new Subtract(docField("X"), docField("Y")), docField("Z"))
+                    new Subtract(Add.create(docField("X"), docField("Y")), docField("Z")),
+                    Add.create(new Subtract(docField("X"), docField("Y")), docField("Z"))
             );
         }
     }
 
     @Test
     public void testLotsOfArithmetic() throws Exception {
-        final DocMetric aTimesBPlusCTimesD = new Add(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D")));
+        final DocMetric aTimesBPlusCTimesD = Add.create(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D")));
         // "A * B / C * D + (A * B - C * D + E)"
         final DocMetric complex =
-            new Add(
+            Add.create(
                     new Multiply(new Divide(new Multiply(docField("A"), docField("B")), docField("C")), docField("D")),
-                    new Add(new Subtract(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D"))), docField("E"))
+                    Add.create(new Subtract(new Multiply(docField("A"), docField("B")), new Multiply(docField("C"), docField("D"))), docField("E"))
             );
         CommonArithmetic.testLotsOfArithmetic(
                 PARSE_IQL2_DOC_METRIC,

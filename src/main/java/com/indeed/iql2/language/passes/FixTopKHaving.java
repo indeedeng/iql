@@ -31,7 +31,7 @@ public class FixTopKHaving {
                 final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                 final AggregateFilter newFilter;
                 if (groupByField.filter.isPresent()) {
-                    newFilter = new AggregateFilter.And(groupByField.filter.get(), groupBy.filter.get());
+                    newFilter = AggregateFilter.And.create(groupByField.filter.get(), groupBy.filter.get());
                 } else {
                     newFilter = groupBy.filter.get();
                 }

@@ -231,7 +231,6 @@ public class ExtractPrecomputed {
                 final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
                 final DocMetric docMetric = docStats.docMetric;
                 if (startDepth == depth) {
-                    AggregateMetric aggregateMetric = null;
                     final Set<String> pushScope;
                     final Set<String> docMetricQualifications = ExtractQualifieds.extractDocMetricDatasets(docMetric);
                     if (docMetricQualifications.isEmpty()) {
@@ -241,15 +240,12 @@ public class ExtractPrecomputed {
                     } else {
                         throw new IqlKnownException.ParseErrorException("Doc Metric cannot have multiple different qualifications! metric = [" + docMetric + "], qualifications = [" + docMetricQualifications + "]");
                     }
+                    final List<AggregateMetric> metrics = new ArrayList<>(pushScope.size());
                     for (final String dataset : pushScope) {
                         final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
-                        if (aggregateMetric == null) {
-                            aggregateMetric = metric;
-                        } else {
-                            aggregateMetric = new AggregateMetric.Add(metric, aggregateMetric);
-                        }
+                        metrics.add(metric);
                     }
-                    return aggregateMetric;
+                    return AggregateMetric.Add.create(metrics);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -303,16 +299,13 @@ public class ExtractPrecomputed {
                 if (datasets.isEmpty()) {
                     throw new IllegalArgumentException("Averaging over no documents is undefined");
                 }
-                AggregateMetric countMetric = null;
-                for (String dataset : datasets) {
+                final List<AggregateMetric> metrics = new ArrayList<>(datasets.size());
+                for (final String dataset : datasets) {
                     final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
                             dataset, new DocMetric.PushableDocMetric(new DocMetric.Qualified(dataset, new DocMetric.Count())));
-                    if (countMetric == null) {
-                        countMetric = metric;
-                    } else {
-                        countMetric = new AggregateMetric.Add(countMetric, metric);
-                    }
+                    metrics.add(metric);
                 }
+                final AggregateMetric countMetric = AggregateMetric.Add.create(metrics);
                 return new AggregateMetric.Divide(docMetric, countMetric);
             } else {
                 return input.traverse1(this);

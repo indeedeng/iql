@@ -201,8 +201,7 @@ public class PrettyPrint {
 
         sb.append("WHERE ");
         if (query.filter.isPresent()) {
-            final List<DocFilter> filters = new ArrayList<>();
-            unAnd(query.filter.get(), filters);
+            final List<DocFilter> filters = DocFilter.And.unwrap(Collections.singletonList(query.filter.get()));
             for (int i = 0; i < filters.size(); i++) {
                 if (i > 0) {
                     sb.append(' ');
@@ -239,15 +238,6 @@ public class PrettyPrint {
             pp(select, consumer, clock);
         }
         sb.append('\n');
-    }
-
-    private void unAnd(DocFilter filter, List<DocFilter> into) {
-        if (filter instanceof DocFilter.And) {
-            unAnd(((DocFilter.And) filter).f1, into);
-            unAnd(((DocFilter.And) filter).f2, into);
-        } else {
-            into.add(filter);
-        }
     }
 
     // TODO: prettyprint comments
@@ -529,27 +519,13 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateFilter.And and) {
-                sb.append('(');
-                pp(and.f1, consumer, clock);
-                sb.append(')');
-                sb.append(" and ");
-                sb.append('(');
-                pp(and.f2, consumer, clock);
-                sb.append(')');
-                return null;
+            public Void visit(final AggregateFilter.And and) {
+                return visit(and, "and");
             }
 
             @Override
-            public Void visit(AggregateFilter.Or or) {
-                sb.append('(');
-                pp(or.f1, consumer, clock);
-                sb.append(')');
-                sb.append(" or ");
-                sb.append('(');
-                pp(or.f2, consumer, clock);
-                sb.append(')');
-                return null;
+            public Void visit(final AggregateFilter.Or or) {
+                return visit(or, "or");
             }
 
             @Override
@@ -586,6 +562,18 @@ public class PrettyPrint {
             public Void visit(AggregateFilter.IsDefaultGroup isDefaultGroup) {
                 throw new UnsupportedOperationException("What even is this operation?: " + isDefaultGroup);
             }
+
+            private Void visit(final AggregateFilter.Multiple multiple, final String op) {
+                for (int i = 0; i < multiple.filters.size(); i++) {
+                    if (i > 0) {
+                        sb.append(' ').append(op).append(' ');
+                    }
+                    sb.append('(');
+                    pp(multiple.filters.get(i), consumer, clock);
+                    sb.append(')');
+                }
+                return null;
+            }
         });
 
         appendCommentAfterText(aggregateFilter, sb);
@@ -618,8 +606,16 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(AggregateMetric.Add add) {
-                return binop(add, "+");
+            public Void visit(final AggregateMetric.Add add) {
+                for (int i = 0; i < add.metrics.size(); i++) {
+                    if (i > 0) {
+                        sb.append("+");
+                    }
+                    sb.append('(');
+                    pp(add.metrics.get(i), consumer, clock);
+                    sb.append(')');
+                }
+                return null;
             }
 
             @Override
@@ -934,36 +930,13 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocFilter.And and) {
-                pp(and.f1, consumer, clock);
-                sb.append(" and ");
-                pp(and.f2, consumer, clock);
-                return null;
+            public Void visit(final DocFilter.And and) {
+                return visit(and, "and");
             }
 
             @Override
-            public Void visit(DocFilter.Or or) {
-                pp(or.f1, consumer, clock);
-                sb.append(" or ");
-                pp(or.f2, consumer, clock);
-                return null;
-            }
-
-            @Override
-            public Void visit(DocFilter.Ors ors) {
-                if (ors.filters.isEmpty()) {
-                    pp(new DocFilter.Never(), consumer, clock);
-                } else {
-                    boolean first = true;
-                    for (final DocFilter filter : ors.filters) {
-                        if (!first) {
-                            sb.append(" OR ");
-                        }
-                        first = false;
-                        pp(filter, consumer, clock);
-                    }
-                }
-                return null;
+            public Void visit(final DocFilter.Or or) {
+                return visit(or, "or");
             }
 
             @Override
@@ -1076,6 +1049,16 @@ public class PrettyPrint {
                 sb.append(')');
                 return null;
             }
+
+            private Void visit(final DocFilter.Multiple multiple, final String op) {
+                for (int i = 0; i < multiple.filters.size(); i++) {
+                    if (i > 0) {
+                        sb.append(' ').append(op).append(' ');
+                    }
+                    pp(multiple.filters.get(i), consumer, clock);
+                }
+                return null;
+            }
         });
 
         sb.append(')');
@@ -1172,8 +1155,16 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocMetric.Add add) {
-                return binop(add, "+");
+            public Void visit(final DocMetric.Add add) {
+                sb.append('(');
+                for (int i = 0; i < add.metrics.size(); i++) {
+                    if (i > 0) {
+                        sb.append(" + ");
+                    }
+                    pp(add.metrics.get(i), consumer, clock);
+                }
+                sb.append(')');
+                return null;
             }
 
             @Override
