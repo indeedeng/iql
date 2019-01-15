@@ -47,8 +47,8 @@ public class QueryOptions {
     public static class Experimental {
         public static final String USE_MULTI_FTGS = "multiftgs";
         public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
-        public static final Pattern HOSTS_MAPPING_METHOD_PATTERN = Pattern.compile("^hostsmappingmethod=(\\w|_)*$");
-        public static final Pattern HOSTS_PATTERN = Pattern.compile("^hosts=\\[.*\\]$");
+        private static final Pattern HOSTS_MAPPING_METHOD_PATTERN = Pattern.compile("^hostsmappingmethod=(\\w|_)*$");
+        private static final Pattern HOSTS_PATTERN = Pattern.compile("^hosts=\\[.*\\]$");
 
         private static final Splitter COMMA_SPLITTER = Splitter.on(",");
         private static final Splitter COLON_SPLITTER = Splitter.on(":");
@@ -67,9 +67,10 @@ public class QueryOptions {
             }
 
             final String[] methodParts = Iterables.toArray(EQUALITY_SPLITTER.split(mappingStr.get().trim()), String.class);
-            return (methodParts.length != 2 ?
-                    HostsMappingMethod.getDefaultMethod() :
-                    HostsMappingMethod.fromString(methodParts[1]));
+            if (methodParts.length != 2) {
+                throw new IqlKnownException.OptionsErrorException("couldn't parse hostsmappingmethod option");
+            }
+            return HostsMappingMethod.fromString(methodParts[1]);
         }
 
         public static boolean hasHosts(final Collection<String> queryOptions) {
@@ -94,7 +95,7 @@ public class QueryOptions {
                         })
                         .collect(Collectors.toList());
             } catch (final Exception e) {
-                throw new IqlKnownException.UnknownHostException("couldn't parse the hosts string in options", e);
+                throw new IqlKnownException.OptionsErrorException("couldn't parse the hosts string in options", e);
             }
         }
 
@@ -131,7 +132,7 @@ public class QueryOptions {
                     return method;
                 }
             }
-            return getDefaultMethod();
+            throw new IqlKnownException.OptionsErrorException("unknown host mapping method, method = " + text);
         }
     }
 

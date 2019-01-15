@@ -56,9 +56,13 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
-    public static class UnknownHostException extends IqlKnownException {
-        public UnknownHostException(final String message, final Throwable cause) {
+    public static class OptionsErrorException extends IqlKnownException {
+        public OptionsErrorException(final String message, final Throwable cause) {
             super(message, cause);
+        }
+
+        public OptionsErrorException(final String message) {
+            super(message);
         }
     }
 
