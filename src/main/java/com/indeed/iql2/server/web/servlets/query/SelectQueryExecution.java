@@ -500,25 +500,7 @@ public class SelectQueryExecution {
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
             final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
-            if (QueryOptions.Experimental.hasHosts(query.options)) {
-                final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(query.options);
-                final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(query.options);
-
-                for (final Map.Entry<String, List<Shard>> entry : mutableDatasetToChosenShards.entrySet()) {
-                    List<Shard> remappedShards;
-                    switch (method) {
-                        case NUMDOC_MAPPING:
-                            remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
-                            break;
-
-                        case MODULO_MAPPING:
-                        default:
-                            remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
-                            break;
-                    }
-                    entry.setValue(remappedShards);
-                }
-            }
+            remapShardsIfNecessary(mutableDatasetToChosenShards, query.options);
             final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
@@ -946,6 +928,28 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static void remapShardsIfNecessary(final Map<String, List<Shard>> datasetToChosenShards, final List<String> queryOptions) {
+        if (QueryOptions.Experimental.hasHosts(queryOptions)) {
+            final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(queryOptions);
+            final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(queryOptions);
+
+            for (final Map.Entry<String, List<Shard>> entry : datasetToChosenShards.entrySet()) {
+                List<Shard> remappedShards;
+                switch (method) {
+                    case NUMDOC_MAPPING:
+                        remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
+                        break;
+
+                    case MODULO_MAPPING:
+                    default:
+                        remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
+                        break;
+                }
+                entry.setValue(remappedShards);
+            }
+        }
     }
 
     private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
