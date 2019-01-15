@@ -67,6 +67,8 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -173,12 +175,13 @@ public class Session {
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
+        final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasetToChosenShards);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets, datasetToChosenShards,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -244,6 +247,7 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
+            final boolean useAsync,
             final List<Queries.QueryDataset> sessionRequest,
             final Map<String, List<Shard>> datasetToChosenShards,
             final StrictCloser strictCloser,
@@ -290,8 +294,13 @@ public class Session {
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
             treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
-            final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
+            ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
+
+            if (useAsync) {
+                build = ((RemoteImhotepMultiSession) build).toAsync();
+            }
+
             // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
             final ImhotepSessionHolder session = strictCloser.registerOrClose(wrapSession(dataset.displayName, build));
@@ -329,11 +338,8 @@ public class Session {
         return firstStartTimeMillis;
     }
 
-    private static ImhotepSessionHolder wrapSession(
-            final String datasetName,
-            final ImhotepSession build) {
-        Preconditions.checkState(build instanceof RemoteImhotepMultiSession, "Unexpected session type");
-        return new ImhotepSessionHolder(datasetName, (RemoteImhotepMultiSession) build);
+    private static ImhotepSessionHolder wrapSession(final String datasetName, final ImhotepSession build) {
+        return new ImhotepSessionHolder(datasetName, build);
     }
 
     // this datetime is serialized by standard Datetime by iql2-language
@@ -511,21 +517,21 @@ public class Session {
     public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
         timer.push("pushing metrics");
         final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
+        final Object2IntOpenHashMap<String> sessionToPushCount = new Object2IntOpenHashMap<>();
         // TODO: Parallelize across sessions
         for (final QualifiedPush push : allPushes) {
             final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
-            final int index = pushStatsWithTimer(session, push.pushes, timer) - 1;
-            statResults.put(push, session.aggregateStat(index));
+            pushStatsWithTimer(session, push.pushes, timer);
+            statResults.put(push, session.aggregateStat(sessionToPushCount.add(push.sessionName, 1)));
         }
         timer.pop();
         return statResults;
     }
 
-    public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
+    public static void pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
         timer.push("pushStats", "pushStats ('" + String.join("', '", pushes) + "')");
-        final int result = session.pushStats(pushes);
+        session.pushStats(pushes);
         timer.pop();
-        return result;
     }
 
     public long getFirstStartTimeMillis() {

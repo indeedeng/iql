@@ -39,6 +39,8 @@ public class QueryOptions {
         public static final String USE_MULTI_FTGS = "multiftgs";
         public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
 
+        public static final String ASYNC = "async";
+
         private Experimental() {
         }
     }

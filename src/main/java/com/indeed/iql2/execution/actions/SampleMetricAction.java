@@ -57,11 +57,7 @@ public class SampleMetricAction implements Action {
                 }
                 final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name));
 
-                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
-
-                if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                }
+                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("randomMetricRegroup");
                 session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
