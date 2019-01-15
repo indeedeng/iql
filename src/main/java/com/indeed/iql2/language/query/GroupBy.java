@@ -576,6 +576,10 @@ public abstract class GroupBy extends AbstractPositional {
             this.withDefault = withDefault;
         }
 
+        public boolean isTopK() {
+            return metric.isPresent() && limit.isPresent();
+        }
+
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
