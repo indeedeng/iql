@@ -37,6 +37,7 @@ public class AllData {
         datasets.add(ExactCaseDataset.createDataset());
         datasets.add(SyntheticDataset.createDataset());
         datasets.add(CountriesDataset.createDataset());
+        datasets.add(SnapshotDataset.create());
         // Defines keywords, from, where, group, select, and limit
         datasets.add(KeywordDatasets.create());
 

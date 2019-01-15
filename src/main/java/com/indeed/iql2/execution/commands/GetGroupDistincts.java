@@ -17,6 +17,7 @@ package com.indeed.iql2.execution.commands;
 import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.AggregateFilter;
+import com.indeed.iql2.execution.Pushable;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
@@ -26,7 +27,6 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -34,12 +34,10 @@ import java.util.Set;
 public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     public final FieldSet field;
     public final Optional<AggregateFilter> filter;
-    public final int windowSize;
 
-    public GetGroupDistincts(FieldSet field, Optional<AggregateFilter> filter, int windowSize) {
+    public GetGroupDistincts(FieldSet field, Optional<AggregateFilter> filter) {
         this.field = field;
         this.filter = filter;
-        this.windowSize = windowSize;
     }
 
     @Override
@@ -57,16 +55,22 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
     }
 
     private class IterateHandlerImpl implements IterateHandler<long[]> {
-        private final BitSet groupSeen = new BitSet();
-        private boolean started = false;
-        private int lastGroup = 0;
-
         private final long[] groupCounts;
-        private final Session session;
 
-        private IterateHandlerImpl(Session session) {
+        private IterateHandlerImpl(final Session session) {
             this.groupCounts = new long[session.numGroups + 1];
-            this.session = session;
+        }
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return filter.transform(Pushable::requires).or(Collections.emptySet());
+        }
+
+        @Override
+        public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
+            if (filter.isPresent()) {
+                filter.get().register(metricIndexes, groupKeySet);
+            }
         }
 
         @Override
@@ -74,18 +78,9 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             return field.datasets();
         }
 
-        public Set<QualifiedPush> requires() {
-            if (filter.isPresent()) {
-                return filter.get().requires();
-            } else {
-                return Collections.emptySet();
-            }
-        }
-
-        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
-            if (filter.isPresent()) {
-                filter.get().register(metricIndexes, groupKeySet);
-            }
+        @Override
+        public long[] finish() {
+            return groupCounts;
         }
 
         @Override
@@ -98,33 +93,12 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
             return new StringIterateCallback();
         }
 
-        @Override
-        public long[] finish() {
-            if (windowSize > 1) {
-                updateAllSeenGroups();
-            }
-            return groupCounts;
-        }
 
         private class IntIterateCallback implements Session.IntIterateCallback {
-            private long currentTerm = 0;
-
             @Override
             public void term(final long term, final long[] stats, final int group) {
-                if (started && currentTerm != term) {
-                    updateAllSeenGroups();
-                    groupSeen.clear();
-                } else if (started) {
-                    updateSeenGroupsUntil(group);
-                }
-                currentTerm = term;
-                started = true;
-                lastGroup = group;
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    updateGroups(group, groupSeen);
-                }
-                if (groupSeen.get(group)) {
-                    groupCounts[group]++;
+                    groupCounts[group] += 1;
                 }
             }
 
@@ -145,24 +119,10 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         }
 
         private class StringIterateCallback implements Session.StringIterateCallback {
-            private String currentTerm;
-
             @Override
             public void term(final String term, final long[] stats, final int group) {
-                if (started && !currentTerm.equals(term)) {
-                    updateAllSeenGroups();
-                    groupSeen.clear();
-                } else if (started) {
-                    updateSeenGroupsUntil(group);
-                }
-                currentTerm = term;
-                started = true;
-                lastGroup = group;
                 if (!filter.isPresent() || filter.get().allow(term, stats, group)) {
-                    updateGroups(group, groupSeen);
-                }
-                if (groupSeen.get(group)) {
-                    groupCounts[group]++;
+                    groupCounts[group] += 1;
                 }
             }
 
@@ -181,34 +141,6 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
                 return filter.isPresent() && filter.get().needStats();
             }
         }
-
-        private void updateAllSeenGroups() {
-            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1) {
-                groupCounts[lastGroup]++;
-            }
-        }
-
-        private void updateSeenGroupsUntil(int group) {
-            while ((lastGroup = groupSeen.nextSetBit(lastGroup + 1)) != -1 && lastGroup < group) {
-                groupCounts[lastGroup]++;
-            }
-        }
-
-        private void updateGroups(final int group, final BitSet groupSeen) {
-            if (windowSize == 1) {
-                // DISTINCT(...) == DISTINCT_WINDOW(1,...)
-                groupSeen.set(group);
-            } else {
-                // DISTINCT_WINDOW
-                final int parent = session.groupKeySet.parentGroup(group);
-                final int numGroups = session.groupKeySet.numGroups();
-                for (int offset = 0; offset < windowSize; offset++) {
-                    if (group + offset <= numGroups && session.groupKeySet.parentGroup(group + offset) == parent) {
-                        groupSeen.set(group + offset);
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -216,7 +148,6 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
         return "GetGroupDistincts{" +
                 "field=" + field +
                 ", filter=" + filter +
-                ", windowSize=" + windowSize +
                 '}';
     }
 }
