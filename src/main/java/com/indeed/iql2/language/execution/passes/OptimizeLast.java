@@ -133,11 +133,7 @@ public class OptimizeLast {
         // TODO: Figure out wtf the above TODO means.
         final boolean hasDefault = explodeAndRegroup.withDefault;
         if (!selectIsOrdered && !hasDefault) { // If there's a filter and something that depends on order, we can't merge them.
-            List<ExecutionStep> newSteps = new ArrayList<>(steps);
-            int i = 0;
-            while (i++ < stepsToRemove) {
-                newSteps.remove(newSteps.size() -1);
-            }
+            List<ExecutionStep> newSteps = new ArrayList<>(steps.subList(0, steps.size() - stepsToRemove));
             newSteps.add(new ExecutionStep.IterateStats(
                     explodeAndRegroup.field,
                     explodeAndRegroup.filter,
