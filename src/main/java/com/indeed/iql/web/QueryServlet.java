@@ -874,6 +874,8 @@ public class QueryServlet {
             logQueryToLog4J(queryWithShortenedLists, (Strings.isNullOrEmpty(clientInfo.username) ? remoteAddr : clientInfo.username), timeTaken);
             if (systemError) {
                 log.info("System error during query execution", errorOccurred);
+            } else {
+                log.debug("User error during query execution", errorOccurred);
             }
         }
 
