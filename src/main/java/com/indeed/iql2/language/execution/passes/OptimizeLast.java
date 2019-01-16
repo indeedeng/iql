@@ -68,7 +68,7 @@ public class OptimizeLast {
                             Optional.<Set<Long>>absent(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings
-                    ));
+                            ));
                     return newSteps;
                 }
             } else if (last instanceof ExecutionStep.GetGroupStats && penultimate instanceof ExecutionStep.ExplodeFieldIn) {
