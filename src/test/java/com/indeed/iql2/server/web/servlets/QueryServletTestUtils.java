@@ -75,10 +75,10 @@ public class QueryServletTestUtils extends BasicTest {
     // Be sure not to delete empty set (no options) from the list to test main execution path.
     private static final List<Set<String>> OPTIONS_TO_TEST =
             ImmutableList.of(
-                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS),
-                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.Experimental.ASYNC),
-                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID),
-                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.PARANOID)
+                    ImmutableSet.of(),
+                    ImmutableSet.of(QueryOptions.PARANOID),
+                    ImmutableSet.of(QueryOptions.Experimental.ASYNC),
+                    ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID)
             );
 
     public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
