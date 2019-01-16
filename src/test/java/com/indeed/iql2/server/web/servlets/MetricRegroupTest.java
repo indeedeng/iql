@@ -14,13 +14,13 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.base.Predicate;
 
 public class MetricRegroupTest extends BasicTest {
     @Test
@@ -109,5 +109,11 @@ public class MetricRegroupTest extends BasicTest {
         QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", containsBucketErrorMessage);
         QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", containsBucketErrorMessage);
         QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", containsBucketErrorMessage);
+    }
+
+    @Test
+    public void testInvalidMetric() {
+        final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
+        QueryServletTestUtils.expectException(AllData.DATASET, "FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
     }
 }
