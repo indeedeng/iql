@@ -418,6 +418,21 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateFloor(final JQLParser.AggregateFloorContext ctx) {
+                accept(new AggregateMetric.Floor(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+            }
+
+            @Override
+            public void enterAggregateCeil(final JQLParser.AggregateCeilContext ctx) {
+                accept(new AggregateMetric.Ceil(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+            }
+
+            @Override
+            public void enterAggregateRound(final JQLParser.AggregateRoundContext ctx) {
+                accept(new AggregateMetric.Round(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+            }
+
+            @Override
             public void enterAggregateWindow(JQLParser.AggregateWindowContext ctx) {
                 if (ctx.old != null) {
                     context.warn.accept("Using WINDOW instead of WINDOW_SUM. WINDOW is deprecated because it is deceptive.");
@@ -453,7 +468,6 @@ public class AggregateMetrics {
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
                 accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
             }
-
 
             @Override
             public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {

@@ -38,6 +38,30 @@ public class AggregateMetricsTest extends BasicTest {
     }
 
     @Test
+    public void testFloor() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "100", "100", "-101", "-101", "151"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+                "from organic yesterday today select floor(100.4), floor(100.6), floor(-100.4), floor(-100.6), floor(count())");
+    }
+
+    @Test
+    public void testCeil() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "101", "101", "-100", "-100", "151"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+                "from organic yesterday today select ceil(100.4), ceil(100.6), ceil(-100.4), ceil(-100.6), ceil(count())");
+    }
+
+    @Test
+    public void testRound() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "100", "101", "-100", "-101", "151"));
+        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+                "from organic yesterday today select round(100.4), round(100.6), round(-100.4), round(-100.6), round(count())");
+    }
+
+    @Test
     public void testModulus() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "1", "0", "0", "1"));

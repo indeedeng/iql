@@ -646,6 +646,21 @@ public class FieldExtractor {
 			}
 
 			@Override
+			public Set<DatasetField> visit(final AggregateMetric.Floor floor) throws RuntimeException {
+				return getDatasetFields(floor.m1);
+			}
+
+			@Override
+			public Set<DatasetField> visit(final AggregateMetric.Ceil ceil) throws RuntimeException {
+				return getDatasetFields(ceil.m1);
+			}
+
+			@Override
+			public Set<DatasetField> visit(final AggregateMetric.Round round) throws RuntimeException {
+				return getDatasetFields(round.m1);
+			}
+
+			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Subtract subtract) throws RuntimeException {
 				return getFieldsForBinop(subtract);
 			}

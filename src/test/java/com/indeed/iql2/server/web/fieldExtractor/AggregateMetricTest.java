@@ -44,6 +44,21 @@ public class AggregateMetricTest extends BaseTest{
 	}
 
 	@Test
+	public void testFloor() {
+		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select floor(oji)");
+	}
+
+	@Test
+	public void testCeil() {
+		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select ceil(oji)");
+	}
+
+	@Test
+	public void testRound() {
+		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select round(oji)");
+	}
+
+	@Test
 	public void testSubstract() {
 		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC), "from organic yesterday today select oji - ojc");
 	}
