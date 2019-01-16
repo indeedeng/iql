@@ -19,6 +19,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +37,7 @@ import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.iql.StrictCloser;
@@ -107,6 +109,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -114,6 +117,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -520,7 +525,9 @@ public class SelectQueryExecution {
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
-            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
+            final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
+            remapShardsIfNecessary(mutableDatasetToChosenShards, query.options);
+            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
             if (isTopLevelQuery) {
@@ -947,6 +954,74 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static void remapShardsIfNecessary(final Map<String, List<Shard>> datasetToChosenShards, final List<String> queryOptions) {
+        if (QueryOptions.Experimental.hasHosts(queryOptions)) {
+            final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(queryOptions);
+            final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(queryOptions);
+
+            for (final Map.Entry<String, List<Shard>> entry : datasetToChosenShards.entrySet()) {
+                List<Shard> remappedShards;
+                switch (method) {
+                    case NUMDOC_MAPPING:
+                        remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
+                        break;
+
+                    case MODULO_MAPPING:
+                    default:
+                        remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
+                        break;
+                }
+                entry.setValue(remappedShards);
+            }
+        }
+    }
+
+    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
+        Preconditions.checkArgument(!hosts.isEmpty());
+
+        return shards.stream()
+                .map(shard -> {
+                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
+                    return shard.withHost(hosts.get(hostIndex));
+                })
+                .collect(Collectors.toList());
+    }
+
+    // It's a NP-complete K-partition problem: https://en.wikipedia.org/wiki/Partition_problem
+    // and we take the greedy approximate algorithm https://en.wikipedia.org/wiki/Partition_problem#The_greedy_algorithm
+    private static List<Shard> remapShardsByNumDocs(final List<Shard> shards, final List<Host> hosts) {
+        Preconditions.checkArgument(!hosts.isEmpty());
+
+        // sort numdocs in descending order and keep pair<NumDoc, ShardIndex> in the list
+        final List<Pair<Integer, Integer>> shardNumDocs = IntStream.range(0, shards.size())
+                .mapToObj(i -> Pair.of(shards.get(i).getNumDocs(), i))
+                .sorted((s1, s2) -> s2.getFirst().compareTo(s1.getFirst()))
+                .collect(Collectors.toList());
+
+        // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
+        final PriorityQueue<Pair<Long, List<Integer>>> docSumQueue = new PriorityQueue<>(
+                hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
+        hosts.stream().forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
+        shardNumDocs.stream().forEach(
+                numDocPair -> {
+                    final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+                    poll.getSecond().add(numDocPair.getSecond());
+                    docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
+                }
+        );
+
+        final List<Shard> remappedShards = Lists.newArrayListWithCapacity(shards.size());
+        int hostIndex = 0;
+        while (!docSumQueue.isEmpty()) {
+            final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+            for (final int shardIndex : poll.getSecond()) {
+                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
+            }
+            hostIndex++;
+        }
+        return remappedShards;
     }
 
     public static Optional<Long> newestStaticShard(Multimap<String, List<Shard>> datasetToShards) {
