@@ -76,6 +76,8 @@ public class QueryServletTestUtils extends BasicTest {
     private static final List<Set<String>> OPTIONS_TO_TEST =
             ImmutableList.of(
                     ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS),
+                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.Experimental.ASYNC),
+                    ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT, QueryOptions.Experimental.USE_MULTI_FTGS, QueryOptions.PARANOID)
             );
 
