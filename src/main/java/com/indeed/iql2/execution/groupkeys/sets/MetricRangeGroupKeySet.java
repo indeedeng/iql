@@ -108,7 +108,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
                 min == that.min &&
                 interval == that.interval &&
                 withDefaultBucket == that.withDefaultBucket &&
-                fromPredicate == this.fromPredicate &&
+                fromPredicate == that.fromPredicate &&
                 Objects.equals(previous, that.previous);
     }
 
