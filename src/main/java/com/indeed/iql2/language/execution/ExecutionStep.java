@@ -269,11 +269,11 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, List<String>> datasetToPushes = new HashMap<>();
+            final Map<String, DocMetric> datasetToPushes = new HashMap<>();
             for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
+                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
             }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -660,9 +660,9 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, List<String>> datasetToPushes = new HashMap<>();
+            final Map<String, DocMetric> datasetToPushes = new HashMap<>();
             for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
+                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
             }
             return Collections.singletonList(new RandomMetricRegroup(datasetToPushes, k, salt));
         }
