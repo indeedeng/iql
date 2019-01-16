@@ -64,6 +64,28 @@ public class MultiValueRegroupTest extends BasicTest {
     }
 
     @Test
+    public void testRegroupByStringFieldWithIntFilter() throws Exception {
+        // page is string multivalued field, some docs have "last" as a second term.
+        // Check that in IQL1 string field optimization is applied even if we filter int values.
+        final String query = "from jobsearch yesterday today where page in (1, 2, 3) group by page";
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("1", "2"),
+                        ImmutableList.of("2", "2"),
+                        ImmutableList.of("3", "2")),
+                query);
+        // Check that in IQL2 is without these optimization.
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("1", "2"),
+                        ImmutableList.of("2", "2"),
+                        ImmutableList.of("3", "2"),
+                        ImmutableList.of("last", "3")
+                ),
+                query);
+    }
+
+    @Test
     public void testGroupByMultiValueInIQL2() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "50"));

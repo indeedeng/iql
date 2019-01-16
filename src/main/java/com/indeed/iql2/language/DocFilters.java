@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.base.Optional;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Query;
@@ -74,7 +76,7 @@ public class DocFilters {
                 for (final JQLParser.LegacyTermValContext term : terms) {
                     termsList.add(Term.parseLegacyTerm(term));
                 }
-                accept(docInHelper(datasetsMetadata, field, negate, termsList));
+                accept(docInHelper(datasetsMetadata, field, negate, termsList, true));
             }
 
             @Override
@@ -245,7 +247,7 @@ public class DocFilters {
                 for (final JQLParser.JqlTermValContext term : terms) {
                     termsList.add(Term.parseJqlTerm(term));
                 }
-                accept(field.wrap(docInHelper(context.datasetsMetadata, field, negate, termsList)));
+                accept(field.wrap(docInHelper(context.datasetsMetadata, field, negate, termsList, false)));
             }
 
             @Override
@@ -460,8 +462,15 @@ public class DocFilters {
         return null;
     }
 
-    public static DocFilter docInHelper(DatasetsMetadata datasetsMetadata, FieldSet field, boolean negate, List<Term> termsList) {
-        final boolean isStringField = anyIsString(termsList);
+    public static DocFilter docInHelper(
+            final DatasetsMetadata datasetsMetadata,
+            final FieldSet field,
+            final boolean negate,
+            final List<Term> termsList,
+            final boolean isLegacy) {
+        // In legacy mode we determine field type by actual dataset metadata.
+        // In IQL2 mode we determine field type by terms type.
+        final boolean isStringField = isLegacy ? isStringField(field, datasetsMetadata, termsList) : anyIsString(termsList);
         final DocFilter filter;
         if (isStringField) {
             final Set<String> termSet = new HashSet<>();
@@ -476,9 +485,17 @@ public class DocFilters {
         } else {
             final Set<Long> termSet = new LongOpenHashSet();
             for (final Term term : termsList) {
-                termSet.add(term.intTerm);
+                if (term.isIntTerm) {
+                    termSet.add(term.intTerm);
+                } else {
+                    try {
+                        final long longTerm = Long.parseLong(term.stringTerm);
+                        termSet.add(longTerm);
+                    } catch (final Throwable ignored) {
+                    }
+                }
             }
-            filter = new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
+            filter = termSet.isEmpty() ? new DocFilter.Never() : new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
         }
         if (negate) {
             return new DocFilter.Not(filter);
@@ -487,10 +504,36 @@ public class DocFilters {
         }
     }
 
-    private static boolean anyIsString(List<Term> terms) {
-        for (final Term term : terms) {
-            if (!term.isIntTerm) return true;
+    private static boolean anyIsString(final List<Term> terms) {
+        return terms.stream().anyMatch(t -> !t.isIntTerm);
+    }
+
+    private static boolean isStringField(
+            final FieldSet field,
+            final DatasetsMetadata datasetsMetadata,
+            final List<Term> terms) {
+        boolean hasStringField = false;
+        boolean hasIntField = false;
+        for (final String dataset : field.datasets()) {
+            final String fieldName = field.datasetFieldName(dataset);
+            final Optional<DatasetMetadata> metadata = datasetsMetadata.getMetadata(dataset);
+            if (!metadata.isPresent()) {
+                throw new IllegalStateException("Can't find metadata for dataset " + dataset);
+            }
+            if (metadata.get().hasStringField(fieldName)) {
+                hasStringField = true;
+            }
+            if (metadata.get().hasIntField(fieldName)) {
+                hasIntField = true;
+            }
         }
-        return false;
+        if (hasStringField ^ hasIntField) {
+            // one is true and another is false.
+            return hasStringField;
+        }
+
+        // conflicting field or no field found,
+        // determining type by terms.
+        return anyIsString(terms);
     }
 }
