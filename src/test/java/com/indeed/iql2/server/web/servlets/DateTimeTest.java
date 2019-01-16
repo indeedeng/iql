@@ -25,28 +25,28 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 public class DateTimeTest extends BasicTest {
     @Test
     public void testWordDate() throws Exception {
-        testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testIQL1(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago select count(), oji, ojc");
-        testIQL2(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago select count(), oji, ojc");
+        testIQL1(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
+        testIQL1(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago select count(), oji, ojc");
+        testIQL2(ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago select count(), oji, ojc");
     }
 
     @Test
     public void testQuotes() throws Exception {
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"d\" \"today\" select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"1d\" today select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("", "160", "2662", "315")), "from organic \"10d\" \"today\" select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"d\" \"today\" select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic \"1d\" today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "160", "2662", "315")), "from organic \"10d\" \"today\" select count(), oji, ojc");
     }
 
     @Test
     public void testSingleDigitDates() throws  Exception {
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","10")), "from organic 2015-1-1T0:0:0 2015-1-1 01:00:00 select count()");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","60","600","60")), "from organic 2015-1-01 1:0:0 2015-01-1T2:00:0 select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01 2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
-        testAll(AllData.DATASET, ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01T2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("","10")), "from organic 2015-1-1T0:0:0 2015-1-1 01:00:00 select count()");
+        testAll(ImmutableList.of(ImmutableList.of("","60","600","60")), "from organic 2015-1-01 1:0:0 2015-01-1T2:00:0 select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01 2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01T2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
     }
 
 }

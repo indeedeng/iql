@@ -24,6 +24,7 @@ public class AllData {
         datasets.add(MultiValueDataset.createDataset());
         datasets.add(MultiValuedDataset.create());
         datasets.add(OrganicDataset.create());
+        datasets.add(OrganicDataset.createWithDynamicShardNaming());
         datasets.add(QuantilesDataset.createDataset());
         datasets.add(RegroupEmptyFieldDataset.createDataset());
         datasets.add(StringAsIntFieldDataset.create());

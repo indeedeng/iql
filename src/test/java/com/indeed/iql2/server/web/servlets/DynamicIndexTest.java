@@ -26,8 +26,8 @@ public class DynamicIndexTest extends BasicTest {
     @Test
     public void testUngroupedUsingDynamicIndex() throws Exception {
         final List<List<String>> expected = ImmutableList.<List<String>>of(ImmutableList.of("", "151", "2653", "306", "4"));
-        QueryServletTestUtils.testAll(OrganicDataset.createWithDynamicShardNaming(), expected, "from organic yesterday today select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testAll(expected, "from organic_dynamic yesterday today select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
-        QueryServletTestUtils.testAll(OrganicDataset.createWithDynamicShardNaming(), QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today select count(), oji, ojc");
+        QueryServletTestUtils.testAll(QueryServletTestUtils.withoutLastColumn(expected), "from organic_dynamic yesterday today select count(), oji, ojc");
     }
 }

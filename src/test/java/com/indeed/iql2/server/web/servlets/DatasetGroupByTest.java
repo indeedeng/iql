@@ -33,7 +33,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds2", "200"));
         expected.add(ImmutableList.of("ds3", "300"));
         expected.add(ImmutableList.of("abc", "400"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-02, groupByDataset 2015-01-02 2015-01-03 as ds2, groupByDataset 2015-01-03 2015-01-04 as ds3, groupByDataset 2015-01-04 2015-01-05 as abc " +
                         "group by DATASET() select COUNT()"
         );
@@ -63,7 +63,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d1", "700", "0"));
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d2", "7000", "6300"));
         expected.add(ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "d3", "70000", "63000"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-08 as d1, groupByDataset 2015-01-08 2015-01-15 as d2, groupByDataset 2015-01-15 2015-01-22 as d3 " +
                 "group by time(1d relative), DATASET() select COUNT(), if (lag(1,count()) > 0) then count() - lag(1, count()) else 0"
         );
@@ -75,7 +75,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "3"));
         expected.add(ImmutableList.of("ds2", "1.5"));
 
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by DATASET() " +
                         "select PARENT(COUNT()) / COUNT()"
         );
@@ -89,7 +89,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("2", "ds1", "6", "3"));
         expected.add(ImmutableList.of("2", "ds2", "3", "1.5"));
 
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by label, DATASET() " +
                         "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
@@ -103,7 +103,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "2", "6", "2"));
         expected.add(ImmutableList.of("ds2", "2", "3", "2"));
 
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 group by DATASET(), label " +
                         "select PARENT(PARENT(COUNT())) / COUNT(), PARENT(COUNT()) / COUNT()", true
         );
@@ -115,7 +115,7 @@ public class DatasetGroupByTest {
         expected.add(ImmutableList.of("ds1", "2", "2"));
         expected.add(ImmutableList.of("ds2", "2", "2"));
 
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from groupByDataset 2015-01-01 2015-01-02 as ds1, groupByDataset 2015-01-02 2015-01-03 as ds2 " +
                         "group by DATASET() select DISTINCT(label), PARENT(DISTINCT(label))", true
         );
