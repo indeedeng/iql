@@ -144,9 +144,9 @@ public class ExtractPrecomputed {
                 }
             }
         }
-        if (!query.selects.isEmpty()) {
-            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
-        }
+        // IQL-606: it doesn't push "count()" in subqueries, add a GetGroupStats manually to ensure
+        // the last command translated is SimpleIterate or GetGroupStats
+        resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
         return resultSteps;
     }
 
