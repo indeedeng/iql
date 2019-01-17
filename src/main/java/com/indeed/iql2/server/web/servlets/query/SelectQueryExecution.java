@@ -216,15 +216,24 @@ public class SelectQueryExecution {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
-        final Consumer<String> out;
-        if (isStream) {
-            out = s -> {
-                outputStream.print("data: ");
+        final Consumer<String> out = new Consumer<String>() {
+            int count = 1;
+
+            @Override
+            public void accept(final String s) {
+                if (isStream) {
+                    outputStream.print("data: ");
+                }
                 outputStream.println(s);
-            };
-        } else {
-            out = outputStream::println;
-        }
+
+                count += 1;
+                // Only check for errors every 10k rows because checkError
+                // also flushes, which we do not want to do every row.
+                if (((count % 10000) == 0) && outputStream.checkError()) {
+                    throw new IqlKnownException.ClientHungUpException("OutputStream in error state");
+                }
+            }
+        };
 
         final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
         ProgressCallback progressCallback;

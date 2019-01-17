@@ -128,6 +128,12 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
+    public static class ClientHungUpException extends IqlKnownException {
+        public ClientHungUpException(final String message) {
+            super(message);
+        }
+    }
+
     // Legacy parsing exception from Iql 1.
     // Renamed, previously was IQLParseException
     public static class StatementParseException extends IqlKnownException {
