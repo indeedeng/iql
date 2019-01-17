@@ -194,9 +194,9 @@ jqlAggregateMetric
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
-    | FLOOR '(' jqlAggregateMetric ')' # AggregateFloor
-    | CEIL '(' jqlAggregateMetric ')' # AggregateCeil
-    | ROUND '(' jqlAggregateMetric ')' # AggregateRound
+    | FLOOR '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateFloor
+    | CEIL '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateCeil
+    | ROUND '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateRound
     | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin

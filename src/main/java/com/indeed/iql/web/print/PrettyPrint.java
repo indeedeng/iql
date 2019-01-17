@@ -647,7 +647,9 @@ public class PrettyPrint {
             public Void visit(final AggregateMetric.Floor floor) throws RuntimeException {
                 sb.append("floor(");
                 pp(floor.m1, consumer, clock);
-                sb.append(")");
+                sb.append(',');
+                sb.append(floor.f1);
+                sb.append(')');
                 return null;
             }
 
@@ -655,7 +657,9 @@ public class PrettyPrint {
             public Void visit(final AggregateMetric.Ceil ceil) throws RuntimeException {
                 sb.append("ceil(");
                 pp(ceil.m1, consumer, clock);
-                sb.append(")");
+                sb.append(',');
+                sb.append(ceil.f1);
+                sb.append(')');
                 return null;
             }
 
@@ -663,7 +667,9 @@ public class PrettyPrint {
             public Void visit(final AggregateMetric.Round round) throws RuntimeException {
                 sb.append("round(");
                 pp(round.m1, consumer, clock);
-                sb.append(")");
+                sb.append(',');
+                sb.append(round.f1);
+                sb.append(')');
                 return null;
             }
 

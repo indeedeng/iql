@@ -16,6 +16,7 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -39,26 +40,110 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testFloor() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "100", "100", "-101", "-101", "151"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
-                "from organic yesterday today select floor(100.4), floor(100.6), floor(-100.4), floor(-100.6), floor(count())");
+        //floor(x, 0)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "101", "101", "-106", "-106", "151")),
+                "from organic yesterday today select floor(101.46), floor(101.64), floor(-105.46), floor(-105.64), floor(count())");
+
+        //floor(x, 1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "101.4", "101.6", "-105.5", "-105.7", "151")),
+                "from organic yesterday today select floor(101.46, 1), floor(101.64, 1), floor(-105.46, 1), floor(-105.64, 1), floor(count(), 1)");
+
+        //floor(x, -1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
+                "from organic yesterday today select floor(101.46, -1), floor(101.64, -1), floor(-105.46, -1), floor(-105.64, -1), floor(count(), -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
+                "from organic yesterday today select floor(0.0), floor(-0.0), floor(1.0), floor(-1.0)");
+
+        try {
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select floor(101.46, 11)");
+            Assert.fail();
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select floor(101.46, -11)");
+            Assert.fail();
+        } catch (final IllegalArgumentException e) {
+
+        }
     }
 
     @Test
     public void testCeil() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "101", "101", "-100", "-100", "151"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
-                "from organic yesterday today select ceil(100.4), ceil(100.6), ceil(-100.4), ceil(-100.6), ceil(count())");
+        //ceil(x, 0)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "102", "102", "-105", "-105", "151")),
+                "from organic yesterday today select ceil(101.46), ceil(101.64), ceil(-105.46), ceil(-105.64), ceil(count())");
+
+        //ceil(x, 1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "101.5", "101.7", "-105.4", "-105.6", "151")),
+                "from organic yesterday today select ceil(101.46, 1), ceil(101.64, 1), ceil(-105.46, 1), ceil(-105.64, 1), ceil(count(), 1)");
+
+        //ceil(x, -1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "110", "110", "-100", "-100", "160")),
+                "from organic yesterday today select ceil(101.46, -1), ceil(101.64, -1), ceil(-105.46, -1), ceil(-105.64, -1), ceil(count(), -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
+                "from organic yesterday today select ceil(0.0), ceil(-0.0), ceil(1.0), ceil(-1.0)");
+
+        try {
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select ceil(101.46, 11)");
+            Assert.fail();
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select ceil(101.46, -11)");
+            Assert.fail();
+        } catch (final IllegalArgumentException e) {
+
+        }
     }
 
     @Test
     public void testRound() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "100", "101", "-100", "-101", "151"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
-                "from organic yesterday today select round(100.4), round(100.6), round(-100.4), round(-100.6), round(count())");
+        //round(x, 0)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "101", "102", "-105", "-106", "151")),
+                "from organic yesterday today select round(101.46), round(101.64), round(-105.46), round(-105.64), round(count())");
+
+        //round(x, 1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "101.5", "101.6", "-105.5", "-105.6", "151")),
+                "from organic yesterday today select round(101.46, 1), round(101.64, 1), round(-105.46, 1), round(-105.64, 1), round(count(), 1)");
+
+        //round(x, -1)
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
+                "from organic yesterday today select round(101.46, -1), round(101.64, -1), round(-105.46, -1), round(-105.64, -1), round(count(), -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
+                "from organic yesterday today select round(0.0), round(-0.0), round(1.0), round(-1.0)");
+
+        try {
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select round(101.46, 11)");
+            Assert.fail();
+            QueryServletTestUtils.testIQL2(AllData.DATASET,
+                    ImmutableList.of(ImmutableList.of("", "102")),
+                    "from organic yesterday today select round(101.46, -11)");
+            Assert.fail();
+        } catch (final IllegalArgumentException e) {
+
+        }
     }
 
     @Test

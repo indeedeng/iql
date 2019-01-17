@@ -29,6 +29,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class AggregateMetrics {
+    // The max value of the absolute second param for floor/ceil/round
+    private static final int SECOND_PARAM_MAX_VALUE = 10;
+
     public static AggregateMetric parseAggregateMetric(
             final JQLParser.AggregateMetricContext metricContext,
             final Query.Context context) {
@@ -419,17 +422,29 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateFloor(final JQLParser.AggregateFloorContext ctx) {
-                accept(new AggregateMetric.Floor(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > SECOND_PARAM_MAX_VALUE) {
+                    throw new IllegalArgumentException("The second param for FLOOR is no larger than " + SECOND_PARAM_MAX_VALUE);
+                }
+                accept(new AggregateMetric.Floor(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
 
             @Override
             public void enterAggregateCeil(final JQLParser.AggregateCeilContext ctx) {
-                accept(new AggregateMetric.Ceil(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > SECOND_PARAM_MAX_VALUE) {
+                    throw new IllegalArgumentException("The second param for CEIL is no larger than " + SECOND_PARAM_MAX_VALUE);
+                }
+                accept(new AggregateMetric.Ceil(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
 
             @Override
             public void enterAggregateRound(final JQLParser.AggregateRoundContext ctx) {
-                accept(new AggregateMetric.Round(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > SECOND_PARAM_MAX_VALUE) {
+                    throw new IllegalArgumentException("The second param for ROUND is no larger than " + SECOND_PARAM_MAX_VALUE);
+                }
+                accept(new AggregateMetric.Round(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
 
             @Override

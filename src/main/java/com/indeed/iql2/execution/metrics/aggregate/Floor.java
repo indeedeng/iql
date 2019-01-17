@@ -16,14 +16,21 @@ package com.indeed.iql2.execution.metrics.aggregate;
 
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 
-public class Floor extends AggregateMetric.Unary {
-    public Floor(final AggregateMetric value) {
-        super(value);
+public class Floor extends AggregateMetric.FactorUnary {
+    public Floor(final AggregateMetric m1, final int f1) {
+        super(m1, f1);
     }
 
     @Override
-    double eval(final double value) {
-        return Math.floor(value);
+    double eval(final double value, final int digits) {
+        final int absDigits = Math.abs(digits);
+        final double base = Math.pow(10, absDigits);
+        if (digits > 0) {
+            return Math.floor(value * base) / base;
+        }
+        else {
+            return Math.floor(value / base) * base;
+        }
     }
 
     @Override
