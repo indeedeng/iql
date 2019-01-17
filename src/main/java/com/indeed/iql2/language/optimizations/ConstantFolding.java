@@ -15,8 +15,10 @@
 package com.indeed.iql2.language.optimizations;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
 public class ConstantFolding {
@@ -242,6 +244,10 @@ public class ConstantFolding {
             }
         }
     };
+
+    public static Query apply(final Query query) {
+        return query.transform(Functions.identity(), Functions.identity(), METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER);
+    }
 
     public static DocMetric apply(final DocMetric metric) {
         return metric.transform(METRIC_OPTIMIZER, FILTER_OPTIMIZER);

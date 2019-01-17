@@ -42,6 +42,7 @@ import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.execution.passes.FixFtgsMetricRunning;
 import com.indeed.iql2.language.execution.passes.GroupIterations;
 import com.indeed.iql2.language.execution.passes.OptimizeLast;
+import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.passes.ExtractNames;
 import com.indeed.iql2.language.passes.ExtractPrecomputed;
 import com.indeed.iql2.language.passes.FixTopKHaving;
@@ -443,7 +444,9 @@ public class Queries {
         Loggers.trace(log, "query2 = %s", query2);
         final Query query3 = RemoveNames.removeNames(query2);
         Loggers.trace(log, "query3 = %s", query3);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query3);
+        final Query query4 = ConstantFolding.apply(query3);
+        Loggers.trace(log, "query4 = %s", query4);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
         final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(extracted.query);
         final List<ExecutionStep> firstSteps = query5Result.steps;
