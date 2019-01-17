@@ -23,7 +23,7 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
