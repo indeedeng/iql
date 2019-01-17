@@ -368,7 +368,7 @@ public class Query extends AbstractPositional {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
                         Preconditions.checkState(groupByField.field.datasets().equals(expectedDatasets));
                         final String fieldName = groupByField.field.getOnlyField();
-                        if (filterField.equals(fieldName)) {
+                        if (filterField.equals(fieldName) && !groupByField.isTopK()) {
                             final GroupBy.GroupByFieldIn groupByFieldIn = new GroupBy.GroupByFieldIn(groupByField.field, new LongArrayList(), stringTerms, groupByField.withDefault);
                             groupByFieldIn.copyPosition(groupByField);
                             groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));

@@ -81,4 +81,21 @@ public class MultiValueRegroupTest extends BasicTest {
                 "from multiValue yesterday today where f in (1,2) GROUP BY i, f", true);
     }
 
+    @Test
+    public void testNoOptimizeWithTopK() throws Exception {
+        // Check that "where field in (..) group by field" -> "group by field in (..)" optimization
+        // does not apply in topK regroups
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("1", "50"),
+                        ImmutableList.of("3", "17")),
+                "from multiValue yesterday today where sf in (\"1\",\"2\") i=1 GROUP BY sf[10]", true);
+        QueryServletTestUtils.testIQL1(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("1", "251"),
+                        ImmutableList.of("3", "119"),
+                        ImmutableList.of("2", "117")
+                ),
+                "from multiValue yesterday today where sf in (\"1\",\"2\") GROUP BY sf[10 by f + i] select f + i", true);
+    }
 }
