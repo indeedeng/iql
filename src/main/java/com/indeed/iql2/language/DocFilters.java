@@ -491,7 +491,7 @@ public class DocFilters {
                     try {
                         final long longTerm = Long.parseLong(term.stringTerm);
                         termSet.add(longTerm);
-                    } catch (final Throwable ignored) {
+                    } catch (final NumberFormatException ignored) {
                     }
                 }
             }
