@@ -24,7 +24,6 @@ import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ErrorMessages;
@@ -44,7 +43,6 @@ import java.util.regex.PatternSyntaxException;
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
-        T visit(PushableDocMetric pushableDocMetric) throws E;
         T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
         T visit(Count count) throws E;
         T visit(DocId count) throws E;
@@ -94,54 +92,6 @@ public abstract class DocMetric extends AbstractPositional {
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
-
-    public static class PushableDocMetric extends DocMetric {
-        public final DocMetric metric;
-
-        public PushableDocMetric(DocMetric metric) {
-            this.metric = metric;
-        }
-
-        @Override
-        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new PushableDocMetric(metric.transform(g, i)));
-        }
-
-        @Override
-        public List<String> getPushes(String dataset) {
-            return ConstantFolding.apply(metric).getPushes(dataset);
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PushableDocMetric that = (PushableDocMetric) o;
-            return Objects.equals(metric, that.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric);
-        }
-
-        @Override
-        public String toString() {
-            return "PushableDocMetric{" +
-                    "metric=" + metric +
-                    '}';
-        }
-    }
 
     public static class PerDatasetDocMetric extends DocMetric {
         public final ImmutableMap<String, DocMetric> datasetToMetric;
@@ -506,7 +456,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public List<String> getPushes(String dataset) {
-            return new PushableDocMetric(new Subtract(new Constant(0), m1)).getPushes(dataset);
+            return new Subtract(new Constant(0), m1).getPushes(dataset);
         }
 
         @Override
@@ -554,7 +504,7 @@ public abstract class DocMetric extends AbstractPositional {
                             new Constant(-1),
                             new Constant(0))
             );
-            return new PushableDocMetric(m).getPushes(dataset);
+            return m.getPushes(dataset);
         }
 
         @Override
@@ -1440,7 +1390,7 @@ public abstract class DocMetric extends AbstractPositional {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             final DocMetric trueOrZero = new Multiply(truth, trueCase);
             final DocMetric falseOrZero = new Multiply(new Subtract(new Constant(1), truth), falseCase);
-            return new PushableDocMetric(Add.create(trueOrZero, falseOrZero)).getPushes(dataset);
+            return Add.create(trueOrZero, falseOrZero).getPushes(dataset);
         }
 
         @Override

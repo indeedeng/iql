@@ -17,7 +17,7 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
@@ -269,11 +269,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final ImmutableMap.Builder<String, DocMetric> datasetToPushes = ImmutableMap.builder();
-            for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
-            }
-            return Collections.singletonList(new MetricRegroup(datasetToPushes.build(), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -660,11 +656,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final ImmutableMap.Builder<String, DocMetric> datasetToPushes = ImmutableMap.builder();
-            for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
-            }
-            return Collections.singletonList(new RandomMetricRegroup(datasetToPushes.build(), k, salt));
+            return Collections.singletonList(new RandomMetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), k, salt));
         }
 
         @Override

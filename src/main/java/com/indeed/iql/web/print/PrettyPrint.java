@@ -1084,11 +1084,6 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocMetric.PushableDocMetric pushableDocMetric) {
-                throw new UnsupportedOperationException("uhhh");
-            }
-
-            @Override
             public Void visit(DocMetric.PerDatasetDocMetric perDatasetDocMetric) {
                 throw new UnsupportedOperationException("Can't pretty print PerDatasetDocMetric: " + perDatasetDocMetric);
             }

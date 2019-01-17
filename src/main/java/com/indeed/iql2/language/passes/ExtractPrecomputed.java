@@ -242,7 +242,7 @@ public class ExtractPrecomputed {
                     }
                     final List<AggregateMetric> metrics = new ArrayList<>(pushScope.size());
                     for (final String dataset : pushScope) {
-                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
+                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                         metrics.add(metric);
                     }
                     return AggregateMetric.Add.create(metrics);
@@ -302,7 +302,8 @@ public class ExtractPrecomputed {
                 final List<AggregateMetric> metrics = new ArrayList<>(datasets.size());
                 for (final String dataset : datasets) {
                     final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
-                            dataset, new DocMetric.PushableDocMetric(new DocMetric.Qualified(dataset, new DocMetric.Count())));
+                            dataset, new DocMetric.Qualified(dataset, new DocMetric.Count())
+                    );
                     metrics.add(metric);
                 }
                 final AggregateMetric countMetric = AggregateMetric.Add.create(metrics);
