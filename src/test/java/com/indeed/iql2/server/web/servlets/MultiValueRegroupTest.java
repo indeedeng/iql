@@ -47,7 +47,7 @@ public class MultiValueRegroupTest extends BasicTest {
         // But if you change filter to "where sf in ("2") sf in ("1")" it returns ("2", "2", "50")
         // Not sure it's worth to spend much time on that.
         // It's here just for history
-        //QueryServletTestUtils.testIQL1(AllData.DATASET,
+        //QueryServletTestUtils.testIQL1(
         //        ImmutableList.of(ImmutableList.of("1", "1", "50")),
         //        "from multiValue yesterday today where sf in (\"1\") sf in (\"2\") GROUP BY sf, sf", true);
         QueryServletTestUtils.testIQL1(
@@ -84,12 +84,12 @@ public class MultiValueRegroupTest extends BasicTest {
     public void testNoOptimizeWithTopK() throws Exception {
         // Check that "where field in (..) group by field" -> "group by field in (..)" optimization
         // does not apply in topK regroups
-        QueryServletTestUtils.testIQL1(AllData.DATASET,
+        QueryServletTestUtils.testIQL1(
                 ImmutableList.of(
                         ImmutableList.of("1", "50"),
                         ImmutableList.of("3", "17")),
                 "from multiValue yesterday today where sf in (\"1\",\"2\") i=1 GROUP BY sf[10]", true);
-        QueryServletTestUtils.testIQL1(AllData.DATASET,
+        QueryServletTestUtils.testIQL1(
                 ImmutableList.of(
                         ImmutableList.of("1", "251"),
                         ImmutableList.of("3", "119"),
