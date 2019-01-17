@@ -17,6 +17,7 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
@@ -42,7 +43,6 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -269,11 +269,11 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, DocMetric> datasetToPushes = new HashMap<>();
+            final ImmutableMap.Builder<String, DocMetric> datasetToPushes = ImmutableMap.builder();
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
             }
-            return Collections.singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(datasetToPushes.build(), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -660,11 +660,11 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, DocMetric> datasetToPushes = new HashMap<>();
+            final ImmutableMap.Builder<String, DocMetric> datasetToPushes = ImmutableMap.builder();
             for (final String s : scope) {
                 datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)));
             }
-            return Collections.singletonList(new RandomMetricRegroup(datasetToPushes, k, salt));
+            return Collections.singletonList(new RandomMetricRegroup(datasetToPushes.build(), k, salt));
         }
 
         @Override
