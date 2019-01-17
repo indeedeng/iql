@@ -410,7 +410,6 @@ groupByElement [boolean useLegacy]
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
-    | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
@@ -434,10 +433,6 @@ topTermsGroupByElem [boolean useLegacy]
 
 groupByMetric [boolean useLegacy]
     : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=integer ',' max=integer ',' interval=NAT (',' (gutterID=identifier | gutterNumber=number))? ')' (withDefault=WITH DEFAULT)?
-    ;
-
-groupByMetricEnglish [boolean useLegacy]
-    : docMetric[$ctx.useLegacy] FROM min=integer TO max=integer BY interval=NAT (withDefault=WITH DEFAULT)?
     ;
 
 groupByTime [boolean useLegacy]
