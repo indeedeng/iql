@@ -94,18 +94,17 @@ public class CacheTest extends BasicTest {
     @Test
     public void testStorageAndLoading() throws Exception {
         for (final boolean withLimit : new boolean[]{false, true}) {
-            final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
             final String query = "from organic yesterday today group by time(1h) select count()" + (withLimit ? " limit 100" : "");
 
             final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
             final InMemoryQueryCache queryCache = new InMemoryQueryCache();
             options.setQueryCache(queryCache);
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            final List<List<String>> result1 = QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+            final List<List<String>> result1 = QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
             final int expectedCachedFiles = 2; // should have 2 files: metadata and data
             awaitCacheWrites(queryCache, expectedCachedFiles);
-            final List<List<String>> result2 = QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+            final List<List<String>> result2 = QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
             Assert.assertEquals("Didn't read from cache when it was expected to", expectedCachedFiles, queryCache.getReadsTracked().size());
             Assert.assertEquals(result1, result2);
         }
@@ -113,7 +112,6 @@ public class CacheTest extends BasicTest {
 
     @Test
     public void testResultSizeLimit() throws Exception {
-        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
         final String query = "from organic yesterday today group by time(1h) select count()";
 
         final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
@@ -123,14 +121,14 @@ public class CacheTest extends BasicTest {
 
         // 10 byte limit, should fail
         options.setMaxCacheQuerySizeLimitBytes(10L);
-        QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
         // wait for async cache write, just in case
         Thread.sleep(CACHE_WRITE_TIMEOUT);
         Assert.assertEquals(Collections.emptySet(), queryCache.getWritesTracked());
 
         // 10KB limit, should succeed
         options.setMaxCacheQuerySizeLimitBytes(10_240L);
-        QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
 
         final long fileSize = queryCache.getCachedValues()
@@ -144,21 +142,21 @@ public class CacheTest extends BasicTest {
 
         // Size - 1 should fail to write
         options.setMaxCacheQuerySizeLimitBytes(fileSize - 1L);
-        QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
         // wait for async cache write, just in case
         Thread.sleep(CACHE_WRITE_TIMEOUT);
         Assert.assertEquals(Collections.emptySet(), queryCache.getWritesTracked());
 
         // exact size should succeed
         options.setMaxCacheQuerySizeLimitBytes(fileSize);
-        QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
 
         queryCache.clear();
 
         // no limit should succeed
         options.setMaxCacheQuerySizeLimitBytes(null);
-        QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
     }
 
@@ -175,30 +173,28 @@ public class CacheTest extends BasicTest {
 
     @Test
     public void testBrokenCache() throws Exception {
-        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
         final String query = "from organic yesterday today group by time(1h) select count()";
 
         final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
         options.setQueryCache(new FailOnCloseQueryCache());
-        ensureTmpFilesCleanedUp(imhotepClient, query, options);
+        ensureTmpFilesCleanedUp(query, options);
     }
 
     @Test
     public void testFailureCleanup() throws Exception {
-        final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
         final String query = "from organic yesterday today group by time(1h) select count() OPTIONS [\"" + QueryOptions.DIE_AT_END + "\"]";
 
         final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
         options.setQueryCache(new InMemoryQueryCache());
-        ensureTmpFilesCleanedUp(imhotepClient, query, options);
+        ensureTmpFilesCleanedUp(query, options);
     }
 
-    private void ensureTmpFilesCleanedUp(final ImhotepClient imhotepClient, final String query, final QueryServletTestUtils.Options options) throws Exception {
+    private void ensureTmpFilesCleanedUp(final String query, final QueryServletTestUtils.Options options) throws Exception {
         final File tmpTmpDir = Files.createTempDir();
         try {
             options.setTmpDir(tmpTmpDir);
             try {
-                QueryServletTestUtils.runQuery(imhotepClient, query, IQL2, true, options, Collections.emptySet());
+                QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
             } catch (final Exception ignored) {
             }
             final long waitStart = System.currentTimeMillis();

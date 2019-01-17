@@ -11,16 +11,13 @@ import java.util.Collections;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion.IQL2;
 
 public class NestedFtgsTest extends BasicTest {
-
-    private static final ImhotepClient CLIENT = AllData.DATASET.getNormalClient();
-
     @Test
     public void directNesting() {
         final String query =
                 "FROM organic 10d today " +
                 "GROUP BY country[top 10 by PERCENTILE(oji, 95)]";
         try {
-            QueryServletTestUtils.runQuery(CLIENT, query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
+            QueryServletTestUtils.runQuery(query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
             Assert.fail("Expected failure to run query");
         } catch (final Exception e) {
             Assert.assertTrue(e.getMessage().contains("Cannot use value that has not been computed yet"));
@@ -34,7 +31,7 @@ public class NestedFtgsTest extends BasicTest {
                 "group by country[top 10 by distinct_tk]" +
                 "select DISTINCT(tk) as distinct_tk";
         try {
-            QueryServletTestUtils.runQuery(CLIENT, query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
+            QueryServletTestUtils.runQuery(query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
             Assert.fail("Expected failure to run query");
         } catch (final Exception e) {
             Assert.assertTrue(e.getMessage().contains("Cannot use value that has not been computed yet"));
@@ -48,7 +45,7 @@ public class NestedFtgsTest extends BasicTest {
                 "from organic 2d 1d " +
                 "select DISTINCT(country) as c, DISTINCT(oji HAVING count() > c)";
         try {
-            QueryServletTestUtils.runQuery(CLIENT, query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
+            QueryServletTestUtils.runQuery(query, IQL2, true, QueryServletTestUtils.Options.create(), Collections.emptySet());
             Assert.fail("Expected failure to run query");
         } catch (final Exception e) {
             System.out.println("e = " + e);

@@ -28,8 +28,6 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 public class FieldRegroupWithEmptyFieldTest extends BasicTest {
-    final Dataset dataset = AllData.DATASET;
-
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
@@ -39,7 +37,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "1"));
         expected.add(ImmutableList.of("2", "4"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by i1 limit 2", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by i1 limit 2", true);
     }
 
     @Test
@@ -48,7 +46,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("2", "1", "1"));
         expected.add(ImmutableList.of("1", "2", "1"));
         expected.add(ImmutableList.of("2", "2", "2"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by i1, i2 limit 3", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by i1, i2 limit 3", true);
     }
 
     @Test
@@ -56,7 +54,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "1"));
         expected.add(ImmutableList.of("b", "4"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by s1 limit 2", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by s1 limit 2", true);
     }
 
     @Test
@@ -65,7 +63,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("b", "a", "1"));
         expected.add(ImmutableList.of("a", "b", "1"));
         expected.add(ImmutableList.of("b", "b", "2"));
-        testAll(dataset, expected, "from regroupEmptyField yesterday today group by s1, s2 limit 3", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by s1, s2 limit 3", true);
     }
 
     @Test
@@ -74,7 +72,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("3", "2"));
         expected.add(ImmutableList.of("2", "4"));
         // IQL1 does not support '[by metric]' sorting.
-        testIQL2AndLegacy(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
+        testIQL2AndLegacy(expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
     }
 
     @Test
@@ -83,7 +81,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("2", "4"));
         expected.add(ImmutableList.of("3", "2"));
         // IQL1 does not support '[by metric]' sorting.
-        testIQL2AndLegacy(dataset, expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
+        testIQL2AndLegacy(expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
     }
 
     @Test
@@ -91,7 +89,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("2", "4"));
         expected.add(ImmutableList.of("3", "2"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1[2] limit 3", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1[2] limit 3", true);
     }
 
     @Test
@@ -100,7 +98,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("1", "1"));
         expected.add(ImmutableList.of("4", "1"));
         expected.add(ImmutableList.of("3", "2"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1[5 BY -i1] LIMIT 3", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1[5 BY -i1] LIMIT 3", true);
     }
 
     @Test
@@ -108,7 +106,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("2", "4"));
         expected.add(ImmutableList.of("3", "2"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1 having count() > 1 limit 2", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1 having count() > 1 limit 2", true);
     }
 
     @Test
@@ -116,9 +114,9 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("3", "2"));
         expected.add(ImmutableList.of("2", "4"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1[bottom 5] having count() > 1 limit 2", true);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("3", "2"), ImmutableList.of("2", "4")), "from regroupEmptyField yesterday today group by i1[bottom 5] having count() > 1 limit 2", true);
-        testIQL2(dataset, ImmutableList.of(ImmutableList.of("3", "2")), "from regroupEmptyField yesterday today group by i1[1 by i2] limit 2", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1[bottom 5] having count() > 1 limit 2", true);
+        testIQL2(ImmutableList.of(ImmutableList.of("3", "2"), ImmutableList.of("2", "4")), "from regroupEmptyField yesterday today group by i1[bottom 5] having count() > 1 limit 2", true);
+        testIQL2(ImmutableList.of(ImmutableList.of("3", "2")), "from regroupEmptyField yesterday today group by i1[1 by i2] limit 2", true);
     }
 
     @Test
@@ -127,7 +125,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("2", "1", "1"));
         expected.add(ImmutableList.of("2", "2", "2"));
         expected.add(ImmutableList.of("3", "3", "2"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1[2 by i2], i2 limit 3", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1[2 by i2], i2 limit 3", true);
     }
 
     @Test
@@ -136,6 +134,6 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         expected.add(ImmutableList.of("3", "3", "2"));
         expected.add(ImmutableList.of("2", "2", "2"));
         expected.add(ImmutableList.of("2", "1", "1"));
-        testIQL2(dataset, expected, "from regroupEmptyField yesterday today group by i1[2 by i2], i2[2] limit 3", true);
+        testIQL2(expected, "from regroupEmptyField yesterday today group by i1[2 by i2], i2[2] limit 3", true);
     }
 }

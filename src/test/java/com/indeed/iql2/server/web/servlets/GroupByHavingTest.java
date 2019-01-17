@@ -26,14 +26,14 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 public class GroupByHavingTest extends BasicTest {
     @Test
     public void testHaving() throws Exception {
-        testIQL2(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2", true);
+        testIQL2(ImmutableList.of(ImmutableList.of("0", "3")), "FROM test yesterday today GROUP BY label HAVING val > 2", true);
     }
 
     @Test
     public void testHavingDivide() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-01-01 12:00:00)", "0.5"));
-        testIQL2(AllData.DATASET, expected, "FROM test yesterday today " +
+        testIQL2(expected, "FROM test yesterday today " +
                 "GROUP BY time(12h) HAVING label=1 / count() > 0 SELECT label=1 / count()");
     }
 }

@@ -26,28 +26,26 @@ import java.util.List;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarning;
 
 public class ExecutionWarningTest extends BasicTest {
-    private final Dataset dataset = AllData.DATASET;
 
     @Test
     public void testLimit() throws Exception {
-        final Dataset dataset = AllData.DATASET;
-        testWarning(dataset, ImmutableList.of(), "from organic yesterday today GROUP BY tk");
+        testWarning(ImmutableList.of(), "from organic yesterday today GROUP BY tk");
 
-        testWarning(dataset, ImmutableList.of("Only first 1 rows returned sorted on the last group by column"),
+        testWarning(ImmutableList.of("Only first 1 rows returned sorted on the last group by column"),
                 "from organic yesterday today GROUP BY oji LIMIT 1");
 
-        testWarning(dataset, ImmutableList.of("Only first 2 rows returned sorted on the last group by column"),
+        testWarning(ImmutableList.of("Only first 2 rows returned sorted on the last group by column"),
                 "from organic yesterday today GROUP BY tk LIMIT 2");
 
         // limit equal to group by number
-        testWarning(dataset, ImmutableList.of(),
+        testWarning(ImmutableList.of(),
                 "from organic yesterday today GROUP BY tk LIMIT 4");
 
-        testWarning(dataset, ImmutableList.of("Only first 5 rows returned sorted on the last group by column"),
+        testWarning(ImmutableList.of("Only first 5 rows returned sorted on the last group by column"),
                 "from organic yesterday today GROUP BY oji[10] LIMIT 5");
 
         // limit equal to topk
-        testWarning(dataset, ImmutableList.of(),
+        testWarning(ImmutableList.of(),
                 "from organic yesterday today GROUP BY oji[5] LIMIT 5");
     }
 
@@ -55,10 +53,9 @@ public class ExecutionWarningTest extends BasicTest {
     public void testMissingShards() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "182"));
-        QueryServletTestUtils.testAll(dataset, expected, "from organic 2year today select count()");
+        QueryServletTestUtils.testAll(expected, "from organic 2year today select count()");
 
         QueryServletTestUtils.testWarning(
-                dataset,
                 Lists.newArrayList("95% of the queried time period is missing in dataset organic: 2013-01-02/2014-12-01"),
                 "from organic 2year today select count()");
     }
