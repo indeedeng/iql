@@ -17,20 +17,16 @@ package com.indeed.iql2.execution.metrics.aggregate;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 
 public class Round extends AggregateMetric.FactorUnary {
-    public Round(final AggregateMetric m1, final int f1) {
-        super(m1, f1);
+    private final double offset;
+
+    public Round(final AggregateMetric metric, final int digits) {
+        super(metric, digits);
+        offset = Math.pow(10, digits);
     }
 
     @Override
     double eval(final double value, final int digits) {
-        final int absDigits = Math.abs(digits);
-        final double base = Math.pow(10, absDigits);
-        if (digits > 0) {
-            return Math.round(value * base) / base;
-        }
-        else {
-            return Math.round(value / base) * base;
-        }
+        return Math.rint(value * offset) / offset;
     }
 
     @Override

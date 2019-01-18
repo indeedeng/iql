@@ -57,8 +57,8 @@ public class AggregateMetricsTest extends BasicTest {
 
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
-                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
-                "from organic yesterday today select floor(0.0), floor(-0.0), floor(1.0), floor(-1.0)");
+                ImmutableList.of(ImmutableList.of("", "0", "0", "-1", "∞", "-∞", "NaN")),
+                "from organic yesterday today select floor(0.0), floor(-0.0), floor(-0.3), floor(1.0/0.0), floor(-1.0/0.0), floor(0.0/0.0)");
 
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
@@ -93,8 +93,8 @@ public class AggregateMetricsTest extends BasicTest {
 
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
-                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
-                "from organic yesterday today select ceil(0.0), ceil(-0.0), ceil(1.0), ceil(-1.0)");
+                ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
+                "from organic yesterday today select ceil(0.0), ceil(-0.0), ceil(-0.3), ceil(1.0/0.0), ceil(-1.0/0.0), ceil(0.0/0.0)");
 
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
@@ -129,8 +129,8 @@ public class AggregateMetricsTest extends BasicTest {
 
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
-                ImmutableList.of(ImmutableList.of("", "0", "0", "1", "-1")),
-                "from organic yesterday today select round(0.0), round(-0.0), round(1.0), round(-1.0)");
+                ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
+                "from organic yesterday today select round(0.0), round(-0.0), round(-0.3), round(1.0/0.0), round(-1.0/0.0), round(0.0/0.0)");
 
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,

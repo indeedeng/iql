@@ -208,8 +208,8 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Floor extends FactorUnop {
-        public Floor(final AggregateMetric m1, final int f1) {
-            super(m1, f1);
+        public Floor(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
         }
 
         @Override
@@ -234,8 +234,8 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Ceil extends FactorUnop {
-        public Ceil(final AggregateMetric m1, final int f1) {
-            super(m1, f1);
+        public Ceil(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
         }
 
         @Override
@@ -260,8 +260,8 @@ public abstract class AggregateMetric extends AbstractPositional {
     }
 
     public static class Round extends FactorUnop {
-        public Round(final AggregateMetric m1, final int f1) {
-            super(m1, f1);
+        public Round(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
         }
 
         @Override
