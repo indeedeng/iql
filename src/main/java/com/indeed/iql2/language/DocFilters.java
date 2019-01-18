@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Optional;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
@@ -492,10 +493,13 @@ public class DocFilters {
                         final long longTerm = Long.parseLong(term.stringTerm);
                         termSet.add(longTerm);
                     } catch (final NumberFormatException ignored) {
+                        throw new IqlKnownException.FieldTypeMismatchException(
+                                "A non integer value '" + term.stringTerm +
+                                "' specified for an integer field: " + field);
                     }
                 }
             }
-            filter = termSet.isEmpty() ? new DocFilter.Never() : new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
+            filter = new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
         }
         if (negate) {
             return new DocFilter.Not(filter);
