@@ -19,7 +19,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.flamdex.query.Query;
@@ -1531,11 +1530,11 @@ public abstract class DocFilter extends AbstractPositional {
                                                 final int positive,
                                                 final int negative,
                                                 final GroupSupplier groupSupplier) {
-            final Map<String, List<String>> perDatasetPushes = Maps.newHashMapWithExpectedSize(scope.size());
+            final ImmutableMap.Builder<String, DocMetric> perDatasetMetrics = ImmutableMap.builder();
             for (final String dataset : scope.keySet()) {
-                perDatasetPushes.put(dataset, metric.getPushes(dataset));
+                perDatasetMetrics.put(dataset, metric);
             }
-            return Collections.singletonList(new SampleMetricAction(perDatasetPushes, (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.singletonList(new SampleMetricAction(perDatasetMetrics.build(), (double) numerator / denominator, seed, target, positive, negative));
         }
 
         @Override
