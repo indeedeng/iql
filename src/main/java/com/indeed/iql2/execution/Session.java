@@ -63,11 +63,8 @@ import com.indeed.util.logging.TracingTreeTimer;
 import io.opentracing.ActiveSpan;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -456,29 +453,6 @@ public class Session {
         for (int i = 0; i < stats.length; i++) {
             writeDoubleStatWithFormatString(stats[i][group], formatStrings[i], sb);
         }
-    }
-
-    public int findPercentile(double v, double[] percentiles) {
-        for (int i = 0; i < percentiles.length - 1; i++) {
-            if (v <= percentiles[i + 1]) {
-                return i;
-            }
-        }
-        return percentiles.length - 1;
-    }
-
-    // Returns the start of the bucket.
-    // result[0] will always be 0
-    // result[1] will be the minimum value required to be greater than 1/k values.
-    public static double[] getPercentiles(DoubleCollection values, int k) {
-        final DoubleArrayList list = new DoubleArrayList(values);
-        // TODO: Will this be super slow?
-        Collections.sort(list);
-        final double[] result = new double[k];
-        for (int i = 0; i < k; i++) {
-            result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
-        }
-        return result;
     }
 
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {

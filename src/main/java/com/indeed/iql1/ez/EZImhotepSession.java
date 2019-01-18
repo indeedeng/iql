@@ -33,10 +33,8 @@ import com.indeed.iql1.iql.ScoredLong;
 import com.indeed.iql1.iql.ScoredObject;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -71,7 +69,6 @@ public class EZImhotepSession implements Closeable {
 
     private final ImhotepSession session;
     private final Deque<StatReference> statStack = new ArrayDeque<StatReference>();
-    private final Map<String, DynamicMetric> dynamicMetrics = Maps.newHashMap();
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
@@ -169,19 +166,6 @@ public class EZImhotepSession implements Closeable {
             return -1;
         }
         return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
-    }
-
-    public DynamicMetric createDynamicMetric(String name) throws ImhotepOutOfMemoryException {
-        if (dynamicMetrics.containsKey(name)) {
-            throw new IllegalArgumentException("Dynamic metric with name "+name+" already exists!");
-        }
-        session.createDynamicMetric(name);
-        return new DynamicMetric(name);
-    }
-
-    public void deleteDynamicMetric(DynamicMetric metric) {
-        metric.valid = false;
-        throw new UnsupportedOperationException("Sorry, this isn't actually possible yet");
     }
 
     public void ftgsSubsetIterate(Map<Field, List<?>> fieldsToTermsSubsets, FTGSCallback callback) {
@@ -300,28 +284,6 @@ public class EZImhotepSession implements Closeable {
         );
     }
 
-    public void filter(IntField field, Predicate<Long> predicate) throws ImhotepOutOfMemoryException {
-        if (numGroups > 2) {
-            System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
-        }
-        final LongList intTerms = intFieldTerms(field, session, predicate, 0);
-        final long[] longs = intTerms.toLongArray();
-        for (int group = 1; group < numGroups; group++) {
-            session.intOrRegroup(field.getFieldName(), longs, group, 0, group);
-        }
-    }
-
-    public void filterNegation(IntField field, Predicate<Long> predicate) throws ImhotepOutOfMemoryException {
-        if (numGroups > 2) {
-            System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
-        }
-        final LongList intTerms = intFieldTerms(field, session, predicate, 0);
-        final long[] longs = intTerms.toLongArray();
-        for (int group = 1; group < numGroups; group++) {
-            session.intOrRegroup(field.getFieldName(), longs, group, group, 0);
-        }
-    }
-
     public void filter(IntField field, long[] terms) throws ImhotepOutOfMemoryException {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
@@ -347,16 +309,6 @@ public class EZImhotepSession implements Closeable {
         final List<String> stringTerms = stringFieldTerms(field, session, predicate, 0);
         for (int group = 1; group < numGroups; group++) {
             session.stringOrRegroup(field.getFieldName(), stringTerms.toArray(new String[stringTerms.size()]), group, 0, group);
-        }
-    }
-
-    public void filterNegation(StringField field, Predicate<String> predicate) throws ImhotepOutOfMemoryException {
-        if (numGroups > 2) {
-            System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
-        }
-        final List<String> stringTerms = stringFieldTerms(field, session, predicate, 0);
-        for (int group = 1; group < numGroups; group++) {
-            session.stringOrRegroup(field.getFieldName(), stringTerms.toArray(new String[stringTerms.size()]), group, group, 0);
         }
     }
 
@@ -745,50 +697,6 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
-    public Int2ObjectSortedMap<GroupKey> metricRegroup2D(SingleStatReference xStat, long xMin, long xMax, long xIntervalSize,
-                                   SingleStatReference yStat, long yMin, long yMax, long yIntervalSize) throws ImhotepOutOfMemoryException {
-        final Int2ObjectSortedMap<GroupKey> ret = new Int2ObjectAVLTreeMap<>();
-        numGroups = session.metricRegroup2D(xStat.depth, xMin, xMax, xIntervalSize, yStat.depth, yMin, yMax, yIntervalSize);
-        final int xBuckets = (int)(((xMax - 1) - xMin) / xIntervalSize + 3);
-        final int yBuckets = (int)(((yMax - 1) - yMin) / yIntervalSize + 3);
-        final int numBuckets = xBuckets * yBuckets;
-        ret.put(1, GroupKey.singleton(String.format("< %d, < %d", xMin, yMin)));
-        ret.put(numBuckets, GroupKey.singleton(String.format(">= %d, >= %d", xMax, yMax)));
-        ret.put(xBuckets, GroupKey.singleton(String.format(">= %d, < %d", xMax, yMin)));
-        ret.put((yBuckets-1)*xBuckets+1, GroupKey.singleton(String.format("< %d, >= %d", xMin, yMax)));
-        {
-            int index = 2;
-            for (long x = xMin; x < xMax; x+=xIntervalSize) {
-                ret.put(index, GroupKey.singleton(String.format("[%d, %d), < %d", x, x+xIntervalSize, yMin)));
-                ret.put(index+(yBuckets-1)*xBuckets, GroupKey.singleton(String.format("[%d, %d), >= %d", x, x+xIntervalSize, yMax)));
-                index++;
-            }
-        }
-        {
-            int index = 1;
-            for (long y = yMin; y < yMax; y+=yIntervalSize) {
-                ret.put(index*xBuckets+1, GroupKey.singleton(String.format("< %d, [%d, %d)", xMin, y, y+yIntervalSize)));
-                ret.put((index+1)*xBuckets, GroupKey.singleton(String.format(">= %d, [%d, %d)", xMax, y, y+yIntervalSize)));
-                index++;
-            }
-        }
-        {
-            for (int xBucket = 2; xBucket < xBuckets; xBucket++) {
-                final long xStart = (xBucket-2)*xIntervalSize;
-                final long xEnd = xStart+xIntervalSize;
-                for (int yBucket = 1; yBucket < yBuckets-1; yBucket++) {
-                    final long yStart = (yBucket-1)*yIntervalSize;
-                    final long yEnd = yStart+yIntervalSize;
-                    ret.put(yBucket*xBuckets+xBucket, GroupKey.singleton(String.format("[%d, %d), [%d, %d)", xStart, xEnd, yStart, yEnd)));
-                }
-            }
-        }
-        for (int group = numGroups; group <= numBuckets; group++) {
-            ret.remove(group);
-        }
-        return ret;
-    }
-
     public Object2LongMap<String> topTerms(StringField field, int k) {
         final List<TermCount> termCounts = session.approximateTopTerms(field.getFieldName(), false, k);
         final Object2LongMap<String> ret = new Object2LongOpenHashMap<String>();
@@ -1096,9 +1004,6 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat intField(IntField field) {
         return new Stats.IntFieldStat(field.getFieldName());
     }
-    public static Stats.Stat dynamic(DynamicMetric metric) {
-        return new Stats.DynamicMetricStat(metric);
-    }
     public static Stats.Stat hasInt(String field, long value) {
         return new Stats.HasIntStat(field, value);
     }
@@ -1113,9 +1018,6 @@ public class EZImhotepSession implements Closeable {
     }
     public static Stats.Stat lucene(Query luceneQuery) {
         return new Stats.LuceneQueryStat(luceneQuery);
-    }
-    public static Stats.Stat ref(SingleStatReference ref) {
-        return new Stats.StatRefStat(ref);
     }
     public static Stats.Stat counts() {
         return new Stats.CountStat();

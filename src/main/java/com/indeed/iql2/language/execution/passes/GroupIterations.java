@@ -221,14 +221,6 @@ public class GroupIterations {
             }
             return new Grouping(ctx.scope, infos);
         }
-
-        public Set<String> names() {
-            final Set<String> names = new HashSet<>();
-            for (final PrecomputationInfo info : precomputationInfos) {
-                names.add(info.name);
-            }
-            return names;
-        }
     }
 
     private static class PrecomputationInfo {

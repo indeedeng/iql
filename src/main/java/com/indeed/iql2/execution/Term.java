@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.log4j.Logger;
 
 /**
@@ -31,15 +30,5 @@ public class Term {
         this.isIntTerm = isIntTerm;
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
-    }
-
-    public static Term fromJson(JsonNode node) {
-        switch (node.get("type").textValue()) {
-            case "string":
-                return new Term(false, node.get("value").textValue(), 0);
-            case "int":
-                return new Term(true, null, node.get("value").longValue());
-        }
-        throw new RuntimeException("Oops: " + node);
     }
 }

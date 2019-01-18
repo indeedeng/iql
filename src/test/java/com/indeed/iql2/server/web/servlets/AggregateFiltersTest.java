@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -123,13 +122,26 @@ public class AggregateFiltersTest {
 
     @Test
     public void testSample() throws Exception {
-        final String[] metric = new String[] {"oji", "ojc", "docId()", "0", "oji + 10", "oji + ojc * LEN(tk)" };
-        final int[] result = new int[] {142, 63, 63, 0, 139, 141};
-        for (int i = 0; i < metric.length; i++) {
-            final List<List<String>> expected = new ArrayList<>();
-            expected.add(ImmutableList.of("", String.valueOf(result[i])));
-            QueryServletTestUtils.testIQL2(expected,
-                    "from organic yesterday today where sample("+ metric[i] + ", 1, 2, \"SomeRandomSalt\") select count()", true);
+        {
+            // All iql version support sample(fieldName)
+            final String[] metric = new String[]{"oji", "ojc", "tk"};
+            final int[] result = new int[]{142, 63, 2};
+            for (int i = 0; i < metric.length; i++) {
+                final List<List<String>> expected = new ArrayList<>();
+                expected.add(ImmutableList.of("", String.valueOf(result[i])));
+                QueryServletTestUtils.testAll(expected,"from organic yesterday today where sample(" + metric[i] + ", 1, 2, \"SomeRandomSalt\") select count()", true);
+            }
+        }
+
+        {
+            // Only Iql2 supports arbitrary metric for sampling
+            final String[] metric = new String[]{"docId()", "0", "oji + 10", "oji + ojc * LEN(tk)"};
+            final int[] result = new int[]{97, 151, 139, 76};
+            for (int i = 0; i < metric.length; i++) {
+                final List<List<String>> expected = new ArrayList<>();
+                expected.add(ImmutableList.of("", String.valueOf(result[i])));
+                QueryServletTestUtils.testIQL2(expected, "from organic yesterday today where sample(" + metric[i] + ", 1, 2, \"someOtherSalt\") select count()");
+            }
         }
     }
 }
