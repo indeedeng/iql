@@ -171,7 +171,7 @@ public class Queries {
     }
 
     public static String getRawInput(CharStream inputStream, Positional positional) {
-        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
+        return inputStream.getText(positional.getInterval());
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock) {
@@ -263,7 +263,7 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream),
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed),
                 groupBys, selects, dataset, start, startRawString, end, endRawString,
                 extractDatasets(queryContext.fromContents(), queryInputStream));
     }
@@ -316,10 +316,10 @@ public class Queries {
     }
 
     @VisibleForTesting
-    static List<String> extractHeaders(Query parsed, CharStream input) {
+    static List<String> extractHeaders(Query parsed) {
         final List<String> result = new ArrayList<>();
         for (GroupByEntry groupBy : parsed.groupBys) {
-            result.add(groupBy.alias.or(() -> getRawInput(input, groupBy.groupBy)));
+            result.add(groupBy.alias.or(groupBy.groupBy::getRawInput));
         }
         if (result.isEmpty()) {
             result.add("");
@@ -335,7 +335,7 @@ public class Queries {
                 }
                 pos = metric;
             }
-            result.add(getRawInput(input, pos));
+            result.add(pos.getRawInput());
         }
         return result;
     }

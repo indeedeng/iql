@@ -83,6 +83,9 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(FieldEqual equal) throws E;
     }
 
+    /**
+     * @see com.indeed.iql2.language.query.Query#transform(Function, Function, Function, Function, Function)
+     */
     public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     public abstract DocMetric asZeroOneMetric(String dataset);
@@ -92,6 +95,11 @@ public abstract class DocFilter extends AbstractPositional {
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
+
+    public DocFilter withPosition(Positional positional) {
+        copyPosition(positional);
+        return this;
+    }
 
     public abstract static class FieldTermEqual extends DocFilter {
         public final FieldSet field;
@@ -120,7 +128,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -178,7 +186,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -234,7 +242,7 @@ public abstract class DocFilter extends AbstractPositional {
         // TODO: Should this propagate the transformation or just allow `i` to recurse if desired?
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -323,7 +331,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -415,7 +423,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -476,7 +485,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -542,7 +552,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -605,7 +616,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -668,7 +680,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -731,7 +744,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)))
+                    .withPosition(this);
         }
 
         @Override
@@ -804,7 +818,7 @@ public abstract class DocFilter extends AbstractPositional {
                     filters.stream()
                     .map(f -> f.transform(g, i))
                     .collect(Collectors.toList());
-            return i.apply(createFilter(transformed));
+            return i.apply(createFilter(transformed)).withPosition(this);
         }
 
         @Override
@@ -1057,7 +1071,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Not(filter.transform(g, i)));
+            return i.apply(new Not(filter.transform(g, i))).withPosition(this);
         }
 
         @Override
@@ -1113,7 +1127,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1173,7 +1187,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1233,7 +1247,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1296,7 +1310,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Qualified(scope, filter.transform(g, i)));
+            return i.apply(new Qualified(scope, filter.transform(g, i))).withPosition(this);
         }
 
         @Override
@@ -1367,7 +1381,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1436,7 +1450,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1511,7 +1525,8 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocFilter transform(final Function<DocMetric, DocMetric> g,
                                    final Function<DocFilter, DocFilter> i) {
-            return i.apply(new SampleDocMetric(metric.transform(g, i), numerator, denominator, seed));
+            return i.apply(new SampleDocMetric(metric.transform(g, i), numerator, denominator, seed))
+                    .withPosition(this);
         }
 
         @Override
@@ -1583,7 +1598,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Always extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1625,7 +1640,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Never extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1680,7 +1695,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1752,7 +1767,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
@@ -1820,7 +1835,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).withPosition(this);
         }
 
         @Override
