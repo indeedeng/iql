@@ -49,29 +49,33 @@ public class ConstantFoldingTest {
 
     @Test
     public void testRecursiveFolding() {
-        // 4
-        // 2
-        // 2
-        // 2
-        // 2
-        // 1
-        // 1
-        // 0
-        // 2
-        // 2
-        // 2
-        // 1
-        // 1
-        // 0
-        // 2
-        // 2
-        // 2
         testFolding(
                 constant(4),
-                Add.create(new Subtract(constant(3), constant(1)), new Multiply(new Divide(constant(5), new Subtract(new Abs(constant(-3)), new Count())), new DocMetric.Max( // 1
-                        new DocMetric.Min(constant(1), constant(2)), // 1
-                        new DocMetric.Min(constant(0), constant(3))  // 0
-                )))
+                Add.create(
+                        new Subtract(// 2
+                                constant(3),
+                                constant(1)
+                        ),
+                        new Multiply( // 2
+                                new Divide( // 2
+                                        constant(5),
+                                        new Subtract( // 2
+                                                new Abs(constant(-3)),
+                                                new Count()
+                                        )
+                                ),
+                                new Max( // 1
+                                        new Min( // 1
+                                                constant(1),
+                                                constant(2)
+                                        ),
+                                        new Min(// 0
+                                                constant(0),
+                                                constant(3)
+                                        )
+                                )
+                        )
+                )
         );
         testFolding(
                 field("y"),
