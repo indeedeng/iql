@@ -40,7 +40,7 @@ import java.util.concurrent.CountDownLatch;
 public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
-    public static int VERSION_FOR_HASHING = 6;
+    public static int VERSION_FOR_HASHING = 5;
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     private final RunningQueriesManager runningQueriesManager;
