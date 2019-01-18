@@ -28,7 +28,7 @@ public class ConstantFolding {
             if (input instanceof DocMetric.Multiply) {
                 // Multiply (Constant x) (Constant y) = Constant (x * y)
                 // Multiply (Constant 0) x = Constant 0
-                // Multiply x (Constant 0) = x
+                // Multiply x (Constant 0) = Constant 0
                 // Multiply (Constant 1) x = x
                 // Multiply x (Constant 1) = x
                 final DocMetric.Multiply multiply = (DocMetric.Multiply) input;
