@@ -26,8 +26,8 @@ import com.indeed.iql1.sql.ast.TupleExpression;
 import com.indeed.iql1.sql.ast.UnaryExpression;
 import org.codehaus.jparsec.OperatorTable;
 import org.codehaus.jparsec.Parser;
-import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.Parser.Reference;
+import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.functors.Binary;
 import org.codehaus.jparsec.functors.Map2;
 import org.codehaus.jparsec.functors.Unary;
@@ -166,8 +166,7 @@ public final class ExpressionParser {
             comparison(NAME, atomWhere()),
             inCondition(),
             functionCall(arithmetic(atom())),  // function parameters are away from top level so we use non-where version of atom
-            arithmetic(atomWhere())    // TODO: fix: using this instead of the line below lets through some input that will fail in IQLTranslator
-//            metricComparison(arithmetic(atomWhere()), SIGNED_NUMBER)
+            arithmetic(atomWhere())
     );
   }
 
@@ -180,17 +179,7 @@ public final class ExpressionParser {
               compare(opLeft, "!=~", Op.REGEX_NOT_EQ, opRight)).label("comparison");
   }
 
-  static Parser<Expression> metricComparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
-      return Parsers.or(
-              compare(opLeft, "=", Op.EQ, opRight),
-              compare(opLeft, "!=", Op.NOT_EQ, opRight),
-              compare(opLeft, ">=", Op.GREATER_EQ, opRight),
-              compare(opLeft, ">", Op.GREATER, opRight),
-              compare(opLeft, "<=", Op.LESS_EQ, opRight),
-              compare(opLeft, "<", Op.LESS, opRight)).label("metric comparison");
-  }
-  
-  static Parser<Expression> inCondition() {
+    static Parser<Expression> inCondition() {
     return binaryExpression(Op.IN).sequence(NAME, TerminalParser.term("in"), tuple(atom())).label("IN condition").or(
         binaryExpression(Op.NOT_IN).sequence(NAME, TerminalParser.phrase("not in"), tuple(atom())).label("NOT IN condition")
     );

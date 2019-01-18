@@ -615,7 +615,7 @@ public final class IQLQuery implements Closeable {
                 out.print("data: ");
             }
             if(!csv) { // TSV
-                GroupKey current = entry.groupKey;
+                GroupKey current = entry.getGroupKey();
                 while (!current.isEmpty()) {
                     final Object group = current.head();
                     if(group instanceof String) {
@@ -637,18 +637,18 @@ public final class IQLQuery implements Closeable {
                         out.print(tsvDelimiter);
                     }
                 }
-                for (double l : entry.stats) {
+                for (double l : entry.getStats()) {
                     out.print(tsvDelimiter);
                     out.print(Double.isNaN(l) ? "NaN" : format.format(l));
                 }
                 out.println();
             } else {    // csv
-                GroupKey current = entry.groupKey;
+                GroupKey current = entry.getGroupKey();
                 while (!current.isEmpty()) {
                     csvFields.add(current.head().toString());
                     current = current.tail();
                 }
-                for (double l : entry.stats) {
+                for (double l : entry.getStats()) {
                     csvFields.add(format.format(l));
                 }
                 csvWriter.writeNext(csvFields.toArray(new String[csvFields.size()]));
