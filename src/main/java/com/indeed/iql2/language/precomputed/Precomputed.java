@@ -160,7 +160,7 @@ public interface Precomputed {
         public Precomputation commands(final Set<String> scope) {
             final List<AggregateMetric> metrics = new ArrayList<>(scope.size());
             for (final String dataset : scope) {
-                final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
+                final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                 metrics.add(metric);
             }
             final AggregateMetric metric = AggregateMetric.Add.create(metrics);

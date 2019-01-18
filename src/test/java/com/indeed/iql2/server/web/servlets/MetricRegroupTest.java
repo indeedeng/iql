@@ -133,4 +133,10 @@ public class MetricRegroupTest extends BasicTest {
         // supported only in IQL1
         QueryServletTestUtils.testOriginalIQL1(expected, "from organic yesterday today group by diff(tk, oji, ojc, 10) select count()", true);
     }
+
+    @Test
+    public void testInvalidMetric() {
+        final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
+        QueryServletTestUtils.expectException(AllData.DATASET, "FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
+    }
 }

@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
@@ -178,4 +179,9 @@ public class FieldRegroupTest extends BasicTest {
         testIQL2(addConstantColumn(1, "1", expected.subList(1, expected.size())), "from organic yesterday today group by random(ojc * ojc + oji * strtermcount(tk) + LEN(tk) * (1 + oji) * (unixtime % 10 + 1 ), 3, \"SomeRandomSalt\"), allbit select count()", true);
     }
 
+    @Test
+    public void testRandomMetricInvalidMetric() {
+        final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
+        QueryServletTestUtils.expectException(AllData.DATASET, "FROM organic yesterday today GROUP BY RANDOM(EXTRACT(tk, \"+\"), 10)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
+    }
 }

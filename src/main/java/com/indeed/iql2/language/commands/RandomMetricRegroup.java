@@ -20,25 +20,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RandomMetricRegroup implements Command {
-    public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
+    private final ImmutableMap<String, DocMetric> perDatasetMetric;
     private final int k;
     private final String salt;
 
-    public RandomMetricRegroup(final Map<String, List<String>> perDatasetMetric,
+    public RandomMetricRegroup(final Map<String, DocMetric> perDatasetMetric,
                                final int k,
                                final String salt) {
-        final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
-            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
-        }
-        this.perDatasetMetric = copy.build();
+        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetric);
         this.k = k;
         this.salt = salt;
     }
@@ -48,12 +46,20 @@ public class RandomMetricRegroup implements Command {
         if (k <= 1) {
             validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
         }
+        for (final Map.Entry<String, DocMetric> entry : perDatasetMetric.entrySet()) {
+            entry.getValue().validate(entry.getKey(), validationHelper, validator);
+        }
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        final Map<String, List<String>> perDatasetCommands = perDatasetMetric.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> ImmutableList.copyOf(entry.getValue().getPushes(entry.getKey()))
+                ));
         return new com.indeed.iql2.execution.commands.RandomMetricRegroup(
-                perDatasetMetric,
+                perDatasetCommands,
                 k,
                 salt
         );

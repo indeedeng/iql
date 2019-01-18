@@ -932,9 +932,9 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class DocStatsPushes extends AggregateMetric {
         public final String dataset;
-        public final DocMetric.PushableDocMetric pushes;
+        public final DocMetric pushes;
 
-        public DocStatsPushes(String dataset, DocMetric.PushableDocMetric pushes) {
+        public DocStatsPushes(String dataset, DocMetric pushes) {
             this.dataset = dataset;
             this.pushes = pushes;
         }
