@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
+import au.com.bytecode.opencsv.CSVWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -158,6 +159,7 @@ public class SelectQueryExecution {
     public final int version;
     public final boolean isStream;
     public final boolean skipValidation;
+    private final boolean csv;
     private final WallClock clock;
 
     public boolean ran = false;
@@ -177,6 +179,7 @@ public class SelectQueryExecution {
             final int version,
             final boolean isStream,
             final boolean skipValidation,
+            final boolean csv,
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
@@ -192,6 +195,7 @@ public class SelectQueryExecution {
         this.limits = limits;
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.skipValidation = skipValidation;
+        this.csv = csv;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
@@ -201,6 +205,8 @@ public class SelectQueryExecution {
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
         this.accessControl = accessControl;
+
+        Preconditions.checkArgument(!(csv && isStream), "Cannot use csv and event-stream output formats at the same time");
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -216,39 +222,47 @@ public class SelectQueryExecution {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
-        final Consumer<String> out = new Consumer<String>() {
-            int count = 1;
 
-            @Override
-            public void accept(final String s) {
-                if (isStream) {
-                    outputStream.print("data: ");
-                }
-                outputStream.println(s);
 
-                count += 1;
-                // Only check for errors every 10k rows because checkError
-                // also flushes, which we do not want to do every row.
-                if (((count % 10000) == 0) && outputStream.checkError()) {
-                    throw new IqlKnownException.ClientHungUpException("OutputStream in error state");
+        try (final CSVWriter csvWriter = csv ? new CSVWriter(outputStream) : null) {
+            final Consumer<String> out = new Consumer<String>() {
+                int count = 1;
+
+                @Override
+                public void accept(final String s) {
+                    if (isStream) {
+                        outputStream.print("data: ");
+                    }
+                    if (csv) {
+                        csvWriter.writeNext(s.split("\t"));
+                    } else {
+                        outputStream.println(s);
+                    }
+
+                    count += 1;
+                    // Only check for errors every 10k rows because checkError
+                    // also flushes, which we do not want to do every row.
+                    if (((count % 10000) == 0) && outputStream.checkError()) {
+                        throw new IqlKnownException.ClientHungUpException("OutputStream in error state");
+                    }
                 }
+            };
+
+            final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
+            ProgressCallback progressCallback;
+
+            //Check query document count limit
+            Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
+            NumDocLimitingProgressCallback numDocLimitingProgressCallback;
+            if (numDocLimitBillion != null) {
+                numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
+                progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
+            } else {
+                progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
             }
-        };
 
-        final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
-        ProgressCallback progressCallback;
-
-        //Check query document count limit
-        Integer numDocLimitBillion = limits.queryDocumentCountLimitBillions;
-        NumDocLimitingProgressCallback numDocLimitingProgressCallback;
-        if (numDocLimitBillion != null) {
-            numDocLimitingProgressCallback = new NumDocLimitingProgressCallback(numDocLimitBillion * 1_000_000_000L);
-            progressCallback = CompositeProgressCallback.create(numDocLimitingProgressCallback, eventStreamProgressCallback);
-        } else {
-            progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
+            executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, progressCallback);
         }
-
-        executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, progressCallback);
     }
 
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
