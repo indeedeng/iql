@@ -182,6 +182,6 @@ public class FieldRegroupTest extends BasicTest {
     @Test
     public void testRandomMetricInvalidMetric() {
         final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
-        QueryServletTestUtils.expectException(AllData.DATASET, "FROM organic yesterday today GROUP BY RANDOM(EXTRACT(tk, \"+\"), 10)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
+        QueryServletTestUtils.expectException("FROM organic yesterday today GROUP BY RANDOM(EXTRACT(tk, \"+\"), 10)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
     }
 }

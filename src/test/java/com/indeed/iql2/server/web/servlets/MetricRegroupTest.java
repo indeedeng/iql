@@ -137,6 +137,6 @@ public class MetricRegroupTest extends BasicTest {
     @Test
     public void testInvalidMetric() {
         final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
-        QueryServletTestUtils.expectException(AllData.DATASET, "FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
+        QueryServletTestUtils.expectException("FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
     }
 }
