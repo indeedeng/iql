@@ -16,7 +16,6 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,7 +25,7 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testLog() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        //log(100), log(151)
+        //log(100), log(151) 
         expected.add(ImmutableList.of("", String.valueOf(4.6051702), String.valueOf(5.0172798)));
         QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today select log(100), log(count())");
     }
@@ -72,19 +71,17 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testFloorDigitsOverLimit() throws Exception {
-        try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select floor(101.46, 11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select floor(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for FLOOR is 10"));
 
-        try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select floor(101.46, -11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select floor(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for FLOOR is 10"));
     }
 
     @Test
@@ -121,19 +118,17 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testCeilDigitsOverLimit() throws Exception {
-        try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select ceil(101.46, 11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select ceil(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for CEIL is 10"));
 
-        try{
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select ceil(101.46, -11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select ceil(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for CEIL is 10"));
     }
 
     @Test
@@ -170,19 +165,16 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testRoundDigitsOverLimit() throws Exception {
-        try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select round(101.46, 11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
-
-        try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET,
-                    ImmutableList.of(ImmutableList.of("", "102")),
-                    "from organic yesterday today select round(101.46, -11)");
-            Assert.fail();
-        } catch (final IllegalArgumentException e) { }
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select round(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for ROUND is 10"));
+        QueryServletTestUtils.expectException(
+                AllData.DATASET,
+                "from organic yesterday today select round(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for ROUND is 10"));
     }
 
     @Test
