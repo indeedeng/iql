@@ -55,23 +55,36 @@ public class AggregateMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
                 "from organic yesterday today select floor(101.46, -1), floor(101.64, -1), floor(-105.46, -1), floor(-105.64, -1), floor(count(), -1)");
 
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.7", "0", "-5.8", "-10"),
+                        ImmutableList.of("b", "6.4705882", "6.4", "0", "-6.5", "-10"),
+                        ImmutableList.of("c", "49.047619", "49", "40", "-49.1", "-50"),
+                        ImmutableList.of("d", "5.6436782", "5.6", "0", "-5.7", "-10")),
+                "from organic yesterday today group by tk select oji/ojc, floor(oji/ojc, 1), floor(oji/ojc,-1), floor(-oji/ojc, 1), floor(-oji/ojc, -1)");
+
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "0", "0", "-1", "∞", "-∞", "NaN")),
                 "from organic yesterday today select floor(0.0), floor(-0.0), floor(-0.3), floor(1.0/0.0), floor(-1.0/0.0), floor(0.0/0.0)");
+    }
 
+    @Test
+    public void testFloorDigitsOverLimit() throws Exception {
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select floor(101.46, 11)");
             Assert.fail();
+        } catch (final IllegalArgumentException e) { }
+
+        try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select floor(101.46, -11)");
             Assert.fail();
-        } catch (final IllegalArgumentException e) {
-
-        }
+        } catch (final IllegalArgumentException e) { }
     }
 
     @Test
@@ -91,23 +104,36 @@ public class AggregateMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "110", "110", "-100", "-100", "160")),
                 "from organic yesterday today select ceil(101.46, -1), ceil(101.64, -1), ceil(-105.46, -1), ceil(-105.64, -1), ceil(count(), -1)");
 
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.8", "10", "-5.7", "0"),
+                        ImmutableList.of("b", "6.4705882", "6.5", "10", "-6.4", "0"),
+                        ImmutableList.of("c", "49.047619", "49.1", "50", "-49", "-40"),
+                        ImmutableList.of("d", "5.6436782", "5.7", "10", "-5.6", "0")),
+                "from organic yesterday today group by tk select oji/ojc, ceil(oji/ojc, 1), ceil(oji/ojc,-1), ceil(-oji/ojc, 1), ceil(-oji/ojc, -1)");
+
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
                 "from organic yesterday today select ceil(0.0), ceil(-0.0), ceil(-0.3), ceil(1.0/0.0), ceil(-1.0/0.0), ceil(0.0/0.0)");
+    }
 
+    @Test
+    public void testCeilDigitsOverLimit() throws Exception {
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select ceil(101.46, 11)");
             Assert.fail();
+        } catch (final IllegalArgumentException e) { }
+
+        try{
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select ceil(101.46, -11)");
             Assert.fail();
-        } catch (final IllegalArgumentException e) {
-
-        }
+        } catch (final IllegalArgumentException e) { }
     }
 
     @Test
@@ -127,23 +153,36 @@ public class AggregateMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
                 "from organic yesterday today select round(101.46, -1), round(101.64, -1), round(-105.46, -1), round(-105.64, -1), round(count(), -1)");
 
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(AllData.DATASET,
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.7", "10", "-5.7", "-10"),
+                        ImmutableList.of("b", "6.4705882", "6.5", "10", "-6.5", "-10"),
+                        ImmutableList.of("c", "49.047619", "49", "50", "-49", "-50"),
+                        ImmutableList.of("d", "5.6436782", "5.6", "10", "-5.6", "-10")),
+                "from organic yesterday today group by tk select oji/ojc, round(oji/ojc, 1), round(oji/ojc,-1), round(-oji/ojc, 1), round(-oji/ojc, -1)");
+
         //special cases
         QueryServletTestUtils.testIQL2(AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
                 "from organic yesterday today select round(0.0), round(-0.0), round(-0.3), round(1.0/0.0), round(-1.0/0.0), round(0.0/0.0)");
+    }
 
+    @Test
+    public void testRoundDigitsOverLimit() throws Exception {
         try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select round(101.46, 11)");
             Assert.fail();
+        } catch (final IllegalArgumentException e) { }
+
+        try {
             QueryServletTestUtils.testIQL2(AllData.DATASET,
                     ImmutableList.of(ImmutableList.of("", "102")),
                     "from organic yesterday today select round(101.46, -11)");
             Assert.fail();
-        } catch (final IllegalArgumentException e) {
-
-        }
+        } catch (final IllegalArgumentException e) { }
     }
 
     @Test
