@@ -31,6 +31,6 @@ public class Ceil extends AggregateMetric.FactorUnary {
 
     @Override
     AggregateStatTree toImhotep(final AggregateStatTree operand) {
-        return operand.ceil();
+        return operand.ceil(factor);
     }
 }

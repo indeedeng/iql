@@ -31,6 +31,6 @@ public class Floor extends AggregateMetric.FactorUnary {
 
     @Override
     AggregateStatTree toImhotep(final AggregateStatTree operand) {
-        return operand.floor();
+        return operand.floor(factor);
     }
 }

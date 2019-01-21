@@ -31,6 +31,6 @@ public class Round extends AggregateMetric.FactorUnary {
 
     @Override
     AggregateStatTree toImhotep(final AggregateStatTree operand) {
-        return operand.round();
+        return operand.round(factor);
     }
 }

@@ -114,7 +114,7 @@ public interface AggregateMetric extends Pushable {
     // Base class for a-metric function but with a constant factor
     abstract class FactorUnary implements AggregateMetric {
         private final AggregateMetric operand;
-        private final int factor;
+        protected final int factor;
 
         public FactorUnary(final AggregateMetric operand, final int factor) {
             this.operand = operand;
