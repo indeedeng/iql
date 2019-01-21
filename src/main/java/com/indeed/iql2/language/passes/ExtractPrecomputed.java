@@ -245,7 +245,7 @@ public class ExtractPrecomputed {
                         final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                         metrics.add(metric);
                     }
-                    return AggregateMetric.Add.create(metrics).withPosition(input);
+                    return AggregateMetric.Add.create(metrics).copyPosition(input);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -307,7 +307,7 @@ public class ExtractPrecomputed {
                     metrics.add(metric);
                 }
                 final AggregateMetric countMetric = AggregateMetric.Add.create(metrics);
-                return new AggregateMetric.Divide(docMetric, countMetric).withPosition(input);
+                return new AggregateMetric.Divide(docMetric, countMetric).copyPosition(input);
             } else {
                 return input.traverse1(this);
             }

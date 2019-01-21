@@ -60,7 +60,7 @@ public abstract class AggregateFilter extends AbstractPositional {
     public abstract AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
 
     /**
-     * @see Query#traverse1(Function)
+     * @see AggregateMetric#traverse1(Function)
      */
     public abstract AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
@@ -70,8 +70,9 @@ public abstract class AggregateFilter extends AbstractPositional {
 
     public abstract com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
 
-    public AggregateFilter withPosition(Positional positional) {
-        copyPosition(positional);
+    @Override
+    public AggregateFilter copyPosition(final Positional positional) {
+        super.copyPosition(positional);
         return this;
     }
 
@@ -89,7 +90,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override
@@ -146,7 +147,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override
@@ -255,12 +256,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new MetricIs(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new MetricIs(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new MetricIs(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new MetricIs(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -322,12 +323,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new MetricIsnt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new MetricIsnt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new MetricIsnt(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new MetricIsnt(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -389,12 +390,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Gt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new Gt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Gt(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new Gt(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -455,12 +456,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Gte(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new Gte(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Gte(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new Gte(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -521,12 +522,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Lt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new Lt(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Lt(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new Lt(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -587,12 +588,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Lte(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).withPosition(this);
+            return h.apply(new Lte(m1.transform(f,g,h,i, groupByFunction), m2.transform(f,g,h,i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Lte(f.apply(m1), f.apply(m2)).withPosition(this);
+            return new Lte(f.apply(m1), f.apply(m2)).copyPosition(this);
         }
 
         @Override
@@ -658,7 +659,7 @@ public abstract class AggregateFilter extends AbstractPositional {
                     .stream()
                     .map(filter -> filter.transform(f, g, h, i, groupByFunction))
                     .collect(Collectors.toList());
-            return h.apply(createFilter(transformed)).withPosition(this);
+            return h.apply(createFilter(transformed)).copyPosition(this);
         }
 
         @Override
@@ -668,7 +669,7 @@ public abstract class AggregateFilter extends AbstractPositional {
                     .stream()
                     .map(filter -> filter.traverse1(f))
                     .collect(Collectors.toList());
-            return createFilter(traversed).withPosition(this);
+            return createFilter(traversed).copyPosition(this);
         }
 
         @Override
@@ -859,12 +860,12 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(new Not(filter.transform(f, g, h, i, groupByFunction))).withPosition(this);
+            return h.apply(new Not(filter.transform(f, g, h, i, groupByFunction))).copyPosition(this);
         }
 
         @Override
         public AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new Not(filter.traverse1(f)).withPosition(this);
+            return new Not(filter.traverse1(f)).copyPosition(this);
         }
 
         @Override
@@ -922,7 +923,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override
@@ -982,7 +983,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override
@@ -1029,7 +1030,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override
@@ -1075,7 +1076,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).withPosition(this);
+            return h.apply(this).copyPosition(this);
         }
 
         @Override

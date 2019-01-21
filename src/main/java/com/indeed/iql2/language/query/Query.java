@@ -286,8 +286,14 @@ public class Query extends AbstractPositional {
      * <li>Return the object with all transforms and source propagation performed
      * </ol><p>
      * One important caveat is that transform currently STOPS at the boundary of a sub-query.
-     * This means that query.transform(increment constants) will increment the constants * in the outer query,
+     * This means that query.transform(increment constants) will increment the constants in the outer query,
      * but will not increment the constants in any sub-query.
+     *
+     * @see AggregateMetric#transform
+     * @see AggregateFilter#transform
+     * @see DocMetric#transform
+     * @see DocFilter#transform
+     * @see GroupBy#transform
      *
      * @param groupBy function to transform GroupBys by
      * @param f function to transform AggregateMetrics by
@@ -316,47 +322,6 @@ public class Query extends AbstractPositional {
         final List<AggregateMetric> selects = Lists.newArrayList();
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
-        }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
-    }
-
-    /**
-     * Implements a top-down short-circuiting replacement operation for the shallowest {@link AggregateMetric}s.
-     * <p>
-     * Further traversal/transformation of the objects found and their children can be performed
-     * within the passed in function.
-     * <p>
-     * More precisely:
-     * Performs a top down traversal of this Query, searching for the first {@link AggregateMetric} on all branches.
-     * Replaces the top {@link AggregateMetric} found on each branch with the result of applying the given function
-     * to the metric, and rebuilds the containing objects.
-     * Propagates all source information to the transformed and rebuilt objects.
-     * <p>
-     * When implementing traverse1() methods on new classes, the recipe is:
-     * <ol>
-     * <li>If this object contains any direct children that are {@link AggregateMetric} implementations,
-     *    replace all of them with the result of applying f.apply(child)
-     * <li>For all replaced children, propagate any source information ({@link com.indeed.iql2.language.Positional}) to
-     *    the newly created object
-     * <li>For all children that are NOT {@link AggregateMetric}s, call traverse1() on them if such a method exists, to
-     *    replace those objects
-     * <li>Construct a new version of this, where all appropriate children have been replaced with
-     *    the newly constructed versions
-     * <li>Propagate any source information ({@link com.indeed.iql2.language.Positional}) to the newly constructed version
-     * <li>Return the object with all transforms and source propagation performed
-     * </ol>
-     *
-     * @param f function to transform the shallowest AggregateMetrics by
-     * @return the transformed Query
-     */
-    public Query traverse1(final Function<AggregateMetric, AggregateMetric> f) {
-        final List<GroupByEntry> groupBys = Lists.newArrayList();
-        for (final GroupByEntry gb : this.groupBys) {
-            groupBys.add(gb.traverse1(f));
-        }
-        final List<AggregateMetric> selects = Lists.newArrayList();
-        for (final AggregateMetric select : this.selects) {
-            selects.add(select.traverse1(f));
         }
         return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
     }

@@ -46,12 +46,14 @@ public abstract class AbstractPositional implements Positional {
         this.end = end;
     }
 
-    public void copyPosition(ParserRuleContext parserRuleContext) {
+    public Object copyPosition(ParserRuleContext parserRuleContext) {
         this.setPosition(parserRuleContext.start, parserRuleContext.stop);
         this.parserRuleContext = parserRuleContext;
+        return this;
     }
 
-    public void copyPosition(Positional positional) {
+    public Object copyPosition(Positional positional) {
         this.setPosition(positional.getStart(), positional.getEnd());
+        return this;
     }
 }

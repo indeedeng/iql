@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -168,10 +169,6 @@ public class Queries {
             this.inputStream = inputStream;
             this.query = query;
         }
-    }
-
-    public static String getRawInput(CharStream inputStream, Positional positional) {
-        return inputStream.getText(positional.getInterval());
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock) {
@@ -335,7 +332,7 @@ public class Queries {
                 }
                 pos = metric;
             }
-            result.add(pos.getRawInput());
+            result.add(Objects.requireNonNull(pos.getRawInput()));
         }
         return result;
     }

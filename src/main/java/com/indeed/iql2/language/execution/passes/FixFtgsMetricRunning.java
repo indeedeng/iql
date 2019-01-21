@@ -41,9 +41,9 @@ public class FixFtgsMetricRunning {
         public AggregateMetric apply(AggregateMetric input) {
             if (input instanceof AggregateMetric.Running) {
                 final AggregateMetric.Running running = (AggregateMetric.Running) input;
-                return new AggregateMetric.Running(running.offset - 1, this.apply(running.metric));
+                return new AggregateMetric.Running(running.offset - 1, running.metric);
             } else {
-                return input.traverse1(this);
+                return input;
             }
         }
     };
