@@ -435,6 +435,10 @@ groupByElement [boolean useLegacy]
     | {!$ctx.useLegacy}? RANDOM '(' jqlDocMetric ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomMetricGroupBy
     ;
 
+groupByElementEof [boolean useLegacy]
+    : groupByElement[$ctx.useLegacy] EOF
+    ;
+
 // TODO: Make TOPTERMS a valid identifier
 topTermsGroupByElem [boolean useLegacy]
     : 'TOPTERMS'

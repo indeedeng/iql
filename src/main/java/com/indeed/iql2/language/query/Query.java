@@ -31,6 +31,7 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
+import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -131,6 +132,12 @@ public class Query extends AbstractPositional {
         this.options = options;
         this.rowLimit = rowLimit;
         this.useLegacy = useLegacy;
+    }
+
+    @Override
+    public Query copyPosition(final Positional positional) {
+        super.copyPosition(positional);
+        return this;
     }
 
     public static Query parseQuery(
@@ -323,7 +330,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
     }
 
     public Set<String> extractDatasetNames() {

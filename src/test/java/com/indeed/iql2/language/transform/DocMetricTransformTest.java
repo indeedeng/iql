@@ -41,8 +41,8 @@ public class DocMetricTransformTest {
 
     private void test(final String metricText) {
         final DocMetric parsed = Queries.parseDocMetric(metricText, false, DocMetricsTest.CONTEXT);
-        Assert.assertNotNull(parsed.getRawInput());
         classesToTest.remove(parsed.getClass());
+        Assert.assertEquals(metricText, parsed.getRawInput());
         final DocMetric transformed = parsed.transform(Functions.identity(), Functions.identity());
         Assert.assertEquals(parsed, transformed);
         Assert.assertNotSame(parsed, transformed);

@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class TransformTestUtil {
+class TransformTestUtil {
+    private TransformTestUtil() {
+    }
+
     static List<Class> findImplementationsOf(final Class<?> target) throws IOException, ClassNotFoundException {
         final ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
         final MetadataReaderFactory metadataReaderFactory = new CachingMetadataReaderFactory(resourcePatternResolver);

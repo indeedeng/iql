@@ -2,8 +2,8 @@ package com.indeed.iql2.language.transform;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.DocMetricsTest;
+import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -16,15 +16,15 @@ import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.transform.TransformTestUtil.findImplementationsOf;
 
-public class AggregateFilterTransformTest {
+public class GroupByTransformTest {
     private static List<Class> classesToTest;
     private static final List<Class> CLASSES_TO_SKIP = ImmutableList.of(
-            AggregateFilter.IsDefaultGroup.class // Is used for making group bys total, cannot be typed right now
+            GroupBy.GroupByFieldInQuery.class // requires much more test setup
     );
 
     @BeforeClass
     public static void findImplementations() throws IOException, ClassNotFoundException {
-        classesToTest = findImplementationsOf(AggregateFilter.class);
+        classesToTest = findImplementationsOf(GroupBy.class);
         classesToTest.removeAll(CLASSES_TO_SKIP);
     }
 
@@ -36,83 +36,73 @@ public class AggregateFilterTransformTest {
         }
     }
 
-    private void test(final String filterText) {
-        final AggregateFilter parsed = Queries.parseAggregateFilter(filterText, false, DocMetricsTest.CONTEXT);
+    private void test(final String text) {
+        final GroupBy parsed = Queries.parseGroupBy(text, false, DocMetricsTest.CONTEXT);
         classesToTest.remove(parsed.getClass());
-        Assert.assertEquals(filterText, parsed.getRawInput());
-        final AggregateFilter transformed = parsed.transform(Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+        Assert.assertEquals(text, parsed.getRawInput());
+        final GroupBy transformed = parsed.transform(Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
         Assert.assertEquals(parsed, transformed);
         Assert.assertNotSame(parsed, transformed);
         Assert.assertEquals(parsed.getRawInput(), transformed.getRawInput());
     }
 
     @Test
-    public void testTermIs() {
-        test("term() = 'a'");
+    public void testGroupByField() {
+        test("tk");
     }
 
     @Test
-    public void testTermRegex() {
-        test("term() =~ 'a*'");
+    public void testGroupByPredicate() {
+        test("tk = 'a'");
     }
 
     @Test
-    public void testMetricIs() {
-        test("ojc = 1");
+    public void testGroupByMetric() {
+        test("bucket(oji, 0, 11, 1)");
     }
 
     @Test
-    public void testMetricIsnt() {
-        test("ojc != 1");
+    public void testGroupByTime() {
+        test("time(1d, 'yyyy-MM-dd', unixtime)");
     }
 
     @Test
-    public void testGt() {
-        test("ojc > 1");
+    public void testGroupByTimeBucket() {
+        test("time(1b, 'yyyy-MM-dd', unixtime)");
     }
 
     @Test
-    public void testGte() {
-        test("ojc >= 1");
+    public void testGroupByMonth() {
+        test("time(1M, 'yyyy-MM-dd', unixtime)");
     }
 
     @Test
-    public void testLt() {
-        test("ojc < 1");
+    public void testGroupByFieldIn() {
+        test("oji in (1, 2, 3)");
     }
 
     @Test
-    public void testLte() {
-        test("ojc <= 1");
+    public void testGroupByDayOfWeek() {
+        test("dayofweek()");
     }
 
     @Test
-    public void testAnd() {
-        test("ojc <= 1 and oji >=1");
+    public void testGroupBySessionName() {
+        test("dataset()");
     }
 
     @Test
-    public void testOr() {
-        test("ojc <= 1 or oji >=1");
+    public void testGroupByQuantiles() {
+        test("quantiles(oji, 50)");
     }
 
     @Test
-    public void testNot() {
-        test("!ojc = 1");
+    public void testGroupByRandom() {
+        test("random(unixtime, 5)");
     }
 
     @Test
-    public void testRegex() {
-        test("tk =~ 'a*'");
-    }
-
-    @Test
-    public void testAlways() {
-        test("true");
-    }
-
-    @Test
-    public void testNever() {
-        test("false");
+    public void testGroupByRandomMetric() {
+        test("random(hasint(oji, 1), 5)");
     }
 }

@@ -41,8 +41,8 @@ public class AggregateMetricTransformTest {
 
     private void test(final String metricText) {
         final AggregateMetric parsed = Queries.parseAggregateMetric(metricText, false, DocMetricsTest.CONTEXT);
-        Assert.assertNotNull(parsed.getRawInput());
         classesToTest.remove(parsed.getClass());
+        Assert.assertEquals(metricText, parsed.getRawInput());
         final AggregateMetric transformed = parsed.transform(Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
         Assert.assertEquals(parsed, transformed);
         Assert.assertNotSame(parsed, transformed);

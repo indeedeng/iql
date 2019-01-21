@@ -39,7 +39,7 @@ import static com.indeed.iql2.language.DocMetric.Multiply;
 import static com.indeed.iql2.language.DocMetric.Subtract;
 
 public class DocMetricsTest {
-    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    public static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
     public static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
     public static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),

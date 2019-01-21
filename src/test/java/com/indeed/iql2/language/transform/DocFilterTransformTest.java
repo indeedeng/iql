@@ -37,10 +37,10 @@ public class DocFilterTransformTest {
         }
     }
 
-    private void test(final String metricText) {
-        final DocFilter parsed = Queries.parseDocFilter(metricText, false, DocMetricsTest.CONTEXT);
-        Assert.assertNotNull(parsed.getRawInput());
+    private void test(final String filterText) {
+        final DocFilter parsed = Queries.parseDocFilter(filterText, false, DocMetricsTest.CONTEXT);
         classesToTest.remove(parsed.getClass());
+        Assert.assertEquals(filterText, parsed.getRawInput());
         final DocFilter transformed = parsed.transform(Functions.identity(), Functions.identity());
         Assert.assertEquals(parsed, transformed);
         Assert.assertNotSame(parsed, transformed);
@@ -49,17 +49,17 @@ public class DocFilterTransformTest {
 
     @Test
     public void testFieldIs() {
-        test("tk=\"a\" ");
+        test("tk=\"a\"");
     }
 
     @Test
     public void testFieldIsnt() {
-        test("tk!=\"a\" ");
+        test("tk!=\"a\"");
     }
 
     @Test
     public void testMetricEqual() {
-        test("ABS(ojc) = ABS(oji) ");
+        test("ABS(ojc) = ABS(oji)");
     }
 
     @Test
@@ -109,17 +109,17 @@ public class DocFilterTransformTest {
 
     @Test
     public void testNot() {
-        test("not(tk=\"a\") ");
+        test("not(tk=\"a\")");
     }
 
     @Test
     public void testRegex() {
-        test("tk =~ \"a.*\" ");
+        test("tk =~ \"a.*\"");
     }
 
     @Test
     public void testNotRegex() {
-        test("tk !=~ \"a.*\" ");
+        test("tk !=~ \"a.*\"");
     }
 
     @Test

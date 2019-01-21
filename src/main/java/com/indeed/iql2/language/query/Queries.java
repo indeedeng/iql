@@ -113,7 +113,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.GroupByElementContext apply(@Nullable final JQLParser input) {
-                return input.groupByElement(useLegacy);
+                return input.groupByElementEof(useLegacy).groupByElement();
             }
         });
         return GroupBys.parseGroupBy(groupByElementContext, context);
