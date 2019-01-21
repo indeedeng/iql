@@ -619,7 +619,7 @@
         <autoVersionSubmodules>true</autoVersionSubmodules>
         <jdk.version>1.8</jdk.version>
 
-        <imhotep.version>3.1.153</imhotep.version>
+        <imhotep.version>3.1.154</imhotep.version>
         <ims.version>4.0.11</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
