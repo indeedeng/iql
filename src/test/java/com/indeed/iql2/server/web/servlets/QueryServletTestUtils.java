@@ -236,7 +236,6 @@ public class QueryServletTestUtils extends BasicTest {
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
         @Nullable
         private Long maxCacheQuerySizeLimitBytes;
-        private boolean useCsvOutput = true;
 
         Options() {
         }
@@ -300,10 +299,6 @@ public class QueryServletTestUtils extends BasicTest {
         public Options setMaxCacheQuerySizeLimitBytes(@Nullable final Long maxCacheQuerySizeLimitBytes) {
             this.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
             return this;
-        }
-
-        public void setUseCsvOutput(final boolean useCsvOutput) {
-            this.useCsvOutput = useCsvOutput;
         }
     }
 
