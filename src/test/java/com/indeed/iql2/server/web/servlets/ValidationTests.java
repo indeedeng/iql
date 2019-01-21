@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset;
@@ -49,10 +50,6 @@ public class ValidationTests extends BasicTest {
         final String query =
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
-        try {
-            QueryServletTestUtils.runQuery(query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), Collections.emptySet());
-            Assert.fail();
-        } catch (Exception ignored) {
-        }
+        QueryServletTestUtils.expectException(query, QueryServletTestUtils.LanguageVersion.IQL2, Predicates.alwaysTrue());
     }
 }

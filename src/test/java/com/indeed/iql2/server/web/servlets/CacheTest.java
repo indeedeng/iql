@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion.IQL2;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.EVENT_STREAM;
 
 public class CacheTest extends BasicTest {
     // TODO: can we lower this?
@@ -100,11 +101,11 @@ public class CacheTest extends BasicTest {
             final InMemoryQueryCache queryCache = new InMemoryQueryCache();
             options.setQueryCache(queryCache);
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
-            final List<List<String>> result1 = QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+            final List<List<String>> result1 = QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
             Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
             final int expectedCachedFiles = 2; // should have 2 files: metadata and data
             awaitCacheWrites(queryCache, expectedCachedFiles);
-            final List<List<String>> result2 = QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+            final List<List<String>> result2 = QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
             Assert.assertEquals("Didn't read from cache when it was expected to", expectedCachedFiles, queryCache.getReadsTracked().size());
             Assert.assertEquals(result1, result2);
         }
@@ -121,14 +122,14 @@ public class CacheTest extends BasicTest {
 
         // 10 byte limit, should fail
         options.setMaxCacheQuerySizeLimitBytes(10L);
-        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
         // wait for async cache write, just in case
         Thread.sleep(CACHE_WRITE_TIMEOUT);
         Assert.assertEquals(Collections.emptySet(), queryCache.getWritesTracked());
 
         // 10KB limit, should succeed
         options.setMaxCacheQuerySizeLimitBytes(10_240L);
-        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
 
         final long fileSize = queryCache.getCachedValues()
@@ -142,21 +143,21 @@ public class CacheTest extends BasicTest {
 
         // Size - 1 should fail to write
         options.setMaxCacheQuerySizeLimitBytes(fileSize - 1L);
-        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
         // wait for async cache write, just in case
         Thread.sleep(CACHE_WRITE_TIMEOUT);
         Assert.assertEquals(Collections.emptySet(), queryCache.getWritesTracked());
 
         // exact size should succeed
         options.setMaxCacheQuerySizeLimitBytes(fileSize);
-        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
 
         queryCache.clear();
 
         // no limit should succeed
         options.setMaxCacheQuerySizeLimitBytes(null);
-        QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+        QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
         awaitCacheWrites(queryCache, 2);
     }
 
@@ -194,7 +195,7 @@ public class CacheTest extends BasicTest {
         try {
             options.setTmpDir(tmpTmpDir);
             try {
-                QueryServletTestUtils.runQuery(query, IQL2, true, options, Collections.emptySet());
+                QueryServletTestUtils.runQuery(query, IQL2, EVENT_STREAM, options, Collections.emptySet());
             } catch (final Exception ignored) {
             }
             final long waitStart = System.currentTimeMillis();

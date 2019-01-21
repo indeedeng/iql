@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import au.com.bytecode.opencsv.CSVReader;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
@@ -29,7 +30,6 @@ import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql.web.IQLDB;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
@@ -50,7 +50,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +61,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.CSV;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.EVENT_STREAM;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.TSV;
 
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -128,27 +134,40 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
-    static List<List<String>> runQuery(String query, LanguageVersion version, boolean stream, Options options, Set<String> extraQueryOptions) throws Exception {
-        return runQuery(AllData.DATASET.getNormalClient(), query, version, stream, options, extraQueryOptions);
+    public enum ResultFormat {
+        TSV,
+        CSV,
+        EVENT_STREAM
     }
 
-    static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, Set<String> extraQueryOptions) throws Exception {
+    static List<List<String>> runQuery(String query, LanguageVersion version, ResultFormat resultFormat, Options options, Set<String> extraQueryOptions) throws Exception {
+        return runQuery(AllData.DATASET.getNormalClient(), query, version, resultFormat, options, extraQueryOptions);
+    }
+
+    static List<List<String>> runQuery(ImhotepClient client, String query, LanguageVersion version, ResultFormat resultFormat, Options options, Set<String> extraQueryOptions) throws Exception {
         final IQL2Options defaultOptions = new IQL2Options();
         defaultOptions.addOptions(extraQueryOptions);
-        return run(client, query, version, stream, options, defaultOptions).data;
+        return run(client, query, version, resultFormat, options, defaultOptions).data;
     }
 
     private static JsonNode getQueryHeader(final ImhotepClient client, String query, LanguageVersion version, Options options) throws Exception {
-        return run(client, query, version, true, options, new IQL2Options()).header;
+        return run(client, query, version, EVENT_STREAM, options, new IQL2Options()).header;
     }
 
     @SuppressWarnings("WeakerAccess")
-    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, final IQL2Options defaultOptions) throws Exception {
+    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, ResultFormat resultFormat, Options options, final IQL2Options defaultOptions) throws Exception {
         final QueryServlet queryServlet = create(client, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        final boolean stream = resultFormat.equals(EVENT_STREAM);
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
         request.addParameter("client", "test");
+
+        final boolean csv = resultFormat.equals(CSV);
+
+        if (csv) {
+            request.addParameter("csv", "1");
+        }
         version.addRequestParameters(request);
         final MockHttpServletResponse response = new MockHttpServletResponse();
         queryServlet.query(request, response, query);
@@ -187,9 +206,15 @@ public class QueryServletTestUtils extends BasicTest {
             }
         } else {
             if (response.getStatus() == 200) {
-                for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
-                    if (!line.isEmpty()) {
-                        output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+                if (csv) {
+                    try (final CSVReader csvReader = new CSVReader(new StringReader(response.getContentAsString()))) {
+                        csvReader.readAll().forEach(line -> output.add(Arrays.asList(line)));
+                    }
+                } else {
+                    for (final String line : Splitter.on('\n').split(response.getContentAsString())) {
+                        if (!line.isEmpty()) {
+                            output.add(Lists.newArrayList(Splitter.on('\t').split(line)));
+                        }
                     }
                 }
             } else {
@@ -211,6 +236,7 @@ public class QueryServletTestUtils extends BasicTest {
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
         @Nullable
         private Long maxCacheQuerySizeLimitBytes;
+        private boolean useCsvOutput = true;
 
         Options() {
         }
@@ -275,6 +301,10 @@ public class QueryServletTestUtils extends BasicTest {
             this.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
             return this;
         }
+
+        public void setUseCsvOutput(final boolean useCsvOutput) {
+            this.useCsvOutput = useCsvOutput;
+        }
     }
 
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
@@ -318,8 +348,9 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testOriginalIQL1(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, true, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, TSV, options, queryOptions));
+            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, EVENT_STREAM, options, queryOptions));
+            // TODO: Test CSV format after it matches TSV/event-stream output
         }
     }
 
@@ -342,8 +373,9 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL1LegacyMode(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, true, options, queryOptions));
+            for (final ResultFormat resultFormat : ResultFormat.values()) {
+                Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, resultFormat, options, queryOptions));
+            }
         }
     }
 
@@ -408,8 +440,9 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void testIQL2(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions));
-            Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions));
+            for (final ResultFormat resultFormat : ResultFormat.values()) {
+                Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL2, resultFormat, options, queryOptions));
+            }
         }
     }
 
@@ -423,8 +456,9 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void runIQL2(ImhotepClient client, String query, Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            runQuery(client, query, LanguageVersion.IQL2, false, options, queryOptions);
-            runQuery(client, query, LanguageVersion.IQL2, true, options, queryOptions);
+            for (final ResultFormat resultFormat : ResultFormat.values()) {
+                runQuery(client, query, LanguageVersion.IQL2, resultFormat, options, queryOptions);
+            }
         }
     }
 
@@ -435,10 +469,12 @@ public class QueryServletTestUtils extends BasicTest {
 
     private static void runIQL1(ImhotepClient client, String query, Options options) throws Exception {
         for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, false, options, queryOptions);
-            runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, true, options, queryOptions);
-            runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, false, options, queryOptions);
-            runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, true, options, queryOptions);
+            for (final ResultFormat resultFormat : ResultFormat.values()) {
+                if (!resultFormat.equals(CSV)) {
+                    runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, resultFormat, options, queryOptions);
+                }
+                runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, resultFormat, options, queryOptions);
+            }
         }
     }
 
@@ -474,7 +510,7 @@ public class QueryServletTestUtils extends BasicTest {
         final Options options = Options.create();
         final ImhotepClient client = options.dataset.getNormalClient();
         try {
-            runQuery(client, query, version, true, options, Collections.emptySet());
+            runQuery(client, query, version, ResultFormat.EVENT_STREAM, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (Exception e) {
             Assert.assertTrue(exceptionMessagePredicate.apply(e.getMessage()));
