@@ -127,7 +127,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.AggregateFilterContext apply(@Nullable final JQLParser input) {
-                return input.aggregateFilter(useLegacy);
+                return input.aggregateFilterEof(useLegacy).aggregateFilter();
             }
         });
         return AggregateFilters.parseAggregateFilter(aggregateFilterContext, context);
@@ -141,7 +141,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.DocFilterContext apply(@Nullable final JQLParser input) {
-                return input.docFilter(useLegacy);
+                return input.docFilterEof(useLegacy).docFilter();
             }
         });
         return DocFilters.parseDocFilter(docFilterContext, context);
@@ -155,7 +155,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.DocMetricContext apply(@Nullable final JQLParser input) {
-                return input.docMetric(useLegacy);
+                return input.docMetricEof(useLegacy).docMetric();
             }
         });
         return DocMetrics.parseDocMetric(docMetricContext, context);
@@ -313,7 +313,7 @@ public class Queries {
     }
 
     @VisibleForTesting
-    static List<String> extractHeaders(Query parsed) {
+    public static List<String> extractHeaders(Query parsed) {
         final List<String> result = new ArrayList<>();
         for (GroupByEntry groupBy : parsed.groupBys) {
             result.add(groupBy.alias.or(groupBy.groupBy::getRawInput));
@@ -417,7 +417,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.AggregateMetricContext apply(@Nullable final JQLParser input) {
-                return input.aggregateMetric(useLegacy);
+                return input.aggregateMetricEof(useLegacy).aggregateMetric();
             }
         });
         return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);

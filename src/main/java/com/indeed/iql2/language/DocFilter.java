@@ -129,7 +129,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new FieldIs(field, term)).copyPosition(this);
         }
 
         @Override
@@ -187,7 +187,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new FieldIsnt(field, term)).copyPosition(this);
         }
 
         @Override
@@ -243,7 +243,7 @@ public abstract class DocFilter extends AbstractPositional {
         // TODO: Should this propagate the transformation or just allow `i` to recurse if desired?
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new FieldInQuery(query, field, isNegated)).copyPosition(this);
         }
 
         @Override
@@ -332,7 +332,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Between(field, lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
         }
 
         @Override
@@ -1128,7 +1128,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Regex(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -1188,7 +1188,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new NotRegex(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -1248,7 +1248,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new FieldEqual(field1, field2)).copyPosition(this);
         }
 
         @Override
@@ -1382,7 +1382,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Lucene(query, fieldResolver, datasetsMetadata)).copyPosition(this);
         }
 
         @Override
@@ -1451,7 +1451,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Sample(field, isIntField, numerator, denominator, seed)).copyPosition(this);
         }
 
         @Override
@@ -1599,7 +1599,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Always extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Always()).copyPosition(this);
         }
 
         @Override
@@ -1641,7 +1641,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Never extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new Never()).copyPosition(this);
         }
 
         @Override
@@ -1696,7 +1696,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new StringFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
         }
 
         @Override
@@ -1768,7 +1768,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this).copyPosition(this);
+            return i.apply(new IntFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
         }
 
         @Override

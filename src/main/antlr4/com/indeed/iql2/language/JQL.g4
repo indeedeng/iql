@@ -169,6 +169,10 @@ aggregateMetric [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlAggregateMetric
     ;
 
+aggregateMetricEof [boolean useLegacy]
+    : aggregateMetric[$ctx.useLegacy] EOF
+    ;
+
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
@@ -231,6 +235,10 @@ syntacticallyAtomicJqlAggregateMetric
 aggregateFilter [boolean useLegacy]
     : {$ctx.useLegacy}? {false}? // No such thing
     | {!$ctx.useLegacy}? jqlAggregateFilter
+    ;
+
+aggregateFilterEof [boolean useLegacy]
+    : aggregateFilter[$ctx.useLegacy] EOF
     ;
 
 jqlAggregateFilter
@@ -296,6 +304,10 @@ docMetric [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlDocMetric
     ;
 
+docMetricEof [boolean useLegacy]
+    : docMetric[$ctx.useLegacy] EOF
+    ;
+
 legacyDocMetric
     : COUNT '(' ')' # LegacyDocCounts
     | ABS '(' legacyDocMetric ')' # LegacyDocAbs
@@ -354,6 +366,10 @@ jqlTermVal
 docFilter [boolean useLegacy]
     : {$ctx.useLegacy}? legacyDocFilter
     | {!$ctx.useLegacy}? jqlDocFilter
+    ;
+
+docFilterEof [boolean useLegacy]
+    : docFilter[$ctx.useLegacy] EOF
     ;
 
 legacyDocFilter

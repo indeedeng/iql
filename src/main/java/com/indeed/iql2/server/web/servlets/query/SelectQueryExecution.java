@@ -297,13 +297,12 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
-        final Query paranoidQuery;
         if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
             timer.push("reparse query (paranoid mode)");
-            paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
             timer.pop();
 
-            timer.push("check query equals() and hashCode()");
+            timer.push("check query equals() and hashCode() (paranoid mode)");
             if (!paranoidQuery.equals(parseResult.query)) {
                 log.error("parseResult.query = " + parseResult.query);
                 log.error("paranoidQuery = " + paranoidQuery);
@@ -315,8 +314,10 @@ public class SelectQueryExecution {
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
             }
             timer.pop();
-        } else {
-            paranoidQuery = null;
+
+            timer.push("extractHeaders (paranoid mode)");
+            Queries.extractHeaders(parseResult.query);
+            timer.pop();
         }
 
         {

@@ -90,7 +90,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).copyPosition(this);
+            return h.apply(new TermIs(term)).copyPosition(this);
         }
 
         @Override
@@ -147,7 +147,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).copyPosition(this);
+            return h.apply(new TermRegex(term)).copyPosition(this);
         }
 
         @Override
@@ -923,7 +923,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).copyPosition(this);
+            return h.apply(new Regex(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -983,7 +983,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).copyPosition(this);
+            return h.apply(new Always()).copyPosition(this);
         }
 
         @Override
@@ -1030,7 +1030,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public AggregateFilter transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return h.apply(this).copyPosition(this);
+            return h.apply(new Never()).copyPosition(this);
         }
 
         @Override

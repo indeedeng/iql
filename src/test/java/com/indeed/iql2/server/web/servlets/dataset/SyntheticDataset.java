@@ -25,6 +25,10 @@ public class SyntheticDataset {
         doc.addIntTerm("Y", 1);
         doc.addIntTerm("Z", 1);
 
+        doc.addIntTerm("oji", 1);
+        doc.addIntTerm("ojc", 1);
+        doc.addStringTerm("tk", "");
+
         flamdex.addDocument(doc);
         shards.add(new Dataset.DatasetShard("synthetic", "index20150101", flamdex));
 

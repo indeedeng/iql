@@ -1134,7 +1134,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this).copyPosition(this);
+            return f.apply(new Constant(value)).copyPosition(this);
         }
 
         @Override
@@ -1194,7 +1194,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this).copyPosition(this);
+            return f.apply(new Percentile(field, percentile)).copyPosition(this);
         }
 
         @Override
@@ -1323,7 +1323,7 @@ public abstract class AggregateMetric extends AbstractPositional {
                 return f.apply(new Distinct(field, Optional.of(filter.get().transform(f, g, h, i, groupByFunction)), windowSize))
                         .copyPosition(this);
             } else {
-                return f.apply(this).copyPosition(this);
+                return f.apply(new Distinct(field, Optional.absent(), windowSize)).copyPosition(this);
             }
         }
 
@@ -1704,7 +1704,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this).copyPosition(this);
+            return f.apply(new FieldMin(field)).copyPosition(this);
         }
 
         @Override
@@ -1757,7 +1757,7 @@ public abstract class AggregateMetric extends AbstractPositional {
 
         @Override
         public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(this).copyPosition(this);
+            return f.apply(new FieldMax(field)).copyPosition(this);
         }
 
         @Override
