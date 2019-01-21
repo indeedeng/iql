@@ -224,8 +224,8 @@ public abstract class AggregateFilter extends AbstractPositional {
             if (rawInput != null && rawInput.contains(".")) {
                 // Give up on adding extra detail because stuff is going on with explicitly qualified metrics
                 // and the help text will get wonky and confusing.
-                // e.g., "If your intention is to check whether at least one document had organic.feedid + sponsored.feedid = 50461,
-                //        consider querying "[organic.feedid + sponsored.feedid=50461]>0"
+                // e.g., "If your intention is to check whether at least one document had organic.oji + sponsored.oji = 10,
+                //        consider querying "[organic.oji + sponsored.oji=10]>0"
                 extraDetail = "";
             } else {
                 extraDetail =
