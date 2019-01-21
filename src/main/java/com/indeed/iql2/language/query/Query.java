@@ -143,7 +143,8 @@ public class Query extends AbstractPositional {
             final Optional<JQLParser.GroupByContentsContext> groupByContents,
             final List<JQLParser.SelectContentsContext> selects,
             final Token limit,
-            final boolean useLegacy
+            final boolean useLegacy,
+            final boolean isTopLevelQuery
     ) {
         final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext, partialContext.datasetsMetadata);
         final Context context = partialContext.fullContext(fieldResolver.universalScope());
@@ -174,7 +175,9 @@ public class Query extends AbstractPositional {
         final List<AggregateMetric> selectedMetrics;
         final List<Optional<String>> formatStrings;
         if (selects.isEmpty()) {
-            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+            selectedMetrics = isTopLevelQuery ?
+                    Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count())) :
+                    Collections.emptyList();
             formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
@@ -246,7 +249,8 @@ public class Query extends AbstractPositional {
                 Optional.fromNullable(queryContext.groupByContents()),
                 queryContext.selects,
                 queryContext.limit,
-                queryContext.useLegacy
+                queryContext.useLegacy,
+                true
         );
         query.copyPosition(queryContext);
         return query;
@@ -268,6 +272,7 @@ public class Query extends AbstractPositional {
                 Optional.of(queryContext.groupByContents()),
                 Collections.emptyList(),
                 null,
+                false,
                 false
         );
         return query;
