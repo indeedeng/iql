@@ -15,11 +15,8 @@
 package com.indeed.iql2.language.execution.passes;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.passes.ExtractPrecomputed;
+import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.util.core.Pair;
 
@@ -41,9 +38,9 @@ public class FixFtgsMetricRunning {
         public AggregateMetric apply(AggregateMetric input) {
             if (input instanceof AggregateMetric.Running) {
                 final AggregateMetric.Running running = (AggregateMetric.Running) input;
-                return new AggregateMetric.Running(running.offset - 1, running.metric);
+                return new AggregateMetric.Running(running.offset - 1, this.apply(running.metric));
             } else {
-                return input;
+                return input.traverse1(this);
             }
         }
     };
