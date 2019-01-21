@@ -424,7 +424,7 @@ public class AggregateMetrics {
             public void enterAggregateFloor(final JQLParser.AggregateFloorContext ctx) {
                 final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
                 if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
-                    throw new IllegalArgumentException("The max digits for FLOOR is no larger than " + ROUNDING_MAX_DIGITS);
+                    throw new IllegalArgumentException("The max digits for FLOOR is " + ROUNDING_MAX_DIGITS);
                 }
                 accept(new AggregateMetric.Floor(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
@@ -433,7 +433,7 @@ public class AggregateMetrics {
             public void enterAggregateCeil(final JQLParser.AggregateCeilContext ctx) {
                 final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
                 if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
-                    throw new IllegalArgumentException("The max digits for CEIL is no larger than " + ROUNDING_MAX_DIGITS);
+                    throw new IllegalArgumentException("The max digits for CEIL is " + ROUNDING_MAX_DIGITS);
                 }
                 accept(new AggregateMetric.Ceil(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
@@ -442,7 +442,7 @@ public class AggregateMetrics {
             public void enterAggregateRound(final JQLParser.AggregateRoundContext ctx) {
                 final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
                 if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
-                    throw new IllegalArgumentException("The max digits for ROUND is no larger than " + ROUNDING_MAX_DIGITS);
+                    throw new IllegalArgumentException("The max digits for ROUND is " + ROUNDING_MAX_DIGITS);
                 }
                 accept(new AggregateMetric.Round(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
