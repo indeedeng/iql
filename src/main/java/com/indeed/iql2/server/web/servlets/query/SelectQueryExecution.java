@@ -46,6 +46,7 @@ import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -669,7 +670,8 @@ public class SelectQueryExecution {
                             compositeProgressCallback,
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
-                            clientInfo.username
+                            clientInfo.username,
+                            (version == 2) ? FieldType.Integer : FieldType.String
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
