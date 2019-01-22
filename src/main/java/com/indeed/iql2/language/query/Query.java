@@ -31,6 +31,7 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
+import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -131,6 +132,12 @@ public class Query extends AbstractPositional {
         this.options = options;
         this.rowLimit = rowLimit;
         this.useLegacy = useLegacy;
+    }
+
+    @Override
+    public Query copyPosition(final Positional positional) {
+        super.copyPosition(positional);
+        return this;
     }
 
     public static Query parseQuery(
@@ -278,12 +285,41 @@ public class Query extends AbstractPositional {
         return query;
     }
 
+    /**
+     * Do a full bottom-up tree traversal of the query, transforming from the leaf nodes up, rebuilding their immediate parent,
+     * and then repeating the process starting from the parent and moving upward, until we hit the root of the query.
+     * <p>
+     * When implementing transform() methods on new classes, the recipe should be:
+     * <ol>
+     * <li>Call transform() on each of your children
+     * <li>Construct a new version of this, where all children have been replaced by their transformed versions
+     * <li>Call the transformation function corresponding to this class's interface on the new object
+     * <li>Propagate any source information ({@link com.indeed.iql2.language.Positional}) to the newly constructed object
+     * <li>Return the object with all transforms and source propagation performed
+     * </ol><p>
+     * One important caveat is that transform currently STOPS at the boundary of a sub-query.
+     * This means that query.transform(increment constants) will increment the constants in the outer query,
+     * but will not increment the constants in any sub-query.
+     *
+     * @see AggregateMetric#transform
+     * @see AggregateFilter#transform
+     * @see DocMetric#transform
+     * @see DocFilter#transform
+     * @see GroupBy#transform
+     *
+     * @param groupBy function to transform GroupBys by
+     * @param f function to transform AggregateMetrics by
+     * @param g function to transform DocMetrics by
+     * @param h function to transform AggregateFilters by
+     * @param i function to transform DocFilters by
+     * @return the transformed Query
+     */
     public Query transform(
-            Function<GroupBy, GroupBy> groupBy,
-            Function<AggregateMetric, AggregateMetric> f,
-            Function<DocMetric, DocMetric> g,
-            Function<AggregateFilter, AggregateFilter> h,
-            Function<DocFilter, DocFilter> i
+            final Function<GroupBy, GroupBy> groupBy,
+            final Function<AggregateMetric, AggregateMetric> f,
+            final Function<DocMetric, DocMetric> g,
+            final Function<AggregateFilter, AggregateFilter> h,
+            final Function<DocFilter, DocFilter> i
     ) {
         final Optional<DocFilter> filter;
         if (this.filter.isPresent()) {
@@ -299,19 +335,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
-    }
-
-    public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
-        final List<GroupByEntry> groupBys = Lists.newArrayList();
-        for (final GroupByEntry gb : this.groupBys) {
-            groupBys.add(gb.traverse1(f));
-        }
-        final List<AggregateMetric> selects = Lists.newArrayList();
-        for (final AggregateMetric select : this.selects) {
-            selects.add(select.traverse1(f));
-        }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
     }
 
     public Set<String> extractDatasetNames() {

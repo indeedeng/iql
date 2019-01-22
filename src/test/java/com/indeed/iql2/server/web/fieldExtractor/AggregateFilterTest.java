@@ -65,12 +65,12 @@ public class AggregateFilterTest extends BaseTest {
 
 	@Test
 	public void testAnd() {
-		verify(ImmutableSet.of(ORGANIC_TK, ORGANIC_OJC), "from organic yesterday today group by tk having ojc <= 1");
+		verify(ImmutableSet.of(ORGANIC_TK, ORGANIC_OJC, ORGANIC_OJI), "from organic yesterday today group by tk having ojc <= 1 and oji >=1");
 	}
 
 	@Test
 	public void testOr() {
-		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC, ORGANIC_TK), "from organic yesterday today group by tk having ojc <= 1 and oji >=1");
+		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC, ORGANIC_TK), "from organic yesterday today group by tk having ojc <= 1 or oji >=1");
 	}
 
 	@Test
