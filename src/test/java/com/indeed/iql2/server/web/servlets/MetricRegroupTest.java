@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 

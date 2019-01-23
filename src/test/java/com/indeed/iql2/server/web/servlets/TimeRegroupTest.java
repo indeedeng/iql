@@ -260,10 +260,10 @@ public class TimeRegroupTest extends BasicTest {
     @Test
     public void testInvalidTimeBucket() {
         Predicate<String> containsTimeBucketErrorMessage = e -> (e.contains("You requested a time period") && e.contains("not evenly divisible by the bucket size ") );
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 10d today group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")) );
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")) );
+        QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
     }
 
 
