@@ -56,6 +56,16 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
+    public static class OptionsErrorException extends IqlKnownException {
+        public OptionsErrorException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+
+        public OptionsErrorException(final String message) {
+            super(message);
+        }
+    }
+
     public static class UnknownDatasetException extends IqlKnownException {
         public UnknownDatasetException(final String message) {
             super(message);
@@ -114,6 +124,12 @@ public class IqlKnownException extends RuntimeException {
 
     public static class TooManyPendingQueriesException extends IqlKnownException {
         public TooManyPendingQueriesException(final String message) {
+            super(message);
+        }
+    }
+
+    public static class ClientHungUpException extends IqlKnownException {
+        public ClientHungUpException(final String message) {
             super(message);
         }
     }

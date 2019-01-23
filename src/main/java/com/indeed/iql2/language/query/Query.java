@@ -31,6 +31,7 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
+import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -133,6 +134,12 @@ public class Query extends AbstractPositional {
         this.useLegacy = useLegacy;
     }
 
+    @Override
+    public Query copyPosition(final Positional positional) {
+        super.copyPosition(positional);
+        return this;
+    }
+
     public static Query parseQuery(
             // queryCtx is the parse tree that represents the entire query, and is used for extracting FieldResolver
             // information, such as datasets, field aliases, and metric aliases
@@ -143,7 +150,8 @@ public class Query extends AbstractPositional {
             final Optional<JQLParser.GroupByContentsContext> groupByContents,
             final List<JQLParser.SelectContentsContext> selects,
             final Token limit,
-            final boolean useLegacy
+            final boolean useLegacy,
+            final boolean isTopLevelQuery
     ) {
         final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext, partialContext.datasetsMetadata);
         final Context context = partialContext.fullContext(fieldResolver.universalScope());
@@ -174,7 +182,9 @@ public class Query extends AbstractPositional {
         final List<AggregateMetric> selectedMetrics;
         final List<Optional<String>> formatStrings;
         if (selects.isEmpty()) {
-            selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+            selectedMetrics = isTopLevelQuery ?
+                    Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count())) :
+                    Collections.emptyList();
             formatStrings = Collections.singletonList(Optional.<String>absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
@@ -214,14 +224,14 @@ public class Query extends AbstractPositional {
         }
 
         if (useLegacy) {
-            allFilters = flattenAnd(allFilters);
+            allFilters = DocFilter.And.unwrap(allFilters);
             rewriteMultiTermIn(Iterables.getOnlyElement(datasets), allFilters, groupBys);
         }
         final Optional<DocFilter> whereFilter;
         if (allFilters.isEmpty()) {
             whereFilter = Optional.absent();
         } else {
-            whereFilter = Optional.of(DocFilters.and(allFilters));
+            whereFilter = Optional.of(DocFilter.And.create(allFilters));
         }
 
         // Make future errors immediately thrown, while also throwing any errors that have been caused up to this point.
@@ -246,7 +256,8 @@ public class Query extends AbstractPositional {
                 Optional.fromNullable(queryContext.groupByContents()),
                 queryContext.selects,
                 queryContext.limit,
-                queryContext.useLegacy
+                queryContext.useLegacy,
+                true
         );
         query.copyPosition(queryContext);
         return query;
@@ -268,17 +279,47 @@ public class Query extends AbstractPositional {
                 Optional.of(queryContext.groupByContents()),
                 Collections.emptyList(),
                 null,
+                false,
                 false
         );
         return query;
     }
 
+    /**
+     * Do a full bottom-up tree traversal of the query, transforming from the leaf nodes up, rebuilding their immediate parent,
+     * and then repeating the process starting from the parent and moving upward, until we hit the root of the query.
+     * <p>
+     * When implementing transform() methods on new classes, the recipe should be:
+     * <ol>
+     * <li>Call transform() on each of your children
+     * <li>Construct a new version of this, where all children have been replaced by their transformed versions
+     * <li>Call the transformation function corresponding to this class's interface on the new object
+     * <li>Propagate any source information ({@link com.indeed.iql2.language.Positional}) to the newly constructed object
+     * <li>Return the object with all transforms and source propagation performed
+     * </ol><p>
+     * One important caveat is that transform currently STOPS at the boundary of a sub-query.
+     * This means that query.transform(increment constants) will increment the constants in the outer query,
+     * but will not increment the constants in any sub-query.
+     *
+     * @see AggregateMetric#transform
+     * @see AggregateFilter#transform
+     * @see DocMetric#transform
+     * @see DocFilter#transform
+     * @see GroupBy#transform
+     *
+     * @param groupBy function to transform GroupBys by
+     * @param f function to transform AggregateMetrics by
+     * @param g function to transform DocMetrics by
+     * @param h function to transform AggregateFilters by
+     * @param i function to transform DocFilters by
+     * @return the transformed Query
+     */
     public Query transform(
-            Function<GroupBy, GroupBy> groupBy,
-            Function<AggregateMetric, AggregateMetric> f,
-            Function<DocMetric, DocMetric> g,
-            Function<AggregateFilter, AggregateFilter> h,
-            Function<DocFilter, DocFilter> i
+            final Function<GroupBy, GroupBy> groupBy,
+            final Function<AggregateMetric, AggregateMetric> f,
+            final Function<DocMetric, DocMetric> g,
+            final Function<AggregateFilter, AggregateFilter> h,
+            final Function<DocFilter, DocFilter> i
     ) {
         final Optional<DocFilter> filter;
         if (this.filter.isPresent()) {
@@ -294,19 +335,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
-    }
-
-    public Query traverse1(Function<AggregateMetric, AggregateMetric> f) {
-        final List<GroupByEntry> groupBys = Lists.newArrayList();
-        for (final GroupByEntry gb : this.groupBys) {
-            groupBys.add(gb.traverse1(f));
-        }
-        final List<AggregateMetric> selects = Lists.newArrayList();
-        for (final AggregateMetric select : this.selects) {
-            selects.add(select.traverse1(f));
-        }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
     }
 
     public Set<String> extractDatasetNames() {
@@ -343,21 +372,6 @@ public class Query extends AbstractPositional {
         return nameToIndex;
     }
 
-    // replace DocFilter.And with it arguments and do it recursively
-    private static List<DocFilter> flattenAnd(final List<DocFilter> filters) {
-        final List<DocFilter> result = new ArrayList<>(filters.size());
-        for (final DocFilter filter : filters) {
-            if (filter instanceof DocFilter.And) {
-                final DocFilter.And and = (DocFilter.And) filter;
-                result.addAll(flattenAnd(Collections.singletonList(and.f1)));
-                result.addAll(flattenAnd(Collections.singletonList(and.f2)));
-            } else {
-                result.add(filter);
-            }
-        }
-        return result;
-    }
-
     // rewrite field in (A, B), group by field to group by field in (A, B...)
     // only string fields are processed to be backward compatible with Iql1
     private static void rewriteMultiTermIn(final Dataset dataset, final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
@@ -383,11 +397,10 @@ public class Query extends AbstractPositional {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy;
                         Preconditions.checkState(groupByField.field.datasets().equals(expectedDatasets));
                         final String fieldName = groupByField.field.getOnlyField();
-                        if (filterField.equals(fieldName)) {
-                            groupBys.set(j, new GroupByEntry(
-                                    new GroupBy.GroupByFieldIn(groupByField.field, new LongArrayList(), stringTerms,
-                                            groupByField.withDefault),
-                                    groupByEntry.filter, groupByEntry.alias));
+                        if (filterField.equals(fieldName) && !groupByField.isTopK()) {
+                            final GroupBy.GroupByFieldIn groupByFieldIn = new GroupBy.GroupByFieldIn(groupByField.field, new LongArrayList(), stringTerms, groupByField.withDefault);
+                            groupByFieldIn.copyPosition(groupByField);
+                            groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;
                         }
                     }

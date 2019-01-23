@@ -43,7 +43,7 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql2.MathUtils;
@@ -63,10 +63,9 @@ import com.indeed.util.logging.TracingTreeTimer;
 import io.opentracing.ActiveSpan;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -111,6 +110,8 @@ public class Session {
     private final long firstStartTimeMillis;
     public final Set<String> options;
 
+    // Does not count group zero.
+    // Exactly equivalent to maxGroup.
     public int numGroups = 1;
 
     public static final String INFINITY_SYMBOL = "∞";
@@ -171,12 +172,13 @@ public class Session {
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
+        final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasetToChosenShards);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets, datasetToChosenShards,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -196,6 +198,13 @@ public class Session {
                 if (session.numGroups == 0) {
                     break;
                 }
+            }
+
+            // Move to beginning of the loop if we ever start to allow the last
+            // command to leave the session in whatever state it wants to, to shave
+            // off some unnecessary operations.
+            if (optionsSet.contains(QueryOptions.PARANOID)) {
+                session.ensureNoStats();
             }
         }
 
@@ -224,9 +233,18 @@ public class Session {
         return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
     }
 
+    private void ensureNoStats() {
+        for (final ImhotepSessionInfo session : sessions.values()) {
+            if (session.session.getNumStats() != 0) {
+                throw new IllegalStateException("At start of command execution, session " + session.displayName + " does not have zero stats!");
+            }
+        }
+    }
+
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
+            final boolean useAsync,
             final List<Queries.QueryDataset> sessionRequest,
             final Map<String, List<Shard>> datasetToChosenShards,
             final StrictCloser strictCloser,
@@ -273,8 +291,13 @@ public class Session {
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
             treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
-            final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
+            ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
+
+            if (useAsync) {
+                build = ((RemoteImhotepMultiSession) build).toAsync();
+            }
+
             // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
             final ImhotepSessionHolder session = strictCloser.registerOrClose(wrapSession(dataset.displayName, build));
@@ -312,11 +335,8 @@ public class Session {
         return firstStartTimeMillis;
     }
 
-    private static ImhotepSessionHolder wrapSession(
-            final String datasetName,
-            final ImhotepSession build) {
-        Preconditions.checkState(build instanceof RemoteImhotepMultiSession, "Unexpected session type");
-        return new ImhotepSessionHolder(datasetName, (RemoteImhotepMultiSession) build);
+    private static ImhotepSessionHolder wrapSession(final String datasetName, final ImhotepSession build) {
+        return new ImhotepSessionHolder(datasetName, build);
     }
 
     // this datetime is serialized by standard Datetime by iql2-language
@@ -435,29 +455,6 @@ public class Session {
         }
     }
 
-    public int findPercentile(double v, double[] percentiles) {
-        for (int i = 0; i < percentiles.length - 1; i++) {
-            if (v <= percentiles[i + 1]) {
-                return i;
-            }
-        }
-        return percentiles.length - 1;
-    }
-
-    // Returns the start of the bucket.
-    // result[0] will always be 0
-    // result[1] will be the minimum value required to be greater than 1/k values.
-    public static double[] getPercentiles(DoubleCollection values, int k) {
-        final DoubleArrayList list = new DoubleArrayList(values);
-        // TODO: Will this be super slow?
-        Collections.sort(list);
-        final double[] result = new double[k];
-        for (int i = 0; i < k; i++) {
-            result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
-        }
-        return result;
-    }
-
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, groupKeySet);
@@ -494,21 +491,21 @@ public class Session {
     public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
         timer.push("pushing metrics");
         final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
+        final Object2IntOpenHashMap<String> sessionToPushCount = new Object2IntOpenHashMap<>();
         // TODO: Parallelize across sessions
         for (final QualifiedPush push : allPushes) {
             final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
-            final int index = pushStatsWithTimer(session, push.pushes, timer) - 1;
-            statResults.put(push, session.aggregateStat(index));
+            pushStatsWithTimer(session, push.pushes, timer);
+            statResults.put(push, session.aggregateStat(sessionToPushCount.add(push.sessionName, 1)));
         }
         timer.pop();
         return statResults;
     }
 
-    public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
+    public static void pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
         timer.push("pushStats", "pushStats ('" + String.join("', '", pushes) + "')");
-        final int result = session.pushStats(pushes);
+        session.pushStats(pushes);
         timer.pop();
-        return result;
     }
 
     public long getFirstStartTimeMillis() {

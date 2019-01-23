@@ -16,9 +16,9 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.flamdex.query.Query;
@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class DocFilter extends AbstractPositional {
 
@@ -67,7 +68,6 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(MetricLte metricLte) throws E;
         T visit(And and) throws E;
         T visit(Or or) throws E;
-        T visit(Ors ors) throws E;
         T visit(Not not) throws E;
         T visit(Regex regex) throws E;
         T visit(NotRegex notRegex) throws E;
@@ -83,6 +83,9 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(FieldEqual equal) throws E;
     }
 
+    /**
+     * @see com.indeed.iql2.language.query.Query#transform(Function, Function, Function, Function, Function)
+     */
     public abstract DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     public abstract DocMetric asZeroOneMetric(String dataset);
@@ -92,6 +95,12 @@ public abstract class DocFilter extends AbstractPositional {
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
     public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
+
+    @Override
+    public DocFilter copyPosition(Positional positional) {
+        super.copyPosition(positional);
+        return this;
+    }
 
     public abstract static class FieldTermEqual extends DocFilter {
         public final FieldSet field;
@@ -120,7 +129,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new FieldIs(field, term)).copyPosition(this);
         }
 
         @Override
@@ -178,7 +187,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new FieldIsnt(field, term)).copyPosition(this);
         }
 
         @Override
@@ -234,7 +243,7 @@ public abstract class DocFilter extends AbstractPositional {
         // TODO: Should this propagate the transformation or just allow `i` to recurse if desired?
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new FieldInQuery(query, field, isNegated)).copyPosition(this);
         }
 
         @Override
@@ -318,12 +327,12 @@ public abstract class DocFilter extends AbstractPositional {
             final DocFilter upperCondition = includeUpper ?
                     new MetricLte(metric, new DocMetric.Constant(upper)) :
                     new MetricLt(metric, new DocMetric.Constant(upper));
-            return new And(lowerCondition, upperCondition);
+            return And.create(lowerCondition, upperCondition);
         }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Between(field, lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
         }
 
         @Override
@@ -415,7 +424,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -476,7 +486,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -542,7 +553,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -605,7 +617,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -668,7 +681,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -731,7 +745,8 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)));
+            return i.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -787,35 +802,167 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class And extends DocFilter {
-        public final DocFilter f1;
-        public final DocFilter f2;
+    public abstract static class Multiple extends DocFilter {
+        public final List<DocFilter> filters;
 
-        public And(DocFilter f1, DocFilter f2) {
-            this.f1 = f1;
-            this.f2 = f2;
+        protected Multiple(final List<DocFilter> filters) {
+            this.filters = filters;
+        }
+
+        public abstract DocFilter createFilter(final List<DocFilter> filters);
+
+        @Override
+        public final DocFilter transform(
+                final Function<DocMetric, DocMetric> g,
+                final Function<DocFilter, DocFilter> i) {
+            final List<DocFilter> transformed =
+                    filters.stream()
+                    .map(f -> f.transform(g, i))
+                    .collect(Collectors.toList());
+            return i.apply(createFilter(transformed)).copyPosition(this);
         }
 
         @Override
-        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new And(f1.transform(g, i), f2.transform(g, i)));
+        public final void validate(
+                final String dataset,
+                final ValidationHelper validationHelper,
+                final Validator validator) {
+            filters.forEach(f -> f.validate(dataset, validationHelper, validator));
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new DocMetric.MetricEqual(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(2));
+        public final boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Multiple other = (Multiple) o;
+            if (filters.size() != other.filters.size()) {
+                return false;
+            }
+            for (int i = 0; i < filters.size(); i++) {
+                if (!Objects.equals(filters.get(i), other.filters.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public final int hashCode() {
+            int hash = 0;
+            for (final DocFilter filter : filters) {
+                hash = 31 * hash + filter.hashCode();
+            }
+            return hash;
+        }
+
+        @Override
+        public final String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append(getClass().getSimpleName()).append('{');
+            for (int i = 0; i < filters.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append('f').append(i+1).append('=').append(filters.get(i));
+            }
+            sb.append('}');
+            return sb.toString();
+        }
+    }
+
+    public static class And extends Multiple {
+
+        private And(final List<DocFilter> filters) {
+            super(filters);
+        }
+
+        // create filter that is equivalent to 'and' of all filters and simplify it.
+        public static DocFilter create(final List<DocFilter> original) {
+            final List<DocFilter> filters = new ArrayList<>(original.size());
+            for (final DocFilter filter : original) {
+                if (filter instanceof Never) {
+                    // result is constant false
+                    return new Never();
+                }
+                if (filter instanceof Always) {
+                    // skipping as it does not affect result
+                    continue;
+                }
+                if (filter instanceof And) {
+                    // unwrapping filters from another And
+                    filters.addAll(((And)filter).filters);
+                } else {
+                    filters.add(filter);
+                }
+            }
+            if (filters.isEmpty()) {
+                return new Always();
+            }
+            if (filters.size() == 1) {
+                return filters.get(0);
+            }
+            return new And(filters);
+        }
+
+        public static DocFilter create(final DocFilter f1, final DocFilter f2) {
+            return create(ImmutableList.of(f1, f2));
+        }
+
+        // unwrap And filters if present
+        public static List<DocFilter> unwrap(final List<DocFilter> filters) {
+            if (filters.isEmpty()) {
+                return new ArrayList<>();
+            }
+            // will be unwrapped here.
+            final DocFilter filter = create(filters);
+            if (filter instanceof And) {
+                return new ArrayList<>(((And)filter).filters);
+            }
+            final List<DocFilter> result = new ArrayList<>(1);
+            result.add(filter);
+            return result;
+        }
+
+        @Override
+        public DocFilter createFilter(final List<DocFilter> filters) {
+            return create(filters);
+        }
+
+        @Override
+        public DocMetric asZeroOneMetric(final String dataset) {
+            final List<DocMetric> metrics =
+                    filters.stream()
+                    .map(f -> f.asZeroOneMetric(dataset))
+                    .collect(Collectors.toList());
+            return new DocMetric.MetricEqual(DocMetric.Add.create(metrics), new DocMetric.Constant(metrics.size()));
+        }
+
+        @Override
+        public List<Action> getExecutionActions(
+                final Map<String, String> scope,
+                final int target,
+                final int positive,
+                final int negative,
+                final GroupSupplier groupSupplier) {
             final List<Action> result = new ArrayList<>();
-            if (target != negative && positive != negative) {
-                result.addAll(f1.getExecutionActions(scope, target, target, negative, groupSupplier));
-                result.addAll(f2.getExecutionActions(scope, target, positive, negative, groupSupplier));
+            if (positive == negative) {
+                return result;
+            }
+            if (target != negative) {
+                for (int i = 0; i < (filters.size() - 1); i++) {
+                    result.addAll(filters.get(i).getExecutionActions(scope, target, target, negative, groupSupplier));
+                }
+                result.addAll(filters.get(filters.size()-1).getExecutionActions(scope, target, positive, negative, groupSupplier));
             } else {
+                // target == negative
                 final int newGroup = groupSupplier.acquire();
-                result.addAll(f1.getExecutionActions(scope, target, target, newGroup, groupSupplier));
-                result.addAll(f2.getExecutionActions(scope, target, target, newGroup, groupSupplier));
+                for (final DocFilter filter : filters) {
+                    result.addAll(filter.getExecutionActions(scope, target, target, newGroup, groupSupplier));
+                }
                 result.add(new UnconditionalAction(scope.keySet(), target, positive));
                 result.add(new UnconditionalAction(scope.keySet(), newGroup, target));
                 groupSupplier.release(newGroup);
@@ -827,65 +974,82 @@ public abstract class DocFilter extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            f1.validate(dataset, validationHelper, validator);
-            f2.validate(dataset, validationHelper, validator);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            And and = (And) o;
-            return Objects.equals(f1, and.f1) &&
-                    Objects.equals(f2, and.f2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(f1, f2);
-        }
-
-        @Override
-        public String toString() {
-            return "And{" +
-                    "f1=" + f1 +
-                    ", f2=" + f2 +
-                    '}';
-        }
     }
 
-    public static class Or extends DocFilter {
-        public final DocFilter f1;
-        public final DocFilter f2;
+    public static class Or extends Multiple {
 
-        public Or(DocFilter f1, DocFilter f2) {
-            this.f1 = f1;
-            this.f2 = f2;
+        private Or(final List<DocFilter> filters) {
+            super(filters);
+        }
+
+        // create filter that is equivalent to 'or' of all filters and simplify it.
+        public static DocFilter create(final List<DocFilter> original) {
+            final List<DocFilter> filters = new ArrayList<>(original.size());
+            for (final DocFilter filter : original) {
+                if (filter instanceof Never) {
+                    // skipping as it does not affect result
+                    continue;
+                }
+                if (filter instanceof Always) {
+                    // result is constant true
+                    return new Always();
+                }
+                if (filter instanceof Or) {
+                    // unwrapping filters from another Or
+                    filters.addAll(((Or)filter).filters);
+                } else {
+                    filters.add(filter);
+                }
+            }
+            if (filters.isEmpty()) {
+                return new Never();
+            }
+            if (filters.size() == 1) {
+                return filters.get(0);
+            }
+            return new Or(filters);
+        }
+
+        public static DocFilter create(final DocFilter f1, final DocFilter f2) {
+            return create(ImmutableList.of(f1, f2));
         }
 
         @Override
-        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Or(f1.transform(g, i), f2.transform(g, i)));
+        public DocFilter createFilter(final List<DocFilter> filters) {
+            return create(filters);
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new DocMetric.MetricGt(new DocMetric.Add(f1.asZeroOneMetric(dataset), f2.asZeroOneMetric(dataset)), new DocMetric.Constant(0));
+        public DocMetric asZeroOneMetric(final String dataset) {
+            final List<DocMetric> metrics = new ArrayList<>(filters.size());
+            for (final DocFilter filter : filters) {
+                metrics.add(filter.asZeroOneMetric(dataset));
+            }
+            return new DocMetric.MetricGt(DocMetric.Add.create(metrics), new DocMetric.Constant(0));
         }
 
         @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(
+                final Map<String, String> scope,
+                final int target,
+                final int positive,
+                final int negative,
+                final GroupSupplier groupSupplier) {
             final List<Action> result = new ArrayList<>();
-            if (target != positive && positive != negative) {
-                result.addAll(f1.getExecutionActions(scope, target, positive, target, groupSupplier));
-                result.addAll(f2.getExecutionActions(scope, target, positive, negative, groupSupplier));
+            if (positive == negative) {
+                return result;
+            }
+            if ((target != positive)) {
+                for (int i = 0; i < filters.size() - 1; i++) {
+                    result.addAll(filters.get(i).getExecutionActions(scope, target, positive, target, groupSupplier));
+                }
+                result.addAll(filters.get(filters.size()-1).getExecutionActions(scope, target, positive, negative, groupSupplier));
             } else {
+                // target == positive
                 final int newGroup = groupSupplier.acquire();
-                result.addAll(f1.getExecutionActions(scope, target, newGroup, target, groupSupplier));
-                result.addAll(f2.getExecutionActions(scope, target, newGroup, target, groupSupplier));
+                for (final DocFilter filter : filters) {
+                    result.addAll(filter.getExecutionActions(scope, target, newGroup, target, groupSupplier));
+                }
                 result.add(new UnconditionalAction(scope.keySet(), target, negative));
                 result.add(new UnconditionalAction(scope.keySet(), newGroup, positive));
                 groupSupplier.release(newGroup);
@@ -896,108 +1060,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            f1.validate(dataset, validationHelper, validator);
-            f2.validate(dataset, validationHelper, validator);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Or or = (Or) o;
-            return Objects.equals(f1, or.f1) &&
-                    Objects.equals(f2, or.f2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(f1, f2);
-        }
-
-        @Override
-        public String toString() {
-            return "Or{" +
-                    "f1=" + f1 +
-                    ", f2=" + f2 +
-                    '}';
-        }
-    }
-
-    public static class Ors extends DocFilter {
-        public final List<DocFilter> filters;
-
-        public Ors(List<DocFilter> filters) {
-            this.filters = filters;
-        }
-
-        @Override
-        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            final List<DocFilter> transformed = new ArrayList<>();
-            for (final DocFilter filter : filters) {
-                transformed.add(filter.transform(g, i));
-            }
-            return i.apply(new Ors(transformed));
-        }
-
-        @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            if (filters.isEmpty()) {
-                return new DocMetric.Constant(0);
-            }
-            DocMetric metric = filters.get(0).asZeroOneMetric(dataset);
-            for (int i = 1; i < filters.size(); i++) {
-                metric = new DocMetric.Add(metric, filters.get(i).asZeroOneMetric(dataset));
-            }
-            return new DocMetric.MetricGt(metric, new DocMetric.Constant(0));
-        }
-
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            if (filters.isEmpty()) {
-                return Collections.<Action>singletonList(new UnconditionalAction(scope.keySet(), target, negative));
-            }
-            DocFilter reOrred = filters.get(0);
-            for (int i = 1; i < filters.size(); i++) {
-                reOrred = new Or(filters.get(i), reOrred);
-            }
-            return reOrred.getExecutionActions(scope, target, positive, negative, groupSupplier);
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            for (final DocFilter filter : filters) {
-                filter.validate(dataset, validationHelper, validator);
-            }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Ors ors = (Ors) o;
-            return Objects.equals(filters, ors.filters);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(filters);
-        }
-
-
-        @Override
-        public String toString() {
-            return "Ors{" +
-                    "filters=" + filters +
-                    '}';
         }
     }
 
@@ -1010,7 +1072,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Not(filter.transform(g, i)));
+            return i.apply(new Not(filter.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -1066,7 +1128,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Regex(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -1126,7 +1188,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new NotRegex(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -1186,7 +1248,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new FieldEqual(field1, field2)).copyPosition(this);
         }
 
         @Override
@@ -1249,7 +1311,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Qualified(scope, filter.transform(g, i)));
+            return i.apply(new Qualified(scope, filter.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -1320,7 +1382,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Lucene(query, fieldResolver, datasetsMetadata)).copyPosition(this);
         }
 
         @Override
@@ -1389,7 +1451,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Sample(field, isIntField, numerator, denominator, seed)).copyPosition(this);
         }
 
         @Override
@@ -1464,7 +1526,8 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocFilter transform(final Function<DocMetric, DocMetric> g,
                                    final Function<DocFilter, DocFilter> i) {
-            return i.apply(new SampleDocMetric(metric.transform(g, i), numerator, denominator, seed));
+            return i.apply(new SampleDocMetric(metric.transform(g, i), numerator, denominator, seed))
+                    .copyPosition(this);
         }
 
         @Override
@@ -1483,11 +1546,11 @@ public abstract class DocFilter extends AbstractPositional {
                                                 final int positive,
                                                 final int negative,
                                                 final GroupSupplier groupSupplier) {
-            final Map<String, List<String>> perDatasetPushes = Maps.newHashMapWithExpectedSize(scope.size());
+            final ImmutableMap.Builder<String, DocMetric> perDatasetMetrics = ImmutableMap.builder();
             for (final String dataset : scope.keySet()) {
-                perDatasetPushes.put(dataset, metric.getPushes(dataset));
+                perDatasetMetrics.put(dataset, metric);
             }
-            return Collections.singletonList(new SampleMetricAction(perDatasetPushes, (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.singletonList(new SampleMetricAction(perDatasetMetrics.build(), (double) numerator / denominator, seed, target, positive, negative));
         }
 
         @Override
@@ -1536,7 +1599,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Always extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Always()).copyPosition(this);
         }
 
         @Override
@@ -1578,7 +1641,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class Never extends DocFilter {
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new Never()).copyPosition(this);
         }
 
         @Override
@@ -1633,20 +1696,17 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new StringFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            DocFilter filter = null;
-            for (final String term : terms) {
-                if (filter == null) {
-                    filter = new FieldIs(field, Term.term(term));
-                } else {
-                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
-                }
-            }
-            return filter.asZeroOneMetric(dataset);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            final List<DocFilter> filters =
+                    terms.stream()
+                    .map(term -> new FieldIs(field, Term.term(term)))
+                    .collect(Collectors.toList());
+            final DocFilter or = Or.create(filters);
+            return or.asZeroOneMetric(dataset);
         }
 
         @Override
@@ -1708,20 +1768,17 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(new IntFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            DocFilter filter = null;
-            for (final long term : terms) {
-                if (filter == null) {
-                    filter = new FieldIs(field, Term.term(term));
-                } else {
-                    filter = new Or(filter, new FieldIs(field, Term.term(term)));
-                }
-            }
-            return filter.asZeroOneMetric(dataset);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            final List<DocFilter> filters =
+                    terms.stream()
+                    .map(term -> new FieldIs(field, Term.term(term)))
+                    .collect(Collectors.toList());
+            final DocFilter or = Or.create(filters);
+            return or.asZeroOneMetric(dataset);
         }
 
         @Override
@@ -1779,7 +1836,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(this);
+            return i.apply(this).copyPosition(this);
         }
 
         @Override

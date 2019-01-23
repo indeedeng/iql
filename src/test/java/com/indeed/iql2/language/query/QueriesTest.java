@@ -108,10 +108,8 @@ public class QueriesTest {
     }
 
     private List<String> extractHeadersHelper(final String q, final boolean useLegacy) {
-        final Query query = Queries.parseQuery(
-                q, useLegacy, AllData.DATASET.getDatasetsMetadata(), NO_OPTIONS, new DefaultWallClock()).query;
-        final JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
-        return Queries.extractHeaders(query, queryContext.start.getInputStream());
+        final Query query = Queries.parseQuery(q, useLegacy, AllData.DATASET.getDatasetsMetadata(), NO_OPTIONS, new DefaultWallClock()).query;
+        return Queries.extractHeaders(query);
     }
 
     @Test

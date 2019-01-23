@@ -14,18 +14,20 @@
 
 package com.indeed.iql2.execution.actions;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.util.logging.TracingTreeTimer;
 
 import java.util.List;
 import java.util.Map;
 
 public class SampleMetricAction implements Action {
-    public final Map<String, ? extends List<String>> perDatasetMetric;
+    public final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final double probability;
     public final String seed;
 
@@ -33,13 +35,13 @@ public class SampleMetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, ? extends List<String>> perDatasetMetric,
+    public SampleMetricAction(final Map<String, DocMetric> perDatasetMetric,
                               final double probability,
                               final String seed,
                               final int targetGroup,
                               final int positiveGroup,
                               final int negativeGroup) {
-        this.perDatasetMetric = perDatasetMetric;
+        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetric);
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;
@@ -55,13 +57,9 @@ public class SampleMetricAction implements Action {
                 if (!perDatasetMetric.containsKey(name)) {
                     return;
                 }
-                final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name));
+                final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name).getPushes(name));
 
-                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
-
-                if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                }
+                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("randomMetricRegroup");
                 session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);

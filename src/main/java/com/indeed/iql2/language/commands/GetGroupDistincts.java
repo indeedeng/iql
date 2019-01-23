@@ -17,6 +17,7 @@ package com.indeed.iql2.language.commands;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
+import com.indeed.iql2.execution.commands.GetGroupDistinctsWindowed;
 import com.indeed.iql2.execution.commands.GetSimpleGroupDistincts;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -59,11 +60,12 @@ public class GetGroupDistincts implements Command {
             final String dataset = Iterables.getOnlyElement(field.datasets());
             return new GetSimpleGroupDistincts(dataset, field.datasetFieldName(dataset));
         } else {
-            return new com.indeed.iql2.execution.commands.GetGroupDistincts(
-                    field,
-                    filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet)),
-                    windowSize
-            );
+            final Optional<com.indeed.iql2.execution.AggregateFilter> executionFilter = filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet));
+            if (windowSize > 1) {
+                return new GetGroupDistinctsWindowed(field, executionFilter, windowSize);
+            } else {
+                return new com.indeed.iql2.execution.commands.GetGroupDistincts(field, executionFilter);
+            }
         }
     }
 

@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Queries;
@@ -63,7 +64,7 @@ public class DocMetrics {
                 final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
                 final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }
@@ -294,7 +295,7 @@ public class DocMetrics {
                 final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), context);
                 final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), context);
                 if (ctx.plus != null) {
-                    accept(new DocMetric.Add(left, right));
+                    accept(DocMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
                     accept(new DocMetric.Subtract(left, right));
                 }
@@ -653,6 +654,9 @@ public class DocMetrics {
         public static HasTermQuote create(String s) {
             final String unquoted = ParserCommon.unquote(s);
             final int colon = unquoted.indexOf(':');
+            if (colon == -1) {
+                throw new IqlKnownException.ParseErrorException("Exprected format is : 'field:term', real string is : '" + s + "'");
+            }
             final String field = unquoted.substring(0, colon);
             final String term = unquoted.substring(colon + 1);
             return new HasTermQuote(field, term);

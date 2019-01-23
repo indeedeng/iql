@@ -14,24 +14,20 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AggregateFilters {
     public static AggregateFilter aggregateInHelper(final Iterable<Term> terms, final boolean negate) {
-        AggregateFilter filter = null;
+        final List<AggregateFilter> termFilters = new ArrayList<>();
         for (final Term term : terms) {
-            if (filter == null) {
-                filter = new AggregateFilter.TermIs(term);
-            } else {
-                filter = new AggregateFilter.Or(new AggregateFilter.TermIs(term), filter);
-            }
+            termFilters.add(new AggregateFilter.TermIs(term));
         }
-        if (filter == null) {
-            // TODO (optional): Make this new Always() and don't negate if (ctx.not != null).
-            // TODO cont:       Alternatively, add optimization pass for Not(Always) and Not(Never).
-            filter = new AggregateFilter.Never();
-        }
+        AggregateFilter filter = AggregateFilter.Or.create(termFilters);
         if (negate) {
             filter = new AggregateFilter.Not(filter);
         }
@@ -90,9 +86,9 @@ public class AggregateFilters {
             }
 
             public void enterAggregateAnd(JQLParser.AggregateAndContext ctx) {
-                accept(new AggregateFilter.And(
-                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context),
-                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context)));
+                final AggregateFilter left = parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context);
+                final AggregateFilter right = parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context);
+                accept(AggregateFilter.And.create(left, right));
             }
 
             public void enterAggregateMetricInequality(JQLParser.AggregateMetricInequalityContext ctx) {
@@ -135,10 +131,10 @@ public class AggregateFilters {
                 accept(new AggregateFilter.Not(parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context)));
             }
 
-            public void enterAggregateOr(JQLParser.AggregateOrContext ctx) {
-                accept(new AggregateFilter.Or(
-                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context),
-                        parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context)));
+            public void enterAggregateOr(final JQLParser.AggregateOrContext ctx) {
+                final AggregateFilter left = parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context);
+                final AggregateFilter right = parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context);
+                accept(AggregateFilter.Or.create(ImmutableList.of(left, right)));
             }
         });
 

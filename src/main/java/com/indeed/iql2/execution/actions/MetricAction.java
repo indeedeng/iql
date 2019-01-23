@@ -53,12 +53,7 @@ public class MetricAction implements Action {
                 if (scope.contains(name)) {
                     final List<String> pushes = Lists.newArrayList(perDatasetPushes.get(name));
 
-                    final int index = Session.pushStatsWithTimer(session, pushes, timer);
-
-                    if (index != 1) {
-                        throw new IllegalArgumentException(
-                                "Didn't end up with 1 stat after pushing in index named \"" + name + "\", pushes = [" + pushes + "]");
-                    }
+                    Session.pushStatsWithTimer(session, pushes, timer);
 
                     timer.push("metricFilter");
                     session.metricFilter(0, 1, 1, targetGroup, negativeGroup, positiveGroup);

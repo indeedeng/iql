@@ -13,17 +13,15 @@
  */
  package com.indeed.iql1.ez;
 
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 
 /**
  * @author jplaisance
  */
-public final class GroupKey<E extends Comparable> implements Iterable<E> {
+public final class GroupKey<E extends Comparable> {
     private static final Logger log = Logger.getLogger(GroupKey.class);
 
     private final @Nullable List<E> front;
@@ -42,19 +40,6 @@ public final class GroupKey<E extends Comparable> implements Iterable<E> {
     private GroupKey(final @Nullable List<E> front, final @Nullable List<E> back) {
         this.front = front;
         this.back = back;
-    }
-
-    public Iterator<E> iterator() {
-        return new AbstractIterator<E>() {
-            GroupKey<E> current = GroupKey.this;
-
-            protected E computeNext() {
-                if (current.isEmpty()) return endOfData();
-                final E ret = current.head();
-                current = current.tail();
-                return ret;
-            }
-        };
     }
 
     private static final class List<E> {

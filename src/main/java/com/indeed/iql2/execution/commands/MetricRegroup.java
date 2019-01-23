@@ -72,11 +72,7 @@ public class MetricRegroup implements Command {
                 }
                 final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
 
-                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
-
-                if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                }
+                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("metricRegroup");
                 session.metricRegroup(0, min, max, interval, excludeGutters && !withDefaultBucket);

@@ -69,11 +69,7 @@ public class RandomMetricRegroup implements Command {
                 }
                 final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
 
-                final int numStats = Session.pushStatsWithTimer(session, pushes, timer);
-
-                if (numStats != 1) {
-                    throw new IllegalStateException("Pushed more than one stat!: " + pushes);
-                }
+                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("randomMetricMultiRegroup");
                 session.randomMetricMultiRegroup(0, salt, 1, percentages, resultGroups);

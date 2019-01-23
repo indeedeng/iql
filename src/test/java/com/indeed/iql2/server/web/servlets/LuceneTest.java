@@ -26,23 +26,21 @@ import java.util.List;
  */
 
 public class LuceneTest extends BasicTest {
-    final Dataset dataset = AllData.DATASET;
-
     @Test
     public void testBasic() throws Exception {
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"oji:3\")", true);
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"tk:a\")", true);
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from organic yesterday today select lucene(\"tk:b\")", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"oji:3\")", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"tk:a\")", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "2")), "from organic yesterday today select lucene(\"tk:b\")", true);
     }
 
     @Test
     public void testCaseInsensitiveLuceneFilters() throws Exception {
         // IQL1 is case sensitive
-        QueryServletTestUtils.testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"OJI:3\")", true);
-        QueryServletTestUtils.testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"Oji:3\")", true);
-        QueryServletTestUtils.testAll(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"tk:a\")", true);
-        QueryServletTestUtils.testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "2")), "from organic yesterday today select lucene(\"tK:b\")", true);
-        QueryServletTestUtils.testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"Tk:c\")", true);
-        QueryServletTestUtils.testIQL2AndLegacy(dataset, ImmutableList.of(ImmutableList.of("", "143")), "from organic yesterday today select lucene(\"tk:d OR Tk:b\")", true);
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"OJI:3\")", true);
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "1")), "from organic yesterday today select lucene(\"Oji:3\")", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"tk:a\")", true);
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "2")), "from organic yesterday today select lucene(\"tK:b\")", true);
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "4")), "from organic yesterday today select lucene(\"Tk:c\")", true);
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "143")), "from organic yesterday today select lucene(\"tk:d OR Tk:b\")", true);
     }
 }

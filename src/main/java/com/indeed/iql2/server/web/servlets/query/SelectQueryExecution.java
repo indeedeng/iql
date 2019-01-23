@@ -19,6 +19,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -36,14 +37,16 @@ import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
@@ -106,6 +109,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -113,6 +117,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -123,6 +129,7 @@ public class SelectQueryExecution {
     // System configuration
     @Nullable
     private final File tmpDir;
+    private final AccessControl accessControl;
 
     // IQL2 server systems
     private final QueryCache queryCache;
@@ -173,7 +180,8 @@ public class SelectQueryExecution {
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
-            final ImmutableSet<String> defaultIQL2Options) {
+            final ImmutableSet<String> defaultIQL2Options,
+            final AccessControl accessControl) {
         this.outputStream = outputStream;
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
@@ -192,6 +200,7 @@ public class SelectQueryExecution {
         this.cacheUploadExecutorService = cacheUploadExecutorService;
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
+        this.accessControl = accessControl;
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -207,15 +216,24 @@ public class SelectQueryExecution {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
-        final Consumer<String> out;
-        if (isStream) {
-            out = s -> {
-                outputStream.print("data: ");
+        final Consumer<String> out = new Consumer<String>() {
+            int count = 1;
+
+            @Override
+            public void accept(final String s) {
+                if (isStream) {
+                    outputStream.print("data: ");
+                }
                 outputStream.println(s);
-            };
-        } else {
-            out = outputStream::println;
-        }
+
+                count += 1;
+                // Only check for errors every 10k rows because checkError
+                // also flushes, which we do not want to do every row.
+                if (((count % 10000) == 0) && outputStream.checkError()) {
+                    throw new IqlKnownException.ClientHungUpException("OutputStream in error state");
+                }
+            }
+        };
 
         final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
         ProgressCallback progressCallback;
@@ -279,6 +297,29 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
+        if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
+            timer.push("reparse query (paranoid mode)");
+            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            timer.pop();
+
+            timer.push("check query equals() and hashCode() (paranoid mode)");
+            if (!paranoidQuery.equals(parseResult.query)) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query equals() failure!");
+            }
+            if (paranoidQuery.hashCode() != parseResult.query.hashCode()) {
+                log.error("parseResult.query = " + parseResult.query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
+            }
+            timer.pop();
+
+            timer.push("extractHeaders (paranoid mode)");
+            Queries.extractHeaders(parseResult.query);
+            timer.pop();
+        }
+
         {
             queryInfo.statementType = "select";
 
@@ -290,6 +331,7 @@ public class SelectQueryExecution {
                 if (actualDataset == null) {
                     continue;
                 }
+                accessControl.checkAllowedDatasetAccess(clientInfo.username, actualDataset);
                 queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
@@ -359,16 +401,15 @@ public class SelectQueryExecution {
         private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
         private ParsedQueryExecution(
-                boolean isTopLevelQuery,
-                CharStream inputStream,
-                Consumer<String> out,
-                Set<String> warnings,
-                ProgressCallback progressCallback,
-                Query query,
-                @Nullable Integer groupLimit,
-                SelectQuery selectQuery,
-                StrictCloser strictCloser
-        ) {
+                final boolean isTopLevelQuery,
+                final CharStream inputStream,
+                final Consumer<String> out,
+                final Set<String> warnings,
+                final ProgressCallback progressCallback,
+                final Query query,
+                final @Nullable Integer groupLimit,
+                final SelectQuery selectQuery,
+                final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
             this.externalOutput = out;
@@ -454,7 +495,7 @@ public class SelectQueryExecution {
                                 } else if (result.getFirst() != null) {
                                     filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
                                 }
-                                final DocFilter.Ors orred = new DocFilter.Ors(filters);
+                                final DocFilter orred = DocFilter.Or.create(filters);
                                 final DocFilter maybeNegated;
                                 if (fieldInQuery.isNegated) {
                                     maybeNegated = new DocFilter.Not(orred);
@@ -494,7 +535,9 @@ public class SelectQueryExecution {
             }
 
             final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
-            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(computeCacheKey.datasetToChosenShards);
+            final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
+            remapShardsIfNecessary(mutableDatasetToChosenShards, query.options);
+            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
             if (isTopLevelQuery) {
@@ -921,6 +964,74 @@ public class SelectQueryExecution {
             sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
+    }
+
+    private static void remapShardsIfNecessary(final Map<String, List<Shard>> datasetToChosenShards, final List<String> queryOptions) {
+        if (QueryOptions.Experimental.hasHosts(queryOptions)) {
+            final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(queryOptions);
+            final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(queryOptions);
+
+            for (final Map.Entry<String, List<Shard>> entry : datasetToChosenShards.entrySet()) {
+                List<Shard> remappedShards;
+                switch (method) {
+                    case NUMDOC_MAPPING:
+                        remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
+                        break;
+
+                    case MODULO_MAPPING:
+                    default:
+                        remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
+                        break;
+                }
+                entry.setValue(remappedShards);
+            }
+        }
+    }
+
+    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
+        Preconditions.checkArgument(!hosts.isEmpty());
+
+        return shards.stream()
+                .map(shard -> {
+                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
+                    return shard.withHost(hosts.get(hostIndex));
+                })
+                .collect(Collectors.toList());
+    }
+
+    // It's a NP-complete K-partition problem: https://en.wikipedia.org/wiki/Partition_problem
+    // and we take the greedy approximate algorithm https://en.wikipedia.org/wiki/Partition_problem#The_greedy_algorithm
+    private static List<Shard> remapShardsByNumDocs(final List<Shard> shards, final List<Host> hosts) {
+        Preconditions.checkArgument(!hosts.isEmpty());
+
+        // sort numdocs in descending order and keep pair<NumDoc, ShardIndex> in the list
+        final List<Pair<Integer, Integer>> shardNumDocs = IntStream.range(0, shards.size())
+                .mapToObj(i -> Pair.of(shards.get(i).getNumDocs(), i))
+                .sorted((s1, s2) -> s2.getFirst().compareTo(s1.getFirst()))
+                .collect(Collectors.toList());
+
+        // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
+        final PriorityQueue<Pair<Long, List<Integer>>> docSumQueue = new PriorityQueue<>(
+                hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
+        hosts.stream().forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
+        shardNumDocs.stream().forEach(
+                numDocPair -> {
+                    final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+                    poll.getSecond().add(numDocPair.getSecond());
+                    docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
+                }
+        );
+
+        final List<Shard> remappedShards = Lists.newArrayListWithCapacity(shards.size());
+        int hostIndex = 0;
+        while (!docSumQueue.isEmpty()) {
+            final Pair<Long, List<Integer>> poll = docSumQueue.poll();
+            for (final int shardIndex : poll.getSecond()) {
+                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
+            }
+            hostIndex++;
+        }
+        return remappedShards;
     }
 
     public static Optional<Long> newestStaticShard(Multimap<String, List<Shard>> datasetToShards) {

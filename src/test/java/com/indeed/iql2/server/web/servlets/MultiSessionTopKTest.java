@@ -20,7 +20,6 @@ public class MultiSessionTopKTest extends BasicTest {
         expected.add(ImmutableList.of("d", "141", "141"));
         expected.add(ImmutableList.of("a", "4", "4"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET,
                 expected,
                 "from organic yesterday today as FOO, organic group by tk[2 by FOO.count()] select FOO.count(), organic.count()",
                 true

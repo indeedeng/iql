@@ -1,11 +1,14 @@
 package com.indeed.iql2.execution;
 
+import com.indeed.imhotep.AsynchronousRemoteImhotepMultiSession;
+import com.indeed.imhotep.AsynchronousRemoteImhotepSession;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
@@ -27,14 +30,18 @@ public class ImhotepSessionHolder implements Closeable {
      * NOT the Imhotep dataset name. The IQL dataset name (alias or whatever).
      */
     private final String datasetName;
-    private final RemoteImhotepMultiSession session;
+    private final ImhotepSession session;
 
     public ImhotepSessionHolder(
             final String datasetName,
-            final RemoteImhotepMultiSession session
+            final ImhotepSession session
     ) {
+        if (!(session instanceof RemoteImhotepMultiSession) && !(session instanceof AsynchronousRemoteImhotepMultiSession)) {
+            throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
+        }
         this.datasetName = datasetName;
         this.session = session;
+
     }
 
     public String getDatasetName() {
@@ -224,13 +231,24 @@ public class ImhotepSessionHolder implements Closeable {
     }
 
     public long getTempFilesBytesWritten() {
-        return session.getTempFilesBytesWritten();
+        if (session instanceof RemoteImhotepMultiSession) {
+            return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
+        } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
+            return ((AsynchronousRemoteImhotepMultiSession) session).getTempFilesBytesWritten();
+        }
+        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
     }
 
     public int regroupWithSender(
             final RequestTools.GroupMultiRemapRuleSender sender,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
-        return session.regroupWithRuleSender(sender, errorOnCollisions);
+        if (session instanceof RemoteImhotepMultiSession) {
+            return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+        } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
+            ((AsynchronousRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+            return -999;
+        }
+        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
     }
 
     public AggregateStatTree aggregateStat(final int index) {

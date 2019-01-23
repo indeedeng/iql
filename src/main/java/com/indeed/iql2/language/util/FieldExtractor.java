@@ -28,6 +28,7 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -201,22 +202,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.And and) throws RuntimeException {
-				return union(getDatasetFields(and.f1), getDatasetFields(and.f2));
+				return getDatasetFields(and);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Or or) throws RuntimeException {
-				return union(getDatasetFields(or.f1), getDatasetFields(or.f2));
-
-			}
-
-			@Override
-			public Set<DatasetField> visit(final DocFilter.Ors ors) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				for (final DocFilter filter : ors.filters) {
-					set.addAll(getDatasetFields(filter));
-				}
-				return set;
+				return getDatasetFields(or);
 			}
 
 			@Override
@@ -314,11 +305,6 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.PushableDocMetric pushableDocMetric) throws RuntimeException {
-				return getDatasetFields(pushableDocMetric.metric);
-			}
-
-			@Override
 			public Set<DatasetField> visit(final DocMetric.PerDatasetDocMetric perDatasetDocMetric) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
  				for (final DocMetric metric : perDatasetDocMetric.datasetToMetric.values()) {
@@ -364,7 +350,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Add add) throws RuntimeException {
-				return getFieldsForBinop(add);
+				return getDatasetFieldsForMetrics(add.metrics);
 			}
 
 			@Override
@@ -530,8 +516,8 @@ public class FieldExtractor {
 			}
 		});
 	};
-	
-	
+
+
 	@Nonnull
 	public static Set<DatasetField> getDatasetFields(final GroupBy groupBy) {
 		
@@ -636,7 +622,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Add add) throws RuntimeException {
-				return getFieldsForBinop(add);
+				return getDatasetFieldsForAggregateMetrics(add.metrics);
 			}
 
 			@Override
@@ -786,20 +772,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Min min) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				for (final AggregateMetric metric : min.metrics) {
-					set.addAll(getDatasetFields(metric));
-				}
-				return set;
+				return getDatasetFieldsForAggregateMetrics(min.metrics);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Max max) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				for (final AggregateMetric metric : max.metrics) {
-					set.addAll(getDatasetFields(metric));
-				}
-				return set;
+				return getDatasetFieldsForAggregateMetrics(max.metrics);
 			}
 
 			@Override
@@ -807,8 +785,8 @@ public class FieldExtractor {
 				return getDatasetFields(divideByCount.metric);
 			}
 		});
-	} 
-	
+	}
+
 	@Nonnull
 	public static Set<DatasetField> getDatasetFields(final AggregateFilter aggregateFilter) {
 		return aggregateFilter.visit(new AggregateFilter.Visitor<Set<DatasetField>, RuntimeException>() {
@@ -855,12 +833,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateFilter.And and) throws RuntimeException {
-				return union(getDatasetFields(and.f1), getDatasetFields(and.f2));
+				return getDatasetFields(and);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final AggregateFilter.Or or) throws RuntimeException {
-				return union(getDatasetFields(or.f1), getDatasetFields(or.f2));
+				return getDatasetFields(or);
 			}
 
 			@Override
@@ -888,5 +866,41 @@ public class FieldExtractor {
 				return ImmutableSet.of();
 			}
 		});
+	}
+
+	@Nonnull
+	private static Set<DatasetField> getDatasetFields(final DocFilter.Multiple multiple) {
+		final Set<DatasetField> set = Sets.newHashSet();
+		for (final DocFilter filter : multiple.filters) {
+			set.addAll(getDatasetFields(filter));
+		}
+		return set;
+	}
+
+	@Nonnull
+	private static Set<DatasetField> getDatasetFieldsForMetrics(final Collection<DocMetric> docMetrics) {
+		final Set<DatasetField> set = Sets.newHashSet();
+		for (final DocMetric metric : docMetrics) {
+			set.addAll(getDatasetFields(metric));
+		}
+		return set;
+	}
+
+	@Nonnull
+	private static Set<DatasetField> getDatasetFieldsForAggregateMetrics(final Collection<AggregateMetric> metrics) {
+		final Set<DatasetField> set = Sets.newHashSet();
+		for (final AggregateMetric metric : metrics) {
+			set.addAll(getDatasetFields(metric));
+		}
+		return set;
+	}
+
+	@Nonnull
+	private static Set<DatasetField> getDatasetFields(final AggregateFilter.Multiple multiple) {
+		final Set<DatasetField> set = Sets.newHashSet();
+		for (final AggregateFilter filter : multiple.filters) {
+			set.addAll(getDatasetFields(filter));
+		}
+		return set;
 	}
 }

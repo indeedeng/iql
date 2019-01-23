@@ -18,9 +18,8 @@ import static org.junit.Assert.fail;
 public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testUnknownDatasetRejected() {
-        final ImhotepClient client = AllData.DATASET.getNormalClient();
         try {
-            runIQL2(client, "from foobarbaz123 yesterday today");
+            runIQL2("from foobarbaz123 yesterday today");
             fail("Unknown dataset not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("UnknownDatasetException"));
@@ -29,12 +28,11 @@ public class IdentifierResolutionTest extends BasicTest {
 
     @Test
     public void testUnknownFieldRejected() throws Exception {
-        final ImhotepClient client = AllData.DATASET.getNormalClient();
         // Just ensure organic exists, as setup for the test to have meaning.
-        runIQL2(client, "from organic yesterday today");
+        runIQL2("from organic yesterday today");
 
         try {
-            runIQL2(client, "from organic yesterday today select myImaginaryField");
+            runIQL2("from organic yesterday today select myImaginaryField");
             fail("Unknown field not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("UnknownFieldException"));
@@ -43,12 +41,11 @@ public class IdentifierResolutionTest extends BasicTest {
 
     @Test
     public void metricAsFieldRejected() throws Exception {
-        final ImhotepClient client = AllData.DATASET.getNormalClient();
         // Just to ensure metric aliases work, as a setup for the test to have meaning.
-        runIQL2(client, "from organic yesterday today select oji + 2 as foo, foo + 5");
+        runIQL2("from organic yesterday today select oji + 2 as foo, foo + 5");
 
         try {
-            runIQL2(client, "from organic yesterday today select oji + 2 as foo, distinct(foo)");
+            runIQL2("from organic yesterday today select oji + 2 as foo, distinct(foo)");
             fail("Metric used in FTGS field not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("Metric alias cannot be used as a field"));
@@ -69,7 +66,6 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testCaseInsensitiveDatasetResolution() throws Exception {
         testIQL2(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "151")),
                 "from ORGaNiC yesterday today"
         );
@@ -78,7 +74,6 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testCaseInsensitiveFieldAliasResolution() throws Exception {
         testIQL2(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "2653")),
                 "from organic yesterday today aliasing (oJi as foo) select FOO",
                 true
@@ -88,7 +83,6 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testCaseInsensitiveMetricAliasResolution() throws Exception {
         testIQL2(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "2656", "2656")),
                 "from organic yesterday today select oJi+3 as foo, FOO",
                 true
@@ -98,7 +92,6 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testCaseInsensitiveFieldResolution() throws Exception {
         testIQL2(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "2653")),
                 "from organic yesterday today select OJi",
                 true
@@ -107,23 +100,22 @@ public class IdentifierResolutionTest extends BasicTest {
 
     @Test
     public void testAmbiguousDatasetRejected() {
-        final ImhotepClient client = AllData.DATASET.getNormalClient();
         try {
-            runIQL2(client, "from EXACTCASE yesterday today");
+            runIQL2("from EXACTCASE yesterday today");
             fail("Ambiguous dataset not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("UnknownDatasetException"));
         }
 
         try {
-            runIQL2(client, "from organic yesterday today as oOo1, organic as OOO1 select ooo1.count()");
+            runIQL2("from organic yesterday today as oOo1, organic as OOO1 select ooo1.count()");
             fail("Ambiguous dataset not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("UnknownDatasetException"));
         }
 
         try {
-            runIQL2(client, "from organic yesterday today as oOo1, organic as OOO1 select ooo1.count()");
+            runIQL2("from organic yesterday today as oOo1, organic as OOO1 select ooo1.count()");
             fail("Ambiguous dataset not rejected");
         } catch (final Exception e) {
             assertTrue(e.getMessage().contains("UnknownDatasetException"));
@@ -133,7 +125,6 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testExactCaseDatasetMatching() throws Exception {
         testIQL2(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "1", "100")),
                 "from ExactCase yesterday today as dataset1, exactCase as DATASET1 select dataset1.i1, dataset1.I1"
         );
@@ -142,43 +133,38 @@ public class IdentifierResolutionTest extends BasicTest {
     @Test
     public void testExactCaseMatching() throws Exception {
         testAll(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "1", "100")),
                 "from ExactCase yesterday today select i1, I1"
         );
         testAll(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("1", "100", "1")),
                 "from ExactCase yesterday today group by i1, I1",
                 true
         );
         testAll(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "1", "1")),
                 "from ExactCase yesterday today select distinct(i1), distinct(I1)",
                 true
         );
 
         testAll(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("100", "One Hundred", "1")),
                 "from ExactCase yesterday today group by f1, F1",
                 true
         );
         testAll(
-                AllData.DATASET,
                 ImmutableList.of(ImmutableList.of("", "1", "1")),
                 "from ExactCase yesterday today select distinct(f1), distinct(F1)",
                 true
         );
 
 
-        testAll(AllData.DATASET,
+        testAll(
                 ImmutableList.of(ImmutableList.of("s1 term", "S1 TERM", "1")),
                 "from exactCase yesterday today group by s1, S1",
                 true
         );
-        testAll(AllData.DATASET,
+        testAll(
                 ImmutableList.of(ImmutableList.of("", "1", "1")),
                 "from exactCase yesterday today select distinct(s1), distinct(S1)",
                 true

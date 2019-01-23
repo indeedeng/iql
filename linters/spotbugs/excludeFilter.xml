@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE FindBugsFilter>
+<!-- Exclude filter -->
+<FindBugsFilter xmlns="http://findbugs.sourceforge.net/filter/3.0.0"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="http://findbugs.sourceforge.net/filter/3.0.0 https://raw.githubusercontent.com/findbugsproject/findbugs/master/findbugs/etc/findbugsfilter.xsd">
+
+    <!--
+    Instead of adding matches to exclude here, consider adding jsr305 jar and use @SuppressFBWarnings("...")
+    -->
+
+    <Match>
+        <Or>
+            <!-- Comment just provided to facilitate adding exclude rules -->
+            <!--<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>-->
+            <!--<Bug pattern="DM_DEFAULT_ENCODING"/>-->
+            <!--<Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE"/>-->
+            <!--<Bug pattern="DM_CONVERT_CASE"/>-->
+            <!--<Bug pattern="NM_CONFUSING"/>-->
+        </Or>
+    </Match>
+
+    <Match>
+        <!-- E.g. For antlr generated parser -->
+        <Or>
+            <Package name="~com\.indeed\.iql2\.sqltoiql\.antlr.*"/>
+            <Class name="~com\.indeed\.iql2\.language\.JQL.*"/>
+        </Or>
+    </Match>
+
+
+    <!-- Exclude certain issues in JUnit tests -->
+    <Match>
+        <Or>
+            <!-- Tests need not be strict about null references, they can just fail -->
+            <Bug pattern="NP_NONNULL_PARAM_VIOLATION"/>
+            <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+            <Bug pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS"/>
+            <Bug pattern="NP_NONNULL_RETURN_VIOLATION"/>
+            <Bug pattern="NP_NULL_PARAM_DEREF_NONVIRTUAL"/>
+            <!-- When mocking commonly return values get ignored -->
+            <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+        </Or>
+        <Class name="~.*(Test.*|.*Test)\$?[0-9]*" />
+    </Match>
+
+</FindBugsFilter>

@@ -133,8 +133,7 @@ public class SimpleIterate implements Command {
         }
         session.timer.pop();
 
-        // TODO: Add a feature flag
-        if (session.options.contains(QueryOptions.Experimental.USE_MULTI_FTGS) && !requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
+        if (!requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
             evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
             return;
         }

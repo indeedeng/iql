@@ -56,7 +56,7 @@ public class ImhotepMetadataCache {
     private final FieldFrequencyCache fieldFrequencyCache;
     private final boolean caseInsensitiveNames;
 
-    public ImhotepMetadataCache(ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache, boolean caseInsensitiveNames) {
+    public ImhotepMetadataCache(@Nullable ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache, boolean caseInsensitiveNames) {
         metadataClient = imsClient;
         imhotepClient = client;
         this.fieldFrequencyCache = fieldFrequencyCache;

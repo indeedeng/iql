@@ -34,6 +34,7 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.Optionals;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -156,16 +157,13 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
-            AggregateMetric metric = null;
+        public Precomputation commands(final Set<String> scope) {
+            final List<AggregateMetric> metrics = new ArrayList<>(scope.size());
             for (final String dataset : scope) {
-                final AggregateMetric aMetric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
-                if (metric == null) {
-                    metric = aMetric;
-                } else {
-                    metric = new AggregateMetric.Add(aMetric, metric);
-                }
+                final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
+                metrics.add(metric);
             }
+            final AggregateMetric metric = AggregateMetric.Add.create(metrics);
             return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false));
         }
 

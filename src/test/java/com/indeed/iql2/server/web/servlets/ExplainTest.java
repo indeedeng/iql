@@ -23,12 +23,12 @@ public class ExplainTest extends BasicTest {
     @Test
     public void testExplain() throws Exception {
         // IQL1 does not support 'explain'
-        runIQL2(AllData.DATASET.getNormalClient(), "explain from organic yesterday today where tk=\"a\" select count()");
-        runIQL2(AllData.DATASET.getNormalClient(), "explain from organic yesterday today group by tk[5], oji, ojc select count()");
+        runIQL2("explain from organic yesterday today where tk=\"a\" select count()");
+        runIQL2("explain from organic yesterday today group by tk[5], oji, ojc select count()");
     }
 
     @Test
     public void testSubqueryExplain() throws Exception {
-        runIQL2(AllData.DATASET.getNormalClient(), "explain from organic yesterday today as o1 where o1.tk in (from same group by tk) and oji in (from same where oji=1 group by ojc) group by tk select count()");
+        runIQL2("explain from organic yesterday today as o1 where o1.tk in (from same group by tk) and oji in (from same where oji=1 group by ojc) group by tk select count()");
     }
 }

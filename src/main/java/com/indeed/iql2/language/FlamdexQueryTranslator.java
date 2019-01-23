@@ -19,6 +19,7 @@ import com.indeed.flamdex.query.Term;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FlamdexQueryTranslator {
     public static DocFilter translate(Query query, final ScopedFieldResolver fieldResolver) {
@@ -31,23 +32,20 @@ public class FlamdexQueryTranslator {
                 if (operands.isEmpty()) {
                     return new DocFilter.Always();
                 }
-                DocFilter filter = translate(operands.get(0), fieldResolver);
+                final List<DocFilter> translated =
+                        operands.stream()
+                        .map(operand -> translate(operand, fieldResolver))
+                        .collect(Collectors.toList());
                 switch (query.getOperator()) {
                     case AND:
-                        for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.And(filter, translate(operands.get(i), fieldResolver));
-                        }
-                        return filter;
+                        return DocFilter.And.create(translated);
                     case OR:
-                        for (int i = 1; i < operands.size(); i++) {
-                            filter = new DocFilter.Or(filter, translate(operands.get(i), fieldResolver));
-                        }
-                        return filter;
+                        return DocFilter.Or.create(translated);
                     case NOT:
                         if (operands.size() > 1) {
                             throw new IllegalArgumentException("Found NOT operator with more than one argument?: [" + query + "]");
                         }
-                        return new DocFilter.Not(filter);
+                        return new DocFilter.Not(translated.get(0));
                 }
             case RANGE:
                 final Term startTerm = query.getStartTerm();

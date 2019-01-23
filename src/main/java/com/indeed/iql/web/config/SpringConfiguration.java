@@ -300,8 +300,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         final List<String> bannedUserList = (List<String>)env.getProperty("banned.users", List.class, Collections.emptyList());
         @SuppressWarnings("unchecked")
         final List<String> multiuserClients = (List<String>)env.getProperty("multiuser.clients", List.class, Collections.emptyList());
+        @SuppressWarnings("unchecked")
+        final Set<String> privilegedDatasets = (Set<String>)env.getProperty("privileged.datasets", Set.class, Collections.emptySet());
+        @SuppressWarnings("unchecked")
+        final Set<String> privilegedDatasetsUsers = (Set<String>)env.getProperty("privileged.datasets.users", Set.class, Collections.emptySet());
 
-        return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits());
+        return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits(), privilegedDatasets, privilegedDatasetsUsers);
     }
 
     private Limits getDefaultLimits() {

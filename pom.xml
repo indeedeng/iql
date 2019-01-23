@@ -14,6 +14,10 @@
     <name>IQL Server</name>
     <url>http://github.com/indeedeng</url>
 
+    <prerequisites>
+        <maven>3.3.9</maven>
+    </prerequisites>
+
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -35,6 +39,21 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <source>${jdk.version}</source>
+                    <target>${jdk.version}</target>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgument>-Xlint:all</compilerArgument>
+                    <compilerArgument>-Xlint:-processing</compilerArgument>
+                    <!-- seems it must be set to false to actually be incremental until MCOMPILER-209 is fixed -->
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
@@ -65,8 +84,145 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.build.testOutputDirectory}/config/log4j.xml</log4j.configuration>
                     </systemPropertyVariables>
-                    <argLine>-Xmx1024m</argLine>
+                    <argLine>${argLine} -Xmx1024m</argLine>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <goals>
+                            <goal>set</goal>
+                        </goals>
+                        <configuration>
+                            <generateBackupPoms>false</generateBackupPoms>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- Automatically creates target/jacoco.exec when running mvn test.
+                     To create html report, run mvn jacoco:report
+                -->
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <output>file</output>
+                    <append>true</append>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>jacoco-initialize</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-site</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- Run with mvn verify or mvn checkstyle:check. Skip with -Dcheckstyle.skip=true-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>8.15</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <!-- The checkstyle.xml defines the rules to check -->
+                    <configLocation>${maven.multiModuleProjectDirectory}/linters/checkstyle/checkstyle.xml</configLocation>
+                    <!-- Set to true to break the build on warnings -->
+                    <failOnViolation>false</failOnViolation>
+                    <!-- Exclude based on relative path *inside* any source folders like target/generated-sources/antrl4 -->
+                    <excludes>**/sqltoiql/antlr/**/*.java,**/iql2/language/**/*.java</excludes>
+                    <propertyExpansion>basedir=${build.config.location}</propertyExpansion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>verify</phase>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <consoleOutput>true</consoleOutput>
+                        </configuration>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- Run with mvn verify or mvn pmd:check. Skip with -Dcheckstyle.skip=true-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                            <!--
+                            FOR CPD (Copy Paste Detector),
+                            need to find out how to suppress false positives
+                            -->
+                            <!--<goal>cpd-check</goal>-->
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- Set to true to break the build on warnings -->
+                    <failOnViolation>false</failOnViolation>
+                    <targetJdk>1.8</targetJdk>
+                    <excludeRoots>
+                        <excludeRoot>target/generated-sources/antlr4</excludeRoot>
+                    </excludeRoots>
+                    <excludes>
+                        <!--<exclude></exclude>-->
+                    </excludes>
+                    <printFailingErrors>true</printFailingErrors>
+                    <rulesets>
+                        <ruleset>${maven.multiModuleProjectDirectory}/linters/pmd/pmdRuleSet.xml</ruleset>
+                    </rulesets>
+                    <linkXRef>false</linkXRef>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- Run with mvn verify or mvn spotbugs:check. Skip with -Dspotbugs.skip=true-->
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Set to true to break the build on warnings  -->
+                    <failOnError>false</failOnError>
+                    <excludeFilterFile>${maven.multiModuleProjectDirectory}/linters/spotbugs/excludeFilter.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>failing-on-high</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+                    <dependency>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs</artifactId>
+                        <version>3.1.9</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
@@ -457,12 +613,13 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
         <autoVersionSubmodules>true</autoVersionSubmodules>
+        <jdk.version>1.8</jdk.version>
 
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
-
-        <imhotep.version>3.1.152</imhotep.version>
+        <imhotep.version>3.1.154</imhotep.version>
         <ims.version>4.0.11</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
@@ -473,6 +630,8 @@
         <hadoop.version>2.6.0-cdh5.8.2</hadoop.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>
         <opentracing.version>0.30.0</opentracing.version>
+        <!-- required for checkstyle. maven.multiModuleProjectDirectory exists even if you IDE does not know it. -->
+        <build.config.location>${maven.multiModuleProjectDirectory}/linters/checkstyle</build.config.location>
     </properties>
 
 </project>

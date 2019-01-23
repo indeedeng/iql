@@ -144,9 +144,9 @@ public class ExtractPrecomputed {
                 }
             }
         }
-        if (!query.selects.isEmpty()) {
-            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
-        }
+        // IQL-606: it doesn't push "count()" in subqueries, add a GetGroupStats manually to ensure
+        // the last command translated is SimpleIterate or GetGroupStats
+        resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
         return resultSteps;
     }
 
@@ -231,7 +231,6 @@ public class ExtractPrecomputed {
                 final AggregateMetric.DocStats docStats = (AggregateMetric.DocStats) input;
                 final DocMetric docMetric = docStats.docMetric;
                 if (startDepth == depth) {
-                    AggregateMetric aggregateMetric = null;
                     final Set<String> pushScope;
                     final Set<String> docMetricQualifications = ExtractQualifieds.extractDocMetricDatasets(docMetric);
                     if (docMetricQualifications.isEmpty()) {
@@ -241,15 +240,12 @@ public class ExtractPrecomputed {
                     } else {
                         throw new IqlKnownException.ParseErrorException("Doc Metric cannot have multiple different qualifications! metric = [" + docMetric + "], qualifications = [" + docMetricQualifications + "]");
                     }
+                    final List<AggregateMetric> metrics = new ArrayList<>(pushScope.size());
                     for (final String dataset : pushScope) {
-                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
-                        if (aggregateMetric == null) {
-                            aggregateMetric = metric;
-                        } else {
-                            aggregateMetric = new AggregateMetric.Add(metric, aggregateMetric);
-                        }
+                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
+                        metrics.add(metric);
                     }
-                    return aggregateMetric;
+                    return AggregateMetric.Add.create(metrics).copyPosition(input);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -303,17 +299,15 @@ public class ExtractPrecomputed {
                 if (datasets.isEmpty()) {
                     throw new IllegalArgumentException("Averaging over no documents is undefined");
                 }
-                AggregateMetric countMetric = null;
-                for (String dataset : datasets) {
+                final List<AggregateMetric> metrics = new ArrayList<>(datasets.size());
+                for (final String dataset : datasets) {
                     final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
-                            dataset, new DocMetric.PushableDocMetric(new DocMetric.Qualified(dataset, new DocMetric.Count())));
-                    if (countMetric == null) {
-                        countMetric = metric;
-                    } else {
-                        countMetric = new AggregateMetric.Add(countMetric, metric);
-                    }
+                            dataset, new DocMetric.Qualified(dataset, new DocMetric.Count())
+                    );
+                    metrics.add(metric);
                 }
-                return new AggregateMetric.Divide(docMetric, countMetric);
+                final AggregateMetric countMetric = AggregateMetric.Add.create(metrics);
+                return new AggregateMetric.Divide(docMetric, countMetric).copyPosition(input);
             } else {
                 return input.traverse1(this);
             }

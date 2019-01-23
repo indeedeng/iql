@@ -100,7 +100,7 @@ public class Dataset extends AbstractPositional {
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
                 filters.add(DocFilters.parseDocFilter(ctx, context));
             }
-            initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
+            initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilter.And.create(filters)));
         } else {
             initializerFilter = Optional.absent();
         }
@@ -151,7 +151,7 @@ public class Dataset extends AbstractPositional {
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
                         filters.add(DocFilters.parseDocFilter(filterCtx, datasetContext));
                     }
-                    initializerFilter = Optional.<DocFilter>of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilters.and(filters)));
+                    initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilter.And.create(filters)));
                 } else {
                     initializerFilter = Optional.absent();
                 }

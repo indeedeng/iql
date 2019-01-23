@@ -36,13 +36,18 @@ public class AccessControl {
     final Set<String> multiuserClients;
     @Nullable private final IQLDB iqldb;
     private final Limits defaultLimits;
+    private final Set<String> privilegedDatasets;
+    private final Set<String> privilegedDatasetsUsers;
     private Map<String, Limits> identityToLimits = Maps.newHashMap();
 
-    public AccessControl(Collection<String> bannedUsers, Collection<String> multiuserClients, @Nullable IQLDB iqldb, Limits defaultLimits) {
+    public AccessControl(Collection<String> bannedUsers, Collection<String> multiuserClients, @Nullable IQLDB iqldb, Limits defaultLimits,
+                         Set<String> privilegedDatasets, Set<String> privilegedDatasetsUsers) {
         this.bannedUsers = Sets.newHashSet(bannedUsers);
         this.multiuserClients = Sets.newHashSet(multiuserClients);
         this.iqldb = iqldb;
         this.defaultLimits = defaultLimits;
+        this.privilegedDatasets = Sets.newHashSet(privilegedDatasets);
+        this.privilegedDatasetsUsers = Sets.newHashSet(privilegedDatasetsUsers);
         updateLimits();
     }
 
@@ -84,9 +89,19 @@ public class AccessControl {
     }
 
 
-    public void checkAllowedAccess(String username, String client) {
+    public void checkAllowedIQLAccess(String username, String client) {
         if(bannedUsers.contains(username) ||
                 !getLimitsForIdentity(username, client).satisfiesConcurrentQueriesLimit(1)) {
+            throw new IqlKnownException.AccessDeniedException("Access denied");
+        }
+    }
+
+    public boolean userCanAccessDataset(String username, String datasetName) {
+        return !privilegedDatasets.contains(datasetName) || privilegedDatasetsUsers.contains(username);
+    }
+
+    public void checkAllowedDatasetAccess(String username, String datasetName) {
+        if (!userCanAccessDataset(username, datasetName)) {
             throw new IqlKnownException.AccessDeniedException("Access denied");
         }
     }

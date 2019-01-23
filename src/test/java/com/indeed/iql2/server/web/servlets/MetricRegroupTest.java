@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[10, 11)", "2", "20"));
         expected.add(ImmutableList.of("< 1", "2", "0"));
         expected.add(ImmutableList.of(">= 11", "1", "15"));
-        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) select count(), ojc");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) select count(), ojc");
     }
 
     @Test
@@ -57,7 +57,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[10, 11)", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
         // IQL1 does not support regroup with default
-        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc");
+        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc");
     }
 
     @Test
@@ -70,7 +70,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[9, 11)", "2", "20"));
         expected.add(ImmutableList.of("< 1", "2", "0"));
         expected.add(ImmutableList.of(">= 11", "1", "15"));
-        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) select count(), ojc");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) select count(), ojc");
     }
 
     @Test
@@ -84,7 +84,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[9, 11)", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
         // IQL1 does not support regroup with default
-        QueryServletTestUtils.testIQL2AndLegacy(AllData.DATASET, expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
+        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
     }
 
     @Test
@@ -92,7 +92,7 @@ public class MetricRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("0", "3", "15"));
         expected.add(ImmutableList.of("1", "148", "291"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by between(ojc, 1, 11) select count(), ojc");
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by between(ojc, 1, 11) select count(), ojc");
     }
 
     @Test
@@ -100,14 +100,44 @@ public class MetricRegroupTest extends BasicTest {
         final List<List<String>> expected = ImmutableList.of(
                 ImmutableList.of("0", "15"),
                 ImmutableList.of("1", "136"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from organic yesterday today group by lucene(\"oji:[1 TO 10]\") select count()", true);
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by lucene(\"oji:[1 TO 10]\") select count()", true);
     }
 
     @Test
     public void invalidBucketSize() {
         final Predicate<String> containsBucketErrorMessage = e -> (e.contains("Bucket range should be a multiple of the interval"));
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", containsBucketErrorMessage);
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", containsBucketErrorMessage);
-        QueryServletTestUtils.expectExceptionAll(AllData.DATASET, "FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", containsBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", containsBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", containsBucketErrorMessage);
+        QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", containsBucketErrorMessage);
+    }
+
+    @Test
+    public void testRegroupTopTerms() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("1", "84"),
+                ImmutableList.of("3", "60"));
+        QueryServletTestUtils.testIQL1(
+                expected,
+                "from organic yesterday today group by topterms(ojc, 2, count()) select count()", true);
+        QueryServletTestUtils.testIQL1(
+                QueryServletTestUtils.addConstantColumn(1, "1", expected),
+                "from organic yesterday today group by topterms(ojc, 2, count()), allbit select count()", true);
+    }
+
+    @Test
+    public void testRegroupByDiff() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("d", "1212", "1473", "261"),
+                ImmutableList.of("c", "1009", "1030", "21"),
+                ImmutableList.of("b", "93", "110", "17"),
+                ImmutableList.of("a", "33", "40", "7"));
+        // supported only in IQL1
+        QueryServletTestUtils.testOriginalIQL1(expected, "from organic yesterday today group by diff(tk, oji, ojc, 10) select count()", true);
+    }
+
+    @Test
+    public void testInvalidMetric() {
+        final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
+        QueryServletTestUtils.expectException("FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
     }
 }

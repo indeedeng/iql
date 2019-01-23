@@ -15,32 +15,37 @@
 package com.indeed.iql2.language.optimizations;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
 public class ConstantFolding {
+    public static final Function<AggregateMetric, AggregateMetric> AGG_METRIC_OPTIMIZER = new Function<AggregateMetric, AggregateMetric>() {
+        @Override
+        public AggregateMetric apply(final AggregateMetric input) {
+            if (input instanceof AggregateMetric.Negate) {
+                final AggregateMetric.Negate negate = (AggregateMetric.Negate) input;
+                if (isConstant(negate.m1)) {
+                    return new AggregateMetric.Constant(-getConstant(negate.m1));
+                }
+            }
+
+            // TODO: Fill in some more.
+
+            return input;
+        }
+    };
+
     public static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
         @Override
         public DocMetric apply(DocMetric input) {
-            if (input instanceof DocMetric.Add) {
-                // Add (Constant x) (Constant y) = Constant (x + y)
-                // Add (Constant 0) x = x
-                // Add x (Constant 0) = x
-                final DocMetric.Add add = (DocMetric.Add) input;
-                final Pair<DocMetric, DocMetric> normalized = normalize(add.m1, add.m2);
-                if (isConstant(normalized.getFirst()) && isConstant(normalized.getSecond())) {
-                    return new DocMetric.Constant(getConstant(normalized.getFirst()) + getConstant(normalized.getSecond()));
-                } else if (isConstant(normalized.getFirst())) {
-                    final long c = getConstant(normalized.getFirst());
-                    if (c == 0) {
-                        return normalized.getSecond();
-                    }
-                }
-            } else if (input instanceof DocMetric.Multiply) {
+            if (input instanceof DocMetric.Multiply) {
                 // Multiply (Constant x) (Constant y) = Constant (x * y)
                 // Multiply (Constant 0) x = Constant 0
-                // Multiply x (Constant 0) = x
+                // Multiply x (Constant 0) = Constant 0
                 // Multiply (Constant 1) x = x
                 // Multiply x (Constant 1) = x
                 final DocMetric.Multiply multiply = (DocMetric.Multiply) input;
@@ -203,33 +208,7 @@ public class ConstantFolding {
     public static final Function<DocFilter, DocFilter> FILTER_OPTIMIZER = new Function<DocFilter, DocFilter>() {
         @Override
         public DocFilter apply(DocFilter input) {
-            if (input instanceof DocFilter.And) {
-                final DocFilter.And and = (DocFilter.And) input;
-                if (isConstant(and.f1) && isConstant(and.f2)) {
-                    return makeConstant(getConstant(and.f1) && getConstant(and.f2));
-                } else if (isConstant(and.f1) && !getConstant(and.f1)) {
-                    return new DocFilter.Never();
-                } else if (isConstant(and.f2) && !getConstant(and.f2)) {
-                    return new DocFilter.Never();
-                } else if (isConstant(and.f1) && getConstant(and.f1)) {
-                    return and.f2;
-                } else if (isConstant(and.f2) && getConstant(and.f2)) {
-                    return and.f1;
-                }
-            } else if (input instanceof DocFilter.Or) {
-                final DocFilter.Or or = (DocFilter.Or) input;
-                if (isConstant(or.f1) && isConstant(or.f2)) {
-                    return makeConstant(getConstant(or.f1) || getConstant(or.f2));
-                } else if (isConstant(or.f1) && getConstant(or.f1)) {
-                    return new DocFilter.Always();
-                } else if (isConstant(or.f2) && getConstant(or.f2)) {
-                    return new DocFilter.Always();
-                } else if (isConstant(or.f1) && !getConstant(or.f1)) {
-                    return or.f2;
-                } else if (isConstant(or.f2) && !getConstant(or.f2)) {
-                    return or.f1;
-                }
-            } else if (input instanceof DocFilter.MetricEqual) {
+            if (input instanceof DocFilter.MetricEqual) {
                 final DocFilter.MetricEqual metricEqual = (DocFilter.MetricEqual) input;
                 if (isConstant(metricEqual.m1) && isConstant(metricEqual.m2)) {
                     return makeConstant(getConstant(metricEqual.m1) == getConstant(metricEqual.m2));
@@ -283,6 +262,14 @@ public class ConstantFolding {
         }
     };
 
+    public static Query apply(final Query query) {
+        return query.transform(Functions.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER);
+    }
+
+    public static AggregateMetric apply(final AggregateMetric metric) {
+        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER, Functions.identity());
+    }
+
     public static DocMetric apply(final DocMetric metric) {
         return metric.transform(METRIC_OPTIMIZER, FILTER_OPTIMIZER);
     }
@@ -299,6 +286,14 @@ public class ConstantFolding {
         } else {
             return Pair.of(x, y);
         }
+    }
+
+    private static double getConstant(AggregateMetric constant) {
+        return ((AggregateMetric.Constant) constant).value;
+    }
+
+    private static boolean isConstant(AggregateMetric value) {
+        return value instanceof AggregateMetric.Constant;
     }
 
     private static long getConstant(DocMetric constant) {

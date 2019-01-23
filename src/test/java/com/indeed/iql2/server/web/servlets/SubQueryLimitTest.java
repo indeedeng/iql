@@ -24,21 +24,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubQueryLimitTest extends BasicTest {
-    final Dataset dataset = AllData.DATASET;
-
     @Test
     public void testQueryNoLimit() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "105"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", true);
+        QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", true);
     }
 
     @Test
     public void testQueryLimitNotTriggered() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "105"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(200L));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(105L));
+        QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(200L));
+        QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(105L));
     }
 
     @Test
@@ -46,12 +44,12 @@ public class SubQueryLimitTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "105"));
         try {
-            QueryServletTestUtils.testIQL2(dataset, expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(104L));
+            QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(104L));
             Assert.fail();
         } catch (Exception e) {
         }
         try {
-            QueryServletTestUtils.testIQL2(dataset, expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(1L));
+            QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(1L));
             Assert.fail();
         } catch (Exception e) {
         }
