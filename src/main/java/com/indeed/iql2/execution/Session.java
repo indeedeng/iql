@@ -46,6 +46,7 @@ import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -109,6 +110,7 @@ public class Session {
     public final int groupLimit;
     private final long firstStartTimeMillis;
     public final Set<String> options;
+    private final FieldType defaultFieldType;
 
     // Does not count group zero.
     // Exactly equivalent to maxGroup.
@@ -129,7 +131,8 @@ public class Session {
             ProgressCallback progressCallback,
             @Nullable Integer groupLimit,
             long firstStartTimeMillis,
-            final Set<String> options
+            final Set<String> options,
+            final FieldType defaultFieldType
     ) {
         this.sessions = sessions;
         this.timer = timer;
@@ -137,6 +140,7 @@ public class Session {
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
         this.firstStartTimeMillis = firstStartTimeMillis;
         this.options = options;
+        this.defaultFieldType = defaultFieldType;
     }
 
     public static class CreateSessionResult {
@@ -165,7 +169,8 @@ public class Session {
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final String username
+            final String username,
+            final FieldType defaultFieldType
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
@@ -183,7 +188,7 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
@@ -632,33 +637,35 @@ public class Session {
         return Maps.newHashMap(sessions);
     }
 
-    public boolean isIntField(final FieldSet field) {
+    private FieldType getFieldType(final FieldSet field) {
+        boolean hasIntField = false;
+        boolean hasStrField = false;
         for (final ImhotepSessionInfo session : sessions.values()) {
             final String dataset = session.displayName;
             if (!field.containsDataset(dataset)) {
                 continue;
             }
-            if (session.intFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
+            hasIntField |= session.intFields.contains(field.datasetFieldName(dataset));
+            hasStrField |= session.stringFields.contains(field.datasetFieldName(dataset));
         }
-        return false;
+        if (hasIntField && !hasStrField) {
+            return FieldType.Integer;
+        }
+        if (hasStrField && !hasIntField) {
+            return FieldType.String;
+        }
+        if (!hasIntField && !hasStrField) {
+            return null;
+        }
+        return defaultFieldType;
+    }
+
+    public boolean isIntField(final FieldSet field) {
+        return FieldType.Integer.equals(getFieldType(field));
     }
 
     public boolean isStringField(final FieldSet field) {
-        if (isIntField(field)) {
-            return false;
-        }
-        for (final ImhotepSessionInfo session : sessions.values()) {
-            final String dataset = session.displayName;
-            if (!field.containsDataset(dataset)) {
-                continue;
-            }
-            if (session.stringFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
-        }
-        return false;
+        return FieldType.String.equals(getFieldType(field));
     }
 
     private PerGroupConstant namedMetricLookup(String name) {
