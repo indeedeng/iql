@@ -228,9 +228,10 @@ public abstract class AggregateFilter extends AbstractPositional {
                 //        consider querying "[organic.oji + sponsored.oji=10]>0"
                 extraDetail = "";
             } else {
+                final String operator = (ctx instanceof MetricIs) ? "=" : "!=";
                 extraDetail =
                     "If your intention is to check whether at least one document had " + ctx.getTextOrToString() + ", consider querying " +
-                    "\"[" + pushes.getTextOrToString() + "=" + longValue + "]>0\"";
+                    "\"[" + pushes.getTextOrToString() + operator + longValue + "]>0\"";
             }
 
             final String operator = (longValue > 0) ? ">" : "<";
