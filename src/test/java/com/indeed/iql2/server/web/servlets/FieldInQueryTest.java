@@ -30,7 +30,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today where tk in (from other1 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
@@ -41,7 +41,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
@@ -57,7 +57,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2"));
         expected.add(ImmutableList.of("15", "1"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield) select count()", true);
     }
 
@@ -69,7 +69,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "64"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today group by ojc in (from manyValues 1d 0d group by thefield[3]) with default select count()", true);
     }
 
@@ -80,7 +80,7 @@ public class FieldInQueryTest extends BasicTest {
     public void groupByFieldNotInQuery() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today group by ojc not in (from manyValues 1d 0d group by thefield) select count()", true);
     }
 
@@ -91,7 +91,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today where ojc in (from other3 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
@@ -105,7 +105,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
-                AllData.DATASET, expected,
+                expected,
                 "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
@@ -117,20 +117,20 @@ public class FieldInQueryTest extends BasicTest {
         // check that "field in (A, B, ...) group by field" -> "group by field in (A, B...)" optimization
         // is applied to string field i.e value '3' is absent in results.
         QueryServletTestUtils.testIQL1(
-                AllData.DATASET, expected,
+                expected,
                 "from multiValue yesterday today where sf in (\"1\", \"2\") group by sf select count()", true);
         // check that this optimization is still active if there is 'and' for top-level filters (IQL-745)
         QueryServletTestUtils.testIQL1(
-                AllData.DATASET, expected,
+                expected,
                 "from multiValue yesterday today where sf in (\"1\", \"2\") and i >= 0 group by sf select count()", true);
 
         // check that optimization is not applied to int field
         expected.add(ImmutableList.of("3", "34"));
         QueryServletTestUtils.testIQL1(
-                AllData.DATASET, expected,
+                expected,
                 "from multiValue yesterday today where f in (1, 2) group by f select count()", true);
         QueryServletTestUtils.testIQL1(
-                AllData.DATASET, expected,
+                expected,
                 "from multiValue yesterday today where f in (1, 2) and i >= 0 group by f select count()", true);
     }
 }

@@ -10,14 +10,11 @@ import java.util.List;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.*;
 
 public class MetricInequalityTest extends BasicTest {
-
-    public static final Dataset DATASET = AllData.DATASET;
-
     @Test
     public void greaterThan() throws Exception {
         final ImmutableList<List<String>> expected = ImmutableList.of(ImmutableList.of("", "15"));
         testAll(expected, "from organic 1d 0d where oji > 10", Options.create());
-        testIQL1(DATASET, expected, "from organic 1d 0d select oji > 10", Options.create());
+        testIQL1(expected, "from organic 1d 0d select oji > 10", Options.create());
         testIQL2(expected, "from organic 1d 0d select [oji > 10]", Options.create());
     }
 
@@ -25,7 +22,7 @@ public class MetricInequalityTest extends BasicTest {
     public void greaterThanOrEqual() throws Exception {
         final ImmutableList<List<String>> expected = ImmutableList.of(ImmutableList.of("", "144"));
         testAll(expected, "from organic 1d 0d where oji >= 10", Options.create());
-        testIQL1(DATASET, expected, "from organic 1d 0d select oji >= 10", Options.create());
+        testIQL1(expected, "from organic 1d 0d select oji >= 10", Options.create());
         testIQL2(expected, "from organic 1d 0d select [oji >= 10]", Options.create());
     }
 
@@ -40,7 +37,7 @@ public class MetricInequalityTest extends BasicTest {
     public void lessThanOrEqual() throws Exception {
         final ImmutableList<List<String>> expected = ImmutableList.of(ImmutableList.of("", "136"));
         testAll(expected, "from organic 1d 0d where oji <= 10", Options.create());
-        testIQL1(DATASET, expected, "from organic 1d 0d select oji <= 10", Options.create());
+        testIQL1(expected, "from organic 1d 0d select oji <= 10", Options.create());
         testIQL2(expected, "from organic 1d 0d select [oji <= 10]", Options.create());
     }
 
@@ -48,7 +45,7 @@ public class MetricInequalityTest extends BasicTest {
     public void lessThan() throws Exception {
         final ImmutableList<List<String>> expected = ImmutableList.of(ImmutableList.of("", "7"));
         testAll(expected, "from organic 1d 0d where oji < 10", Options.create());
-        testIQL1(DATASET, expected, "from organic 1d 0d select oji < 10", Options.create());
+        testIQL1(expected, "from organic 1d 0d select oji < 10", Options.create());
         testIQL2(expected, "from organic 1d 0d select [oji < 10]", Options.create());
     }
 

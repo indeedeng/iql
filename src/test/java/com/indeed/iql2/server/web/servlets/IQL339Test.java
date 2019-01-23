@@ -15,19 +15,14 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Test;
-
-import java.util.List;
 
 public class IQL339Test extends BasicTest {
     @Test
     public void testBasicFilters() throws Exception {
-        final Dataset dataset = AllData.DATASET;
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji", true);
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji", true);
-        QueryServletTestUtils.testAll(dataset, ImmutableList.<List<String>>of(), "from organic yesterday today where oji=-1 group by oji, oji, oji", true);
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(), "from organic(oji=-1) yesterday today group by oji, oji, oji", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(), "from organic yesterday today where oji=-1 group by oji", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(), "from organic yesterday today where oji=-1 group by oji, oji", true);
+        QueryServletTestUtils.testAll(ImmutableList.of(), "from organic yesterday today where oji=-1 group by oji, oji, oji", true);
+        QueryServletTestUtils.testIQL2(ImmutableList.of(), "from organic(oji=-1) yesterday today group by oji, oji, oji", true);
     }
 }

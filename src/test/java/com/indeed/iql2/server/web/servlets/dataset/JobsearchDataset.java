@@ -49,23 +49,23 @@ public class JobsearchDataset {
         // count(ctkrcvd="ddd") = 1
         {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, timeZone), "abc", "us"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30, timeZone), "abd", "us"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15, timeZone), "bcd", "us"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0, timeZone), "abc", "uk"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 15, 0, timeZone), "xyz", "uk"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 20, 0, timeZone), "pqr", "jp"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 25, 0, timeZone), "xyz", "jp"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 30, 30, timeZone), "abc", "gb"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 45, 30, timeZone), "bcd",  "gb"));
-            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 59, 59, 999, timeZone), "ddd", "cn"));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, timeZone), "abc", "us", 1, true));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30, timeZone), "abd", "us", 1, false));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15, timeZone), "bcd", "us", 2, true));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0, timeZone), "abc", "uk", 2, false));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 15, 0, timeZone), "xyz", "uk", 3, true));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 20, 0, timeZone), "pqr", "jp", 3, false));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 25, 0, timeZone), "xyz", "jp", 4, true));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 30, 30, timeZone), "abc", "gb", 4, false));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 45, 30, timeZone), "bcd",  "gb", 5, true ));
+            flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 59, 59, 999, timeZone), "ddd", "cn", 5, false));
             result.add(new Dataset.DatasetShard("jobsearch", "index20150101.00", flamdex));
         }
 
         return new Dataset(result);
     }
 
-    private static FlamdexDocument makeDocument(DateTime timestamp, String ctkrcvd, String country) {
+    private static FlamdexDocument makeDocument(DateTime timestamp, String ctkrcvd, String country, int page, boolean isLast) {
         if (!timestamp.getZone().equals(DateTimeZone.forOffsetHours(-6))) {
             throw new IllegalArgumentException("Bad timestamp timezone: " + timestamp.getZone());
         }
@@ -79,6 +79,10 @@ public class JobsearchDataset {
         doc.addStringTerm("escaped", "");
         doc.addIntTerm("oji", 10);
         doc.addIntTerm("ojc", 5);
+        doc.addStringTerm("page", String.valueOf(page));
+        if (isLast) {
+            doc.addStringTerm("page", "last");
+        }
 
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.
         doc.addIntTerm("fakeField", 0);

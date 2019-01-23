@@ -27,7 +27,7 @@ public class FloatScaleTest extends BasicTest {
     public void testBasic() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "100", "100", "100001", "100001", "999100"));
-        QueryServletTestUtils.testAll(AllData.DATASET, expected,
+        QueryServletTestUtils.testAll(expected,
                 "from floatscaletest yesterday today select floatscale(field1, 1, 0), floatscale(field1), floatscale(field1, 1000, 0), floatscale(field1, 1000), floatscale(field2, 1, -500)");
     }
 

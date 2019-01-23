@@ -21,8 +21,8 @@ import java.util.Comparator;
 * @author jplaisance
 */
 public final class GroupStats {
-    final GroupKey groupKey;
-    final double[] stats;
+    private final GroupKey groupKey;
+    private final double[] stats;
 
     public GroupStats(final GroupKey groupKey, final double[] stats) {
         this.groupKey = groupKey;

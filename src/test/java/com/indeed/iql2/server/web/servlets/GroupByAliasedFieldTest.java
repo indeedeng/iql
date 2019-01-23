@@ -24,7 +24,7 @@ public class GroupByAliasedFieldTest {
                 ImmutableList.of("us", "3"),
                 ImmutableList.of("xyz", "2")
         );
-        testIQL2(AllData.DATASET, expected,
+        testIQL2(expected,
                 "FROM jobsearch yesterday today AS A ALIASING (country AS field)," +
                         " jobsearch yesterday today AS B ALIASING (ctkrcvd AS field) " +
                         "GROUP BY field",
@@ -58,7 +58,7 @@ public class GroupByAliasedFieldTest {
                 ImmutableList.of("xyz", "0", "0"),
                 ImmutableList.of("xyz", "1", "2")
         );
-        testIQL2(AllData.DATASET, expected,
+        testIQL2(expected,
                 "FROM jobsearch yesterday today AS A ALIASING (country AS field)," +
                         " jobsearch yesterday today AS B ALIASING (ctkrcvd AS field) " +
                         "GROUP BY field, (true)",

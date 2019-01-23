@@ -27,7 +27,7 @@ public class StringLenTest extends BasicTest {
     public void testStringLen() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "350")); //"Hi".length() * 50 + "Hello".length() * 50
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from stringLen yesterday today select len(strField)");
     }
 
@@ -36,7 +36,7 @@ public class StringLenTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("0", "100"));//"Hi".length() * 50
         expected.add(ImmutableList.of("1", "250"));//"Hello".length() * 50
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected,
+        QueryServletTestUtils.testIQL2(expected,
                 "from stringLen yesterday today group by groupId select len(strField)", true);
     }
 

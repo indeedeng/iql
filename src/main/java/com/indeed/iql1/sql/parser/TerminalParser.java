@@ -15,10 +15,13 @@
 package com.indeed.iql1.sql.parser;
 
 import com.google.common.base.Throwables;
-import org.codehaus.jparsec.*;
+import org.codehaus.jparsec.Parser;
+import org.codehaus.jparsec.Parsers;
+import org.codehaus.jparsec.Scanners;
+import org.codehaus.jparsec.Terminals;
+import org.codehaus.jparsec.Token;
 import org.codehaus.jparsec.misc.Mapper;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -75,15 +78,6 @@ public final class TerminalParser {
      */
     public static <T> Parser<T> notTerm(String term, Parser<T> parser) {
         return Parsers.sequence(term(term).not(), parser);
-    }
-
-    public static Parser<?> terms(String... terms) {
-        try {
-            return Mapper._(TERMS.token(terms));
-        } catch (Throwable t) {
-            System.out.println(Arrays.toString(terms));
-            throw Throwables.propagate(t);
-        }
     }
 
     public static Parser<?> phrase(String phrase) {

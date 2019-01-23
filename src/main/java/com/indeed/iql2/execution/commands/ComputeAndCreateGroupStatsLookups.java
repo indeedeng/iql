@@ -119,10 +119,6 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     }
 
     static boolean tryMultiDistinct(Session session, List<Pair<Command, String>> namedComputations) throws IOException, ImhotepOutOfMemoryException {
-        if (!session.options.contains(QueryOptions.Experimental.USE_AGGREGATE_DISTINCT)) {
-            return false;
-        }
-
         session.timer.push("checking aggregate distinct eligibility");
         final Map<String, AggregateFilter> namedFilters = new TreeMap<>();
         boolean allNonWindowedDistinct = true;

@@ -43,9 +43,10 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -63,10 +64,9 @@ import com.indeed.util.logging.TracingTreeTimer;
 import io.opentracing.ActiveSpan;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -110,6 +110,7 @@ public class Session {
     public final int groupLimit;
     private final long firstStartTimeMillis;
     public final Set<String> options;
+    private final FieldType defaultFieldType;
 
     // Does not count group zero.
     // Exactly equivalent to maxGroup.
@@ -130,7 +131,8 @@ public class Session {
             ProgressCallback progressCallback,
             @Nullable Integer groupLimit,
             long firstStartTimeMillis,
-            final Set<String> options
+            final Set<String> options,
+            final FieldType defaultFieldType
     ) {
         this.sessions = sessions;
         this.timer = timer;
@@ -138,6 +140,7 @@ public class Session {
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
         this.firstStartTimeMillis = firstStartTimeMillis;
         this.options = options;
+        this.defaultFieldType = defaultFieldType;
     }
 
     public static class CreateSessionResult {
@@ -166,24 +169,26 @@ public class Session {
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
-            final String username
+            final String username,
+            final FieldType defaultFieldType
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
+        final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasetToChosenShards);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, datasets, datasetToChosenShards,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets, datasetToChosenShards,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
@@ -244,6 +249,7 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
+            final boolean useAsync,
             final List<Queries.QueryDataset> sessionRequest,
             final Map<String, List<Shard>> datasetToChosenShards,
             final StrictCloser strictCloser,
@@ -290,8 +296,13 @@ public class Session {
             // but we can't get information about daemons count now
             // need to add method to RemoteImhotepMultiSession or to session builder.
             treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
-            final ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
+            ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
+
+            if (useAsync) {
+                build = ((RemoteImhotepMultiSession) build).toAsync();
+            }
+
             // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
             final ImhotepSessionHolder session = strictCloser.registerOrClose(wrapSession(dataset.displayName, build));
@@ -329,11 +340,8 @@ public class Session {
         return firstStartTimeMillis;
     }
 
-    private static ImhotepSessionHolder wrapSession(
-            final String datasetName,
-            final ImhotepSession build) {
-        Preconditions.checkState(build instanceof RemoteImhotepMultiSession, "Unexpected session type");
-        return new ImhotepSessionHolder(datasetName, (RemoteImhotepMultiSession) build);
+    private static ImhotepSessionHolder wrapSession(final String datasetName, final ImhotepSession build) {
+        return new ImhotepSessionHolder(datasetName, build);
     }
 
     // this datetime is serialized by standard Datetime by iql2-language
@@ -452,29 +460,6 @@ public class Session {
         }
     }
 
-    public int findPercentile(double v, double[] percentiles) {
-        for (int i = 0; i < percentiles.length - 1; i++) {
-            if (v <= percentiles[i + 1]) {
-                return i;
-            }
-        }
-        return percentiles.length - 1;
-    }
-
-    // Returns the start of the bucket.
-    // result[0] will always be 0
-    // result[1] will be the minimum value required to be greater than 1/k values.
-    public static double[] getPercentiles(DoubleCollection values, int k) {
-        final DoubleArrayList list = new DoubleArrayList(values);
-        // TODO: Will this be super slow?
-        Collections.sort(list);
-        final double[] result = new double[k];
-        for (int i = 0; i < k; i++) {
-            result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
-        }
-        return result;
-    }
-
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, groupKeySet);
@@ -511,21 +496,21 @@ public class Session {
     public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
         timer.push("pushing metrics");
         final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
+        final Object2IntOpenHashMap<String> sessionToPushCount = new Object2IntOpenHashMap<>();
         // TODO: Parallelize across sessions
         for (final QualifiedPush push : allPushes) {
             final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
-            final int index = pushStatsWithTimer(session, push.pushes, timer) - 1;
-            statResults.put(push, session.aggregateStat(index));
+            pushStatsWithTimer(session, push.pushes, timer);
+            statResults.put(push, session.aggregateStat(sessionToPushCount.add(push.sessionName, 1)));
         }
         timer.pop();
         return statResults;
     }
 
-    public static int pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
+    public static void pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
         timer.push("pushStats", "pushStats ('" + String.join("', '", pushes) + "')");
-        final int result = session.pushStats(pushes);
+        session.pushStats(pushes);
         timer.pop();
-        return result;
     }
 
     public long getFirstStartTimeMillis() {
@@ -652,33 +637,35 @@ public class Session {
         return Maps.newHashMap(sessions);
     }
 
-    public boolean isIntField(final FieldSet field) {
+    private FieldType getFieldType(final FieldSet field) {
+        boolean hasIntField = false;
+        boolean hasStrField = false;
         for (final ImhotepSessionInfo session : sessions.values()) {
             final String dataset = session.displayName;
             if (!field.containsDataset(dataset)) {
                 continue;
             }
-            if (session.intFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
+            hasIntField |= session.intFields.contains(field.datasetFieldName(dataset));
+            hasStrField |= session.stringFields.contains(field.datasetFieldName(dataset));
         }
-        return false;
+        if (hasIntField && !hasStrField) {
+            return FieldType.Integer;
+        }
+        if (hasStrField && !hasIntField) {
+            return FieldType.String;
+        }
+        if (!hasIntField && !hasStrField) {
+            return null;
+        }
+        return defaultFieldType;
+    }
+
+    public boolean isIntField(final FieldSet field) {
+        return FieldType.Integer.equals(getFieldType(field));
     }
 
     public boolean isStringField(final FieldSet field) {
-        if (isIntField(field)) {
-            return false;
-        }
-        for (final ImhotepSessionInfo session : sessions.values()) {
-            final String dataset = session.displayName;
-            if (!field.containsDataset(dataset)) {
-                continue;
-            }
-            if (session.stringFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
-        }
-        return false;
+        return FieldType.String.equals(getFieldType(field));
     }
 
     private PerGroupConstant namedMetricLookup(String name) {

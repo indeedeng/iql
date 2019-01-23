@@ -24,6 +24,7 @@ public class AllData {
         datasets.add(MultiValueDataset.createDataset());
         datasets.add(MultiValuedDataset.create());
         datasets.add(OrganicDataset.create());
+        datasets.add(OrganicDataset.createWithDynamicShardNaming());
         datasets.add(QuantilesDataset.createDataset());
         datasets.add(RegroupEmptyFieldDataset.createDataset());
         datasets.add(StringAsIntFieldDataset.create());
@@ -40,6 +41,7 @@ public class AllData {
         datasets.add(SnapshotDataset.create());
         // Defines keywords, from, where, group, select, and limit
         datasets.add(KeywordDatasets.create());
+        datasets.add(ConflictFieldDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

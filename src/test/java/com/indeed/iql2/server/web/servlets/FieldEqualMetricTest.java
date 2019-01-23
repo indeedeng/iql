@@ -27,22 +27,21 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testEqualFieldMetric() throws Exception {
-        final Dataset dataset = AllData.DATASET;
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1=s2");
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "3", "4")), "from fieldEqual yesterday today select i1=i2, count()");
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today select s1=s2, i1=i2, count()");
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today, jobsearch(false) select fieldEqual.s1=fieldEqual.s2, fieldEqual.i1=fieldEqual.i2, count()");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1=s2");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "3", "4")), "from fieldEqual yesterday today select i1=i2, count()");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today select s1=s2, i1=i2, count()");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "2", "3", "4")), "from fieldEqual yesterday today, jobsearch(false) select fieldEqual.s1=fieldEqual.s2, fieldEqual.i1=fieldEqual.i2, count()");
 
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "1"));
         expected.add(ImmutableList.of("b", "1"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from fieldEqual yesterday today group by s1 select s1=s2");
+        QueryServletTestUtils.testIQL2(expected, "from fieldEqual yesterday today group by s1 select s1=s2");
     }
 
     @Test
-    public void testMultiDatasetEqualFieldMetric() throws Exception {
+    public void testMultiDatasetEqualFieldMetric() {
         try {
-            QueryServletTestUtils.testIQL2(AllData.DATASET, ImmutableList.<List<String>>of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2");
+            QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2");
             Assert.fail("field on different dataset should throw exception");
         } catch (Exception e) {
         }
@@ -50,9 +49,8 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testNotEqualFieldMetric() throws Exception {
-        final Dataset dataset = AllData.DATASET;
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "1")), "from fieldEqual yesterday today select i1!=i2");
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1!=s2");
-        QueryServletTestUtils.testIQL2(dataset, ImmutableList.<List<String>>of(ImmutableList.of("", "2", "1")), "from fieldEqual yesterday today select s1!=s2, i1!=i2");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "1")), "from fieldEqual yesterday today select i1!=i2");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "2")), "from fieldEqual yesterday today select s1!=s2");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "2", "1")), "from fieldEqual yesterday today select s1!=s2, i1!=i2");
     }
 }

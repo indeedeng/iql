@@ -40,12 +40,13 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -216,15 +217,24 @@ public class SelectQueryExecution {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
-        final Consumer<String> out;
-        if (isStream) {
-            out = s -> {
-                outputStream.print("data: ");
+        final Consumer<String> out = new Consumer<String>() {
+            int count = 1;
+
+            @Override
+            public void accept(final String s) {
+                if (isStream) {
+                    outputStream.print("data: ");
+                }
                 outputStream.println(s);
-            };
-        } else {
-            out = outputStream::println;
-        }
+
+                count += 1;
+                // Only check for errors every 10k rows because checkError
+                // also flushes, which we do not want to do every row.
+                if (((count % 10000) == 0) && outputStream.checkError()) {
+                    throw new IqlKnownException.ClientHungUpException("OutputStream in error state");
+                }
+            }
+        };
 
         final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(isStream, outputStream);
         ProgressCallback progressCallback;
@@ -288,13 +298,12 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
-        final Query paranoidQuery;
         if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
             timer.push("reparse query (paranoid mode)");
-            paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
             timer.pop();
 
-            timer.push("check query equals() and hashCode()");
+            timer.push("check query equals() and hashCode() (paranoid mode)");
             if (!paranoidQuery.equals(parseResult.query)) {
                 log.error("parseResult.query = " + parseResult.query);
                 log.error("paranoidQuery = " + paranoidQuery);
@@ -306,8 +315,10 @@ public class SelectQueryExecution {
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
             }
             timer.pop();
-        } else {
-            paranoidQuery = null;
+
+            timer.push("extractHeaders (paranoid mode)");
+            Queries.extractHeaders(parseResult.query);
+            timer.pop();
         }
 
         {
@@ -659,7 +670,8 @@ public class SelectQueryExecution {
                             compositeProgressCallback,
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
-                            clientInfo.username
+                            clientInfo.username,
+                            (version == 2) ? FieldType.Integer : FieldType.String
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
@@ -891,7 +903,7 @@ public class SelectQueryExecution {
             }
         }
         final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -916,7 +928,7 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -925,6 +937,7 @@ public class SelectQueryExecution {
             throw Throwables.propagate(e);
         }
         sha1.update(Ints.toByteArray(version));
+        sha1.update(Ints.toByteArray(useLegacy ? 1 : 2));
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }

@@ -23,16 +23,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FieldInTermsTest extends BasicTest {
-    final Dataset dataset = AllData.DATASET;
-
     @Test
     public void testStringFieldInTerms() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "4", "1"));
         expected.add(ImmutableList.of("b", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "145", "2"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
-        QueryServletTestUtils.testIQL2(dataset, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by tk in ('a', \"b\") with default select count()");
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by tk in ('a', \"b\") with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by tk in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -41,8 +39,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("c", "4", "1"));
         expected.add(ImmutableList.of("d", "141", "1"));
         expected.add(ImmutableList.of("DEFAULT", "6", "2"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from organic yesterday today group by tk not in ('a', \"b\") with default select count(), distinct(tk)");
-        QueryServletTestUtils.testIQL2(dataset, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by tk not in ('a', \"b\") with default select count()");
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by tk not in ('a', \"b\") with default select count(), distinct(tk)");
+        QueryServletTestUtils.testIQL2(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by tk not in ('a', \"b\") with default select count()");
     }
 
     @Test
@@ -51,8 +49,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("1", "84", "3"));
         expected.add(ImmutableList.of("10", "2", "1"));
         expected.add(ImmutableList.of("DEFAULT", "65", "4"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)", true);
-        QueryServletTestUtils.testIQL2(dataset, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by ojc in (1, 10) with default select count()", true);
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc in (1, 10) with default select count(), distinct(tk)", true);
+        QueryServletTestUtils.testIQL2(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by ojc in (1, 10) with default select count()", true);
     }
 
     @Test
@@ -64,8 +62,8 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("5", "1", "1"));
         expected.add(ImmutableList.of("15", "1", "1"));
         expected.add(ImmutableList.of("DEFAULT", "86", "3"));
-        QueryServletTestUtils.testIQL2(dataset, expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)", true);
-        QueryServletTestUtils.testIQL2(dataset, QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()", true);
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc not in (1, 10) with default select count(), distinct(tk)", true);
+        QueryServletTestUtils.testIQL2(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by ojc not in (1, 10) with default select count()", true);
     }
 
     @Test
@@ -73,6 +71,6 @@ public class FieldInTermsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("a", "4"));
         expected.add(ImmutableList.of("b", "2"));
-        QueryServletTestUtils.testAll(dataset, expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
     }
 }

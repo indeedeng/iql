@@ -94,7 +94,6 @@ public class SampleAndRandomTest extends BasicTest {
     @Test
     public void testQuoteInSalt() throws Exception {
         runQuery(
-            AllData.DATASET.getNormalClient(),
             "from countries yesterday today " +
                     "where sample(country, 50, 100, '\"salt with quotes \"\"\"\"') " +
                     "group by random(country, 10, '\"more quotes\"\\'') " +

@@ -144,9 +144,9 @@ public class ExtractPrecomputed {
                 }
             }
         }
-        if (!query.selects.isEmpty()) {
-            resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
-        }
+        // IQL-606: it doesn't push "count()" in subqueries, add a GetGroupStats manually to ensure
+        // the last command translated is SimpleIterate or GetGroupStats
+        resultSteps.add(new ExecutionStep.GetGroupStats(query.selects, query.formatStrings));
         return resultSteps;
     }
 
@@ -242,10 +242,10 @@ public class ExtractPrecomputed {
                     }
                     final List<AggregateMetric> metrics = new ArrayList<>(pushScope.size());
                     for (final String dataset : pushScope) {
-                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
+                        final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                         metrics.add(metric);
                     }
-                    return AggregateMetric.Add.create(metrics);
+                    return AggregateMetric.Add.create(metrics).copyPosition(input);
                 } else {
                     return handlePrecomputed(new Precomputed.PrecomputedRawStats(docMetric));
                 }
@@ -302,11 +302,12 @@ public class ExtractPrecomputed {
                 final List<AggregateMetric> metrics = new ArrayList<>(datasets.size());
                 for (final String dataset : datasets) {
                     final AggregateMetric.DocStatsPushes metric = new AggregateMetric.DocStatsPushes(
-                            dataset, new DocMetric.PushableDocMetric(new DocMetric.Qualified(dataset, new DocMetric.Count())));
+                            dataset, new DocMetric.Qualified(dataset, new DocMetric.Count())
+                    );
                     metrics.add(metric);
                 }
                 final AggregateMetric countMetric = AggregateMetric.Add.create(metrics);
-                return new AggregateMetric.Divide(docMetric, countMetric);
+                return new AggregateMetric.Divide(docMetric, countMetric).copyPosition(input);
             } else {
                 return input.traverse1(this);
             }

@@ -42,6 +42,7 @@ import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.execution.passes.FixFtgsMetricRunning;
 import com.indeed.iql2.language.execution.passes.GroupIterations;
 import com.indeed.iql2.language.execution.passes.OptimizeLast;
+import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.passes.ExtractNames;
 import com.indeed.iql2.language.passes.ExtractPrecomputed;
 import com.indeed.iql2.language.passes.FixTopKHaving;
@@ -67,6 +68,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -111,7 +113,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.GroupByElementContext apply(@Nullable final JQLParser input) {
-                return input.groupByElement(useLegacy);
+                return input.groupByElementEof(useLegacy).groupByElement();
             }
         });
         return GroupBys.parseGroupBy(groupByElementContext, context);
@@ -125,7 +127,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.AggregateFilterContext apply(@Nullable final JQLParser input) {
-                return input.aggregateFilter(useLegacy);
+                return input.aggregateFilterEof(useLegacy).aggregateFilter();
             }
         });
         return AggregateFilters.parseAggregateFilter(aggregateFilterContext, context);
@@ -139,7 +141,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.DocFilterContext apply(@Nullable final JQLParser input) {
-                return input.docFilter(useLegacy);
+                return input.docFilterEof(useLegacy).docFilter();
             }
         });
         return DocFilters.parseDocFilter(docFilterContext, context);
@@ -153,7 +155,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.DocMetricContext apply(@Nullable final JQLParser input) {
-                return input.docMetric(useLegacy);
+                return input.docMetricEof(useLegacy).docMetric();
             }
         });
         return DocMetrics.parseDocMetric(docMetricContext, context);
@@ -167,10 +169,6 @@ public class Queries {
             this.inputStream = inputStream;
             this.query = query;
         }
-    }
-
-    public static String getRawInput(CharStream inputStream, Positional positional) {
-        return inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex));
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock) {
@@ -262,7 +260,7 @@ public class Queries {
             endRawString = "";
         }
 
-        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed, queryInputStream),
+        return new SplitQuery(from, where, groupBy, select, "", extractHeaders(parsed),
                 groupBys, selects, dataset, start, startRawString, end, endRawString,
                 extractDatasets(queryContext.fromContents(), queryInputStream));
     }
@@ -315,10 +313,10 @@ public class Queries {
     }
 
     @VisibleForTesting
-    static List<String> extractHeaders(Query parsed, CharStream input) {
+    public static List<String> extractHeaders(Query parsed) {
         final List<String> result = new ArrayList<>();
         for (GroupByEntry groupBy : parsed.groupBys) {
-            result.add(groupBy.alias.or(() -> getRawInput(input, groupBy.groupBy)));
+            result.add(groupBy.alias.or(groupBy.groupBy::getRawInput));
         }
         if (result.isEmpty()) {
             result.add("");
@@ -334,7 +332,7 @@ public class Queries {
                 }
                 pos = metric;
             }
-            result.add(getRawInput(input, pos));
+            result.add(Objects.requireNonNull(pos.getRawInput()));
         }
         return result;
     }
@@ -419,7 +417,7 @@ public class Queries {
             @Nullable
             @Override
             public JQLParser.AggregateMetricContext apply(@Nullable final JQLParser input) {
-                return input.aggregateMetric(useLegacy);
+                return input.aggregateMetricEof(useLegacy).aggregateMetric();
             }
         });
         return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);
@@ -443,7 +441,9 @@ public class Queries {
         Loggers.trace(log, "query2 = %s", query2);
         final Query query3 = RemoveNames.removeNames(query2);
         Loggers.trace(log, "query3 = %s", query3);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query3);
+        final Query query4 = ConstantFolding.apply(query3);
+        Loggers.trace(log, "query4 = %s", query4);
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
         Loggers.trace(log, "extracted = %s", extracted);
         final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(extracted.query);
         final List<ExecutionStep> firstSteps = query5Result.steps;
