@@ -903,7 +903,7 @@ public class SelectQueryExecution {
             }
         }
         final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -928,7 +928,7 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -937,6 +937,7 @@ public class SelectQueryExecution {
             throw Throwables.propagate(e);
         }
         sha1.update(Ints.toByteArray(version));
+        sha1.update(Ints.toByteArray(useLegacy ? 1 : 2));
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }
