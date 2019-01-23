@@ -150,7 +150,7 @@ public class ExplainQueryExecution {
                     }
             );
 
-            final List<Command> commands = Queries.queryCommands(query, datasetsMetadata);
+            final List<Command> commands = Queries.queryCommands(query);
             CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
 
             for (final Command command : commands) {

@@ -55,7 +55,8 @@ public class DistinctGrouping extends Grouping {
         throw new UnsupportedOperationException("DistinctGrouping requires FTGS so always should go last in the list of groupings");
     }
 
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    @Override
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }

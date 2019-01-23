@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ExtractPrecomputed {
-    public static Extracted extractPrecomputed(Query query) {
+    public static Extracted extractPrecomputed(final Query query, final boolean extractTotals) {
         final Processor processor = new Processor(1, 1, query.extractDatasetNames());
         final List<GroupByEntry> groupBys = new ArrayList<>();
         for (int i = 0; i < query.groupBys.size(); i++) {
@@ -82,6 +82,20 @@ public class ExtractPrecomputed {
                 }
             }
         }
+        List<AggregateMetric> totals = null;
+        if (extractTotals && !query.groupBys.isEmpty()) {
+            // Extracting totals only if there are some regroupings.
+            // Otherwise totals are the same as stats.
+            totals = new ArrayList<>();
+            processor.setDepth(0);
+            processor.setStartDepth(1);
+            processor.setMaxDepth(1);
+
+            for (final AggregateMetric select : query.selects) {
+                final AggregateMetric processed = processor.apply(select);
+                totals.add(processed);
+            }
+        }
         final List<AggregateMetric> selects = new ArrayList<>();
         processor.setDepth(groupBys.size());
         processor.setStartDepth(groupBys.size());
@@ -90,7 +104,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames);
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.fromNullable(totals));
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {
@@ -372,10 +386,14 @@ public class ExtractPrecomputed {
     public static class Extracted {
         public final Query query;
         public final Map<ComputationType, Map<ComputationInfo, String>> computedNames;
+        public final Optional<List<AggregateMetric>> totals;
 
-        public Extracted(final Query query, final Map<ComputationType, Map<ComputationInfo, String>> computedNames) {
+        public Extracted(final Query query,
+                         final Map<ComputationType, Map<ComputationInfo, String>> computedNames,
+                         final Optional<List<AggregateMetric>> totals) {
             this.query = query;
             this.computedNames = computedNames;
+            this.totals = totals;
         }
 
         @Override
@@ -383,6 +401,7 @@ public class ExtractPrecomputed {
             return "Extracted{" +
                     "query=" + query +
                     ", computedNames=" + computedNames +
+                    ", totalNames=" + totals +
                     '}';
         }
     }

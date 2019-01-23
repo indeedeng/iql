@@ -20,10 +20,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
@@ -186,8 +186,6 @@ public final class IQLTranslator {
 
         handleDiffGrouping(groupings, stats, limits);
 
-        optimizeGroupings(groupings, limits);
-
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
                 conditions, groupings, parse.limit, username, limits, fieldNames, queryInfo, strictCloser);
     }
@@ -199,18 +197,6 @@ public final class IQLTranslator {
                     throw new IqlKnownException.ParseErrorException("Please remove distinct(" + distinctField.getFieldName() +
                         ") from the SELECT clause as it is always going to be 1 due to it being one of the GROUP BY groups");
                 }
-            }
-        }
-    }
-
-    private static void optimizeGroupings(List<Grouping> groupings, Limits limits) {
-        // if we have only one grouping we can safely disable exploding which allows us to stream the result
-        if(groupings.size() == 1 && groupings.get(0) instanceof FieldGrouping) {
-            FieldGrouping fieldGrouping = (FieldGrouping) groupings.get(0);
-            if(!fieldGrouping.isNoExplode()
-                    && !fieldGrouping.isTopK()
-                    && !fieldGrouping.isTermSubset()) {
-                groupings.set(0, new FieldGrouping(fieldGrouping.getField(), true, fieldGrouping.getRowLimit(), limits));
             }
         }
     }
@@ -246,7 +232,7 @@ public final class IQLTranslator {
                     continue;
                 }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
-                FieldGrouping fieldInGrouping = new FieldGrouping(field, fieldGrouping.isNoExplode(),
+                FieldGrouping fieldInGrouping = new FieldGrouping(field,
                         Lists.newArrayList(inCondition.getValues()), limits);
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
@@ -1010,6 +996,7 @@ public final class IQLTranslator {
                     }
                     final String fieldName = getName(input.get(0));
                     final int topK = parseInt(input.get(1));
+                    checkTopK(topK);
                     final Stat stat;
                     if (input.size() >= 3) {
                         stat = input.get(2).match(statMatcher);
@@ -1039,6 +1026,7 @@ public final class IQLTranslator {
                     Stat statFilter1 = input.get(1).match(statMatcher);
                     Stat statFilter2 = input.get(2).match(statMatcher);
                     final int topK = parseInt(input.get(3));
+                    checkTopK(topK);
 
                     final Field field = getField(fieldName, datasetMetadata);
                     fieldNames.add(fieldName);
@@ -1205,7 +1193,7 @@ public final class IQLTranslator {
 
             final Field field = getField(name, datasetMetadata);
             fieldNames.add(name);
-            return new FieldGrouping(field, true, rowLimit, limits);
+            return new FieldGrouping(field, rowLimit, limits);
         }
 
         @Override
@@ -1241,7 +1229,7 @@ public final class IQLTranslator {
                     }
                     final Field field = getField(name.name, datasetMetadata);
                     fieldNames.add(name.name);
-                    return new FieldGrouping(field, true, terms, limits);
+                    return new FieldGrouping(field, terms, limits);
                 }
                 default:
                     throw new UnsupportedOperationException();
@@ -1306,7 +1294,7 @@ public final class IQLTranslator {
                 // treat as a request to get all terms but not explode
                 final Field field = getField(fieldName, datasetMetadata);
                 fieldNames.add(fieldName);
-                return new FieldGrouping(field, true, rowLimit, limits);
+                return new FieldGrouping(field, rowLimit, limits);
             }
 
             Pattern topTermsPattern = Pattern.compile("\\s*(?:(top|bottom)\\s+)?(\\d+)\\s*(?:\\s*(?:by|,)\\s*(.+))?\\s*");
@@ -1320,6 +1308,7 @@ public final class IQLTranslator {
             final String topKasString = matcher.group(2);
             try {
                 topK = Integer.parseInt(topKasString);
+                checkTopK(topK);
             } catch (final Throwable t) {
                 throw new IqlKnownException.ParseErrorException("Can't parse '" + topKasString
                         + "' as integer in top terms grouping '" + arg + "'", t);
@@ -1347,6 +1336,12 @@ public final class IQLTranslator {
 
     private static int parseInt(Expression expression) {
         return (int) parseLong(expression);
+    }
+
+    private static void checkTopK(final int topK) {
+        if (topK <= 0) {
+            throw new IqlKnownException.ParseErrorException("Positive TopK expected, '" + topK + "' found.");
+        }
     }
 
     private static long parseLong(Expression expression) {

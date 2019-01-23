@@ -64,7 +64,7 @@ public class DiffGrouping extends Grouping {
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
         throw new UnsupportedOperationException();  // This should always be rewritten in the IQLTranslator so that it never gets invoked
     }
 }

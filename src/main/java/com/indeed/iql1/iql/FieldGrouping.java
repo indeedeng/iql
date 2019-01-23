@@ -15,26 +15,23 @@
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.exceptions.GroupLimitExceededException;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
-import com.indeed.iql.web.Limits;
-import com.indeed.iql.exceptions.IqlKnownException;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static com.indeed.iql1.ez.Stats.Stat;
 
@@ -50,29 +47,27 @@ public final class FieldGrouping extends Grouping {
     private final int topK;
     private final Stat sortStat;
     private final boolean isBottom;
-    private final boolean noExplode;
     private final ArrayList<String> termSubset;
     private final Limits limits;
     private final int rowLimit;
 
-    public FieldGrouping(final Field field, final boolean noExplode, int rowLimit, Limits limits) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, Collections.<String>emptyList(), rowLimit, limits);
+    public FieldGrouping(final Field field, int rowLimit, Limits limits) {
+        this(field, 0, DEFAULT_SORT_STAT, false, Collections.<String>emptyList(), rowLimit, limits);
     }
 
-    public FieldGrouping(final Field field, boolean noExplode, List<String> termSubset, Limits limits) {
-        this(field, 0, DEFAULT_SORT_STAT, false, noExplode, termSubset, 0, limits);
+    public FieldGrouping(final Field field, List<String> termSubset, Limits limits) {
+        this(field, 0, DEFAULT_SORT_STAT, false, termSubset, 0, limits);
     }
 
     public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, Limits limits) {
-        this(field, topK, sortStat, isBottom, false, Collections.<String>emptyList(), 0, limits);
+        this(field, topK, sortStat, isBottom, Collections.<String>emptyList(), 0, limits);
     }
 
-    public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, boolean noExplode, List<String> termSubset, int rowLimit, Limits limits) {
+    private FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, List<String> termSubset, int rowLimit, Limits limits) {
         this.field = field;
         this.topK = topK;
         this.sortStat = sortStat;
         this.isBottom = isBottom;
-        this.noExplode = noExplode;
         this.rowLimit = rowLimit;
         // remove duplicated terms as it makes Imhotep complain
         this.termSubset = Lists.newArrayList(Sets.newLinkedHashSet(termSubset));
@@ -86,11 +81,12 @@ public final class FieldGrouping extends Grouping {
         }
     }
 
+    @Override
     public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {
             return groupKeys;
         }
-        if (topK > 0) {
+        if (isTopK()) {
             return Preconditions.checkNotNull(session.splitAllTopK(field, groupKeys, topK, sortStat, isBottom));
         } else if(isTermSubset()) {
             if(field.isIntField()) {
@@ -109,42 +105,29 @@ public final class FieldGrouping extends Grouping {
                 String[] termsArray = termSubset.toArray(new String[termSubset.size()]);
                 return Preconditions.checkNotNull(session.explodeEachGroup((Field.StringField) field, termsArray, groupKeys));
             }
-        } else if(noExplode) {
-            return Preconditions.checkNotNull(session.splitAll(field, groupKeys, rowLimit));
         } else {
-            return Preconditions.checkNotNull(session.splitAllExplode(field, groupKeys, rowLimit));
+            return Preconditions.checkNotNull(session.splitAll(field, groupKeys, rowLimit));
         }
     }
 
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, long timeoutTS) throws ImhotepOutOfMemoryException {
+    @Override
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();  // so no point doing FTGS
         }
-        if (topK > 0) {
+        if (isTopK()) {
             //TODO have some way of not potentially pushing counts() twice
             final StatReference countStat = session.pushStatGeneric(sortStat);
             final TopKGroupingFTGSCallback callback = new TopKGroupingFTGSCallback(session.getStackDepth(), topK, countStat, statRefs, groupKeys, isBottom, limits);
-            session.ftgsIterate(Arrays.asList(field), callback);
+            session.ftgsIterate(field, callback);
             return callback.getResults().iterator();
-        } else if(noExplode) {
+        } else {
             final GroupingFTGSCallbackNoExplode callback = new GroupingFTGSCallbackNoExplode(session.getStackDepth(), statRefs, groupKeys);
             if(!isTermSubset()) {
-                return session.ftgsGetIterator(Arrays.asList(field), callback, rowLimit);
+                return session.ftgsGetIterator(field, callback, rowLimit);
             } else {
-                final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
-                fieldsToTermsSubsets.put(field, termSubset);
-                return session.ftgsGetSubsetIterator(fieldsToTermsSubsets, callback);
+                return session.ftgsGetSubsetIterator(field, termSubset, callback);
             }
-        } else {
-            final GroupingFTGSCallback callback = new GroupingFTGSCallback(session.getStackDepth(), statRefs, groupKeys, limits);
-            if(!isTermSubset()) {
-                session.ftgsIterate(Arrays.asList(field), callback);
-            } else {
-                final Map<Field, List<?>> fieldsToTermsSubsets = Maps.newHashMap();
-                fieldsToTermsSubsets.put(field, termSubset);
-                session.ftgsSubsetIterate(fieldsToTermsSubsets, callback);
-            }
-            return callback.getResults().iterator();
         }
     }
 
@@ -152,23 +135,11 @@ public final class FieldGrouping extends Grouping {
         return field;
     }
 
-    public int getTopK() {
-        return topK;
-    }
-
-    public boolean isNoExplode() {
-        return noExplode;
-    }
-
     public boolean isTopK() {
         return topK != 0;
     }
 
-    public boolean isTermSubset() {
-        return termSubset.size() != 0;
-    }
-
-    public int getRowLimit() {
-        return rowLimit;
+    private boolean isTermSubset() {
+        return !termSubset.isEmpty();
     }
 }

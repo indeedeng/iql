@@ -69,7 +69,7 @@ public class CacheTest extends BasicTest {
 
             }
         }, new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis())).query;
-        return SelectQueryExecution.computeCacheKey(new TracingTreeTimer(), query, Queries.queryCommands(query, datasetsMetadata), imhotepClient).cacheFileName;
+        return SelectQueryExecution.computeCacheKey(new TracingTreeTimer(), query, Queries.queryCommands(query), imhotepClient).cacheFileName;
     }
 
     @Test

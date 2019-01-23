@@ -13,38 +13,32 @@
  */
  package com.indeed.iql1.ez;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
-import com.indeed.imhotep.RemoteImhotepMultiSession;
-import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.protobuf.RegroupConditionMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql1.iql.ScoredLong;
 import com.indeed.iql1.iql.ScoredObject;
+import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
@@ -67,14 +61,14 @@ import static com.indeed.iql1.ez.Field.StringField;
 public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
 
-    private final ImhotepSession session;
+    private final ImhotepSessionHolder session;
     private final Deque<StatReference> statStack = new ArrayDeque<StatReference>();
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
     private boolean closed = false;
 
-    public EZImhotepSession(ImhotepSession session, Limits limits) {
+    public EZImhotepSession(final ImhotepSessionHolder session, final Limits limits) {
         this.session = session;
         this.limits = limits;
     }
@@ -92,9 +86,7 @@ public class EZImhotepSession implements Closeable {
             throw new IllegalArgumentException("Aggregate operations have to be pushed with pushStatGeneric");
         }
         final int initialDepth = stackDepth;
-        for (String statToPush : stat.pushes(this)) {
-            stackDepth = session.pushStat(statToPush);
-        }
+        stackDepth = session.pushStats(stat.pushes(this));
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
@@ -113,9 +105,7 @@ public class EZImhotepSession implements Closeable {
 
     public CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
         final int initialDepth = stackDepth;
-        for (String statToPush : stat.pushes(this)) {
-            stackDepth = session.pushStat(statToPush);
-        }
+        stackDepth = session.pushStats(stat.pushes(this));
         if (initialDepth + 2 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 2.");
         }
@@ -126,11 +116,10 @@ public class EZImhotepSession implements Closeable {
         return statReference;
     }
 
-    public StatReference popStat() {
+    public void popStat() {
         stackDepth = session.popStat();
         final StatReference poppedStat = statStack.pop();
         poppedStat.invalidate();
-        return poppedStat;
     }
 
     public int getStackDepth() {
@@ -162,27 +151,19 @@ public class EZImhotepSession implements Closeable {
      * Returns -1 if tempFileSizeBytesLeft was set to null or if the session is not a RemoteImhotepMultiSession.
      */
     public long getTempFilesBytesWritten() {
-        if(!(session instanceof RemoteImhotepMultiSession)) {
-            return -1;
-        }
-        return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
+        return session.getTempFilesBytesWritten();
     }
 
-    public void ftgsSubsetIterate(Map<Field, List<?>> fieldsToTermsSubsets, FTGSCallback callback) {
-        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+    public void ftgsIterate(final Field field, final FTGSCallback callback) {
+        ftgsIterate(field, callback, 0);
+    }
+
+    public void ftgsIterate(final Field field, final FTGSCallback callback, final int termLimit) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(field, termLimit);
         performIteration(callback, ftgsIterator);
     }
 
-    public void ftgsIterate(List<Field> fields, FTGSCallback callback) {
-        ftgsIterate(fields, callback, 0);
-    }
-
-    public void ftgsIterate(List<Field> fields, FTGSCallback callback, int termLimit) {
-        final FTGSIterator ftgsIterator = getFtgsIterator(fields, termLimit);
-        performIteration(callback, ftgsIterator);
-    }
-
-    private void performIteration(FTGSCallback callback, FTGSIterator ftgsIterator) {
+    private static void performIteration(final FTGSCallback callback, final FTGSIterator ftgsIterator) {
         try {
             while (ftgsIterator.nextField()) {
                 final String field = ftgsIterator.fieldName();
@@ -212,65 +193,60 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public <E> Iterator<E> ftgsGetSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets, final FTGSIteratingCallback<E> callback) {
-        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(fieldsToTermsSubsets);
+    public <E> Iterator<E> ftgsGetSubsetIterator(final Field field, final List<?> termsSubset, final FTGSIteratingCallback<E> callback) {
+        final FTGSIterator ftgsIterator = getFtgsSubsetIterator(field, termsSubset);
 
         // TODO: make sure ftgsIterator gets closed
         return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
-    private FTGSIterator getFtgsSubsetIterator(Map<Field, List<?>> fieldsToTermsSubsets) {
-        final Map<String, long[]> intFields = Maps.newHashMap();
-        final Map<String, String[]> stringFields = Maps.newHashMap();
-        for (Field field : fieldsToTermsSubsets.keySet()) {
-            final List<?> terms = fieldsToTermsSubsets.get(field);
-            if (field.isIntField()) {
-                final long[] intTermsSubset = new long[terms.size()];
-                for(int i = 0; i < intTermsSubset.length; i++) {
-                    final Object term = terms.get(i);
-                    if(term instanceof Long) {
-                        intTermsSubset[i] = (Long) term;
-                    } else if(term instanceof String) {
-                        try {
-                            intTermsSubset[i] = Long.valueOf((String) term);
-                        } catch (NumberFormatException e) {
-                            // TODO: move
-                            throw new IqlKnownException.ParseErrorException("IN grouping for int field " + field.getFieldName() +
-                                    " has a non integer argument: " + term);
-                        }
+    private FTGSIterator getFtgsSubsetIterator(final Field field, final List<?> terms) {
+        final Map<FieldSet, long[]> intFields = Maps.newHashMap();
+        final Map<FieldSet, String[]> stringFields = Maps.newHashMap();
+        if (field.isIntField()) {
+            final long[] intTermsSubset = new long[terms.size()];
+            for(int i = 0; i < intTermsSubset.length; i++) {
+                final Object term = terms.get(i);
+                if(term instanceof Long) {
+                    intTermsSubset[i] = (Long) term;
+                } else if(term instanceof String) {
+                    try {
+                        intTermsSubset[i] = Long.valueOf((String) term);
+                    } catch (NumberFormatException e) {
+                        // TODO: move
+                        throw new IqlKnownException.ParseErrorException("IN grouping for int field " + field.getFieldName() +
+                                " has a non integer argument: " + term);
                     }
                 }
-                Arrays.sort(intTermsSubset);
-                intFields.put(field.fieldName, intTermsSubset);
-            } else {
-                final String[] stringTermsSubset = new String[terms.size()];
-                for(int i = 0; i < stringTermsSubset.length; i++) {
-                    stringTermsSubset[i] = (String)terms.get(i);
-                }
-                Arrays.sort(stringTermsSubset);
-                stringFields.put(field.fieldName, stringTermsSubset);
             }
+            Arrays.sort(intTermsSubset);
+            intFields.put(FieldSet.of(session.getDatasetName(), field.fieldName), intTermsSubset);
+        } else {
+            final String[] stringTermsSubset = new String[terms.size()];
+            for(int i = 0; i < stringTermsSubset.length; i++) {
+                stringTermsSubset[i] = (String)terms.get(i);
+            }
+            Arrays.sort(stringTermsSubset);
+            stringFields.put(FieldSet.of(session.getDatasetName(), field.fieldName), stringTermsSubset);
         }
 
         return session.getSubsetFTGSIterator(intFields, stringFields);
     }
 
-    public <E> Iterator<E> ftgsGetIterator(List<Field> fields, final FTGSIteratingCallback<E> callback, int termLimit) {
-        final FTGSIterator ftgsIterator = getFtgsIterator(fields, termLimit);
+    public <E> Iterator<E> ftgsGetIterator(final Field field, final FTGSIteratingCallback<E> callback, final int termLimit) {
+        final FTGSIterator ftgsIterator = getFtgsIterator(field, termLimit);
 
         // TODO: make sure ftgsIterator gets closed
         return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
-    private FTGSIterator getFtgsIterator(List<Field> fields, int termLimit) {
+    private FTGSIterator getFtgsIterator(final Field field, int termLimit) {
         final List<String> intFields = Lists.newArrayList();
         final List<String> stringFields = Lists.newArrayList();
-        for (Field field : fields) {
-            if (field.isIntField()) {
-                intFields.add(field.fieldName);
-            } else {
-                stringFields.add(field.fieldName);
-            }
+        if (field.isIntField()) {
+            intFields.add(field.fieldName);
+        } else {
+            stringFields.add(field.fieldName);
         }
 
         if(termLimit == Integer.MAX_VALUE) {
@@ -302,16 +278,6 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public void filter(StringField field, Predicate<String> predicate) throws ImhotepOutOfMemoryException {
-        if (numGroups > 2) {
-            System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
-        }
-        final List<String> stringTerms = stringFieldTerms(field, session, predicate, 0);
-        for (int group = 1; group < numGroups; group++) {
-            session.stringOrRegroup(field.getFieldName(), stringTerms.toArray(new String[stringTerms.size()]), group, 0, group);
-        }
-    }
-
     public void filter(StringField field, String[] terms) throws ImhotepOutOfMemoryException {
         if (numGroups > 2) {
             System.err.println("WARNING: performing a term filter with more than one group. Consider filtering before regrouping.");
@@ -330,13 +296,19 @@ public class EZImhotepSession implements Closeable {
     }
 
     public void filter(SingleStatReference stat, long min, long max) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a metric filter with more than one group. Consider filtering before regrouping.");
+        }
         Stats.requireValid(stat);
-        numGroups = session.metricFilter(stat.depth, min, max, false);
+        session.metricFilter(stat.depth, min, max, false);
     }
 
     public void filterNegation(SingleStatReference stat, long min, long max) throws ImhotepOutOfMemoryException {
+        if (numGroups > 2) {
+            System.err.println("WARNING: performing a metric filter with more than one group. Consider filtering before regrouping.");
+        }
         Stats.requireValid(stat);
-        numGroups = session.metricFilter(stat.depth, min, max, true);
+        session.metricFilter(stat.depth, min, max, true);
     }
 
 
@@ -404,6 +376,13 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
+    // TODO: replace with message builder
+    private int regroupWithProtos(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
+        final RequestTools.GroupMultiRemapRuleSender ruleSender =
+                RequestTools.GroupMultiRemapRuleSender.createFromMessages(Arrays.asList(rawRuleMessages).iterator(), true);
+        return session.regroupWithSender(ruleSender, true);
+    }
+
     // @deprecated due to inefficiency. use splitAll()
     @Deprecated
     public @Nullable Int2ObjectMap<GroupKey> explodeEachGroup(IntField field, long[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
@@ -437,7 +416,7 @@ public class EZImhotepSession implements Closeable {
 
             rules[group - 1] = regroupMessageBuilder.build();
         }
-        numGroups = session.regroupWithProtos(rules, true);
+        numGroups = regroupWithProtos(rules);
         return ret;
     }
 
@@ -473,7 +452,7 @@ public class EZImhotepSession implements Closeable {
 
             rules[group - 1] = regroupMessageBuilder.build();
         }
-        numGroups = session.regroupWithProtos(rules, true);
+        numGroups = regroupWithProtos(rules);
         return ret;
     }
 
@@ -503,7 +482,7 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroupWithProtos(rules, true);
+                numGroups = regroupWithProtos(rules);
             }
         } else {
             final StringField stringField = (StringField) field;
@@ -522,22 +501,10 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             if(newGroupCount > 0) {
-                numGroups = session.regroupWithProtos(rules, true);
+                numGroups = regroupWithProtos(rules);
             }
         }
         return ret;
-    }
-
-    public @Nullable Int2ObjectMap<GroupKey> splitAllExplode(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
-        if (field.isIntField()) {
-            final IntField intField = (IntField) field;
-            final LongList terms = intFieldTerms(intField, session, null, termLimit);
-            return explodeEachGroup(intField, terms.toLongArray(), groupKeys);
-        } else {
-            final StringField stringField = (StringField) field;
-            final List<String> terms = stringFieldTerms(stringField, session, null, termLimit);
-            return explodeEachGroup(stringField, terms.toArray(new String[terms.size()]), groupKeys);
-        }
     }
 
     private int checkGroupLimitForTerms(Int2ObjectMap<? extends Collection> groupToTerms) {
@@ -571,7 +538,7 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroupWithProtos(rules, true);
+            numGroups = regroupWithProtos(rules);
         } else {
             final StringField stringField = (StringField) field;
             final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> termListsMap = getStringGroupTermsTopK(stringField, topK, stat, bottom);
@@ -591,7 +558,7 @@ public class EZImhotepSession implements Closeable {
                     ruleIndex++;
                 }
             }
-            numGroups = session.regroupWithProtos(rules, true);
+            numGroups = regroupWithProtos(rules);
         }
         return ret;
     }
@@ -689,28 +656,11 @@ public class EZImhotepSession implements Closeable {
             }
         }
         final int newExpectedNumberOfGroups = (numGroups-1) * numBuckets;
-        numGroups = session.metricRegroup(statRef.depth, min, max, intervalSize, noGutters);
+        session.metricRegroup(statRef.depth, min, max, intervalSize, noGutters);
+        numGroups = session.getNumGroups();
         // Delete the keys for trailing groups that don't exist on the server
         for (int group = numGroups; group <= newExpectedNumberOfGroups; group++) {
             ret.remove(group);
-        }
-        return ret;
-    }
-
-    public Object2LongMap<String> topTerms(StringField field, int k) {
-        final List<TermCount> termCounts = session.approximateTopTerms(field.getFieldName(), false, k);
-        final Object2LongMap<String> ret = new Object2LongOpenHashMap<String>();
-        for (TermCount termCount : termCounts) {
-            ret.put(termCount.getTerm().getTermStringVal(), termCount.getCount());
-        }
-        return ret;
-    }
-
-    public Long2LongMap topTerms(IntField field, int k) {
-        final List<TermCount> termCounts = session.approximateTopTerms(field.getFieldName(), true, k);
-        final Long2LongMap ret = new Long2LongOpenHashMap();
-        for (TermCount termCount : termCounts) {
-            ret.put(termCount.getTerm().getTermIntVal(), termCount.getCount());
         }
         return ret;
     }
@@ -747,13 +697,13 @@ public class EZImhotepSession implements Closeable {
 
     private Int2ObjectMap<List<String>> getStringGroupTerms(StringField field, int termLimit) {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
-        ftgsIterate(Arrays.asList((Field) field), callback, termLimit);
+        ftgsIterate(field, callback, termLimit);
         return callback.stringTermListsMap;
     }
 
     private Int2ObjectMap<LongList> getIntGroupTerms(IntField field, int termLimit) {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
-        ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
+        ftgsIterate(field, callback, termLimit);
         return callback.intTermListsMap;
     }
 
@@ -818,7 +768,7 @@ public class EZImhotepSession implements Closeable {
     private Int2ObjectMap<PriorityQueue<ScoredObject<String>>> getStringGroupTermsTopK(StringField field, int k, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
         final StatReference statRef = pushStat(stat);
         final GetGroupTermsCallbackTopK callback = new GetGroupTermsCallbackTopK(stackDepth, statRef, k, bottom);
-        ftgsIterate(Arrays.asList((Field)field), callback);
+        ftgsIterate(field, callback);
         popStat();
         return callback.stringTermListsMap;
     }
@@ -826,61 +776,9 @@ public class EZImhotepSession implements Closeable {
     private Int2ObjectMap<PriorityQueue<ScoredLong>> getIntGroupTermsTopK(IntField field, int k, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
         final StatReference statRef = pushStat(stat);
         final GetGroupTermsCallbackTopK callback = new GetGroupTermsCallbackTopK(stackDepth, statRef, k, bottom);
-        ftgsIterate(Arrays.asList((Field)field), callback);
+        ftgsIterate(field, callback);
         popStat();
         return callback.intTermListsMap;
-    }
-
-    private static final class FieldTermsCallback extends FTGSCallback {
-
-        final LongList intTerms = new LongArrayList();
-        final List<String> stringTerms = Lists.newArrayList();
-        private final Predicate<Long> predicateInt;
-        private final Predicate<String> predicateString;
-
-        private long lastIntTerm = Long.MIN_VALUE;
-        private String lastStringTerm = null;
-        private boolean firstIteration = true;
-
-        public FieldTermsCallback(final int numStats, @Nullable Predicate<Long> predicateInt, @Nullable Predicate<String> predicateString) {
-            super(numStats);
-
-            this.predicateInt = predicateInt;
-            this.predicateString = predicateString;
-        }
-
-        public void intTermGroup(final String field, final long term, int group) {
-            // expecting incoming terms to be in sorted order
-            if(firstIteration || term != lastIntTerm) {
-                firstIteration = false;
-                lastIntTerm = term;
-                if(predicateInt == null || predicateInt.apply(term)) {
-                    intTerms.add(term);
-                }
-            }
-        }
-
-        public void stringTermGroup(final String field, final String term, int group) {
-            // expecting incoming terms to be in sorted order
-            if(firstIteration || !term.equals(lastStringTerm)) {
-                firstIteration = false;
-                lastStringTerm = term;
-                if(predicateString == null || predicateString.apply(term)) {
-                    stringTerms.add(term);
-                }
-            }
-        }
-    }
-    public LongList intFieldTerms(IntField field, ImhotepSession session, @Nullable Predicate<Long> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
-        final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, filterPredicate, null);
-        new EZImhotepSession(session, limits).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
-        return callback.intTerms;
-    }
-
-    public List<String> stringFieldTerms(StringField field, ImhotepSession session, @Nullable Predicate<String> filterPredicate, int termLimit) throws ImhotepOutOfMemoryException {
-        final FieldTermsCallback callback = new FieldTermsCallback(stackDepth, null, filterPredicate);
-        new EZImhotepSession(session, limits).ftgsIterate(Arrays.asList((Field)field), callback, termLimit);
-        return callback.stringTerms;
     }
 
     public static abstract class FTGSCallback {
@@ -915,17 +813,6 @@ public class EZImhotepSession implements Closeable {
 
         public abstract E intTermGroup(String field, long term, int group);
         public abstract E stringTermGroup(String field, String term, int group);
-    }
-
-    public class FTGSDoNothingCallback extends FTGSCallback {
-
-        public FTGSDoNothingCallback(final int numStats) {
-            super(numStats);
-        }
-
-        protected void intTermGroup(final String field, final long term, int group) {}
-
-        protected void stringTermGroup(final String field, final String term, int group) {}
     }
 
     @Nullable
@@ -1001,9 +888,6 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat intField(String name) {
         return new Stats.IntFieldStat(name);
     }
-    public static Stats.Stat intField(IntField field) {
-        return new Stats.IntFieldStat(field.getFieldName());
-    }
     public static Stats.Stat hasInt(String field, long value) {
         return new Stats.HasIntStat(field, value);
     }
@@ -1044,14 +928,5 @@ public class EZImhotepSession implements Closeable {
 
     public static Stats.Stat aggDivConst(Stats.Stat stat1, long value) {
         return new Stats.AggregateBinOpConstStat("/", stat1, value);
-    }
-
-    @Nonnull
-    private static long[] intArrayToLongArray(@Nonnull final int[] a) {
-        final long[] ret = new long[a.length];
-        for (int i = 0; i < a.length; ++i) {
-            ret[i] = a[i];
-        }
-        return ret;
     }
 }

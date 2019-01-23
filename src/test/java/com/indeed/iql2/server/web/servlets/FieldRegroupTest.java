@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.addConstantColumn;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
@@ -39,7 +38,7 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("10", "2", "20"));
         expected.add(ImmutableList.of("15", "1", "15"));
         testAll(expected, "from organic yesterday today group by ojc select count(), ojc", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc", true);
     }
 
     @Test
@@ -49,7 +48,25 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("2", "1", "2"));
         testAll(expected, "from organic yesterday today group by ojc select count(), ojc LIMIT 3", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc LIMIT 3", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc, allbit select count(), ojc LIMIT 3", true);
+    }
+
+    @Test
+    public void testFieldInInt() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("1", "84", "84"));
+        expected.add(ImmutableList.of("2", "1", "2"));
+        testAll(expected, "from organic yesterday today group by ojc in (1, 2) select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc in (1, 2), allbit select count(), ojc", true);
+    }
+
+    @Test
+    public void testFieldInSting() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("a", "4", "7"));
+        expected.add(ImmutableList.of("b", "2", "17"));
+        testAll(expected, "from organic yesterday today group by tk in (\"a\", \"b\") select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by tk in (\"a\", \"b\"), allbit select count(), ojc", true);
     }
 
     @Test
@@ -60,7 +77,7 @@ public class FieldRegroupTest extends BasicTest {
         // TODO: Introduce fully deterministic ordering for ties and increase to top 3?
 //        expected.add(ImmutableList.of("0", "2", "0"));
         testAll(expected, "from organic yesterday today group by ojc[2] select count(), ojc", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], allbit select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], allbit select count(), ojc", true);
     }
 
     // IF THIS BREAKS, READ THE TODO BEFORE TRYING TO FIGURE OUT WHAT YOU DID
@@ -73,11 +90,11 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("15", "1", "15"));
         // IQL1 has another tie-breaker
         testIQL2AndLegacy(expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3], allbit select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 3], allbit select count(), ojc", true);
     }
 
     @Test
-    public void testTopKOrdering() throws Exception {
+    public void testIntTopKOrdering() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("15", "1", "15"));
         expected.add(ImmutableList.of("10", "2", "20"));
@@ -87,7 +104,21 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
         testAll(expected, "from organic yesterday today group by ojc[100 by ojc/count()] select count(), ojc", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[100 BY ojc/count()], allbit select count(), ojc", true);
+        testAll(ImmutableList.of(
+                ImmutableList.of("1", "1", "84", "84"),
+                ImmutableList.of("3", "1", "60", "180")),
+                "from organic yesterday today group by ojc[2 by count()], allbit select count(), ojc", true);
+    }
+
+    @Test
+    public void testStringTopKOrdering() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("d", "141", "261"));
+        expected.add(ImmutableList.of("c", "4", "21"));
+        expected.add(ImmutableList.of("b", "2", "17"));
+        expected.add(ImmutableList.of("a", "4", "7"));
+        testAll(expected, "from organic yesterday today group by tk[100 by ojc] select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by tk[100 by ojc], allbit select count(), ojc", true);
     }
 
     @Test
@@ -97,7 +128,7 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("2", "1", "2"));
         expected.add(ImmutableList.of("5", "1", "5"));
         testAll(expected, "from organic yesterday today group by ojc[bottom 3 by ojc] select count(), ojc", true);
-        testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BOTTOM 3 BY ojc], allbit select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 3 by ojc], allbit select count(), ojc", true);
     }
 
     @Test

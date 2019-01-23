@@ -23,13 +23,13 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -367,7 +367,7 @@ public class QueryServlet {
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
-                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
+                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation, queryRequestParams.getTotals,
                         clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), accessControl);
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
@@ -495,7 +495,7 @@ public class QueryServlet {
         final IQLQuery.ExecutionResult executionResult;
         try {
             // TODO: should we always get totals? opt out http param?
-            executionResult = iqlQuery.execute(args.isEventStream, outputStream, true);
+            executionResult = iqlQuery.execute(args.isEventStream, outputStream);
             queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
 
             queryMetadata.setPendingHeaders();

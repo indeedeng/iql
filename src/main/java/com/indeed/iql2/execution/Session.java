@@ -32,6 +32,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
 import com.indeed.imhotep.api.GroupStatsIterator;
@@ -43,7 +44,6 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldType;
@@ -103,6 +103,7 @@ public class Session {
     public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
+    private double[] statsTotals;
 
     public final Map<String, ImhotepSessionInfo> sessions;
     public final TracingTreeTimer timer;
@@ -144,15 +145,18 @@ public class Session {
     }
 
     public static class CreateSessionResult {
-        public final Optional<Session> session;
         public final long tempFileBytesWritten;
         @Nullable
         public final PerformanceStats imhotepPerformanceStats;
+        public final Optional<double[]> totals;
 
-        CreateSessionResult(Optional<Session> session, long tempFileBytesWritten, PerformanceStats imhotepPerformanceStats) {
-            this.session = session;
+        CreateSessionResult(
+                final long tempFileBytesWritten,
+                final PerformanceStats imhotepPerformanceStats,
+                final Optional<double[]> totals) {
             this.tempFileBytesWritten = tempFileBytesWritten;
             this.imhotepPerformanceStats = imhotepPerformanceStats;
+            this.totals = totals;
         }
     }
 
@@ -162,6 +166,7 @@ public class Session {
             final Integer groupLimit,
             final Set<String> optionsSet,
             final List<com.indeed.iql2.language.commands.Command> commands,
+            final Optional<List<com.indeed.iql2.language.AggregateMetric>> totals,
             final List<Queries.QueryDataset> datasets,
             final StrictCloser strictCloser,
             final Consumer<String> out,
@@ -217,6 +222,19 @@ public class Session {
             throw new RuntimeException("You have requested me to fail.");
         }
 
+        final double[] totalValues;
+        if (totals.isPresent()) {
+            totalValues = new double[totals.get().size()];
+            for (int i = 0; i < totals.get().size(); i++) {
+                final AggregateMetric metric = totals.get().get(i).toExecutionMetric(session::namedMetricLookup, session.groupKeySet);
+                // first param in getGroupStats can be any since data is cached already.
+                final double[] groupStats = metric.getGroupStats(new long[1][1], 2);
+                totalValues[i] = groupStats[1];
+            }
+        } else {
+            totalValues = session.statsTotals;
+        }
+
         long tempFileBytesWritten = 0L;
         for (final ImhotepSessionInfo sessionInfo : session.sessions.values()) {
             tempFileBytesWritten += sessionInfo.session.getTempFilesBytesWritten();
@@ -235,7 +253,7 @@ public class Session {
             log.error("Exception trying to close Imhotep sessions", e);
         }
 
-        return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
+        return new CreateSessionResult(tempFileBytesWritten, performanceStats.build(), Optional.fromNullable(totalValues));
     }
 
     private void ensureNoStats() {
@@ -418,6 +436,15 @@ public class Session {
                         sb.setLength(sb.length() - 1);
                         out.accept(sb.toString());
                         sb.setLength(0);
+                    }
+
+                    if (numGroups == 1) {
+                        // It's query without regroup.
+                        // Saving totalStats since it's not calculated otherwise.
+                        statsTotals = new double[results.length];
+                        for (int i = 0; i < statsTotals.length; i++) {
+                            statsTotals[i] = results[i][numGroups];
+                        }
                     }
                 } else {
                     throw new IllegalArgumentException("Don't know how to evaluate [" + command + "] to TSV");

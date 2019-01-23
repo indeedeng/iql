@@ -36,11 +36,11 @@ import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -159,6 +159,7 @@ public class SelectQueryExecution {
     public final int version;
     public final boolean isStream;
     public final boolean skipValidation;
+    public final boolean getTotals;
     private final WallClock clock;
 
     public boolean ran = false;
@@ -178,6 +179,7 @@ public class SelectQueryExecution {
             final int version,
             final boolean isStream,
             final boolean skipValidation,
+            final boolean getTotals,
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
@@ -193,6 +195,7 @@ public class SelectQueryExecution {
         this.limits = limits;
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.skipValidation = skipValidation;
+        this.getTotals = getTotals;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
@@ -511,7 +514,8 @@ public class SelectQueryExecution {
             );
 
             timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), datasetsMetadata);
+            final Optional<List<AggregateMetric>> totals = query.useLegacy ? Optional.of(new ArrayList<>()) : Optional.absent();
+            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), totals);
             timer.pop();
 
             if (!skipValidation) {
@@ -663,6 +667,7 @@ public class SelectQueryExecution {
                             groupLimit,
                             Sets.newHashSet(query.options),
                             commands,
+                            totals,
                             datasets,
                             innerStrictCloser,
                             out,
@@ -689,6 +694,10 @@ public class SelectQueryExecution {
                             (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
                             (cacheWriter != null) ? cacheWriter.isOverflowed() : null
                     );
+
+                    if (createResult.totals.isPresent()) {
+                        queryMetadata.addItem("IQL-Totals", Arrays.toString(createResult.totals.get()), getTotals);
+                    }
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
 

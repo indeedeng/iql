@@ -33,7 +33,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -65,7 +64,7 @@ public class PercentileGrouping extends Grouping {
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs, final long timeoutTS) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }
@@ -138,7 +137,7 @@ public class PercentileGrouping extends Grouping {
             // hack for ramses indexes, it's slower to iterate over a string field as an int field but it's better than
             // doing a 2D metric regroup like ramhotep does
             final Field ftgsField = f.isIntField() ? f : Field.intField(f.getFieldName());
-            session.ftgsIterate(Arrays.asList(ftgsField), callback);
+            session.ftgsIterate(ftgsField, callback);
 
             final Int2ObjectMap<LongList> groupToPercentileStats = callback.finalizeAndGetGroupToPercentileStats();
             for (final int group : groupToPercentileStats.keySet()) {
