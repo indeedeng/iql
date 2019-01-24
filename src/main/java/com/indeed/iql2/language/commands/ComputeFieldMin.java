@@ -18,10 +18,10 @@ import com.google.common.base.Function;
 import com.indeed.iql2.execution.commands.GetFieldMin;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,8 +34,8 @@ public class ComputeFieldMin implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(field, validationHelper, validator, this);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
     }
 
     @Override

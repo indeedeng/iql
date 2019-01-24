@@ -16,7 +16,7 @@ package com.indeed.iql2.language.util;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
-import com.indeed.iql2.language.Validator;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -62,17 +62,17 @@ public class ValidationHelper {
                 (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
     }
 
-    public void validateIntField(String dataset, String datasetField, Validator validator, Object context) {
+    public void validateIntField(String dataset, String datasetField, ErrorCollector errorCollector, Object context) {
         if (!containsIntOrAliasField(dataset, datasetField)) {
             // special case for page as it is a string field at Imhotep, but it also needs to support int field operation
             if (("jobsearch".equals(dataset) || "mobsearch".equals(dataset))
                     && ("page".equals(datasetField) || "vp".equals(datasetField))) {
             } else if (containsStringField(dataset, datasetField)) {
                 if (!useLegacy) {
-                    validator.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, context));
+                    errorCollector.warn(ErrorMessages.stringFieldMismatch(dataset, datasetField, context));
                 }
             } else {
-                validator.error(ErrorMessages.missingIntField(dataset, datasetField, context));
+                errorCollector.error(ErrorMessages.missingIntField(dataset, datasetField, context));
             }
         }
     }

@@ -517,7 +517,7 @@ public class SelectQueryExecution {
                 timer.push("validate commands");
                 final Set<String> errors = new HashSet<>();
                 final Set<String> warnings = new HashSet<>();
-                CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
+                CommandValidator.validate(commands, query, datasetsMetadata, new ErrorCollector(errors, warnings));
 
                 if (errors.size() != 0) {
                     throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);

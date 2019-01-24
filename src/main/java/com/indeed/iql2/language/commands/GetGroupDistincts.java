@@ -22,10 +22,10 @@ import com.indeed.iql2.execution.commands.GetSimpleGroupDistincts;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,10 +42,10 @@ public class GetGroupDistincts implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(field, validationHelper, validator, this);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
         if (filter.isPresent()) {
-            filter.get().validate(field.datasets(), validationHelper, validator);
+            filter.get().validate(field.datasets(), validationHelper, errorCollector);
         }
     }
 

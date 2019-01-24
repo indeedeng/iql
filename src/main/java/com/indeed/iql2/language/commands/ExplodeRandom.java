@@ -19,9 +19,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 
@@ -37,13 +37,13 @@ public class ExplodeRandom implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
         for (final String dataset : validationHelper.datasets()) {
             validationHelper.containsField(dataset, field.datasetFieldName(dataset));
         }
         if (k <= 1) {
-            validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
+            errorCollector.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
         }
     }
 

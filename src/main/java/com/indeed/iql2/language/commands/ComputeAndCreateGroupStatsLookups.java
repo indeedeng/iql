@@ -17,8 +17,8 @@ package com.indeed.iql2.language.commands;
 import com.google.common.base.Function;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import com.indeed.util.core.Pair;
 
 import java.util.List;
@@ -33,9 +33,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final Pair<Command, String> pair : namedComputations) {
-            pair.getFirst().validate(validationHelper, validator);
+            pair.getFirst().validate(validationHelper, errorCollector);
             validationHelper.registerComputed(pair.getSecond());
         }
     }

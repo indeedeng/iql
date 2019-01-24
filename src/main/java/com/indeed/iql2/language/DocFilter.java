@@ -41,6 +41,7 @@ import com.indeed.iql2.language.util.MapUtil;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
@@ -94,7 +95,7 @@ public abstract class DocFilter extends AbstractPositional {
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
-    public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
+    public abstract void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector);
 
     @Override
     public DocFilter copyPosition(Positional positional) {
@@ -112,12 +113,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (term.isIntTerm) {
-                ValidationUtil.validateIntField(ImmutableSet.of(dataset), fieldName, validationHelper, validator, this);
+                ValidationUtil.validateIntField(ImmutableSet.of(dataset), fieldName, validationHelper, errorCollector, this);
             } else {
-                ValidationUtil.validateStringField(ImmutableSet.of(dataset), fieldName, validationHelper, validator, this);
+                ValidationUtil.validateStringField(ImmutableSet.of(dataset), fieldName, validationHelper, errorCollector, this);
             }
         }
     }
@@ -262,7 +263,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector validator) {
             // TODO: Should we do anything here? I don't think so...
         }
 
@@ -356,8 +357,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.datasetFieldName(dataset), validationHelper, validator, this);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.datasetFieldName(dataset), validationHelper, errorCollector, this);
         }
 
         @Override
@@ -411,9 +412,9 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(dataset, validationHelper, validator);
-            m2.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(dataset, validationHelper, errorCollector);
+            m2.validate(dataset, validationHelper, errorCollector);
         }
     }
 
@@ -826,8 +827,8 @@ public abstract class DocFilter extends AbstractPositional {
         public final void validate(
                 final String dataset,
                 final ValidationHelper validationHelper,
-                final Validator validator) {
-            filters.forEach(f -> f.validate(dataset, validationHelper, validator));
+                final ErrorCollector errorCollector) {
+            filters.forEach(f -> f.validate(dataset, validationHelper, errorCollector));
         }
 
         @Override
@@ -1091,8 +1092,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            filter.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            filter.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -1147,9 +1148,9 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             if (!validationHelper.containsStringField(dataset, field.datasetFieldName(dataset))) {
-                validator.error(ErrorMessages.missingStringField(dataset, field.datasetFieldName(dataset), this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, field.datasetFieldName(dataset), this));
             }
         }
 
@@ -1207,10 +1208,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1262,8 +1263,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            ValidationUtil.validateExistenceAndSameFieldType(dataset, field1.datasetFieldName(dataset), field2.datasetFieldName(dataset), validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.validateExistenceAndSameFieldType(dataset, field1.datasetFieldName(dataset), field2.datasetFieldName(dataset), validationHelper, errorCollector);
         }
 
         @Override
@@ -1339,11 +1340,11 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             if (scope.contains(dataset)) {
-                filter.validate(dataset, validationHelper, validator);
+                filter.validate(dataset, validationHelper, errorCollector);
             }
-            ValidationUtil.validateScope(scope, validationHelper, validator);
+            ValidationUtil.validateScope(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -1408,9 +1409,9 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final Query flamdexQuery = ParserUtil.getFlamdexQuery(query, dataset, datasetsMetadata, fieldResolver);
-            ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), validator, this);
+            ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), errorCollector, this);
         }
 
         @Override
@@ -1476,10 +1477,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
 
@@ -1561,8 +1562,8 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(final String dataset,
                              final ValidationHelper validationHelper,
-                             final Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
+                             final ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -1618,7 +1619,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1660,7 +1661,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1722,10 +1723,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = this.field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1793,10 +1794,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
 
@@ -1862,7 +1863,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         }
 
         @Override

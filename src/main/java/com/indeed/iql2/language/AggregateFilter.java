@@ -26,6 +26,7 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,7 @@ public abstract class AggregateFilter extends AbstractPositional {
      */
     public abstract AggregateFilter traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    public abstract void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator);
+    public abstract void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector);
 
     public abstract boolean isOrdered();
 
@@ -99,7 +100,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         }
 
         @Override
@@ -156,7 +157,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         }
 
         @Override
@@ -207,7 +208,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         return false;
     }
 
-    private static void checkMetricEqualityComparison(final Validator validator, final AggregateFilter ctx, final AggregateMetric m1, final AggregateMetric m2) {
+    private static void checkMetricEqualityComparison(final ErrorCollector errorCollector, final AggregateFilter ctx, final AggregateMetric m1, final AggregateMetric m2) {
         Double value = null;
         AggregateMetric pushes = null;
         if ((m1 instanceof AggregateMetric.Constant) && isAddedDocStatsPushes(m2)) {
@@ -234,7 +235,7 @@ public abstract class AggregateFilter extends AbstractPositional {
             }
 
             final String operator = (longValue > 0) ? ">" : "<";
-            validator.warn("Comparison of aggregate to constant \"" + ctx.getTextOrToString() + "\" is likely an error. " +
+            errorCollector.warn("Comparison of aggregate to constant \"" + ctx.getTextOrToString() + "\" is likely an error. " +
                     "If there are multiple documents with value " + longValue + ", the sum will be " + operator + longValue + ". " +
                     extraDetail);
         }
@@ -265,10 +266,10 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
-            AggregateFilter.checkMetricEqualityComparison(validator, this, m1, m2);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
+            AggregateFilter.checkMetricEqualityComparison(errorCollector, this, m1, m2);
         }
 
         @Override
@@ -332,10 +333,10 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
-            AggregateFilter.checkMetricEqualityComparison(validator, this, m1, m2);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
+            AggregateFilter.checkMetricEqualityComparison(errorCollector, this, m1, m2);
         }
 
         @Override
@@ -399,9 +400,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -465,9 +466,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -531,9 +532,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -597,9 +598,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -676,9 +677,9 @@ public abstract class AggregateFilter extends AbstractPositional {
         public final void validate(
                 final Set<String> scope,
                 final ValidationHelper validationHelper,
-                final Validator validator) {
+                final ErrorCollector errorCollector) {
             for (final AggregateFilter filter : filters) {
-                filter.validate(scope, validationHelper, validator);
+                filter.validate(scope, validationHelper, errorCollector);
             }
         }
 
@@ -869,8 +870,8 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            filter.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            filter.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -932,12 +933,12 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             Preconditions.checkState(field.datasets().equals(scope));
             for (final String dataset : scope) {
                 final String fieldName = field.datasetFieldName(dataset);
                 if (!validationHelper.containsField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.missingField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
                 }
             }
         }
@@ -992,7 +993,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1039,7 +1040,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1085,7 +1086,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 

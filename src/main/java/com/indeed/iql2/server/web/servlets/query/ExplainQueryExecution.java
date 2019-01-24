@@ -151,7 +151,7 @@ public class ExplainQueryExecution {
             );
 
             final List<Command> commands = Queries.queryCommands(query, datasetsMetadata);
-            CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
+            CommandValidator.validate(commands, query, datasetsMetadata, new ErrorCollector(errors, warnings));
 
             for (final Command command : commands) {
                 printer.push(command.toString());

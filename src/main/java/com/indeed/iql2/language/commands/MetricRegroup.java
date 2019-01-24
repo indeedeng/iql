@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -49,20 +49,20 @@ public class MetricRegroup implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         if (interval <= 0) {
-            validator.error("Bucket size must be positive. size = " + interval);
+            errorCollector.error("Bucket size must be positive. size = " + interval);
         }
         if (min >= max) {
-            validator.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
+            errorCollector.error("Inverval minimum must be lower than interval maximum. Min = " + min + ", Max = " + max);
         }
         if ((max-min)%interval != 0) {
             final long bucketRange = max - min;
-            validator.error(MessageFormat.format("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to {0} or increase to {1}", max - bucketRange % interval, max + interval - bucketRange % interval));
+            errorCollector.error(MessageFormat.format("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to {0} or increase to {1}", max - bucketRange % interval, max + interval - bucketRange % interval));
         }
 
         for (final Map.Entry<String, DocMetric> docMetricEntry : perDatasetMetric.entrySet()) {
-            docMetricEntry.getValue().validate(docMetricEntry.getKey(), validationHelper, validator);
+            docMetricEntry.getValue().validate(docMetricEntry.getKey(), validationHelper, errorCollector);
         }
     }
 

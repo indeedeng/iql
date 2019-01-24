@@ -28,6 +28,7 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -116,7 +117,7 @@ public abstract class AggregateMetric extends AbstractPositional {
      * @return the transformed AggregateMetric
      */
     public abstract AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f);
-    public abstract void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator);
+    public abstract void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector);
     public abstract boolean isOrdered();
     public boolean requiresFTGS() { return false; }
     public abstract com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(
@@ -143,8 +144,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -265,9 +266,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(scope, validationHelper, validator);
-            m2.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(scope, validationHelper, errorCollector);
+            m2.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -310,9 +311,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         public void validate(
                 final Set<String> scope,
                 final ValidationHelper validationHelper,
-                final Validator validator) {
+                final ErrorCollector errorCollector) {
             for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, validationHelper, validator);
+                metric.validate(scope, validationHelper, errorCollector);
             }
         }
 
@@ -601,7 +602,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             throw new IllegalStateException("Cannot serialize " + getClass().getSimpleName() + " -- it should be removed by ExtractPrecomputed!");
         }
     }
@@ -630,8 +631,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -691,8 +692,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -753,7 +754,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             throw new UnsupportedOperationException("Cannot / should not validate DivideByCount -- ExtractPrecomputed should transfer it to Divide!");
         }
 
@@ -819,8 +820,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -885,8 +886,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -952,13 +953,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final Set<String> thisScope = Sets.newHashSet(this.scope);
             if (!scope.containsAll(thisScope)) {
-                validator.error("Qualified scope is not a subset of outer scope! qualified scope = [" + this.scope + "], outer scope = [" + scope + "]");
+                errorCollector.error("Qualified scope is not a subset of outer scope! qualified scope = [" + this.scope + "], outer scope = [" + scope + "]");
             }
-            metric.validate(thisScope, validationHelper, validator);
-            ValidationUtil.validateScope(this.scope, validationHelper, validator);
+            metric.validate(thisScope, validationHelper, errorCollector);
+            ValidationUtil.validateScope(this.scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -1019,9 +1020,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            pushes.validate(dataset, validationHelper, validator);
-            ValidationUtil.validateDataset(dataset, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            pushes.validate(dataset, validationHelper, errorCollector);
+            ValidationUtil.validateDataset(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -1083,9 +1084,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             for (final String dataset : scope) {
-                docMetric.validate(dataset, validationHelper, validator);
+                docMetric.validate(dataset, validationHelper, errorCollector);
             }
         }
 
@@ -1143,7 +1144,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1261,8 +1262,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -1401,8 +1402,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -1461,7 +1462,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final Set<String> scope, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final Set<String> scope, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
         }
 
         @Override
@@ -1511,9 +1512,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             if (!validationHelper.isComputed(name)) {
-                validator.error("Cannot use value that has not been computed yet. Likely cause: DISTINCT, PERCENTILE, FIELD_MIN, FIELD_MAX, or SUM_OVER used in a Top K BY clause.");
+                errorCollector.error("Cannot use value that has not been computed yet. Likely cause: DISTINCT, PERCENTILE, FIELD_MIN, FIELD_MAX, or SUM_OVER used in a Top K BY clause.");
             }
         }
 
@@ -1645,10 +1646,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
-            condition.validate(scope, validationHelper, validator);
-            trueCase.validate(scope, validationHelper, validator);
-            falseCase.validate(scope, validationHelper, validator);
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            condition.validate(scope, validationHelper, errorCollector);
+            trueCase.validate(scope, validationHelper, errorCollector);
+            falseCase.validate(scope, validationHelper, errorCollector);
         }
 
         @Override
@@ -1827,13 +1828,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, validationHelper, validator);
+                metric.validate(scope, validationHelper, errorCollector);
             }
 
             if (metrics.size() < 2) {
-                validator.error("MIN requires at least 2 arguments. Did you mean FIELD_MIN()?");
+                errorCollector.error("MIN requires at least 2 arguments. Did you mean FIELD_MIN()?");
             }
         }
 
@@ -1908,13 +1909,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+        public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, validationHelper, validator);
+                metric.validate(scope, validationHelper, errorCollector);
             }
 
             if (metrics.size() < 2) {
-                validator.error("MAX requires at least 2 arguments. Did you mean FIELD_MAX()?");
+                errorCollector.error("MAX requires at least 2 arguments. Did you mean FIELD_MAX()?");
             }
         }
 
