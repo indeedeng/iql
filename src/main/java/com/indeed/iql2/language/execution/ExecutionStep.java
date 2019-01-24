@@ -18,6 +18,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
@@ -28,6 +29,7 @@ import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.ComputeAndCreateGroupStatsLookup;
 import com.indeed.iql2.language.commands.ComputeAndCreateGroupStatsLookups;
 import com.indeed.iql2.language.commands.FieldIterateOpts;
+import com.indeed.iql2.language.commands.GroupByFieldinPlaceholderCommand;
 import com.indeed.iql2.language.commands.IterateAndExplode;
 import com.indeed.iql2.language.commands.MetricRegroup;
 import com.indeed.iql2.language.commands.RandomMetricRegroup;
@@ -36,6 +38,7 @@ import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.precomputed.Precomputed;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -671,6 +674,40 @@ public interface ExecutionStep {
                     ", scope=" + scope +
                     ", k=" + k +
                     ", salt='" + salt + '\'' +
+                    '}';
+        }
+    }
+
+    /**
+     * Exists so that we can transform a Query with subqueries into a
+     * List&lt;Command&gt; in order to validate it.
+     */
+    class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
+        private final FieldSet field;
+        private final Query query;
+        private final DatasetsMetadata datasetsMetadata;
+
+        public GroupByFieldInQueryPlaceholderExecutionStep(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
+            this.field = field;
+            this.query = query;
+            this.datasetsMetadata = datasetsMetadata;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.singletonList(new GroupByFieldinPlaceholderCommand(field, query, datasetsMetadata));
+        }
+
+        @Override
+        public ExecutionStep traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByFieldInQueryPlaceholderExecutionStep{" +
+                    "field=" + field +
+                    ", query=" + query +
                     '}';
         }
     }

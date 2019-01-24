@@ -36,11 +36,11 @@ public class CommandValidator {
     }
 
     public static void validate(
-            final List<Command> commands,
             final Query query,
             final DatasetsMetadata datasetsMetadata,
             final ErrorCollector errorCollector
     ) {
+        final List<Command> commands = query.commands();
         final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
         for (final Command command : commands) {
             command.validate(validationHelper, errorCollector);

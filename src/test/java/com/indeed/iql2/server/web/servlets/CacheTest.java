@@ -22,11 +22,11 @@ import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.QueryOptions;
+import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import junit.framework.Assert;
@@ -73,7 +73,7 @@ public class CacheTest extends BasicTest {
 
             }
         }, clock, timer, shardResolver).query;
-        return SelectQueryExecution.computeCacheKey(timer, query, Queries.queryCommands(query, datasetsMetadata), imhotepClient).cacheFileName;
+        return CacheKey.computeCacheKey(query).cacheFileName;
     }
 
     @Test

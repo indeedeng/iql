@@ -15,7 +15,6 @@
 package com.indeed.iql2.execution.progress;
 
 import com.google.common.base.Optional;
-import com.indeed.imhotep.Shard;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;

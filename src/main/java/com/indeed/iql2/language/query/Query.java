@@ -39,6 +39,8 @@ import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
+import com.indeed.iql2.language.cachekeys.CacheKey;
+import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.RemappingShardResolver;
@@ -59,6 +61,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -71,6 +74,9 @@ public class Query extends AbstractPositional {
     public final List<String> options;
     public final Optional<Integer> rowLimit;
     public final boolean useLegacy;
+
+    // Lazily initialized on use
+    private List<Command> commands = null;
 
     // Helper class for data that necessary while parsing query.
     public static class Context {
@@ -493,6 +499,25 @@ public class Query extends AbstractPositional {
                 }
             }
         }
+    }
+
+    public List<Command> commands() {
+        if (commands == null) {
+            // TODO: incrementQueryLimit here seems *very* strange
+            commands = Queries.queryCommands(SelectQueryExecution.incrementQueryLimit(this));
+        }
+        return commands;
+    }
+
+    public CacheKey cacheKey() {
+        return CacheKey.computeCacheKey(this);
+    }
+
+    public Set<String> allCacheKeys() {
+        final Set<String> allKeys = new HashSet<>();
+        allKeys.add(cacheKey().rawHash);
+        runOnAllSubQueries(subQuery -> allKeys.addAll(subQuery.query.allCacheKeys()));
+        return allKeys;
     }
 
     @Override

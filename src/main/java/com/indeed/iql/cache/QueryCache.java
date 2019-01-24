@@ -39,7 +39,7 @@ public interface QueryCache {
     /**
      * Returns InputStream that can be used to read data in the cache.
      * close() should be called when done.
-     * Returns null if the file is not cached.
+     * Returns null if the file is not cached or cache is disabled.
      */
     @Nullable
     public InputStream getInputStream(String cachedFileName) throws IOException;

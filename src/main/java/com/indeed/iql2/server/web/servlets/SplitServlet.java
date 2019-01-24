@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.base.Joiner;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql2.language.query.Queries;

@@ -19,6 +19,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -494,16 +495,19 @@ public abstract class GroupBy extends AbstractPositional {
         public final Query query;
         public final boolean isNegated;
         public final boolean withDefault;
+        private final DatasetsMetadata datasetsMetadata;
 
         public GroupByFieldInQuery(
                 final FieldSet field,
                 final Query query,
                 final boolean isNegated,
-                final boolean withDefault) {
+                final boolean withDefault,
+                final DatasetsMetadata datasetsMetadata) {
             this.field = field;
             this.query = query;
             this.isNegated = isNegated;
             this.withDefault = withDefault;
+            this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
@@ -518,7 +522,7 @@ public abstract class GroupBy extends AbstractPositional {
                 final Function<DocMetric, DocMetric> g,
                 final Function<AggregateFilter, AggregateFilter> h,
                 final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByFieldInQuery(field, query, isNegated, withDefault))
+            return groupBy.apply(new GroupByFieldInQuery(field, query, isNegated, withDefault, datasetsMetadata))
                     .copyPosition(this);
         }
 
@@ -529,7 +533,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(final Set<String> scope) {
-            throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
+            return new ExecutionStep.GroupByFieldInQueryPlaceholderExecutionStep(field, query, datasetsMetadata);
         }
 
         @Override

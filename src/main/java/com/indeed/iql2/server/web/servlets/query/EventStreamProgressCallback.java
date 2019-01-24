@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
-import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.OutputStreamFlushException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;

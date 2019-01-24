@@ -216,6 +216,7 @@ public class Session {
             tempFileBytesWritten += sessionInfo.session.getTempFilesBytesWritten();
         }
 
+        treeTimer.push("get performance stats");
         final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
         try {
             // Close sessions and get performance stats
@@ -228,6 +229,7 @@ public class Session {
         } catch (Exception e) {
             log.error("Exception trying to close Imhotep sessions", e);
         }
+        treeTimer.pop();
 
         return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
     }

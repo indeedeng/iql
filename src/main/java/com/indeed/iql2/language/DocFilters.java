@@ -256,7 +256,7 @@ public class DocFilters {
                 final JQLParser.QueryNoSelectContext queryCtx = ctx.queryNoSelect();
                 final Query query = Query.parseSubquery(queryCtx, context);
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(new DocFilter.FieldInQuery(query, field, ctx.not != null)));
+                accept(field.wrap(new DocFilter.FieldInQuery(query, field, ctx.not != null, context.datasetsMetadata)));
             }
 
             @Override

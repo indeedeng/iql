@@ -75,6 +75,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
@@ -449,7 +450,7 @@ public class Queries {
         return parser;
     }
 
-    public static List<Command> queryCommands(Query query, DatasetsMetadata datasetsMetadata) {
+    public static List<Command> queryCommands(Query query) {
         Loggers.trace(log, "query = %s", query);
         final Query query1 = FixTopKHaving.apply(query);
         Loggers.trace(log, "query1 = %s", query1);
@@ -493,15 +494,9 @@ public class Queries {
                 log.trace("executionStep = " + executionStep);
             }
         }
-        return asCommands(executionSteps4);
-    }
-
-    static List<Command> asCommands(List<ExecutionStep> executionSteps) {
-        final List<Command> commands = new ArrayList<>();
-        for (final ExecutionStep executionStep : executionSteps) {
-            commands.addAll(executionStep.commands());
-        }
-        return commands;
+        return executionSteps4.stream()
+                .flatMap(x -> x.commands().stream())
+                .collect(Collectors.toList());
     }
 
     public static List<Dataset> findAllDatasets(Query query) {

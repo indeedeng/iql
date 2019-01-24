@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.print.LevelPrinter;
 import com.indeed.iql2.IQL2Options;
@@ -43,7 +42,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class ExplainQueryExecution {
@@ -86,7 +84,7 @@ public class ExplainQueryExecution {
         this.printer = new LevelPrinter();
     }
 
-    public void processExplain() throws TimeoutException, IOException, ImhotepOutOfMemoryException {
+    public void processExplain() throws IOException {
         final Set<String> errors = new HashSet<>();
         final Set<String> warnings = new HashSet<>();
         final Consumer<String> warn = new Consumer<String>() {
@@ -153,8 +151,8 @@ public class ExplainQueryExecution {
                     }
             );
 
-            final List<Command> commands = Queries.queryCommands(query, datasetsMetadata);
-            CommandValidator.validate(commands, query, datasetsMetadata, new ErrorCollector(errors, warnings));
+            final List<Command> commands = Queries.queryCommands(query);
+            CommandValidator.validate(query, datasetsMetadata, new ErrorCollector(errors, warnings));
 
             for (final Command command : commands) {
                 printer.push(command.toString());

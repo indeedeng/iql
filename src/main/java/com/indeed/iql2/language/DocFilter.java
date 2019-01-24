@@ -25,6 +25,7 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.actions.Action;
+import com.indeed.iql2.language.actions.FieldInQueryPlaceholderAction;
 import com.indeed.iql2.language.actions.IntOrAction;
 import com.indeed.iql2.language.actions.MetricAction;
 import com.indeed.iql2.language.actions.QueryAction;
@@ -41,6 +42,7 @@ import com.indeed.iql2.language.util.MapUtil;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -233,18 +235,18 @@ public abstract class DocFilter extends AbstractPositional {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
         public final boolean isNegated; // true if <field> NOT IN <query>
+        private final DatasetsMetadata datasetsMetadata;
 
-        public FieldInQuery(com.indeed.iql2.language.query.Query query, FieldSet field, boolean isNegated) {
+        public FieldInQuery(com.indeed.iql2.language.query.Query query, FieldSet field, boolean isNegated, DatasetsMetadata datasetsMetadata) {
             this.query = query;
             this.field = field;
             this.isNegated = isNegated;
+            this.datasetsMetadata = datasetsMetadata;
         }
 
-
-        // TODO: Should this propagate the transformation or just allow `i` to recurse if desired?
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new FieldInQuery(query, field, isNegated)).copyPosition(this);
+            return i.apply(new FieldInQuery(query, field, isNegated, datasetsMetadata)).copyPosition(this);
         }
 
         @Override
@@ -254,7 +256,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            throw new UnsupportedOperationException("Must transform the FieldInQuery out before doing a .getExecutionActions()");
+            return Collections.singletonList(new FieldInQueryPlaceholderAction(field, query, datasetsMetadata));
         }
 
         @Override
@@ -263,8 +265,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector validator) {
-            // TODO: Should we do anything here? I don't think so...
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            CommandValidator.validate(query, datasetsMetadata, errorCollector);
         }
 
         @Override
