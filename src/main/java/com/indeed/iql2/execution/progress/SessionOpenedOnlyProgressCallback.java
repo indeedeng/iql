@@ -19,6 +19,7 @@ import com.indeed.imhotep.Shard;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
+import com.indeed.iql2.language.query.Queries;
 
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class SessionOpenedOnlyProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+    public void preSessionOpen(final List<Queries.QueryDataset> datasets) {
     }
 
     @Override

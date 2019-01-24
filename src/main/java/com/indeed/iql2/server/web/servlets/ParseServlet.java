@@ -20,7 +20,10 @@ import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,7 +59,10 @@ public class ParseServlet {
         final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         try {
             response.setHeader("Content-Type", "application/json");
-            Queries.parseQuery(q, version == 1, metadataCache.get(), defaultIQL2Options.getOptions(), new StoppedClock());
+            final StoppedClock clock = new StoppedClock();
+            final TracingTreeTimer timer = new TracingTreeTimer();
+            final ShardResolver shardResolver = new NullShardResolver();
+            Queries.parseQuery(q, version == 1, metadataCache.get(), defaultIQL2Options.getOptions(), clock, timer, shardResolver);
             return ImmutableMap.of("parsed", true);
         } catch (Exception e) {
             final HashMap<String, Object> errorMap = new HashMap<>();

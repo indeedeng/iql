@@ -72,6 +72,9 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.shardresolution.CachingShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
@@ -142,6 +145,7 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
+    private final ShardResolver shardResolver;
 
     private final DatasetsMetadata datasetsMetadata;
 
@@ -201,6 +205,7 @@ public class SelectQueryExecution {
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
         this.accessControl = accessControl;
+        this.shardResolver = new CachingShardResolver(new ImhotepClientShardResolver(imhotepClient));
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -294,12 +299,12 @@ public class SelectQueryExecution {
         timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
         timer.pop();
 
         if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
             timer.push("reparse query (paranoid mode)");
-            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock, timer, shardResolver).query;
             timer.pop();
 
             timer.push("check query equals() and hashCode() (paranoid mode)");
@@ -658,7 +663,6 @@ public class SelectQueryExecution {
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
                             imhotepClient,
-                            datasetToChosenShards,
                             groupLimit,
                             Sets.newHashSet(query.options),
                             commands,
@@ -851,7 +855,7 @@ public class SelectQueryExecution {
         return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 
-    private static class DatasetWithMissingShards {
+    public static class DatasetWithMissingShards {
         public final String dataset;
         public final DateTime start;
         public final DateTime end;

@@ -18,9 +18,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
@@ -108,7 +110,7 @@ public class QueriesTest {
     }
 
     private List<String> extractHeadersHelper(final String q, final boolean useLegacy) {
-        final Query query = Queries.parseQuery(q, useLegacy, AllData.DATASET.getDatasetsMetadata(), NO_OPTIONS, new DefaultWallClock()).query;
+        final Query query = Queries.parseQuery(q, useLegacy, AllData.DATASET.getDatasetsMetadata(), NO_OPTIONS, new DefaultWallClock(), new TracingTreeTimer(), new NullShardResolver()).query;
         return Queries.extractHeaders(query);
     }
 

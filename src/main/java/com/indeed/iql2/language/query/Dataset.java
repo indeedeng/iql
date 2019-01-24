@@ -17,6 +17,7 @@ package com.indeed.iql2.language.query;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.DocFilter;
@@ -27,11 +28,14 @@ import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Interval;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,14 +54,26 @@ public class Dataset extends AbstractPositional {
     public final Positioned<DateTime> endExclusive;
     public final Optional<Positioned<String>> alias;
     public final ImmutableMap<Positioned<String>, Positioned<String>> fieldAliases;
+    @Nullable
+    public final List<Shard> shards;
+    @Nullable
+    public final List<Interval> missingShardIntervals;
 
-    public Dataset(Positioned<String> dataset, Positioned<DateTime> startInclusive, Positioned<DateTime> endExclusive,
-                   Optional<Positioned<String>> alias, Map<Positioned<String>, Positioned<String>> fieldAliases) {
+    private Dataset(
+            final Positioned<String> dataset,
+            final Positioned<DateTime> startInclusive,
+            final Positioned<DateTime> endExclusive,
+            final Optional<Positioned<String>> alias,
+            final Map<Positioned<String>, Positioned<String>> fieldAliases,
+            @Nullable final ShardResolver.ShardResolutionResult shardResolutionResult
+    ) {
         this.dataset = dataset;
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
         this.alias = alias;
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
+        this.shards = (shardResolutionResult != null) ? shardResolutionResult.shards : null;
+        this.missingShardIntervals = (shardResolutionResult != null) ? shardResolutionResult.missingShardTimeIntervals : null;
     }
 
     public Positioned<String> getDisplayName() {
@@ -88,6 +104,8 @@ public class Dataset extends AbstractPositional {
             name = Optional.absent();
         }
 
+        final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.transform(Positioned::unwrap));
+
         // Overwrite variables to avoid accidentally using the wrong one.
         final String resolvedDataset = fieldResolver.resolveDataset(name.or(dataset).unwrap());
         fieldResolver = fieldResolver.forScope(Collections.singleton(resolvedDataset));
@@ -105,9 +123,20 @@ public class Dataset extends AbstractPositional {
             initializerFilter = Optional.absent();
         }
         checkRange(start.unwrap(), end.unwrap());
-        final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases);
+        final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases, resolutionResult);
         dataset1.copyPosition(datasetContext);
         return Pair.of(dataset1, initializerFilter);
+    }
+
+    private static ShardResolver.ShardResolutionResult getShards(final Query.Context context, final String dataset, final DateTime start, final DateTime end, final Optional<String> name) {
+        context.timer.push("resolve shards for dataset " + name.or(dataset));
+        final ShardResolver.ShardResolutionResult shardResolutionResult = context.shardResolver.resolve(dataset, start, end);
+        context.timer.pop();
+        return shardResolutionResult;
+    }
+
+    public long numDocs() {
+        return shards.stream().mapToLong(Shard::getNumDocs).sum();
     }
 
     public static Pair<Dataset, Optional<DocFilter>> parsePartialDataset(
@@ -139,6 +168,8 @@ public class Dataset extends AbstractPositional {
                     name = Optional.absent();
                 }
 
+                final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), defaultStart, defaultEnd, name.transform(Positioned::unwrap));
+
                 final String resolvedDataset = fieldResolver.resolveDataset(name.or(dataset).unwrap());
                 final ScopedFieldResolver datasetFieldResolver = fieldResolver.forScope(Collections.singleton(resolvedDataset));
                 final Query.Context datasetContext = context.withFieldResolver(datasetFieldResolver);
@@ -157,7 +188,7 @@ public class Dataset extends AbstractPositional {
                 }
 
                 checkRange(defaultStart, defaultEnd); // this should not fail as we already checked this range before, but just in case.
-                final Dataset dataset1 = new Dataset(dataset, Positioned.unpositioned(defaultStart), Positioned.unpositioned(defaultEnd), name, fieldAliases);
+                final Dataset dataset1 = new Dataset(dataset, Positioned.unpositioned(defaultStart), Positioned.unpositioned(defaultEnd), name, fieldAliases, resolutionResult);
                 dataset1.copyPosition(ctx);
                 accept(Pair.of(dataset1, initializerFilter));
             }
@@ -271,32 +302,33 @@ public class Dataset extends AbstractPositional {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final Dataset dataset1 = (Dataset) o;
         return Objects.equal(dataset, dataset1.dataset) &&
                 Objects.equal(startInclusive, dataset1.startInclusive) &&
                 Objects.equal(endExclusive, dataset1.endExclusive) &&
                 Objects.equal(alias, dataset1.alias) &&
-                Objects.equal(fieldAliases, dataset1.fieldAliases);
+                Objects.equal(fieldAliases, dataset1.fieldAliases) &&
+                Objects.equal(shards, dataset1.shards) &&
+                Objects.equal(missingShardIntervals, dataset1.missingShardIntervals);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, fieldAliases);
+        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, fieldAliases, shards, missingShardIntervals);
     }
 
     @Override
     public String toString() {
         return "Dataset{" +
-                "dataset='" + dataset + '\'' +
+                "dataset=" + dataset +
                 ", startInclusive=" + startInclusive +
                 ", endExclusive=" + endExclusive +
                 ", alias=" + alias +
+                ", fieldAliases=" + fieldAliases +
+                ", shards=" + shards +
+                ", missingShardIntervals=" + missingShardIntervals +
                 '}';
     }
 }

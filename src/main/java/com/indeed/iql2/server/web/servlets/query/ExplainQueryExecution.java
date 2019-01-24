@@ -30,7 +30,9 @@ import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -94,7 +96,8 @@ public class ExplainQueryExecution {
             }
         };
 
-        final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, defaultIQL2Options, warn, clock).query;
+        final TracingTreeTimer timer = new TracingTreeTimer();
+        final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, defaultIQL2Options, warn, clock, timer, new NullShardResolver()).query;
         new ParsedQueryExplain(parsedQuery, errors, warnings).explainParsedQuery();
         if (!isJSON) {
             outputStream.println(printer.toString());

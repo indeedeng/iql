@@ -20,9 +20,11 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolverTest;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -46,7 +48,9 @@ public class AggregateMetricsTest {
             null,
             s -> System.out.println("PARSE WARNING: " + s),
             CLOCK,
-            FIELD_RESOLVER.universalScope()
+            new TracingTreeTimer(),
+            FIELD_RESOLVER.universalScope(),
+            new NullShardResolver()
     );
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {

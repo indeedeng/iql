@@ -15,12 +15,18 @@
 package com.indeed.iql2.language.query;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -35,12 +41,17 @@ import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.query.shardresolution.RemappingShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
+import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +80,8 @@ public class Query extends AbstractPositional {
         public final Consumer<String> warn;
         public final WallClock clock;
         public final ScopedFieldResolver fieldResolver;
+        public final ShardResolver shardResolver;
+        public final TracingTreeTimer timer;
 
         public Context(
                 final List<String> options,
@@ -76,26 +89,29 @@ public class Query extends AbstractPositional {
                 final JQLParser.FromContentsContext fromContext,
                 final Consumer<String> warn,
                 final WallClock clock,
-                final ScopedFieldResolver fieldResolver
-        ) {
+                final TracingTreeTimer timer,
+                final ScopedFieldResolver fieldResolver,
+                final ShardResolver shardResolver) {
             this.options = options;
             this.datasetsMetadata = datasetsMetadata;
             this.fromContext = fromContext;
             this.warn = warn;
             this.clock = clock;
+            this.timer = timer;
             this.fieldResolver = fieldResolver;
+            this.shardResolver = shardResolver;
         }
 
         public Context copyWithAnotherFromContext(final JQLParser.FromContentsContext newContext) {
-            return new Context(options, datasetsMetadata, newContext, warn, clock, fieldResolver);
+            return new Context(options, datasetsMetadata, newContext, warn, clock, timer, fieldResolver, shardResolver);
         }
 
         public Context withFieldResolver(final ScopedFieldResolver fieldResolver) {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, fieldResolver);
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver);
         }
 
         public PartialContext partialContext() {
-            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock);
+            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock, timer, shardResolver);
         }
 
         // Represents Context when we don't yet have a FieldResolver.
@@ -106,17 +122,21 @@ public class Query extends AbstractPositional {
             public final JQLParser.FromContentsContext fromContext;
             public final Consumer<String> warn;
             public final WallClock clock;
+            public final TracingTreeTimer timer;
+            public final ShardResolver shardResolver;
 
-            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock) {
+            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
                 this.options = options;
                 this.datasetsMetadata = datasetsMetadata;
                 this.fromContext = fromContext;
                 this.warn = warn;
                 this.clock = clock;
+                this.timer = timer;
+                this.shardResolver = shardResolver;
             }
 
             public Context fullContext(final ScopedFieldResolver fieldResolver) {
-                return new Context(options, datasetsMetadata, fromContext, warn, clock, fieldResolver);
+                return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver);
             }
         }
     }
@@ -245,10 +265,16 @@ public class Query extends AbstractPositional {
             final DatasetsMetadata datasetsMetadata,
             final Set<String> defaultOptions,
             final Consumer<String> warn,
-            final WallClock clock) {
+            final WallClock clock,
+            final TracingTreeTimer timer,
+            ShardResolver shardResolver
+    ) {
         final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
         options.addAll(defaultOptions);
-        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock);
+        if (QueryOptions.Experimental.hasHosts(options)) {
+            shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));
+        }
+        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver);
         final Query query = parseQuery(
                 queryContext,
                 context,
@@ -372,6 +398,61 @@ public class Query extends AbstractPositional {
         return nameToIndex;
     }
 
+    /**
+     * @return all shards used in this query as well as any sub queries
+     */
+    public ListMultimap<String, List<Shard>> allShardsUsed() {
+        final ListMultimap<String, List<Shard>> allShardsUsed = ArrayListMultimap.create();
+        for (final Dataset dataset : datasets) {
+            allShardsUsed.put(dataset.getDisplayName().unwrap(), dataset.shards);
+        }
+        runOnAllSubQueries(subQuery -> allShardsUsed.putAll(subQuery.query.allShardsUsed()));
+        return allShardsUsed;
+    }
+
+    /**
+     * @return all datasets and any shards they may be missing
+     */
+    public List<SelectQueryExecution.DatasetWithMissingShards> allMissingShards() {
+        final List<SelectQueryExecution.DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
+        for (final Dataset dataset : datasets) {
+            datasetsWithMissingShards.add(new SelectQueryExecution.DatasetWithMissingShards(dataset.getDisplayName().unwrap(), dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap(), dataset.missingShardIntervals));
+        }
+        runOnAllSubQueries(subQuery -> datasetsWithMissingShards.addAll(subQuery.query.allMissingShards()));
+        return datasetsWithMissingShards;
+    }
+
+    public long totalNumDocs() {
+        return datasets.stream().mapToLong(Dataset::numDocs).sum();
+    }
+
+    public int maxConcurrentSessions() {
+        final int[] maxValueStorage = new int[] { datasets.size() };
+        runOnAllSubQueries(subQuery -> {
+            maxValueStorage[0] = Math.max(maxValueStorage[0], subQuery.query.maxConcurrentSessions());
+        });
+        return maxValueStorage[0];
+    }
+
+    private void runOnAllSubQueries(final Consumer<DocFilter.FieldInQuery> consumer) {
+        transform(
+                Functions.identity(),
+                Functions.identity(),
+                Functions.identity(),
+                Functions.identity(),
+                new Function<DocFilter, DocFilter>() {
+                    @Nullable
+                    @Override
+                    public DocFilter apply(@Nullable final DocFilter input) {
+                        if (input instanceof DocFilter.FieldInQuery) {
+                            consumer.accept((DocFilter.FieldInQuery) input);
+                        }
+                        return input;
+                    }
+                }
+        );
+    }
+
     // rewrite field in (A, B), group by field to group by field in (A, B...)
     // only string fields are processed to be backward compatible with Iql1
     private static void rewriteMultiTermIn(final Dataset dataset, final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
@@ -415,28 +496,23 @@ public class Query extends AbstractPositional {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        Query query = (Query) o;
-
-        if (datasets != null ? !datasets.equals(query.datasets) : query.datasets != null) return false;
-        if (filter != null ? !filter.equals(query.filter) : query.filter != null) return false;
-        if (groupBys != null ? !groupBys.equals(query.groupBys) : query.groupBys != null) return false;
-        if (selects != null ? !selects.equals(query.selects) : query.selects != null) return false;
-        return !(rowLimit != null ? !rowLimit.equals(query.rowLimit) : query.rowLimit != null);
-
+        final Query query = (Query) o;
+        return useLegacy == query.useLegacy &&
+                Objects.equal(datasets, query.datasets) &&
+                Objects.equal(filter, query.filter) &&
+                Objects.equal(groupBys, query.groupBys) &&
+                Objects.equal(selects, query.selects) &&
+                Objects.equal(formatStrings, query.formatStrings) &&
+                Objects.equal(options, query.options) &&
+                Objects.equal(rowLimit, query.rowLimit);
     }
 
     @Override
     public int hashCode() {
-        int result = datasets != null ? datasets.hashCode() : 0;
-        result = 31 * result + (filter != null ? filter.hashCode() : 0);
-        result = 31 * result + (groupBys != null ? groupBys.hashCode() : 0);
-        result = 31 * result + (selects != null ? selects.hashCode() : 0);
-        result = 31 * result + (rowLimit != null ? rowLimit.hashCode() : 0);
-        return result;
+        return Objects.hashCode(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
     }
 
     @Override
@@ -446,6 +522,10 @@ public class Query extends AbstractPositional {
                 ", filter=" + filter +
                 ", groupBys=" + groupBys +
                 ", selects=" + selects +
+                ", formatStrings=" + formatStrings +
+                ", options=" + options +
+                ", rowLimit=" + rowLimit +
+                ", useLegacy=" + useLegacy +
                 '}';
     }
 }
