@@ -42,8 +42,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public abstract class DocMetric extends AbstractPositional {
-    private static DecimalFormat DECIMAL_FORMAT = new DecimalFormat();
-
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
         T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
@@ -103,11 +101,6 @@ public abstract class DocMetric extends AbstractPositional {
     public DocMetric copyPosition(Positional positional) {
         super.copyPosition(positional);
         return this;
-    }
-
-    static {
-        // DecimalFormat.DOUBLE_FRACTION_DIGITS is 340
-        DECIMAL_FORMAT.setMaximumFractionDigits(340);
     }
 
     public static class PerDatasetDocMetric extends DocMetric {
@@ -2088,11 +2081,14 @@ public abstract class DocMetric extends AbstractPositional {
 
     private static String makePercentages(final int max) {
         final StringBuilder percentages = new StringBuilder();
+        final DecimalFormat decimalFormat = new DecimalFormat();
+        // DecimalFormat.DOUBLE_FRACTION_DIGITS is 340
+        decimalFormat.setMaximumFractionDigits(340);
         for (int i = 1; i < max; i++) {
             if (percentages.length() > 0) {
                 percentages.append(',');
             }
-            percentages.append(DECIMAL_FORMAT.format(((double) i) / max));
+            percentages.append(decimalFormat.format(((double) i) / max));
         }
         return percentages.toString();
     }
