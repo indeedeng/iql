@@ -421,6 +421,12 @@ public class QueryServlet {
                 .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field))
                 .map((field) -> iqlQuery.getDataset() + "." + field)
                 .collect(Collectors.toSet());
+        final Set<String> hostHashSet = Sets.newHashSet();
+        for (final Shard shard: iqlQuery.getShards()) {
+            hostHashSet.add(shard.getServer().toString());
+        }
+        queryInfo.servers = hostHashSet;
+        queryInfo.numServers = hostHashSet.size();
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
@@ -938,6 +944,8 @@ public class QueryServlet {
         logInteger(logEntry, "rows", queryInfo.rows);
         logSet(logEntry, "sessionid", queryInfo.sessionIDs);
         logInteger(logEntry, "shards", queryInfo.numShards);
+        logSet(logEntry, "servers", queryInfo.servers);
+        logInteger(logEntry, "numServers", queryInfo.numServers);
         if (queryInfo.totalShardPeriodHours != null) {
             logInteger(logEntry, "shardhours", queryInfo.totalShardPeriodHours);
         }
